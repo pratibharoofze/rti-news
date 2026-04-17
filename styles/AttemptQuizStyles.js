@@ -1,0 +1,132 @@
+import { StyleSheet } from 'react-native';
+
+export default StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 110,
+  },
+  heroCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    padding: 20,
+    marginBottom: 14,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+  },
+  heroEyebrow: {
+    fontSize: 12,
+    color: '#2563eb',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  quizProgress: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  progressBarWrap: {
+    height: 6,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 999,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#2563eb',
+    borderRadius: 999,
+  },
+  questionText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  optionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    marginBottom: 10,
+  },
+  optionBtnSelected: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
+  },
+  optionLabel: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionLabelSelected: {
+    backgroundColor: '#2563eb',
+  },
+  optionLabelText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  optionLabelTextSelected: {
+    color: '#ffffff',
+  },
+  optionText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#334155',
+    fontWeight: '600',
+  },
+  optionTextSelected: {
+    color: '#1d4ed8',
+    fontWeight: '700',
+  },
+  nextBtn: {
+    marginTop: 8,
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  nextBtnDisabled: {
+    opacity: 0.6,
+  },
+  nextBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+});

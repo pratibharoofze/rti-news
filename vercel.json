@@ -28,11 +28,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/(?!assets|_expo|favicon\\.ico)(.*)",
-      "destination": "/index.html"
-    }
   ]
 }

@@ -14,16 +14,52 @@ import { useToast } from '../components/ui/ToastProvider';
 import SubscriptionPlansStyles from '../styles/SubscriptionPlansStyles';
 import { UserStore } from '../store/UserStore';
 
+// ✅ Role badge colors
+const ROLE_COLORS = {
+  free:    { bg: '#f1f5f9', text: '#64748b', border: '#cbd5e1' },
+  basic:   { bg: '#eff6ff', text: '#1d4ed8', border: '#93c5fd' },
+  pro:     { bg: '#f0fdf4', text: '#15803d', border: '#86efac' },
+  premium: { bg: '#fefce8', text: '#b45309', border: '#fcd34d' },
+};
+
+function RoleBadge({ role = 'free', label }) {
+  const colors = ROLE_COLORS[role] || ROLE_COLORS.free;
+  return (
+    <View style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 99,
+      borderWidth: 1,
+      backgroundColor: colors.bg,
+      borderColor: colors.border,
+      alignSelf: 'flex-start',
+    }}>
+      <Feather
+        name={role === 'premium' ? 'star' : role === 'pro' ? 'award' : role === 'basic' ? 'check-circle' : 'user'}
+        size={12}
+        color={colors.text}
+      />
+      <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+        {label || UserStore.getRoleLabel(role)}
+      </Text>
+    </View>
+  );
+}
+
 export default function SubscriptionPlansScreen({ navigation, route }) {
   const { showToast } = useToast();
   const [sidebarVisible, setSidebarVisible]   = useState(false);
-  const [activeTab, setActiveTab]             = useState('Home');
   const [loading, setLoading]                 = useState(true);
 
   const [subscriptionData, setSubscriptionData] = useState({
-    currentUser: null,
-    activePlan:  null,
-    plans:       [],
+    currentUser:      null,
+    activePlan:       null,
+    plans:            [],
+    currentRole:      'free',
+    currentRoleLabel: 'Free Member',
   });
 
   const moduleName = 'Subscription Plans';
@@ -45,6 +81,7 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
       loadPlans();
     }, [loadPlans])
   );
+
   useFocusEffect(
     useCallback(() => {
       if (route?.params?.subscriptionSuccessMessage) {
@@ -90,6 +127,39 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
           </Text>
         </View>
 
+        {/* ✅ Current Role Banner */}
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: '#fff',
+          borderRadius: 14,
+          padding: 14,
+          marginHorizontal: 16,
+          marginBottom: 10,
+          borderWidth: 1,
+          borderColor: '#e2e8f0',
+          elevation: 2,
+        }}>
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '600' }}>
+              YOUR CURRENT ROLE
+            </Text>
+            <RoleBadge
+              role={subscriptionData.currentRole}
+              label={subscriptionData.currentRoleLabel}
+            />
+          </View>
+          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+            <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '600' }}>
+              MEMBER
+            </Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a' }}>
+              {subscriptionData.currentUser?.name || '-'}
+            </Text>
+          </View>
+        </View>
+
         {/* Active Plan Banner */}
         {subscriptionData.activePlan && (
           <View style={SubscriptionPlansStyles.activeBanner}>
@@ -120,8 +190,8 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
             </Text>
           ) : subscriptionData.plans.length ? (
             subscriptionData.plans.map((plan) => {
-              const isActive =
-                subscriptionData.activePlan?.plan_id === plan.plan_id;
+              const isActive = subscriptionData.activePlan?.plan_id === plan.plan_id;
+              const planRole = UserStore.getRoleFromPlanId(plan.plan_id);
 
               return (
                 <View
@@ -142,13 +212,17 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
                       </Text>
                     </View>
 
-                    {isActive ? (
-                      <View style={SubscriptionPlansStyles.activePill}>
-                        <Text style={SubscriptionPlansStyles.activePillText}>
-                          Active
-                        </Text>
-                      </View>
-                    ) : null}
+                    <View style={{ gap: 6, alignItems: 'flex-end' }}>
+                      {/* ✅ Role badge on each plan */}
+                      <RoleBadge role={planRole} />
+                      {isActive && (
+                        <View style={SubscriptionPlansStyles.activePill}>
+                          <Text style={SubscriptionPlansStyles.activePillText}>
+                            Active
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
 
                   {/* Price */}
@@ -160,10 +234,7 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
                   {Array.isArray(plan.features) && plan.features.length > 0 && (
                     <View style={SubscriptionPlansStyles.featuresList}>
                       {plan.features.map((feature, idx) => (
-                        <View
-                          key={idx}
-                          style={SubscriptionPlansStyles.featureRow}
-                        >
+                        <View key={idx} style={SubscriptionPlansStyles.featureRow}>
                           <Feather
                             name="check"
                             size={13}
@@ -177,6 +248,26 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
                       ))}
                     </View>
                   )}
+
+                  {/* ✅ Role assignment info */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginTop: 8,
+                    marginBottom: 4,
+                    backgroundColor: '#f8fafc',
+                    borderRadius: 8,
+                    padding: 8,
+                  }}>
+                    <Feather name="shield" size={13} color="#64748b" />
+                    <Text style={{ fontSize: 12, color: '#64748b' }}>
+                      After purchase: Role will be assigned as{' '}
+                      <Text style={{ fontWeight: '700', color: '#0f172a' }}>
+                        {UserStore.getRoleLabel(planRole)}
+                      </Text>
+                    </Text>
+                  </View>
 
                   {/* Buy Button */}
                   {!isActive && (

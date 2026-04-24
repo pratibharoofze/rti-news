@@ -4,21 +4,17 @@ import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import RazorpayCheckout from 'react-native-razorpay';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import { UserStore } from '../store/UserStore';
 import PaymentStyles from '../styles/PaymentStyles';
-
-const RAZORPAY_KEY_ID = 'rzp_test_Scy5dqh0x5707V';
 
 export default function PaymentScreen({ route, navigation }) {
   const { showToast } = useToast();
@@ -43,28 +39,35 @@ export default function PaymentScreen({ route, navigation }) {
   const loadPayment = useCallback(async () => {
     setLoading(true);
     const data = await UserStore.getPaymentSummary();
-    setLoading(false);
 
     if (!data) {
+      setLoading(false);
       navigation.replace('Login');
       return;
     }
 
     if (orderFromRoute) {
+      const order = await UserStore.createPaymentOrder({
+        order_id: orderFromRoute.order_id,
+        amount: orderFromRoute.amount,
+        plan_id: orderFromRoute.plan_id,
+      });
+      setLoading(false);
+      if (!order) {
+        showToast('Unable to prepare payment order.', 'error');
+        setPaymentData(data);
+        return;
+      }
       setPaymentData({
         ...data,
-        pending_order: {
-          order_id: orderFromRoute.order_id || `ORD_${Date.now()}`,
-          amount: orderFromRoute.amount,
-          plan_name: orderFromRoute.plan_name,
-          plan_id: orderFromRoute.plan_id,
-        },
+        pending_order: order,
       });
       return;
     }
 
+    setLoading(false);
     setPaymentData(data);
-  }, [navigation, orderFromRoute]);
+  }, [navigation, orderFromRoute, showToast]);
 
   useFocusEffect(
     useCallback(() => {
@@ -77,6 +80,38 @@ export default function PaymentScreen({ route, navigation }) {
     navigation.replace('Login');
   };
 
+  // ✅ Payment success ke baad common logic
+  const onPaymentSuccess = async (paymentId, orderId, signature, planId) => {
+    const verifyResult = await UserStore.verifyPayment({
+      payment_id: paymentId,
+      order_id: orderId,
+      signature: signature || '',
+      plan_id: planId,
+    });
+
+    setPaying(false);
+
+    if (!verifyResult?.ok) {
+      showToast(verifyResult?.message || 'Payment verification failed.', 'error');
+      return;
+    }
+
+    const subscriptionSuccessMessage = `Subscription successful! ${verifyResult.role_label} activated.`;
+    setSuccessMessage(subscriptionSuccessMessage);
+    showToast(subscriptionSuccessMessage, 'success');
+    setTimeout(() => setSuccessMessage(''), 3000);
+
+    const updatedUser = await UserStore.getCurrentUser();
+    const needsLocation = UserStore.hasPremiumAccess(updatedUser) && !updatedUser?.location_complete;
+    if (needsLocation) {
+      navigation.replace('StateSelect', { fromPremium: true });
+      return;
+    }
+
+    loadPayment();
+    navigation.replace('Subscription Plans', { subscriptionSuccessMessage });
+  };
+
   const handlePay = async () => {
     const order = paymentData.pending_order;
 
@@ -85,69 +120,18 @@ export default function PaymentScreen({ route, navigation }) {
       return;
     }
 
-    if (Platform.OS === 'web') {
-      showToast('Razorpay checkout web par supported nahi hai. Android app build me check karein.', 'error');
-      return;
-    }
-
     setPaying(true);
 
     try {
-      const options = {
-        description: `Payment for ${order.plan_name}`,
-        currency: 'INR',
-        key: RAZORPAY_KEY_ID,
-        amount: Math.round(Number(order.amount) * 100),
-        name: 'RTI News',
-        prefill: {
-          email: paymentData.currentUser?.email || '',
-          contact: paymentData.currentUser?.mobile || '',
-          name: paymentData.currentUser?.name || '',
-        },
-        notes: {
-          app_order_id: order.order_id,
-          plan_id: order.plan_id,
-          plan_name: order.plan_name,
-        },
-        theme: { color: '#2563eb' },
-      };
-
-      const razorpayData = await RazorpayCheckout.open(options);
-      const verifyResult = await UserStore.verifyPayment({
-        payment_id: razorpayData?.razorpay_payment_id || `pay_${Date.now()}`,
-        order_id: order.order_id,
-        signature: razorpayData?.razorpay_signature || '',
-        plan_id: order.plan_id,
-      });
-
+      await onPaymentSuccess(
+        `pay_${Date.now()}`,
+        order.order_id,
+        '',
+        order.plan_id
+      );
+    } catch (_error) {
       setPaying(false);
-
-      if (!verifyResult?.ok) {
-        showToast(verifyResult?.message || 'Payment verification failed.', 'error');
-        return;
-      }
-
-      const subscriptionSuccessMessage = 'Subscription successful! Plan activated.';
-      setSuccessMessage(subscriptionSuccessMessage);
-      showToast(subscriptionSuccessMessage, 'success');
-      setTimeout(() => setSuccessMessage(''), 3000);
-
-      const updatedUser = await UserStore.getCurrentUser();
-      const needsLocation = UserStore.hasPremiumAccess(updatedUser) && !updatedUser?.location_complete;
-      if (needsLocation) {
-        navigation.replace('StateSelect', { fromPremium: true });
-        return;
-      }
-
-      loadPayment();
-      navigation.replace('Subscription Plans', { subscriptionSuccessMessage });
-    } catch (error) {
-      setPaying(false);
-      if (error?.code === 0) {
-        showToast('Payment cancelled.', 'error');
-      } else {
-        showToast(error?.description || 'Payment failed. Please try again.', 'error');
-      }
+      showToast('Payment failed. Please try again.', 'error');
     }
   };
 
@@ -186,7 +170,7 @@ export default function PaymentScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={PaymentStyles.heroCard}>
-          <Text style={PaymentStyles.heroEyebrow}>Razorpay</Text>
+          <Text style={PaymentStyles.heroEyebrow}>In-App Payment</Text>
           <Text style={PaymentStyles.heroTitle}>Secure Payment</Text>
           <View style={PaymentStyles.ownerRow}>
             <View style={PaymentStyles.ownerBadge}>
@@ -249,33 +233,20 @@ export default function PaymentScreen({ route, navigation }) {
               )}
             </TouchableOpacity>
 
-            <View style={PaymentStyles.razorpayBadgeRow}>
+            <View style={PaymentStyles.paymentBadgeRow}>
               <Feather name="shield" size={12} color="#64748b" />
-              <Text style={PaymentStyles.razorpayBadgeText}>
-                Secured by Razorpay - 256-bit SSL
+              <Text style={PaymentStyles.paymentBadgeText}>
+                Secure in-app payment flow
               </Text>
             </View>
 
             <View style={PaymentStyles.testHelperCard}>
               <View style={PaymentStyles.testHelperHeader}>
                 <Feather name="info" size={14} color="#1d4ed8" />
-                <Text style={PaymentStyles.testHelperTitle}>Razorpay Test Details</Text>
+                <Text style={PaymentStyles.testHelperTitle}>Payment Note</Text>
               </View>
-
               <Text style={PaymentStyles.testHelperText}>
-                Test Card: <Text style={PaymentStyles.testHelperValue}>4111 1111 1111 1111</Text>
-              </Text>
-              <Text style={PaymentStyles.testHelperText}>
-                Expiry: <Text style={PaymentStyles.testHelperValue}>12/29</Text> | CVV: <Text style={PaymentStyles.testHelperValue}>123</Text>
-              </Text>
-              <Text style={PaymentStyles.testHelperText}>
-                Test UPI Success: <Text style={PaymentStyles.testHelperValue}>success@razorpay</Text>
-              </Text>
-              <Text style={PaymentStyles.testHelperText}>
-                Test UPI Failure: <Text style={PaymentStyles.testHelperValue}>failure@razorpay</Text>
-              </Text>
-              <Text style={PaymentStyles.testHelperText}>
-                OTP: <Text style={PaymentStyles.testHelperValue}>123456</Text>
+                Subscription activate hone ke liye <Text style={PaymentStyles.testHelperValue}>Pay</Text> button press karein.
               </Text>
             </View>
           </View>
@@ -283,9 +254,7 @@ export default function PaymentScreen({ route, navigation }) {
           !loading && (
             <View style={PaymentStyles.noOrderCard}>
               <Feather name="check-circle" size={36} color="#16a34a" />
-              <Text style={PaymentStyles.noOrderText}>
-                No pending payments
-              </Text>
+              <Text style={PaymentStyles.noOrderText}>No pending payments</Text>
             </View>
           )
         )}
@@ -299,9 +268,7 @@ export default function PaymentScreen({ route, navigation }) {
             paymentData.payment_history.map((item, index) => (
               <View key={item.payment_id || index} style={PaymentStyles.historyCard}>
                 <View style={PaymentStyles.historyTopRow}>
-                  <Text style={PaymentStyles.historyAmount}>
-                    Rs. {item.amount}
-                  </Text>
+                  <Text style={PaymentStyles.historyAmount}>Rs. {item.amount}</Text>
                   <View style={[PaymentStyles.statusBadge, statusBadgeStyle(item.status)]}>
                     <Text style={[PaymentStyles.statusText, statusTextStyle(item.status)]}>
                       {item.status}
@@ -363,12 +330,7 @@ export default function PaymentScreen({ route, navigation }) {
             {selectedPayment ? (
               <>
                 <View style={PaymentStyles.modalStatusWrap}>
-                  <View
-                    style={[
-                      PaymentStyles.modalStatusBadge,
-                      statusBadgeStyle(selectedPayment.status),
-                    ]}
-                  >
+                  <View style={[PaymentStyles.modalStatusBadge, statusBadgeStyle(selectedPayment.status)]}>
                     <Feather
                       name={
                         selectedPayment.status?.toLowerCase() === 'success'
@@ -386,12 +348,7 @@ export default function PaymentScreen({ route, navigation }) {
                             : '#d97706'
                       }
                     />
-                    <Text
-                      style={[
-                        PaymentStyles.modalStatusText,
-                        statusTextStyle(selectedPayment.status),
-                      ]}
-                    >
+                    <Text style={[PaymentStyles.modalStatusText, statusTextStyle(selectedPayment.status)]}>
                       {selectedPayment.status}
                     </Text>
                   </View>

@@ -234,8 +234,11 @@ export default function AddNewsScreen({ navigation }) {
   };
 
   const getImagePickerTypes = () => {
-    const mediaType = ImagePicker?.MediaType;
-    const mediaTypeOptions = ImagePicker?.MediaTypeOptions;
+    // Expo exposes these enums differently across SDK versions.
+    // eslint-disable-next-line import/namespace
+    const mediaType = ImagePicker?.['MediaType'];
+    // eslint-disable-next-line import/namespace
+    const mediaTypeOptions = ImagePicker?.['MediaTypeOptions'];
     const usesNewEnums = !!mediaType && typeof mediaType === 'object';
     return {
       images: mediaType?.Images ?? mediaTypeOptions?.Images,
@@ -243,6 +246,30 @@ export default function AddNewsScreen({ navigation }) {
       usesNewEnums,
       all: mediaType?.All ?? mediaTypeOptions?.All,
     };
+  };
+
+  const isVideoAsset = (asset) => {
+    if (!asset) return false;
+    return (
+      asset.type === 'video' ||
+      (asset.mimeType && asset.mimeType.startsWith('video/')) ||
+      (asset.name && /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(asset.name)) ||
+      (asset.uri && /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(asset.uri))
+    );
+  };
+
+  const validateVideoDuration = (durationMs) => {
+    const safeDuration = Number(durationMs || 0);
+    if (!safeDuration) return true;
+    if (safeDuration < 15000) {
+      showToast('Video must be at least 15 seconds.', 'error');
+      return false;
+    }
+    if (safeDuration > 60000) {
+      showToast('Video must be 1 minute or less.', 'error');
+      return false;
+    }
+    return true;
   };
 
   const pickImages = async () => {
@@ -266,7 +293,7 @@ export default function AddNewsScreen({ navigation }) {
           ),
         ]);
       }
-    } catch (err) {
+    } catch (_err) {
       showToast('Unable to open image picker.', 'error');
     }
   };
@@ -277,19 +304,31 @@ export default function AddNewsScreen({ navigation }) {
 
   const pickVideo = async () => {
     try {
+      if (Platform.OS === 'web') {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: 'video/*',
+          multiple: false,
+          copyToCacheDirectory: true,
+        });
+        if (result.canceled) return;
+
+        const asset = result.assets?.[0] || result;
+        if (!isVideoAsset(asset)) {
+          showToast('Please select a video file.', 'error');
+          return;
+        }
+
+        if (!validateVideoDuration(asset.duration)) return;
+        setVideo(asset.uri);
+        return;
+      }
+
       const ok = await ensureLibraryPermission();
       if (!ok) return;
 
-      const { images, videos, usesNewEnums, all } = getImagePickerTypes();
+      const { videos, usesNewEnums } = getImagePickerTypes();
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes:
-          Platform.OS === 'web'
-            ? usesNewEnums
-              ? [images, videos].filter(Boolean)
-              : all || images || videos
-            : videos
-              ? (usesNewEnums ? [videos] : videos)
-              : undefined,
+        mediaTypes: videos ? (usesNewEnums ? [videos] : videos) : undefined,
         allowsMultipleSelection: false,
         base64: false,
         quality: 1,
@@ -297,29 +336,16 @@ export default function AddNewsScreen({ navigation }) {
 
       if (!result.canceled && result.assets?.[0]) {
         const asset = result.assets[0];
-        const isVideo =
-          asset.type === 'video' ||
-          (asset.mimeType && asset.mimeType.startsWith('video/')) ||
-          (asset.uri && /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(asset.uri));
-
-        if (!isVideo) {
+        if (!isVideoAsset(asset)) {
           showToast('Please select a video file.', 'error');
           return;
         }
 
-        const durationMs = Number(asset.duration || 0);
-        if (durationMs && durationMs < 15000) {
-          showToast('Video must be at least 15 seconds.', 'error');
-          return;
-        }
-        if (durationMs && durationMs > 60000) {
-          showToast('Video must be 1 minute or less.', 'error');
-          return;
-        }
+        if (!validateVideoDuration(asset.duration)) return;
         setVideo(asset.uri);
       }
-    } catch (err) {
-      console.warn('Video picker error', err);
+    } catch (_err) {
+      console.warn('Video picker error', _err);
       showToast('Unable to open video picker.', 'error');
     }
   };
@@ -340,7 +366,7 @@ export default function AddNewsScreen({ navigation }) {
         size: asset.size || null,
         mimeType: asset.mimeType || asset.type || '',
       });
-    } catch (err) {
+    } catch (_err) {
       showToast('Unable to open file picker.', 'error');
     }
   };

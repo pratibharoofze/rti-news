@@ -59,8 +59,6 @@ const INDIAN_STATES = [
   'Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
   'Andaman & Nicobar','Chandigarh','Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry',
 ];
-const SUBSCRIPTION_TYPES = ['Basic', 'Standard', 'Premium', 'Enterprise'];
-
 function generateReferralCode(email = '') {
   if (!email) return 'RTI000000';
   let h = 0;
@@ -134,7 +132,7 @@ function getDocumentState(v, p) {
 const initialForm = {
   name:'', email:'', village:'', state:'', bio:'', contact_number:'', phone_number:'', mobile_number:'',
   subscription_type:'', profile_image:'', id_card_image:'', appointment_letter_image:'',
-  id_card_status:'', appointment_letter_status:'', referral_count:0, referral_code:'', is_subscribed:false,
+  role_label:'', id_card_status:'', appointment_letter_status:'', referral_count:0, referral_code:'', is_subscribed:false,
 };
 const profileFields = [
   { key:'name',           label:'Full Name',      editable:true,  icon:'user'  },
@@ -541,6 +539,7 @@ export default function ProfileScreen({ navigation }) {
       phone_number: user.phone_number || '',
       mobile_number: user.mobile_number || user.mobile || user.contact_number || '',
       subscription_type: user.subscription_type || '', profile_image: safeImage,
+      role_label: user.role_label || UserStore.getRoleLabel(user.role || 'free'),
       is_subscribed: UserStore.hasActiveSubscription(user),
       id_card_image: user.id_card_image || '', appointment_letter_image: user.appointment_letter_image || '',
       id_card_status: user.id_card_status || '', appointment_letter_status: user.appointment_letter_status || '',
@@ -647,7 +646,7 @@ export default function ProfileScreen({ navigation }) {
       mobile_number: form.mobile_number.trim(),
       contact_number: form.mobile_number.trim(),
       mobile: form.mobile_number.trim(),
-      subscription_type: form.subscription_type, profile_image: form.profile_image,
+      profile_image: form.profile_image,
       my_referral_code: refCode,
       id_card_image: genId, appointment_letter_image: genAppt,
       id_card_status: genId ? 'approved' : '', appointment_letter_status: genAppt ? 'approved' : '',
@@ -660,6 +659,7 @@ export default function ProfileScreen({ navigation }) {
       phone_number: updated.phone_number || '',
       mobile_number: updated.mobile_number || updated.mobile || updated.contact_number || '',
       subscription_type: updated.subscription_type || '', profile_image: updated.profile_image || '',
+      role_label: updated.role_label || UserStore.getRoleLabel(updated.role || 'free'),
       is_subscribed: UserStore.hasActiveSubscription(updated),
       id_card_image: updated.id_card_image || '', appointment_letter_image: updated.appointment_letter_image || '',
       id_card_status: updated.id_card_status || '', appointment_letter_status: updated.appointment_letter_status || '',
@@ -765,8 +765,21 @@ export default function ProfileScreen({ navigation }) {
                 <SimpleDropdown value={form.state} options={INDIAN_STATES} onSelect={v => handleChange('state', v)} placeholder="Select your state..." />
               </View>
               <View style={ProfileStyles.fullWidthGroup}>
-                <Text style={ProfileStyles.inputLabel}>Subscription Type</Text>
-                <SimpleDropdown value={form.subscription_type} options={SUBSCRIPTION_TYPES} onSelect={v => handleChange('subscription_type', v)} placeholder="Select subscription..." />
+                <Text style={ProfileStyles.inputLabel}>Subscription</Text>
+                <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
+                  <Feather name="star" size={16} color="#8a94a6" />
+                  <TextInput
+                    style={[ProfileStyles.input, ProfileStyles.inputDisabled]}
+                    value={form.role_label ? `${form.role_label} (${form.subscription_type || 'free'})` : (form.subscription_type || 'free')}
+                    editable={false}
+                  />
+                </View>
+                {!form.is_subscribed ? (
+                  <TouchableOpacity style={[ProfileStyles.uploadPill, { marginTop: 10 }]} onPress={() => navigation.navigate('Subscription Plans')}>
+                    <Feather name="credit-card" size={14} color="#6d3df5" />
+                    <Text style={ProfileStyles.uploadPillText}>Take Subscription</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
               <View style={ProfileStyles.fullWidthGroup}>
                 <Text style={ProfileStyles.inputLabel}>Bio</Text>

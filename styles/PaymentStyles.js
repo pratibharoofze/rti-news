@@ -141,13 +141,13 @@ const PaymentStyles = StyleSheet.create({
     fontWeight: '800',
     color: '#ffffff',
   },
-  razorpayBadgeRow: {
+  paymentBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  razorpayBadgeText: {
+  paymentBadgeText: {
     fontSize: 11,
     color: '#94a3b8',
     fontWeight: '600',

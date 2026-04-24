@@ -196,7 +196,6 @@ export default function RegisterScreen({ navigation }) {
   };
 
   const handleRegister = async () => {
-    // ── Validation ──
     if (!name.trim()) {
       showToast('Please enter your full name', 'error'); return;
     }
@@ -213,13 +212,11 @@ export default function RegisterScreen({ navigation }) {
       showToast('Passwords do not match', 'error'); return;
     }
 
-    // ── Check existing user ──
     const existing = await UserStore.getUser(email);
     if (existing) {
       showToast('This email is already registered!', 'error'); return;
     }
 
-    // ── Save user ──
     const result = await UserStore.saveUser({
       name: name.trim(),
       mobile: mobile.trim(),
@@ -232,7 +229,6 @@ export default function RegisterScreen({ navigation }) {
       showToast(result.message || 'Registration failed', 'error'); return;
     }
 
-    // ── Auto-login the user ──
     await UserStore.setCurrentUser(email.trim().toLowerCase());
 
     showToast(`Welcome, ${name}! Account created successfully! 🚀`, 'success');
@@ -241,15 +237,21 @@ export default function RegisterScreen({ navigation }) {
 
 
   return (
+    // ✅ FIX 1: KeyboardAvoidingView with flex:1
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {/* ✅ FIX 2: root View has flex:1 but NO overflow:hidden so ScrollView can scroll */}
       <View style={styles.root}>
+
+        {/* Glow effects are purely decorative — keep them absolute */}
         <View style={[styles.glow, styles.glowTop]} />
         <View style={[styles.glow, styles.glowBottom]} />
 
+        {/* ✅ FIX 3: ScrollView gets style={{ flex: 1 }} so it fills available height on web */}
         <ScrollView
+          style={styles.scrollView}
           contentContainerStyle={styles.formScroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -319,7 +321,6 @@ export default function RegisterScreen({ navigation }) {
                 />
               </View>
             </View>
-
 
             {/* ── Referral Code ── */}
             <View style={styles.inputGroup}>
@@ -402,4 +403,3 @@ export default function RegisterScreen({ navigation }) {
     </KeyboardAvoidingView>
   );
 }
-

@@ -1,10 +1,12 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { enableScreens } from 'react-native-screens';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-enableScreens(false);
-
+import HomeScreen from '../screens/HomeScreen';
+import AboutScreen from '../screens/AboutScreen';
+import ContactScreen from '../screens/ContactScreen';
+import WhatIsRTIScreen from '../screens/WhatIsRTIScreen';
+import ImportantLawsScreen from '../screens/ImportantLawsScreen';
 import LoginScreen from '../auth/LoginScreen';
 import RegisterScreen from '../auth/RegisterScreen';
 import StateSelectScreen from '../auth/StateSelectScreen';
@@ -30,46 +32,56 @@ import SettingsScreen from '../pages/SettingsScreen';
 import ViewMemberScreen from '../pages/ViewMemberScreen';
 import EditMemberScreen from '../pages/EditMemberScreen';
 import PaymentScreen from '../pages/PaymentScreen';
-import AttemptQuizScreen from '../pages/AttemptQuizScreen';   // new
-import QuizResultScreen from '../pages/QuizResultScreen';     // new
+import AttemptQuizScreen from '../pages/AttemptQuizScreen';
+import QuizResultScreen from '../pages/QuizResultScreen';
 import CertificatePreviewScreen from '../pages/CertificatePreviewScreen';
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Login"
+        initialRouteName="Home"
         screenOptions={{ headerShown: false }}
       >
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="StateSelect" component={StateSelectScreen} />
+        {/* ── Public / Landing ── */}
+        <Stack.Screen name="Home"          component={HomeScreen} />
+        <Stack.Screen name="About"         component={AboutScreen} />
+        <Stack.Screen name="Contact"       component={ContactScreen} />
+        <Stack.Screen name="WhatIsRTI"     component={WhatIsRTIScreen} />
+        <Stack.Screen name="ImportantLaws" component={ImportantLawsScreen} />
+
+        {/* ── Auth ── */}
+        <Stack.Screen name="Login"         component={LoginScreen} />
+        <Stack.Screen name="Register"      component={RegisterScreen} />
+        <Stack.Screen name="StateSelect"   component={StateSelectScreen} />
         <Stack.Screen name="DistrictSelect" component={DistrictSelectScreen} />
-        <Stack.Screen name="TalukaSelect" component={TalukaSelectScreen} />
+        <Stack.Screen name="TalukaSelect"  component={TalukaSelectScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="Otp" component={OtpScreen} />
+        <Stack.Screen name="Otp"           component={OtpScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-        <Stack.Screen name="Dashboard" component={DashboardScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="My Network" component={MyNetworkScreen} />
-        <Stack.Screen name="Wallet" component={WalletScreen} />
-        <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+
+        {/* ── App Screens ── */}
+        <Stack.Screen name="Dashboard"         component={DashboardScreen} />
+        <Stack.Screen name="Profile"           component={ProfileScreen} />
+        <Stack.Screen name="My Network"        component={MyNetworkScreen} />
+        <Stack.Screen name="Wallet"            component={WalletScreen} />
+        <Stack.Screen name="Withdraw"          component={WithdrawScreen} />
         <Stack.Screen name="Subscription Plans" component={SubscriptionPlansScreen} />
-        <Stack.Screen name="News Feed" component={NewsFeedScreen} />
-        <Stack.Screen name="Add News" component={AddNewsScreen} />
-        <Stack.Screen name="e-Paper" component={EPaperScreen} />
-        <Stack.Screen name="Live Streaming" component={LiveStreamingScreen} />
-        <Stack.Screen name="Start Live" component={LiveBroadcastScreen} />
-        <Stack.Screen name="Certification" component={CertificationScreen} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="ViewMember" component={ViewMemberScreen} />
-        <Stack.Screen name="EditMember" component={EditMemberScreen} />
-        <Stack.Screen name="Payment" component={PaymentScreen} />
-        <Stack.Screen name="AttemptQuiz" component={AttemptQuizScreen} />
-        <Stack.Screen name="QuizResult" component={QuizResultScreen} />
+        <Stack.Screen name="News Feed"         component={NewsFeedScreen} />
+        <Stack.Screen name="Add News"          component={AddNewsScreen} />
+        <Stack.Screen name="e-Paper"           component={EPaperScreen} />
+        <Stack.Screen name="Live Streaming"    component={LiveStreamingScreen} />
+        <Stack.Screen name="Start Live"        component={LiveBroadcastScreen} />
+        <Stack.Screen name="Certification"     component={CertificationScreen} />
+        <Stack.Screen name="Notifications"     component={NotificationsScreen} />
+        <Stack.Screen name="Settings"          component={SettingsScreen} />
+        <Stack.Screen name="ViewMember"        component={ViewMemberScreen} />
+        <Stack.Screen name="EditMember"        component={EditMemberScreen} />
+        <Stack.Screen name="Payment"           component={PaymentScreen} />
+        <Stack.Screen name="AttemptQuiz"       component={AttemptQuizScreen} />
+        <Stack.Screen name="QuizResult"        component={QuizResultScreen} />
         <Stack.Screen name="CertificatePreview" component={CertificatePreviewScreen} />
       </Stack.Navigator>
     </NavigationContainer>

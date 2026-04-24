@@ -99,6 +99,20 @@ const AddNewsStyles = StyleSheet.create({
     placeholderColor: '#94a3b8',
     contentCSSText: 'font-family: sans-serif; padding: 8px; line-height: 1.6;',
   },
+  webTextInput: {
+    minHeight: 160,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+    backgroundColor: '#ffffff',
+    padding: 12,
+    fontSize: 14,
+    color: '#0f172a',
+    textAlignVertical: 'top',
+  },
 
   stateSelector: {
     flexDirection: 'row',

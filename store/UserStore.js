@@ -18,6 +18,30 @@ const CERTIFICATE_DIR = certificateDirectory
   : null;
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  ROLE SYSTEM
+//  plan-basic    → role: 'basic'
+//  plan-pro      → role: 'pro'
+//  plan-premium  → role: 'premium'
+//  no plan       → role: 'free'
+// ─────────────────────────────────────────────────────────────────────────────
+const getRoleFromPlanId = (planId = '') => {
+  const id = String(planId).toLowerCase();
+  if (id === 'plan-premium') return 'premium';
+  if (id === 'plan-pro')     return 'pro';
+  if (id === 'plan-basic')   return 'basic';
+  return 'free';
+};
+
+const ROLE_LABELS = {
+  free:    'Free Member',
+  basic:   'Basic Member',
+  pro:     'Pro Member',
+  premium: 'Premium Member',
+};
+
+const getRoleLabel = (role = 'free') => ROLE_LABELS[role] || 'Free Member';
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  RANK SYSTEM
 // ─────────────────────────────────────────────────────────────────────────────
 const RANK_TIERS = [
@@ -38,7 +62,7 @@ const calculateRank = (referralCount = 0) => {
 //  REFERRAL CODE GENERATOR  →  RTI-XXXXXX  (6 alphanumeric chars)
 // ─────────────────────────────────────────────────────────────────────────────
 const generateReferralCode = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = 'RTI-';
   for (let i = 0; i < 6; i++) {
     code += chars[Math.floor(Math.random() * chars.length)];
@@ -77,6 +101,7 @@ const defaultSubscriptionPlans = [
     price:     199,
     duration:  '30 Days',
     features:  ['News Feed', 'e-Paper', 'Notifications'],
+    role:      'basic',
   },
   {
     plan_id:   'plan-pro',
@@ -84,6 +109,7 @@ const defaultSubscriptionPlans = [
     price:     499,
     duration:  '90 Days',
     features:  ['News Feed', 'e-Paper', 'Live Streaming', 'Wallet', 'Certification'],
+    role:      'pro',
   },
   {
     plan_id:   'plan-premium',
@@ -91,6 +117,7 @@ const defaultSubscriptionPlans = [
     price:     899,
     duration:  '180 Days',
     features:  ['All Features', 'Priority Support', 'Certificate Download', 'Referral Bonus'],
+    role:      'premium',
   },
 ];
 
@@ -180,9 +207,6 @@ const defaultNotifications = [
 
 const defaultSettings = { language: 'English', password: '' };
 
-const defaultPaymentHistory = [
-  { order_id: 'ORD_DEMO_001', payment_id: 'pay_DEMO_001', amount: 199, status: 'success', date: '2026-03-20' },
-];
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  NORMALIZERS
@@ -227,7 +251,13 @@ const normalizeSubscription = (s = {}) => ({
   price:     Number(s.price ?? defaultActiveSubscription.price),
   duration:  s.duration  || defaultActiveSubscription.duration,
   features:  Array.isArray(s.features) ? s.features : [],
+  role:      s.role      || getRoleFromPlanId(s.plan_id),
 });
+
+const normalizeSubscriptionPlan = (plan) => {
+  if (!plan || (!plan.plan_id && !plan.plan_name)) return null;
+  return normalizeSubscription(plan);
+};
 
 const normalizeComments = (comments = []) => {
   if (!Array.isArray(comments)) return [];
@@ -351,7 +381,6 @@ const normalizeStreams = (items = []) => {
   const normalized = src.map((item, i) => {
     const status = (item.status || 'upcoming').toLowerCase();
     const streamUrl = item.stream_url || item.youtube_link || '';
-
     return {
       id:           item.id           || `stream-${i + 1}`,
       stream_title: item.stream_title || 'Live Stream',
@@ -420,6 +449,10 @@ const normalizePaymentHistory = (items = []) => {
     amount:     Number(item.amount || 0),
     status:     item.status     || 'pending',
     date:       item.date       || '2026-03-24',
+    plan_id:    item.plan_id    || '',
+    plan_name:  item.plan_name  || '',
+    signature:  item.signature  || '',
+    gateway_order_id: item.gateway_order_id || item.razorpay_order_id || '',
   }));
 };
 
@@ -443,10 +476,15 @@ const hasActiveSubscription = (user = {}) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  FULL USER NORMALIZER  (now includes referral + rank fields)
+//  FULL USER NORMALIZER
 // ─────────────────────────────────────────────────────────────────────────────
 const normalizeUser = (user = {}) => {
   const referralCount = Number(user.referral_count || 0);
+
+  // ✅ Role: use saved role, or derive from subscription_plan, or default 'free'
+  const savedPlan = normalizeSubscriptionPlan(user.subscription_plan);
+  const role = user.role || getRoleFromPlanId(savedPlan?.plan_id) || 'free';
+
   return {
     ...user,
     name:                user.name                || '',
@@ -459,7 +497,15 @@ const normalizeUser = (user = {}) => {
     district:            user.district            || '',
     taluka:              user.taluka              || '',
     location_complete:   user.location_complete   !== undefined ? user.location_complete : false,
-    subscription_type:   user.subscription_type   || 'basic',
+    subscription_type:   user.subscription_type   || role || 'free',
+
+    // ✅ Role fields
+    role,
+    role_label:          getRoleLabel(role),
+    is_subscribed:       user.is_subscribed !== undefined
+                           ? Boolean(user.is_subscribed)
+                           : role !== 'free',
+
     village:             user.village             || '',
     bio:                 user.bio                 || '',
     profile_image:       user.profile_image       || '',
@@ -475,7 +521,7 @@ const normalizeUser = (user = {}) => {
     // ── Nested objects ──
     wallet_transactions: normalizeWalletTransactions(user.wallet_transactions),
     withdraw_requests:   normalizeWithdrawRequests(user.withdraw_requests),
-    subscription_plan:   normalizeSubscription(user.subscription_plan),
+    subscription_plan:   savedPlan,
     payment_history:     normalizePaymentHistory(user.payment_history),
     settings:            normalizeSettings(user.settings),
   };
@@ -625,7 +671,10 @@ export const UserStore = {
   hasActiveSubscription: (user) => hasActiveSubscription(user),
   isPremiumPlan: (plan) => isPremiumPlan(plan),
 
-  // ── saveUser — handles referral logic + rank + state + subscription ──
+  // ✅ Role helpers — accessible from any screen
+  getRoleFromPlanId,
+  getRoleLabel,
+
   saveUser: async ({
     name,
     mobile,
@@ -634,12 +683,11 @@ export const UserStore = {
     state             = '',
     district          = '',
     taluka            = '',
-    subscription_type = 'basic',
+    subscription_type = 'free',
     referral_code_used = null,
   }) => {
     try {
       const users = await getUsersFromStorage();
-
       const my_referral_code = await generateUniqueReferralCode(users);
 
       let referred_by = '';
@@ -663,6 +711,8 @@ export const UserStore = {
         taluka,
         location_complete: false,
         subscription_type,
+        role: 'free',           // ✅ New users start as 'free'
+        is_subscribed: false,
         my_referral_code,
         referred_by,
         referral_code_used: referral_code_used || '',
@@ -670,7 +720,7 @@ export const UserStore = {
         join_date: new Date().toISOString().slice(0, 10),
         wallet_transactions: defaultWalletTransactions,
         withdraw_requests:   [],
-        subscription_plan:   defaultActiveSubscription,
+        subscription_plan:   null,
         payment_history:     [],
         settings:            defaultSettings,
       });
@@ -691,7 +741,7 @@ export const UserStore = {
       updatedUsers.push(newUser);
       await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
       return { ok: true, user: newUser };
-    } catch (err) {
+    } catch (_err) {
       return { ok: false, message: 'Registration failed. Please try again.' };
     }
   },
@@ -715,7 +765,7 @@ export const UserStore = {
           rank: calculateRank(mergedReferralCount),
           wallet_transactions: normalizeWalletTransactions(updates.wallet_transactions !== undefined ? updates.wallet_transactions : user.wallet_transactions),
           withdraw_requests:   normalizeWithdrawRequests(updates.withdraw_requests !== undefined ? updates.withdraw_requests : user.withdraw_requests),
-          subscription_plan:   normalizeSubscription(updates.subscription_plan !== undefined ? updates.subscription_plan : user.subscription_plan),
+          subscription_plan:   normalizeSubscriptionPlan(updates.subscription_plan !== undefined ? updates.subscription_plan : user.subscription_plan),
           payment_history:     normalizePaymentHistory(updates.payment_history !== undefined ? updates.payment_history : user.payment_history),
           settings:            normalizeSettings(updates.settings !== undefined ? updates.settings : user.settings),
         });
@@ -728,7 +778,6 @@ export const UserStore = {
     } catch { return null; }
   },
 
-  // ── Complete Location Setup ───────────────────────────────────────────────
   completeLocationSetup: async (email, state, district = '', taluka = '') => {
     return await UserStore.updateUser(email, {
       state,
@@ -757,7 +806,6 @@ export const UserStore = {
     catch { return false; }
   },
 
-  // ── Referral Summary ──────────────────────────────────────────────────────
   getReferralSummary: async () => {
     try {
       const currentUser = await UserStore.getCurrentUser();
@@ -785,7 +833,6 @@ export const UserStore = {
     } catch { return null; }
   },
 
-  // ── My Network ────────────────────────────────────────────────────────────
   getMyNetwork: async () => {
     try {
       const currentUser = await UserStore.getCurrentUser();
@@ -801,7 +848,9 @@ export const UserStore = {
           mobile:        user.mobile || '-',
           state:         user.state || '-',
           rank:          user.rank || 'Member',
-          subscription_type: user.subscription_type || 'basic',
+          role:          user.role || 'free',
+          role_label:    getRoleLabel(user.role || 'free'),
+          subscription_type: user.subscription_type || user.role || 'free',
           subscription_plan: user.subscription_plan || null,
           is_subscribed: hasActiveSubscription(user),
           referred_by:   user.referred_by || 'Direct Signup',
@@ -825,7 +874,6 @@ export const UserStore = {
     } catch { return null; }
   },
 
-  // ── Wallet ────────────────────────────────────────────────────────────────
   getWalletSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -837,7 +885,6 @@ export const UserStore = {
     } catch { return null; }
   },
 
-  // ── Withdraw ──────────────────────────────────────────────────────────────
   getWithdrawSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -868,16 +915,21 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to create withdrawal request.' }; }
   },
 
-  // ── Subscription ──────────────────────────────────────────────────────────
   getSubscriptionSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return null;
-      return { currentUser: user, activePlan: normalizeSubscription(user.subscription_plan), plans: defaultSubscriptionPlans };
+      return {
+        currentUser: user,
+        activePlan:  hasActiveSubscription(user) ? normalizeSubscriptionPlan(user.subscription_plan) : null,
+        plans:       defaultSubscriptionPlans,
+        // ✅ Current role info
+        currentRole:      user.role || 'free',
+        currentRoleLabel: getRoleLabel(user.role || 'free'),
+      };
     } catch { return null; }
   },
 
-  // ── Payment ───────────────────────────────────────────────────────────────
   getPaymentSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -888,32 +940,83 @@ export const UserStore = {
 
   createPaymentOrder: async ({ order_id, amount, plan_id }) => {
     try {
-      return { razorpay_order_id: `order_mock_${Date.now()}`, order_id, amount, plan_id };
+      const user = await UserStore.getCurrentUser();
+      if (!user) return null;
+
+      const activePlan = defaultSubscriptionPlans.find((p) => p.plan_id === plan_id);
+      if (!activePlan) return null;
+
+      const nextOrderId = order_id || `ORD_${Date.now()}`;
+      return {
+        order_id: nextOrderId,
+        amount: Number(amount ?? activePlan.price),
+        plan_id: activePlan.plan_id,
+        plan_name: activePlan.plan_name,
+        duration: activePlan.duration,
+        role: activePlan.role || getRoleFromPlanId(activePlan.plan_id),
+        created_by: user.email || '',
+      };
     } catch { return null; }
   },
 
+  // ✅ FIXED: verifyPayment — proper role assignment for all plans
   verifyPayment: async ({ payment_id, order_id, signature, plan_id }) => {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
+
       const today      = new Date().toISOString().slice(0, 10);
-      const newPayment = { order_id, payment_id, amount: defaultSubscriptionPlans.find((p) => p.plan_id === plan_id)?.price || 0, status: 'success', date: today };
       const activePlan = defaultSubscriptionPlans.find((p) => p.plan_id === plan_id) || defaultActiveSubscription;
-      const nextType = plan_id === 'plan-premium'
-        ? 'premium'
-        : plan_id === 'plan-basic'
-          ? 'basic'
-          : user.subscription_type || 'basic';
-      await UserStore.updateUser(user.email, {
-        subscription_plan: activePlan,
-        subscription_type: nextType,
-        payment_history: [...normalizePaymentHistory(user.payment_history), newPayment],
+
+      // ✅ Role assignment based on plan
+      const newRole = getRoleFromPlanId(plan_id);  // 'basic' | 'pro' | 'premium'
+
+      // ✅ subscription_type for backward compat
+      const newSubscriptionType = newRole;
+
+      const newPayment = {
+        order_id,
+        payment_id,
+        amount: activePlan.price || 0,
+        status: 'success',
+        date:   today,
+        plan_id,
+        plan_name: activePlan.plan_name,
+        signature,
+      };
+
+      // ✅ Add role assignment notification
+      const roleNotification = {
+        id:      `notif-role-${Date.now()}`,
+        title:   `🎉 ${activePlan.plan_name} Activated!`,
+        message: `Your role has been upgraded to ${getRoleLabel(newRole)}. Enjoy your new features!`,
+        date:    today,
+        status:  'Unread',
+      };
+
+      const currentNotifications = normalizeNotifications(user.notifications);
+
+      const updatedUser = await UserStore.updateUser(user.email, {
+        subscription_plan:   activePlan,
+        subscription_type:   newSubscriptionType,
+        role:                newRole,           // ✅ Role saved
+        role_label:          getRoleLabel(newRole),
+        is_subscribed:       true,              // ✅ Subscribed flag
+        payment_history:     [...normalizePaymentHistory(user.payment_history).filter((item) => item.order_id !== order_id), newPayment],
+        notifications:       [...currentNotifications, roleNotification], // ✅ Notification
       });
-      return { ok: true };
+
+      if (!updatedUser) return { ok: false, message: 'Payment verification failed.' };
+
+      return {
+        ok:         true,
+        role:       newRole,
+        role_label: getRoleLabel(newRole),
+        plan:       activePlan,
+      };
     } catch { return { ok: false, message: 'Payment verification failed.' }; }
   },
 
-  // ── News Feed ─────────────────────────────────────────────────────────────
   getNewsFeedSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -1003,11 +1106,7 @@ export const UserStore = {
         if (item.id !== itemId) return item;
         const list = normalizeComments(item.comments_list);
         const updatedList = [...list, newComment];
-        return {
-          ...item,
-          comments_list: updatedList,
-          comments: updatedList.length,
-        };
+        return { ...item, comments_list: updatedList, comments: updatedList.length };
       };
 
       const items = normalizeNewsFeed(user.news_feed).map(updateItem);
@@ -1068,11 +1167,7 @@ export const UserStore = {
         const updatedList = list.map((c) => {
           if (c.id !== commentId) return c;
           if (!isOwner(c)) return c;
-          return {
-            ...c,
-            text,
-            edited_at: new Date().toLocaleDateString('en-IN'),
-          };
+          return { ...c, text, edited_at: new Date().toLocaleDateString('en-IN') };
         });
         return { ...item, comments_list: updatedList, comments: updatedList.length };
       };
@@ -1114,7 +1209,6 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to delete comment.' }; }
   },
 
-  // ── e-Paper ───────────────────────────────────────────────────────────────
   getEPaperSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -1138,7 +1232,6 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to update e-paper record.' }; }
   },
 
-  // ── Live Streaming ────────────────────────────────────────────────────────
   getLiveStreamingSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -1207,7 +1300,6 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to stop live stream.' }; }
   },
 
-  // ── Certification ─────────────────────────────────────────────────────────
   getCertificationSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -1234,7 +1326,6 @@ export const UserStore = {
           ...item,
           score,
           result_type: pass ? 'Pass' : 'Fail',
-          // ✅ No fake URL — certificate_file will be set when user downloads
           certificate_file: pass ? 'pending_local_generation' : null,
           local_certificate_path: null,
           certificate_number: pass ? certificateNumber : null,
@@ -1261,7 +1352,6 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to submit quiz answers.' }; }
   },
 
-  // ── downloadCertificate — generates SVG locally + saves to device ─────────
   downloadCertificate: async (certId) => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -1285,7 +1375,6 @@ export const UserStore = {
         targetItem.certificate_number ||
         `RTI-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
 
-      // ── Build SVG ──
       const svgMarkup = buildCertificateSvg({
         userName:      targetItem.user_name || user.name || 'Participant',
         quizTitle:     targetItem.quiz_title || 'Quiz Examination',
@@ -1299,13 +1388,11 @@ export const UserStore = {
         contactNumber: user.contact_number || user.mobile || '',
       });
 
-      // ── Write SVG to app documents directory ──
       const svgPath = `${dir}certificate-${targetItem.id}.svg`;
       await FileSystem.writeAsStringAsync(svgPath, svgMarkup, {
         encoding: FileSystem.EncodingType.UTF8,
       });
 
-      // ── Update certifications record ──
       const items = certifications.map((item) =>
         item.id !== certId
           ? item
@@ -1344,7 +1431,6 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to update certification record.' }; }
   },
 
-  // ── Notifications ─────────────────────────────────────────────────────────
   getNotificationsSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -1365,7 +1451,6 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to update notification.' }; }
   },
 
-  // ── Settings ──────────────────────────────────────────────────────────────
   getSettingsSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
@@ -1398,7 +1483,6 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to change password.' }; }
   },
 
-  // ── OTP / Password Reset ──────────────────────────────────────────────────
   updatePassword: async (email, password) => {
     try {
       const data    = await AsyncStorage.getItem(USERS_KEY);
@@ -1437,8 +1521,5 @@ export const UserStore = {
     } catch { return false; }
   },
 };
-// ─────────────────────────────────────────────────────────────────────────────
-//  NAMED EXPORT — used by CertificatePreviewScreen to generate SVG locally
-// ─────────────────────────────────────────────────────────────────────────────
-export { buildCertificateSvg as buildCertificateSvgForPreview };
 
+export { buildCertificateSvg as buildCertificateSvgForPreview };

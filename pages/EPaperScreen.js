@@ -16,6 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
@@ -48,6 +49,12 @@ const INDIA_STATES = [
   'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli',
   'Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
 ];
+
+// Expo exposes these enums differently across SDK versions.
+// eslint-disable-next-line import/namespace
+const IMAGE_PICKER_MEDIA_TYPE = ImagePicker?.['MediaType'];
+// eslint-disable-next-line import/namespace
+const IMAGE_PICKER_MEDIA_TYPE_OPTIONS = ImagePicker?.['MediaTypeOptions'];
 
 function StatePickerModal({ visible, selected, onSelect, onClose }) {
   const [search, setSearch] = useState('');
@@ -225,8 +232,9 @@ export default function EPaperScreen({ navigation }) {
     if (status !== 'granted') { showToast('Gallery permission needed.', 'error'); return; }
     setFMediaType('Images');
     setFVideo(null);
+    const imageType = IMAGE_PICKER_MEDIA_TYPE?.Images ?? IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Images;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: [ImagePicker.MediaType.Images],
+      mediaTypes: imageType ? [imageType] : undefined,
       allowsMultipleSelection: true,
       base64: true,
       quality: 0.5,
@@ -238,18 +246,49 @@ export default function EPaperScreen({ navigation }) {
 
   const removeImage = (idx) => setFImages(prev => prev.filter((_, i) => i !== idx));
 
+  const isVideoAsset = (asset) => {
+    if (!asset) return false;
+    return (
+      asset.type === 'video' ||
+      (asset.mimeType && asset.mimeType.startsWith('video/')) ||
+      (asset.name && /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(asset.name)) ||
+      (asset.uri && /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(asset.uri))
+    );
+  };
+
   const pickVideo = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { showToast('Gallery permission needed.', 'error'); return; }
     setFMediaType('Video');
     setFImages([]);
+    if (Platform.OS === 'web') {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'video/*',
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets?.[0] || result;
+      if (!isVideoAsset(asset) || !asset?.uri) {
+        showToast('Please select a video file.', 'error');
+        return;
+      }
+      setFVideo(asset.uri);
+      return;
+    }
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { showToast('Gallery permission needed.', 'error'); return; }
+    const videoType = IMAGE_PICKER_MEDIA_TYPE?.Videos ?? IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Videos;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: [ImagePicker.MediaType.Videos],
+      mediaTypes: videoType ? [videoType] : undefined,
       allowsMultipleSelection: false,
       base64: true,
       quality: 0.5,
     });
     if (!result.canceled && result.assets?.[0]) {
+      if (!isVideoAsset(result.assets[0])) {
+        showToast('Please select a video file.', 'error');
+        return;
+      }
       setFVideo(`data:video/mp4;base64,${result.assets[0].base64}`);
     }
   };

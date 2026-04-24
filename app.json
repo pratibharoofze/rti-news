@@ -34,7 +34,8 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-font"
     ],
     "extra": {
       "eas": {
@@ -47,11 +48,6 @@
     },
     "updates": {
       "url": "https://u.expo.dev/790ebc30-229b-4861-8f93-0838f09ff045"
-
-
-
-      
     }
   }
 }
-

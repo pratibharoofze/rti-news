@@ -2,17 +2,19 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, Image, TextInput,
   TouchableOpacity, StyleSheet,
-  Platform, Dimensions, useWindowDimensions,
+  Platform, useWindowDimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 import AppHeader from '../components/AppHeader';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
 import WebLayout from '../components/WebLayout';
+import { UserStore } from '../store/UserStore';
 
 import {
-  featuredNews, topStories, latestNews,
+  featuredNews, topStories, latestNews as staticLatestNews,
   trendingNews, categories,
 } from '../data/newsData';
 
@@ -34,31 +36,95 @@ const colorMap = {
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
-function useIsMobile() {
-  if (Platform.OS !== 'web') return true;
+const reportTypeColorMap = {
+  Crime: 'red',
+  Murder: 'red',
+  Accident: 'orange',
+  Politics: 'blue',
+  Other: 'teal',
+};
 
-  const getWidth = () => {
-    if (typeof document !== 'undefined') {
-      return document.documentElement.clientWidth;
-    }
-    if (typeof window !== 'undefined') return window.innerWidth;
-    return 1200;
+function stripHtml(value) {
+  return String(value || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hashToSeed(input) {
+  const str = String(input || '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 1000;
+}
+
+function toLatestNewsCardShape(item) {
+  const title = item?.title || 'Untitled';
+  const category = item?.report_type || item?.category || 'News';
+  const categoryColor =
+    reportTypeColorMap[item?.report_type] ||
+    reportTypeColorMap[category] ||
+    item?.categoryColor ||
+    'orange';
+
+  const mediaType =
+    item?.mediaType ||
+    (item?.video ? 'Video' : null) ||
+    (Array.isArray(item?.images) && item.images.length > 0 ? 'Image' : null) ||
+    (item?.file ? 'File' : null) ||
+    'None';
+
+  const image =
+    item?.images?.[0] ||
+    item?.image ||
+    `https://picsum.photos/400/300?random=${hashToSeed(item?.id || title)}`;
+
+  const description =
+    stripHtml(item?.description) ||
+    String(item?.excerpt || '').trim() ||
+    String(item?.subtitle || '').trim() ||
+    '';
+
+  const excerpt =
+    String(item?.excerpt || '').trim() ||
+    String(item?.subtitle || '').trim() ||
+    description ||
+    '';
+
+  const author = item?.author_name || item?.author || '';
+  const date = item?.date || (item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN') : '');
+
+  return {
+    id: item?.id || `news-${hashToSeed(title)}`,
+    title,
+    category,
+    categoryColor,
+    mediaType,
+    video: item?.video || null,
+    image,
+    date,
+    author,
+    excerpt,
+    description,
+    subtitle: stripHtml(item?.subtitle) || '',
+    images: Array.isArray(item?.images) ? item.images.filter(Boolean) : [],
+    file: item?.file || null,
+    state: item?.state || '',
+    district: item?.district || '',
+    taluka: item?.taluka || '',
+    views: Number(item?.views || 0),
+    shares: Number(item?.shares || 0),
+    likes: Number(item?.likes || 0),
+    comments: Number(item?.comments || 0),
   };
+}
 
-  const [width, setWidth] = useState(getWidth);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const update = () => setWidth(getWidth());
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('orientationchange', update);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('orientationchange', update);
-    };
-  }, []);
-
+function useIsMobile() {
+  const { width } = useWindowDimensions();
+  if (Platform.OS !== 'web') return true;
   return width < 768;
 }
 
@@ -87,7 +153,7 @@ const sh = StyleSheet.create({
 
 // ─── Top Story Card ───────────────────────────────────────────────────────────
 
-function TopStoryCard({ article, isMobile, isLast }) {
+function TopStoryCard({ article, isMobile, isLast, onPress }) {
   const { title, category, categoryColor = 'orange', image, date, author, excerpt } = article;
   const badge = colorMap[categoryColor] || colorMap.orange;
   return (
@@ -99,6 +165,7 @@ function TopStoryCard({ article, isMobile, isLast }) {
           : [ts.cardWeb, !isLast && ts.cardWebGap],
       ]}
       activeOpacity={0.85}
+      onPress={onPress}
     >
       <View style={[ts.imageContainer, isMobile && ts.imageContainerMobile]}>
         <Image source={{ uri: image }} style={ts.image} />
@@ -156,9 +223,10 @@ const ts = StyleSheet.create({
 
 // ─── Latest News Card ─────────────────────────────────────────────────────────
 
-function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = false }) {
-  const { title, category, categoryColor = 'orange', image, date, author, excerpt } = article;
+function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = false, onPress }) {
+  const { title, category, categoryColor = 'orange', image, date, author, excerpt, mediaType, video } = article;
   const badge = colorMap[categoryColor] || colorMap.orange;
+  const hasVideo = mediaType === 'Video' && typeof video === 'string' && video.length > 0;
   const webCardStyle = [
     ln.cardWeb,
     colIndex < 2 && ln.cardWebMarginRight,
@@ -173,9 +241,19 @@ function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = f
           : webCardStyle,
       ]}
       activeOpacity={0.85}
+      onPress={onPress}
     >
       <View style={[ln.imageContainer, isMobile && ln.imageContainerMobile]}>
-        <Image source={{ uri: image }} style={ln.image} />
+        {hasVideo ? (
+          <>
+            <Image source={{ uri: image }} style={ln.image} />
+            <View style={ln.videoOverlay}>
+              <Ionicons name="play-circle" size={44} color="#ffffff" />
+            </View>
+          </>
+        ) : (
+          <Image source={{ uri: image }} style={ln.image} />
+        )}
         <View style={[ln.badge, { backgroundColor: badge.bg }]}>
           <Text style={[ln.badgeText, { color: badge.text }]}>{category}</Text>
         </View>
@@ -217,6 +295,12 @@ const ln = StyleSheet.create({
   imageContainer:       { height: 180, position: 'relative' },
   imageContainerMobile: { height: 120 },
   image:      { width: '100%', height: '100%', resizeMode: 'cover' },
+  videoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.18)',
+  },
   badge:      { position: 'absolute', top: 10, left: 10, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   badgeText:  { fontSize: 11, fontWeight: '700' },
   content:    { padding: 12 },
@@ -267,6 +351,51 @@ export default function HomeScreen() {
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
+  const [latestNews, setLatestNews] = useState(staticLatestNews);
+
+  const openDetails = useCallback((article) => {
+    if (!article) return;
+    navigation?.navigate?.('NewsDetails', { article });
+  }, [navigation]);
+
+  const loadLatestNews = useCallback(async () => {
+    try {
+      const summary = await UserStore.getNewsFeedSummary();
+      if (!summary?.currentUser) {
+        setLatestNews(staticLatestNews);
+        return;
+      }
+
+      const normalized = (summary.items || [])
+        .slice(0, 9)
+        .map(toLatestNewsCardShape)
+        .filter((item) => item?.title);
+
+      if (normalized.length === 0) {
+        setLatestNews(staticLatestNews);
+        return;
+      }
+
+      const merged = [...normalized, ...staticLatestNews.map(toLatestNewsCardShape)]
+        .filter((item, idx, arr) => arr.findIndex((e) => e.id === item.id) === idx)
+        .slice(0, 9);
+
+      setLatestNews(merged);
+    } catch {
+      setLatestNews(staticLatestNews);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        if (!active) return;
+        await loadLatestNews();
+      })();
+      return () => { active = false; };
+    }, [loadLatestNews])
+  );
 
   const heroImages = useMemo(() => {
     const uris = [
@@ -275,7 +404,7 @@ export default function HomeScreen() {
       ...(latestNews  || []).map((item) => item?.image),
     ].filter(Boolean);
     return Array.from(new Set(uris));
-  }, []);
+  }, [latestNews]);
 
   useEffect(() => {
     if (heroImages.length <= 1) return undefined;
@@ -290,7 +419,11 @@ export default function HomeScreen() {
   const pageContent = (
     <>
       {/* ── Hero ── */}
-      <View style={[s.heroContainer, isMobile && s.heroContainerMobile]}>
+      <TouchableOpacity
+        style={[s.heroContainer, isMobile && s.heroContainerMobile]}
+        activeOpacity={0.92}
+        onPress={() => openDetails(toLatestNewsCardShape(featuredNews))}
+      >
         <Image source={{ uri: heroImageUri }} style={s.heroImage} />
         <View style={s.heroOverlay} />
         <View style={[s.breakingBadge, isMobile && s.breakingBadgeMobile]}>
@@ -307,7 +440,7 @@ export default function HomeScreen() {
             {featuredNews.excerpt}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* ── Search ── */}
       <View style={[s.searchContainer, isMobile && s.searchContainerMobile]}>
@@ -333,6 +466,7 @@ export default function HomeScreen() {
                 article={a}
                 isMobile={isMobile}
                 isLast={i === topStories.length - 1}
+                onPress={() => openDetails(toLatestNewsCardShape(a))}
               />
             ))}
           </View>
@@ -353,6 +487,7 @@ export default function HomeScreen() {
                   isLast={i === latestNews.length - 1}
                   colIndex={i % 3}
                   isLastRow={i >= latestNews.length - 3}
+                  onPress={() => openDetails(a)}
                 />
               ))}
             </View>

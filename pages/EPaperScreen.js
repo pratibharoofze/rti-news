@@ -127,6 +127,21 @@ function StatePickerModal({ visible, selected, onSelect, onClose }) {
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function EPaperScreen({ navigation }) {
   const { showToast } = useToast();
+  const isWeb = Platform.OS === 'web';
+
+  const htmlToPlain = (html) => String(html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const escapeHtml = (text) => String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const plainToHtml = (text) => `<div>${escapeHtml(text).replace(/\n/g, '<br/>')}</div>`;
 
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [footerVisible, setFooterVisible]   = useState(false);
@@ -297,8 +312,8 @@ export default function EPaperScreen({ navigation }) {
   const handleSave = async () => {
     const titleHtml  = fTitleRef.current || '';
     const descHtml   = fDescRef.current  || '';
-    const titlePlain = titleHtml.replace(/<[^>]*>/g, '').trim();
-    const descPlain  = descHtml.replace(/<[^>]*>/g, '').trim();
+    const titlePlain = htmlToPlain(titleHtml);
+    const descPlain  = htmlToPlain(descHtml);
 
     if (!titlePlain) { showToast('Title required.', 'error'); return; }
     if (!descPlain)  { showToast('Description required.', 'error'); return; }
@@ -413,10 +428,12 @@ export default function EPaperScreen({ navigation }) {
   // ─────────────────────────────────────────────
   // FORM MODAL
   // ─────────────────────────────────────────────
-  const FormModal = () => {
+  const FormModal = ({ visible, editItemValue }) => {
     const titleEditorRef = useRef(null);
     const descEditorRef  = useRef(null);
     const [ready, setReady] = useState(false);
+    const [webTitleText, setWebTitleText] = useState('');
+    const [webDescText, setWebDescText] = useState('');
 
     useEffect(() => {
       // wait for modal slide animation before mounting editors
@@ -424,8 +441,14 @@ export default function EPaperScreen({ navigation }) {
       return () => clearTimeout(t);
     }, []);
 
+    useEffect(() => {
+      if (!visible || !isWeb) return;
+      setWebTitleText(htmlToPlain(fTitleRef.current));
+      setWebDescText(htmlToPlain(fDescRef.current));
+    }, [visible, editItemValue]);
+
     return (
-      <Modal visible={formVisible} animationType="slide" onRequestClose={closeForm}>
+      <Modal visible={visible} animationType="slide" onRequestClose={closeForm}>
         <KeyboardAvoidingView
           style={{ flex: 1, backgroundColor: '#f8fafc' }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -439,7 +462,7 @@ export default function EPaperScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             <Text style={EPaperStyles.modalHeaderTitle}>
-              {editItem ? 'Edit E-Paper' : 'Add E-Paper'}
+              {editItemValue ? 'Edit E-Paper' : 'Add E-Paper'}
             </Text>
             <View style={[EPaperStyles.modalHeaderSide, EPaperStyles.modalHeaderSideRight]}>
               <TouchableOpacity style={EPaperStyles.modalSaveBtn} onPress={handleSave} disabled={fSaving}>
@@ -459,51 +482,90 @@ export default function EPaperScreen({ navigation }) {
                 {/* ── Title ── */}
                 <Text style={EPaperStyles.fieldLabel}>Title *</Text>
                 
-                <RichToolbar
-                  editor={titleEditorRef}
-                  actions={[actions.setBold, actions.setItalic, actions.setUnderline, actions.undo, actions.redo]}
-                  style={EPaperStyles.richToolbar}
-                  iconTint="#475569"
-                  selectedIconTint="#7c3aed"
-                />
-                <RichEditor
-                  ref={titleEditorRef}
-                  style={EPaperStyles.richEditorTitle}
-                  placeholder="Title yahan likhein…"
-                  initialContentHTML={fTitleRef.current}
-                  onChange={(html) => { fTitleRef.current = html; }}
-                  editorStyle={EPaperStyles.richEditorInner}
-                  useContainer={false}
-                />
+                {isWeb ? (
+                  <TextInput
+                    style={[
+                      EPaperStyles.richEditorTitle,
+                      { padding: 12, fontSize: 14, color: '#0f172a', textAlignVertical: 'top' },
+                      { borderTopLeftRadius: 10, borderTopRightRadius: 10 },
+                    ]}
+                    placeholder="Title yahan likhein..."
+                    placeholderTextColor="#94a3b8"
+                    value={webTitleText}
+                    onChangeText={(text) => {
+                      setWebTitleText(text);
+                      fTitleRef.current = plainToHtml(text);
+                    }}
+                    multiline
+                  />
+                ) : (
+                  <>
+                    <RichToolbar
+                      editor={titleEditorRef}
+                      actions={[actions.setBold, actions.setItalic, actions.setUnderline, actions.undo, actions.redo]}
+                      style={EPaperStyles.richToolbar}
+                      iconTint="#475569"
+                      selectedIconTint="#7c3aed"
+                    />
+                    <RichEditor
+                      ref={titleEditorRef}
+                      style={EPaperStyles.richEditorTitle}
+                      placeholder="Title yahan likhein…"
+                      initialContentHTML={fTitleRef.current}
+                      onChange={(html) => { fTitleRef.current = html; }}
+                      editorStyle={EPaperStyles.richEditorInner}
+                      useContainer={false}
+                    />
+                  </>
+                )}
 
                 {/* ── Description ── */}
                 <Text style={[EPaperStyles.fieldLabel, { marginTop: 16 }]}>Description *</Text>
                 <Text style={EPaperStyles.fieldHint}>Bold, italic, lists — sab supported</Text>
-                <RichToolbar
-                  editor={descEditorRef}
-                  actions={[
-                    actions.setBold,
-                    actions.setItalic,
-                    actions.setUnderline,
-                    actions.insertBulletsList,
-                    actions.insertOrderedList,
-                    actions.undo,
-                    actions.redo,
-                  ]}
-                  style={EPaperStyles.richToolbar}
-                  iconTint="#475569"
-
-                  selectedIconTint="#7c3aed"
-                />
-                <RichEditor
-                  ref={descEditorRef}
-                  style={EPaperStyles.richEditorDesc}
-                  placeholder="Description yahan likhein…"
-                  initialContentHTML={fDescRef.current}
-                  onChange={(html) => { fDescRef.current = html; }}
-                  editorStyle={EPaperStyles.richEditorInner}
-                  useContainer={false}
-                />
+                {isWeb ? (
+                  <TextInput
+                    style={[
+                      EPaperStyles.richEditorDesc,
+                      { padding: 12, fontSize: 14, color: '#0f172a', textAlignVertical: 'top' },
+                      { borderTopLeftRadius: 10, borderTopRightRadius: 10 },
+                    ]}
+                    placeholder="Description yahan likhein..."
+                    placeholderTextColor="#94a3b8"
+                    value={webDescText}
+                    onChangeText={(text) => {
+                      setWebDescText(text);
+                      fDescRef.current = plainToHtml(text);
+                    }}
+                    multiline
+                  />
+                ) : (
+                  <>
+                    <RichToolbar
+                      editor={descEditorRef}
+                      actions={[
+                        actions.setBold,
+                        actions.setItalic,
+                        actions.setUnderline,
+                        actions.insertBulletsList,
+                        actions.insertOrderedList,
+                        actions.undo,
+                        actions.redo,
+                      ]}
+                      style={EPaperStyles.richToolbar}
+                      iconTint="#475569"
+                      selectedIconTint="#7c3aed"
+                    />
+                    <RichEditor
+                      ref={descEditorRef}
+                      style={EPaperStyles.richEditorDesc}
+                      placeholder="Description yahan likhein…"
+                      initialContentHTML={fDescRef.current}
+                      onChange={(html) => { fDescRef.current = html; }}
+                      editorStyle={EPaperStyles.richEditorInner}
+                      useContainer={false}
+                    />
+                  </>
+                )}
               </>
             )}
             <Text style={[EPaperStyles.fieldLabel, { marginTop: 14 }]}>State</Text>
@@ -851,7 +913,7 @@ export default function EPaperScreen({ navigation }) {
       />
 
 
-      <FormModal />
+      <FormModal visible={formVisible} editItemValue={editItem} />
       <ViewModal />
     </View>
   );

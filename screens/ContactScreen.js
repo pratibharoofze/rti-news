@@ -8,13 +8,24 @@ import AppHeader from '../components/AppHeader';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
 
-const address = {
-  line1: 'Flat No. 1106 Lotus Residency',
-  line2: 'A Wing Ram Mandir Chowk SV Road',
-  line3: 'Mahatma Jyotiba Phule Nagar, Jogeshwari West',
-  city: 'Mumbai - 400102',
-  state: 'Maharashtra',
-};
+const addresses = [
+  {
+    label: 'Address 1',
+    line1: 'Flat No. 1106 Lotus Residency',
+    line2: 'A Wing Ram Mandir Chowk SV Road',
+    line3: 'Mahatma Jyotiba Phule Nagar, Jogeshwari West',
+    city: 'Mumbai - 400102',
+    state: 'Maharashtra',
+  },
+  {
+    label: 'Address 2',
+    line1: '',   // Yahan Address 2 fill karo
+    line2: '',
+    line3: '',
+    city: '',
+    state: '',
+  },
+];
 
 const faqs = [
   {
@@ -153,20 +164,33 @@ export default function ContactScreen({ navigation }) {
 
       <View style={s.body}>
 
-        {/* ── Info Cards ── */}
-        <View style={s.infoCard}>
-          <View style={[s.infoIcon, { backgroundColor: '#f97316' }]}>
-            <Text style={s.infoIconText}>📍</Text>
-          </View>
-          <View style={s.infoContent}>
-            <Text style={s.infoTitle}>Our Address</Text>
-            <Text style={s.infoText}>{address.line1}</Text>
-            <Text style={s.infoText}>{address.line2}</Text>
-            <Text style={s.infoText}>{address.line3}</Text>
-            <Text style={[s.infoText, { fontWeight: '700', color: '#111827' }]}>{address.city}</Text>
-            <Text style={s.infoText}>{address.state}</Text>
-          </View>
-        </View>
+        {/* ── Address Cards (Address 1 & Address 2) ── */}
+        {addresses.map((addr, idx) => {
+          const hasContent = addr.line1 || addr.line3 || addr.city || addr.state;
+          return (
+            <View key={idx} style={s.infoCard}>
+              <View style={[s.infoIcon, { backgroundColor: '#f97316' }]}>
+                <Text style={s.infoIconText}>📍</Text>
+              </View>
+              <View style={s.infoContent}>
+                <Text style={s.infoTitle}>{addr.label}</Text>
+                {hasContent ? (
+                  <>
+                    {addr.line1 ? <Text style={s.infoText}>{addr.line1}</Text> : null}
+                    {addr.line2 ? <Text style={s.infoText}>{addr.line2}</Text> : null}
+                    {addr.line3 ? <Text style={s.infoText}>{addr.line3}</Text> : null}
+                    {addr.city  ? <Text style={[s.infoText, { fontWeight: '700', color: '#111827' }]}>{addr.city}</Text> : null}
+                    {addr.state ? <Text style={s.infoText}>{addr.state}</Text> : null}
+                  </>
+                ) : (
+                  <Text style={[s.infoText, { fontStyle: 'italic', color: '#d1d5db' }]}>
+                    Address not set
+                  </Text>
+                )}
+              </View>
+            </View>
+          );
+        })}
 
         <TouchableOpacity style={s.infoCard} onPress={() => Linking.openURL('tel:+917020667971')}>
           <View style={[s.infoIcon, { backgroundColor: '#16a34a' }]}>

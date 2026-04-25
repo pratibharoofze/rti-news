@@ -16,6 +16,22 @@ import LoginStyles from '../styles/LoginStyles';
 
 const CERTIFICATE_LOGO = require('../assets/images/certificate_logo.jpg');
 
+// ✅ FIX: Web pe html, body, #root ka background dark karo
+// Taaki white space visible na ho
+if (Platform.OS === 'web') {
+  const style = document.createElement('style');
+  style.textContent = `
+    html, body, #root {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #0a1628;
+      overflow: hidden;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export default function LoginScreen({ navigation }) {
   const [email, setEmail]               = useState('');
   const [password, setPassword]         = useState('');
@@ -25,9 +41,6 @@ export default function LoginScreen({ navigation }) {
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
   const clearErrors = () => setErrors({ email: '', password: '', general: '' });
-
-  // NOTE: Keep users on Login screen after app start.
-  // (Auto-redirect disabled intentionally.)
 
   const validate = () => {
     const newErrors = { email: '', password: '', general: '' };
@@ -71,8 +84,6 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    // ✅ FIX: Android pe 'height' use karne se footer ke paas extra space aata tha
-    // Ab sirf iOS pe 'padding' use karo, Android pe behavior={undefined}
     <KeyboardAvoidingView
       style={LoginStyles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -84,10 +95,10 @@ export default function LoginScreen({ navigation }) {
         <View style={[LoginStyles.glow, LoginStyles.glowBottom]} />
 
         <ScrollView
+          style={LoginStyles.scrollView}
           contentContainerStyle={LoginStyles.formScroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          // ✅ FIX: bounces false rakho taaki scroll extra space na de
           bounces={false}
         >
           <View style={LoginStyles.formContainer}>

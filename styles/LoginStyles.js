@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet, Dimensions } from 'react-native';
 
 const LoginStyles = StyleSheet.create({
   flex: {
@@ -9,10 +9,16 @@ const LoginStyles = StyleSheet.create({
     backgroundColor: '#0a1628',
   },
 
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+
   // ── Glow blobs ──
   glow: {
     position: 'absolute',
     borderRadius: 999,
+    pointerEvents: 'none',
   },
   glowTop: {
     width: 220,
@@ -29,14 +35,14 @@ const LoginStyles = StyleSheet.create({
     backgroundColor: 'rgba(56, 189, 248, 0.08)',
   },
 
-  // ✅ FIX: minHeight hataya — yahi extra space ka main cause tha
-  // flexGrow:1 + justifyContent center se centering hogi bina extra space ke
+  // ✅ FIX: flexGrow:1 rakho but justifyContent HATAO
+  // paddingVertical se top/bottom spacing aayegi bina extra height ke
   formScroll: {
     flexGrow: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 24,
+    paddingTop: 32,
+    paddingBottom: 32,
   },
 
   formContainer: {
@@ -157,6 +163,10 @@ const LoginStyles = StyleSheet.create({
     fontSize: 14,
     color: '#e2e8f0',
     paddingVertical: 0,
+    // ✅ FIX: browser default focus outline hatao
+    ...(Platform.OS === 'web' && {
+      outline: 'none',
+    }),
   },
 
   inlineErrorRow: {

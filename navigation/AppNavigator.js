@@ -7,6 +7,7 @@ import AboutScreen from '../screens/AboutScreen';
 import ContactScreen from '../screens/ContactScreen';
 import WhatIsRTIScreen from '../screens/WhatIsRTIScreen';
 import ImportantLawsScreen from '../screens/ImportantLawsScreen';
+import NewsDetailsScreen from '../screens/NewsDetailsScreen';
 import LoginScreen from '../auth/LoginScreen';
 import RegisterScreen from '../auth/RegisterScreen';
 import StateSelectScreen from '../auth/StateSelectScreen';
@@ -51,6 +52,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Contact"       component={ContactScreen} />
         <Stack.Screen name="WhatIsRTI"     component={WhatIsRTIScreen} />
         <Stack.Screen name="ImportantLaws" component={ImportantLawsScreen} />
+        <Stack.Screen name="NewsDetails"   component={NewsDetailsScreen} />
 
         {/* ── Auth ── */}
         <Stack.Screen name="Login"         component={LoginScreen} />

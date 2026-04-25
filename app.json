@@ -22,7 +22,9 @@
       "package": "com.roofze.rtinews"
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro",
+      "output": "single"
     },
     "plugins": [
       "expo-splash-screen",
@@ -35,7 +37,21 @@
         }
       ],
       "expo-video",
-      "expo-font"
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf",
+            "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialIcons.ttf",
+            "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome.ttf",
+            "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome5_Regular.ttf",
+            "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/FontAwesome5_Solid.ttf",
+            "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf",
+            "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/AntDesign.ttf",
+            "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Feather.ttf"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {

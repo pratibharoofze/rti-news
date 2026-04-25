@@ -17,6 +17,21 @@ import styles from '../styles/RegisterStyles';
 
 const CERTIFICATE_LOGO = require('../assets/images/certificate_logo.jpg');
 
+// ✅ FIX: Web pe html, body, #root ka background dark karo
+// Taaki white space visible na ho
+if (Platform.OS === 'web') {
+  const style = document.createElement('style');
+  style.textContent = `
+    html, body, #root {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #0f0a1e;
+      overflow: hidden;
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 // ── Local Toast ───────────────────────────────────────────────────────────────
 function Toast({ toast, opacity, translateY }) {
@@ -235,21 +250,15 @@ export default function RegisterScreen({ navigation }) {
     setTimeout(() => navigation.replace('StateSelect'), 2600);
   };
 
-
   return (
-    // ✅ FIX 1: KeyboardAvoidingView with flex:1
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* ✅ FIX 2: root View has flex:1 but NO overflow:hidden so ScrollView can scroll */}
       <View style={styles.root}>
-
-        {/* Glow effects are purely decorative — keep them absolute */}
         <View style={[styles.glow, styles.glowTop]} />
         <View style={[styles.glow, styles.glowBottom]} />
 
-        {/* ✅ FIX 3: ScrollView gets style={{ flex: 1 }} so it fills available height on web */}
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.formScroll}

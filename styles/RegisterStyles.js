@@ -1,27 +1,18 @@
 import { Platform, StyleSheet } from 'react-native';
 
 const RegisterStyles = StyleSheet.create({
-  // ✅ FIX: root must NOT have overflow:hidden — that blocks ScrollView on web
-  // Use flex:1 only. Web height is handled by the scrollView style below.
   root: {
     flex: 1,
     backgroundColor: '#0f0a1e',
   },
 
-  // ✅ FIX: scrollView style — this is the KEY fix for web scrolling
-  // On web, ScrollView needs an explicit height otherwise it collapses to 0
   scrollView: {
     flex: 1,
-    ...(Platform.OS === 'web' && {
-      height: '100vh',      // web pe full viewport height do
-      overflowY: 'auto',    // web pe vertical scroll enable karo
-    }),
   },
 
   glow: {
     position: 'absolute',
     borderRadius: 999,
-    // ✅ FIX: pointerEvents none so glow doesn't block scroll touch events
     pointerEvents: 'none',
   },
   glowTop: {
@@ -39,12 +30,15 @@ const RegisterStyles = StyleSheet.create({
     backgroundColor: 'rgba(168, 85, 247, 0.08)',
   },
 
+  // ✅ FIX: justifyContent:'center' HATAYA
+  // Yahi white space ka cause tha — center karne ke liye
+  // ScrollView apni height double kar leta tha mobile browser mein
   formScroll: {
     flexGrow: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 18,
-    paddingVertical: 24,
+    paddingTop: 32,
+    paddingBottom: 32,
   },
 
   formContainer: {
@@ -147,6 +141,10 @@ const RegisterStyles = StyleSheet.create({
     fontSize: 14,
     color: '#f5f3ff',
     paddingVertical: 0,
+    // ✅ FIX: browser default focus outline hatao
+    ...(Platform.OS === 'web' && {
+      outline: 'none',
+    }),
   },
 
   // ── Subscription Cards ──

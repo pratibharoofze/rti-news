@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -140,6 +141,21 @@ function ReportTypeModal({ visible, selected, onSelect, onClose }) {
 
 export default function AddNewsScreen({ navigation }) {
   const { showToast } = useToast();
+  const isWeb = Platform.OS === 'web';
+
+  const htmlToPlain = (html) => String(html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const escapeHtml = (text) => String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const plainToHtml = (text) => `<div>${escapeHtml(text).replace(/\n/g, '<br/>')}</div>`;
 
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
@@ -153,6 +169,7 @@ export default function AddNewsScreen({ navigation }) {
 
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
+  const [descriptionText, setDescriptionText] = useState('');
   const [reportType, setReportType] = useState('');
   const [titleExpanded, setTitleExpanded] = useState(false);
   const [subtitleExpanded, setSubtitleExpanded] = useState(false);
@@ -209,7 +226,7 @@ export default function AddNewsScreen({ navigation }) {
     init();
     const timer = setTimeout(() => setEditorReady(true), 300);
     return () => clearTimeout(timer);
-  }, [navigation]);
+  }, [navigation, showToast]);
 
   const handleScroll = ({ nativeEvent }) => {
     const { contentOffset, layoutMeasurement, contentSize } = nativeEvent;
@@ -375,9 +392,9 @@ export default function AddNewsScreen({ navigation }) {
     const titleHtml = titleHtmlRef.current || '';
     const subtitleHtml = subtitleHtmlRef.current || '';
     const descriptionHtml = descriptionHtmlRef.current || '';
-    const titlePlain = titleHtml.replace(/<[^>]*>/g, '').trim();
-    const subtitlePlain = subtitleHtml.replace(/<[^>]*>/g, '').trim();
-    const descriptionPlain = descriptionHtml.replace(/<[^>]*>/g, '').trim();
+    const titlePlain = htmlToPlain(titleHtml);
+    const subtitlePlain = htmlToPlain(subtitleHtml);
+    const descriptionPlain = htmlToPlain(descriptionHtml);
 
     if (!titlePlain) {
       showToast('Title is required.', 'error');
@@ -465,6 +482,7 @@ export default function AddNewsScreen({ navigation }) {
 
     setTitle('');
     setSubtitle('');
+    setDescriptionText('');
     setReportType('');
     setMediaType('None');
     setImages([]);
@@ -478,7 +496,14 @@ export default function AddNewsScreen({ navigation }) {
     subtitleEditorRef.current?.setContentHTML('');
     descriptionEditorRef.current?.setContentHTML('');
 
-    setTimeout(() => navigation.goBack(), 1000);
+    setTimeout(() => {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        })
+      );
+    }, 800);
   };
 
   return (
@@ -519,7 +544,24 @@ export default function AddNewsScreen({ navigation }) {
                 </TouchableOpacity>
               ) : null}
             </View>
-            {editorReady ? (
+            {isWeb ? (
+              <TextInput
+                style={[
+                  AddNewsStyles.webTextInput,
+                  { minHeight: 60 },
+                  { borderTopLeftRadius: 10, borderTopRightRadius: 10 },
+                  titleExpanded && { minHeight: 120 },
+                ]}
+                placeholder="Enter news title..."
+                placeholderTextColor="#94a3b8"
+                value={title}
+                onChangeText={(text) => {
+                  setTitle(text);
+                  titleHtmlRef.current = plainToHtml(text);
+                }}
+                multiline
+              />
+            ) : editorReady ? (
               <>
                 <RichToolbar
                   editor={titleEditorRef}
@@ -541,8 +583,7 @@ export default function AddNewsScreen({ navigation }) {
                   initialContentHTML=""
                   onChange={(html) => {
                     titleHtmlRef.current = html;
-                    const plain = html.replace(/<[^>]*>/g, '').trim();
-                    setTitle(plain);
+                    setTitle(htmlToPlain(html));
                   }}
                   editorStyle={AddNewsStyles.richEditorInner}
                   useContainer={false}
@@ -561,7 +602,24 @@ export default function AddNewsScreen({ navigation }) {
               ) : null}
             </View>
             <Text style={AddNewsStyles.fieldHint}>Optional short subtitle.</Text>
-            {editorReady ? (
+            {isWeb ? (
+              <TextInput
+                style={[
+                  AddNewsStyles.webTextInput,
+                  { minHeight: 70 },
+                  { borderTopLeftRadius: 10, borderTopRightRadius: 10 },
+                  subtitleExpanded && { minHeight: 140 },
+                ]}
+                placeholder="Enter subtitle (optional)..."
+                placeholderTextColor="#94a3b8"
+                value={subtitle}
+                onChangeText={(text) => {
+                  setSubtitle(text);
+                  subtitleHtmlRef.current = plainToHtml(text);
+                }}
+                multiline
+              />
+            ) : editorReady ? (
               <>
                 <RichToolbar
                   editor={subtitleEditorRef}
@@ -583,8 +641,7 @@ export default function AddNewsScreen({ navigation }) {
                   initialContentHTML=""
                   onChange={(html) => {
                     subtitleHtmlRef.current = html;
-                    const plain = html.replace(/<[^>]*>/g, '').trim();
-                    setSubtitle(plain);
+                    setSubtitle(htmlToPlain(html));
                   }}
                   editorStyle={AddNewsStyles.richEditorInner}
                   useContainer={false}
@@ -597,7 +654,23 @@ export default function AddNewsScreen({ navigation }) {
             </Text>
             <Text style={AddNewsStyles.fieldHint}>Write the full report description.</Text>
 
-            {editorReady ? (
+            {isWeb ? (
+              <TextInput
+                style={[
+                  AddNewsStyles.webTextInput,
+                  { minHeight: 220 },
+                  { borderTopLeftRadius: 10, borderTopRightRadius: 10 },
+                ]}
+                placeholder="Enter description..."
+                placeholderTextColor="#94a3b8"
+                value={descriptionText}
+                onChangeText={(text) => {
+                  setDescriptionText(text);
+                  descriptionHtmlRef.current = plainToHtml(text);
+                }}
+                multiline
+              />
+            ) : editorReady ? (
               <>
                 <RichToolbar
                   editor={descriptionEditorRef}

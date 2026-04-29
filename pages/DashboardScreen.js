@@ -2,6 +2,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
+  Modal,
   ScrollView,
   Share,
   Text,
@@ -12,6 +13,7 @@ import Footer from '../components/Footer';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import PremiumBadge from '../components/PremiumBadge';
+import { useToast } from '../components/ui/ToastProvider';
 import { UserStore } from '../store/UserStore';
 import styles from '../styles/DashboardStyles';
 
@@ -74,6 +76,138 @@ function FilterChip({ label, active, onPress }) {
   );
 }
 
+function SeatSelectModal({
+  visible,
+  stateName,
+  seats,
+  selectedSeatId,
+  onSelectSeatId,
+  onCancel,
+  onConfirm,
+}) {
+  const seatsToShow = Array.isArray(seats) ? seats.slice(0, 5) : [];
+  const isLoadingSeats = seatsToShow.length === 0;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} activeOpacity={1} onPress={onCancel} />
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#ffffff',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          padding: 16,
+          paddingBottom: 18,
+        }}
+      >
+        <View style={{ width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 99, alignSelf: 'center', marginBottom: 12 }} />
+
+        <Text style={{ fontSize: 14, fontWeight: '900', color: '#0f172a' }}>
+          Select Seat
+        </Text>
+        <Text style={{ marginTop: 4, fontSize: 12, color: '#64748b', fontWeight: '700' }}>
+          State: {stateName || '-'}
+        </Text>
+
+        <View style={{ marginTop: 12, gap: 8 }}>
+          {isLoadingSeats ? (
+            <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '700', paddingVertical: 10 }}>
+              Loading seats…
+            </Text>
+          ) : null}
+
+          {seatsToShow.map((seat) => {
+            const isTaken = seat.status === 'taken';
+            const isDisabled = seat.status === 'disabled';
+            const isSelected = selectedSeatId === seat.id;
+            const disabled = isTaken || isDisabled;
+
+            const borderColor = isSelected ? '#1d4ed8' : disabled ? '#e2e8f0' : '#cbd5e1';
+            const backgroundColor = isSelected ? '#eff6ff' : disabled ? '#f8fafc' : '#ffffff';
+            const statusText = isTaken ? 'Taken' : isDisabled ? 'Select state first' : 'Available';
+            const statusColor = isTaken || isDisabled ? '#64748b' : '#1d4ed8';
+
+            return (
+              <TouchableOpacity
+                key={seat.id}
+                activeOpacity={0.85}
+                disabled={disabled}
+                onPress={() => onSelectSeatId(seat.id)}
+                style={{
+                  borderWidth: 1,
+                  borderColor,
+                  backgroundColor,
+                  borderRadius: 14,
+                  padding: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: disabled ? '#64748b' : '#0f172a' }}>
+                    {seat.name}
+                  </Text>
+                  <Text style={{ marginTop: 4, fontSize: 12, color: statusColor, fontWeight: '800' }}>
+                    {statusText}
+                  </Text>
+                </View>
+
+                {isSelected ? (
+                  <View style={{ backgroundColor: '#1d4ed8', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>Selected</Text>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <View style={{ marginTop: 14, flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              borderWidth: 1,
+              borderColor: '#cbd5e1',
+              backgroundColor: '#ffffff',
+              borderRadius: 14,
+              paddingVertical: 12,
+              alignItems: 'center',
+            }}
+            onPress={onCancel}
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: '#0f172a', fontWeight: '900' }}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              borderWidth: 1,
+              borderColor: selectedSeatId ? '#0f172a' : '#cbd5e1',
+              backgroundColor: selectedSeatId ? '#0f172a' : '#e2e8f0',
+              borderRadius: 14,
+              paddingVertical: 12,
+              alignItems: 'center',
+            }}
+            onPress={onConfirm}
+            activeOpacity={0.85}
+            disabled={!selectedSeatId || isLoadingSeats}
+          >
+            <Text style={{ color: selectedSeatId ? '#fff' : '#64748b', fontWeight: '900' }}>
+              OK
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // Subscription Plans Data
 const SUBSCRIPTION_PLANS = [
   { plan_id: 'plan-basic', plan_name: 'Basic Access', price: 199, duration: '30 Days', features: ['News Feed', 'e-Paper', 'Notifications'], color: '#16a34a', popular: false },
@@ -83,9 +217,14 @@ const SUBSCRIPTION_PLANS = [
 
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export default function DashboardScreen({ navigation, route }) {
+  const { showPopup } = useToast();
   const [sidebarVisible, setSidebarVisible]   = useState(false);
   const [activeSidebarItem, setActiveSidebarItem] = useState('Dashboard');
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [seatModalOpen, setSeatModalOpen] = useState(false);
+  const [seatSummary, setSeatSummary] = useState(null);
+  const [selectedSeatId, setSelectedSeatId] = useState('');
+  const [pendingPlan, setPendingPlan] = useState(null);
 
   // User data
   const [currentUser, setCurrentUser]   = useState(null);
@@ -109,11 +248,15 @@ export default function DashboardScreen({ navigation, route }) {
 
         const users = await UserStore.getAllUsers();
         const wallet = await UserStore.getWalletSummary();
+        const seats = await UserStore.getStateSeatSummary();
 
         if (!mounted) return;
         setCurrentUser(user);
         setAllUsers(users || []);
         setWalletBalance(wallet?.total_balance || 0);
+        setSeatSummary(seats || null);
+        const seatId = seats?.current_seat?.seat_id || '';
+        setSelectedSeatId((prev) => prev || seatId);
         setLoading(false);
 
         // Show subscription modal when navigating from registration (first time login)
@@ -141,6 +284,18 @@ export default function DashboardScreen({ navigation, route }) {
     } catch {}
   };
 
+  const goToSubscriptionPlans = (plan, seatRoleId) => {
+    if (!plan || !seatRoleId) return;
+    setSeatModalOpen(false);
+    setShowSubscriptionModal(false);
+    setPendingPlan(null);
+    navigation.navigate('Subscription Plans', {
+      preselectedPlanId: plan.plan_id,
+      preselectedSeatId: seatRoleId,
+      fromDashboard: true,
+    });
+  };
+
   // ── Filtered users ─────────────────────────────────────────────────────────
   const filteredUsers = allUsers.filter((u) => {
     const stateOk = stateFilter === 'All States' || u.state === stateFilter;
@@ -165,6 +320,22 @@ export default function DashboardScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
+      <SeatSelectModal
+        visible={seatModalOpen}
+        stateName={seatSummary?.state || currentUser?.state || ''}
+        seats={seatSummary?.seats || []}
+        selectedSeatId={selectedSeatId}
+        onSelectSeatId={setSelectedSeatId}
+        onCancel={() => {
+          setSeatModalOpen(false);
+          setPendingPlan(null);
+        }}
+        onConfirm={() => {
+          const stateName = seatSummary?.state || currentUser?.state || '';
+          if (!pendingPlan || !stateName || !selectedSeatId) return;
+          goToSubscriptionPlans(pendingPlan, selectedSeatId);
+        }}
+      />
       <Header
         title="Dashboard"
         onMenuPress={() => setSidebarVisible(true)}
@@ -357,8 +528,26 @@ export default function DashboardScreen({ navigation, route }) {
                     plan.popular && { borderWidth: 2, borderColor: plan.color },
                   ]}
                   onPress={() => {
-                    setShowSubscriptionModal(false);
-                    navigation.navigate('Subscription Plans');
+                    const stateName = seatSummary?.state || currentUser?.state || '';
+                    if (!stateName) {
+                      showPopup('Please select your state first.', 'error', {
+                        primaryLabel: 'Open',
+                        secondaryLabel: 'Cancel',
+                        onPrimaryPress: () => navigation.navigate('StateSelect', { fromPremium: true, autoOpen: true }),
+                      });
+                      return;
+                    }
+
+                    const existingSeatId = seatSummary?.current_seat?.seat_id || '';
+                    setPendingPlan(plan);
+
+                    if (existingSeatId) {
+                      setSelectedSeatId(existingSeatId);
+                      goToSubscriptionPlans(plan, existingSeatId);
+                      return;
+                    }
+
+                    setSeatModalOpen(true);
                   }}
                   activeOpacity={0.8}
                 >

@@ -51,7 +51,11 @@ export default function AutoIdCardPreview({ profile }) {
       </View>
 
       {/* ── GREEN BANNER ── */}
-      <Image source={GREEN_BANNER} style={{ width: '100%', height: 15, resizeMode: 'stretch' }} />
+      <Image
+        source={GREEN_BANNER}
+        resizeMode="stretch"
+        style={{ width: '100%', height: 15 }}
+      />
 
       {/* ── PHOTO ROW ── */}
       <View style={IdCardStyles.idCardPhotoRow}>

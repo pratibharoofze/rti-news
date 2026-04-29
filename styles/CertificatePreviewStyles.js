@@ -28,7 +28,7 @@ export default StyleSheet.create({
 
   templateImage: {
     width: '100%',
-    aspectRatio: 0.65,
+    aspectRatio: 1024 / 1536,
   },
 
   templateImageStyle: {

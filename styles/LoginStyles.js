@@ -165,7 +165,7 @@ const LoginStyles = StyleSheet.create({
     paddingVertical: 0,
     // ✅ FIX: browser default focus outline hatao
     ...(Platform.OS === 'web' && {
-      outline: 'none',
+      outlineStyle: 'none',
     }),
   },
 

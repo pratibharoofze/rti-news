@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserStore } from '../store/UserStore';
-import { MAHARASHTRA_DISTRICT_LIST } from '../pages/locationData';
+import { getDistricts } from '../pages/locationData';
 import styles from '../styles/RegisterStyles'; // Reuse styles
 
 // ── Dropdown Modal ────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ export default function DistrictSelectScreen({ navigation, route }) {
     return unsubscribe;
   }, [navigation]);
 
-  const districtList = selectedState === 'Maharashtra' ? MAHARASHTRA_DISTRICT_LIST : [];
+  const districtList = selectedState ? getDistricts(selectedState) : [];
 
   const handleNext = async () => {
     if (!district.trim()) {

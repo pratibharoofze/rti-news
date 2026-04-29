@@ -31,6 +31,7 @@ const QR_CODE = require('../assets/images/QR.png');
 
 const CERT_LOGO = require('../assets/images/certificate_logo.jpg');
 const RIBBON_IMAGE = require('../assets/images/ribon.png');
+const GREEN_BANNER = require('../assets/images/green_banner.jpeg');
 const MIC_ICON_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEsAAABtCAYAAADpu5zBAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAC9USURBVHhe1X13nF1lnT6fj2tIZiZt+ty5vUy9bVomk0pVmhQLIOrqIiAKSFFEhJUiJJneaxJQERdERGF3EXQVFV';
 
 const DEFAULT_AVATAR =
@@ -52,13 +53,7 @@ const RANKS = [
 function getRank(n = 0) { return RANKS.find((r) => n >= r.minReferrals) || RANKS[RANKS.length - 1]; }
 function getNextRank(n = 0) { const i = RANKS.findIndex((r) => n >= r.minReferrals); return i > 0 ? RANKS[i - 1] : null; }
 
-const INDIAN_STATES = [
-  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat',
-  'Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh',
-  'Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan',
-  'Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
-  'Andaman & Nicobar','Chandigarh','Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry',
-];
+// Note: Profile editing is intentionally limited to photo updates only.
 function generateReferralCode(email = '') {
   if (!email) return 'RTI000000';
   let h = 0;
@@ -98,6 +93,41 @@ async function resolvePdfImageSrc(uri = '') {
 async function resolveModuleImageSrc(moduleRef, mimeType = 'image/jpeg') {
   try {
     const asset = Asset.fromModule(moduleRef);
+    if (Platform.OS === 'web') {
+      try {
+        if (!asset?.uri && asset?.downloadAsync) await asset.downloadAsync();
+      } catch (_) {}
+
+      const uri = asset?.localUri || asset?.uri || '';
+      if (!uri) return '';
+      if (uri.startsWith('data:')) return uri;
+
+      let abs = uri;
+      try {
+        abs = new URL(uri, typeof window !== 'undefined' ? window.location.href : undefined).toString();
+      } catch (_) {}
+
+      const cache = resolveModuleImageSrc._cache || (resolveModuleImageSrc._cache = new Map());
+      const key = `${mimeType}|${abs}`;
+      if (cache.has(key)) return cache.get(key);
+
+      try {
+        const response = await fetch(abs);
+        if (!response.ok) throw new Error('asset fetch failed');
+        const blob = await response.blob();
+        const dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+          reader.readAsDataURL(blob);
+        });
+        const result = dataUrl || abs;
+        cache.set(key, result);
+        return result;
+      } catch (_) {
+        cache.set(key, abs);
+        return abs;
+      }
+    }
     if (!asset.localUri) await asset.downloadAsync();
     const assetUri = asset.localUri || asset.uri || '';
     if (!assetUri) return '';
@@ -134,41 +164,120 @@ const initialForm = {
   subscription_type:'', profile_image:'', id_card_image:'', appointment_letter_image:'',
   role_label:'', id_card_status:'', appointment_letter_status:'', referral_count:0, referral_code:'', is_subscribed:false,
 };
-const profileFields = [
-  { key:'name',           label:'Full Name',      editable:true,  icon:'user'  },
-  { key:'email',          label:'Email Address',  editable:false, icon:'mail'  },
-  { key:'village',        label:'Village',        editable:true,  icon:'home'  },
-  { key:'phone_number',   label:'Phone Number',   editable:true,  icon:'phone' },
-  { key:'mobile_number',  label:'Mobile Number',  editable:true,  icon:'smartphone' },
-];
+// profileFields removed (photo-only updates)
 
 // -----------------------------------------------------------------------------
 // ID CARD HTML - Exact match to image 1
 // -----------------------------------------------------------------------------
-async function buildIdCardHtml(profile) {
+async function buildIdCardHtml(profile, { webPreview = Platform.OS === 'web' } = {}) {
   const memberId = generateMemberId(profile.email);
   const rank = getRank(profile.referral_count || 0);
   const location = [profile.village, profile.state].filter(Boolean).join(', ') || 'Not provided';
   const validUpto = fmtValidUpto();
+  const docTitle = profile?.name?.trim() ? `ID Card - ${profile.name.trim()}` : 'ID Card';
   const resolvedPhoto = await resolvePdfImageSrc(profile.profile_image);
   const photoHtml = resolvedPhoto
     ? `<img src="${esc(resolvedPhoto)}" style="width:100%;height:100%;object-fit:cover;"/>`
     : `<div style="width:100%;height:100%;background:#d1d5db;display:flex;align-items:center;justify-content:center;color:#6b7280;font-weight:700;">No Photo</div>`;
 
+  const certLogoSrc = await resolveModuleImageSrc(CERT_LOGO, 'image/jpeg') || RTI_LOGO_B64;
+  const greenBannerSrc = await resolveModuleImageSrc(GREEN_BANNER, 'image/jpeg') || '';
+  const greenBannerHtml = greenBannerSrc ? `<img class="green-banner" src="${esc(greenBannerSrc)}" alt=""/>` : '';
+
   const micIconSrc = await resolveModuleImageSrc(MIC_ICON, 'image/png');
   const micSvg = `<img src="${esc(micIconSrc || MIC_ICON_B64)}" style="width:40px;height:40px;object-fit:contain;border-radius:50%;"/>`;
   const qrIconSrc = await resolveModuleImageSrc(QR_CODE, 'image/png');
-  const qrImg = qrIconSrc ? `<img src="${esc(qrIconSrc)}" style="width:100%;height:100%;object-fit:contain;"/>` : '<div>QR</div>';
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>ID Card</title>
-<style>
-  @page { size: A4 portrait; margin: 0; }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:rgba(218, 213, 213, 0.76);display:flex;justify-content:center;align-items:center;padding:14px;font-family:Arial,sans-serif;}
-  .document-wrapper{display:flex;justify-content:center;align-items:center;width:100%;}
-  .id-card-preview{width:342px;max-width:100%;border-radius:16px;overflow:hidden;background-color:#fff;box-shadow:0 10px 28px rgba(0,0,0,0.22);}
-  .id-card-header{background:#EB8C28;padding:10px 12px;text-align:center;}
-  .id-card-header h1{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:0.3px;}
-  .id-card-header .network{font-size:24px;font-weight:900;color:#101827;line-height:26px;}
+  const qrInnerHtml = qrIconSrc
+    ? `<div class="id-card-qr-inner"><img src="${esc(qrIconSrc)}" style="width:100%;height:100%;object-fit:contain;"/></div>`
+    : '<div class="id-card-qr-inner"><div class="title">QR</div></div>';
+
+  const bodyClass = webPreview ? 'preview' : '';
+  const webToolbar = webPreview ? `
+  <div class="web-toolbar">
+    <div class="web-toolbar-left">
+      <div class="web-toolbar-title">${esc(docTitle)}</div>
+      <div class="web-toolbar-sub">Click <b>Download PDF</b> and choose <b>Save as PDF</b>.</div>
+    </div>
+    <div class="web-toolbar-actions">
+      <button class="web-toolbar-btn" onclick="window.print()">Download PDF</button>
+      <button class="web-toolbar-btn secondary" onclick="window.close()">Close</button>
+    </div>
+  </div>
+  `.trim() : '';
+  const responsiveScript = webPreview ? `
+<script>
+  (function () {
+    function apply() {
+      var el = document.querySelector('.id-card-preview');
+      if (!el) return;
+      var tb = document.querySelector('.web-toolbar');
+      var tbH = tb ? tb.offsetHeight : 0;
+      var padding = 28;
+      var w = Math.max(1, (window.innerWidth || 1) - padding);
+      var scale = Math.min(1, w / el.offsetWidth);
+      document.documentElement.style.setProperty('--scale', String(scale));
+      document.body.style.height = String(Math.round(el.offsetHeight * scale + padding + tbH)) + 'px';
+    }
+    window.addEventListener('resize', apply);
+    apply();
+  })();
+</script>`.trim() : '';
+  const autoPrintScript = webPreview ? `
+<script>
+  (function () {
+    window.__PDF_READY__ = false;
+    function imagesReady() {
+      var imgs = Array.prototype.slice.call(document.images || []);
+      for (var i = 0; i < imgs.length; i++) {
+        var img = imgs[i];
+        if (!img.complete) return false;
+        if (typeof img.naturalWidth === 'number' && img.naturalWidth === 0) return false;
+      }
+      return true;
+    }
+    function tryPrint() {
+      if (!imagesReady()) return setTimeout(tryPrint, 60);
+      window.__PDF_READY__ = true;
+    }
+    window.addEventListener('load', function () { setTimeout(tryPrint, 300); });
+  })();
+</script>`.trim() : '';
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>${esc(docTitle)}</title>
+  <style>
+   @page { size: A4 portrait; margin: 0; }
+   *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    :root{--scale:1;--print-scale:1;}
+    body{background:rgba(218, 213, 213, 0.76);display:flex;justify-content:center;align-items:center;flex-direction:column;padding:14px;font-family:Arial,sans-serif;-webkit-text-size-adjust:100%;}
+    body.preview{justify-content:flex-start;}
+    .scale{transform-origin:top center;}
+    body.preview .scale{transform:scale(var(--scale));}
+     @media print{
+       body{padding:0 !important;background:#fff;}
+       body.preview{padding:0 !important;}
+       body.preview .scale{transform:scale(var(--print-scale)) !important;transform-origin:top center;}
+       body:not(.preview) .scale{transform:none !important;}
+       .id-card-preview{box-shadow:none !important;}
+     }
+   ${webPreview ? `
+   .web-toolbar{position:sticky;top:0;z-index:10;width:100%;max-width:760px;margin:0 auto 12px auto;background:#111827;color:#fff;border-radius:14px;padding:10px 12px;display:flex;gap:12px;align-items:center;justify-content:space-between;box-shadow:0 10px 28px rgba(0,0,0,0.18);}
+   .web-toolbar-title{font-weight:800;font-size:13px;line-height:16px;}
+   .web-toolbar-sub{font-size:12px;color:rgba(255,255,255,0.8);line-height:16px;margin-top:2px;}
+   .web-toolbar-actions{display:flex;gap:8px;flex-shrink:0;}
+   .web-toolbar-btn{appearance:none;border:none;border-radius:12px;padding:9px 12px;background:#22c55e;color:#052e16;font-weight:800;font-size:12px;cursor:pointer;}
+   .web-toolbar-btn.secondary{background:rgba(255,255,255,0.12);color:#fff;}
+   @media print{.web-toolbar{display:none !important;}}
+   ` : ''}
+   .document-wrapper{display:flex;justify-content:center;align-items:center;width:100%;}
+   .id-card-preview{width:342px;max-width:100%;border-radius:16px;overflow:hidden;background-color:#fff;box-shadow:0 10px 28px rgba(0,0,0,0.22);}
+   .green-banner{width:100%;height:15px;object-fit:fill;display:block;}
+   /* SVG backgrounds can render incorrectly in PDF generation; use CSS backgrounds instead. */
+   .svg-fill{display:none !important;}
+   .id-card-header{position:relative;background:#EB8C28;padding:10px 12px;text-align:center;}
+   .id-card-header-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;}
+   .id-card-header h1{font-size:21px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:0.3px;line-height:26px;}
+   .id-card-header-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:2px;}
+   .id-card-mic{width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex:0 0 40px;}
+  .id-card-header .network{font-size:22px;font-weight:900;color:#101827;line-height:22px;text-align:center;}
   .id-card-header .sub{font-size:18px;font-weight:700;color:#8B2E1A; margin-top:4px;}
   .id-card-header .reg{font-size:11px;font-weight:700;color:#1a3a8a;margin-top:1px;letter-spacing:0.3px;}
   .id-card-photo-row{display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(218, 213, 213, 0.76);}
@@ -187,32 +296,43 @@ async function buildIdCardHtml(profile) {
   .id-card-val{font-size:12px;font-weight:600;color:#1f2937;flex:1;}
   .id-card-val-light{font-size:12px;color:#374151;flex:1;}
   .id-card-valid{margin-top:2px;margin-bottom:4px;text-align:center;font-size:11px;color:#374151;font-weight:600;}
-  .press-footer-wrapper{overflow:hidden;}
-  .press-green-bar{background:#15803d;display:flex;align-items:stretch;}
-  .press-green-block{width:45px;background:#15803d;}
-  .press-approved-center{flex:1;background:#fff;text-align:center;padding:5px 6px;}
-  .press-approved-center .from{font-size:9px;color:#374151;font-weight:500;}
-  .press-approved-center .desig{font-size:8px;color:#374151;margin-top:1px;}
-  .press-red-bar{background:#15803d;display:flex;align-items:stretch;padding:1px 0;}
-  .press-red-side{flex:1;background:#15803d;}
-  .press-red-box{background:#dc2626;padding:0 35px;align-items:center;justify-content:center;display:flex;}
-  .press-red-box .text{font-size:32px;font-weight:900;color:#fff;letter-spacing:12px;font-style:italic;}
-</style>
-</head><body>
+   .press-footer-wrapper{overflow:hidden;}
+    .press-green-bar{position:relative;background:#15803d;display:flex;align-items:stretch;}
+    .press-green-bar > :not(.svg-fill){position:relative;z-index:1;}
+    .press-green-block{width:45px;background:#15803d;}
+   .press-approved-center{flex:1;background:#fff;text-align:center;padding:5px 6px;}
+   .press-approved-center .from{font-size:9px;color:#374151;font-weight:500;}
+   .press-approved-center .desig{font-size:8px;color:#374151;margin-top:1px;}
+    .press-red-bar{position:relative;background:#15803d;display:flex;align-items:stretch;padding:1px 0;}
+    .press-red-bar > :not(.svg-fill){position:relative;z-index:1;}
+    .press-red-side{flex:1;}
+    .press-red-box{position:relative;background:#dc2626;padding:0 35px;align-items:center;justify-content:center;display:flex;}
+   .press-red-box .text{font-size:32px;font-weight:900;color:#fff;letter-spacing:12px;font-style:italic;}
+ </style>
+  </head><body class="${bodyClass}">
+  ${webToolbar}
   <div class="document-wrapper">
-    <div class="id-card-preview">
-    <div class="id-card-header" style="position:relative;">
-      <div style="position:absolute;left:12px;top:12px;width:40px;height:40px;">${micSvg}</div>
-      <div><h1>Bhartiya Mahiti Adhikar</h1></div>
-      <div class="network">ALL INDIA RTI NEWS NETWORK</div>
-      <div class="sub">BhaRTIya V😊ice / RTI Media</div>
-      <div class="reg">RNI.MAH/MUL/66399 ★ UDYAM-MH-29-0022246</div>
+    <div class="id-card-preview scale">
+    <div class="id-card-header">
+      <svg class="svg-fill" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="100" height="100" fill="#EB8C28"></rect>
+      </svg>
+      <div class="id-card-header-content">
+        <div><h1>Bhartiya Mahiti Adhikar</h1></div>
+        <div class="id-card-header-row">
+          <div class="id-card-mic">${micSvg}</div>
+          <div class="network">ALL INDIA RTI<br/>NEWS NETWORK</div>
+        </div>
+        <div class="sub">BhaRTIya V😊ice / RTI Media</div>
+        <div class="reg">RNI.MAH/MUL/66399 &#9733; UDYAM-MH-29-0022246</div>
+      </div>
     </div>
+    ${greenBannerHtml}
     <div class="id-card-photo-row">
-      <div class="id-card-logo"><img src="${RTI_LOGO_B64}" style="width:100%;height:100%;object-fit:cover;"/></div>
+      <div class="id-card-logo"><img src="${esc(certLogoSrc || RTI_LOGO_B64)}" style="width:100%;height:100%;object-fit:cover;"/></div>
       <div class="id-card-photo-box">${photoHtml}</div>
       <div class="id-card-qr-box">
-        ${qrImg}
+        ${qrInnerHtml}
       </div>
     </div>
     <div class="id-card-details">
@@ -223,33 +343,49 @@ async function buildIdCardHtml(profile) {
       <div class="id-card-row"><div class="id-card-key-light">ID No;-</div><div class="id-card-val-light">${esc(memberId)}</div></div>
       <div class="id-card-valid">Valid Upto ;- ${esc(validUpto)}</div>
     </div>
-    <div class="press-footer-wrapper">
-      <div class="press-green-bar">
-        <div class="press-green-block"></div>
-        <div class="press-approved-center"><div class="from">This Identity Card is approved from</div><div class="desig">Chief Editor, All India President</div></div>
-        <div class="press-green-block"></div>
+      <div class="press-footer-wrapper">
+        <div class="press-green-bar">
+          <svg class="svg-fill" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="100" height="100" fill="#15803d"></rect>
+          </svg>
+          <div class="press-green-block"></div>
+          <div class="press-approved-center"><div class="from">This Identity Card is approved from</div><div class="desig">Chief Editor, All India President</div></div>
+          <div class="press-green-block"></div>
+        </div>
+        <div class="press-red-bar">
+          <svg class="svg-fill" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="100" height="100" fill="#15803d"></rect>
+          </svg>
+          <div class="press-red-side"></div>
+          <div class="press-red-box">
+            <svg class="svg-fill" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="100" height="100" fill="#dc2626"></rect>
+            </svg>
+            <div class="text" style="position:relative;z-index:1;">PRESS</div>
+          </div>
+          <div class="press-red-side"></div>
+        </div>
       </div>
-      <div class="press-red-bar">
-        <div class="press-red-side"></div>
-        <div class="press-red-box"><div class="text">PRESS</div></div>
-        <div class="press-red-side"></div>
-      </div>
-    </div>
   </div>
-  </div>
+</div>
+${responsiveScript}
+${autoPrintScript}
 </body></html>`;
 }
-async function buildAppointmentLetterHtml(profile) {
+async function buildAppointmentLetterHtml(profile, { webPreview = Platform.OS === 'web' } = {}) {
   const location = [profile.village, profile.state].filter(Boolean).join(', ') || 'Not provided';
   const issued = fmt();
   const validUpto = fmtValidUpto();
-  const phoneNumber = profile.contact_number || '';
-  const mobileNumber = profile.contact_number2 || '';
+  const phoneNumber = profile.phone_number || profile.contact_number || '';
+  const mobileNumber = profile.mobile_number || profile.mobile || profile.contact_number || '';
+  const docTitle = profile?.name?.trim() ? `Appointment Letter - ${profile.name.trim()}` : 'Appointment Letter';
 
   const resolvedPhoto = await resolvePdfImageSrc(profile.profile_image);
   const ribbonSrc = await resolveModuleImageSrc(RIBBON_IMAGE, 'image/png') || '';
   const voiceLogoSrc = await resolveModuleImageSrc(RTI_VOICE_LOGO, 'image/jpeg') || RTI_VOICE_LOGO_B64;
   const certLogoSrc = await resolveModuleImageSrc(CERT_LOGO, 'image/jpeg') || RTI_LOGO_B64;
+  const greenBannerSrc = await resolveModuleImageSrc(GREEN_BANNER, 'image/jpeg') || '';
+  const greenBannerHtml = greenBannerSrc ? `<div class="green-wrap"><img src="${esc(greenBannerSrc)}" alt=""/></div>` : '';
 
   const isValidPhoto = resolvedPhoto &&
     (resolvedPhoto.startsWith('data:image') || resolvedPhoto.startsWith('http'));
@@ -258,16 +394,94 @@ async function buildAppointmentLetterHtml(profile) {
     ? `<img src="${esc(resolvedPhoto)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;"/>`
     : `<div style="width:100%;height:100%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:11px;font-weight:700;border-radius:6px;">No Photo</div>`;
 
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Appointment Letter</title>
-<style>
-  @page { size: 160mm 240mm; margin: 0; }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{width:160mm;height:240mm;margin:0;padding:0;background:#e9edf0;font-family:Arial,sans-serif;}
-  .letter{width:160mm;height:240mm;background:#e9edf0;display:flex;flex-direction:column;}
+  const bodyClass = webPreview ? 'preview' : '';
+  const webToolbar = webPreview ? `
+  <div class="web-toolbar">
+    <div class="web-toolbar-left">
+      <div class="web-toolbar-title">${esc(docTitle)}</div>
+      <div class="web-toolbar-sub">Click <b>Download PDF</b> and choose <b>Save as PDF</b>.</div>
+    </div>
+    <div class="web-toolbar-actions">
+      <button class="web-toolbar-btn" onclick="window.print()">Download PDF</button>
+      <button class="web-toolbar-btn secondary" onclick="window.close()">Close</button>
+    </div>
+  </div>
+  `.trim() : '';
+  const responsiveScript = webPreview ? `
+<script>
+  (function () {
+    function apply() {
+      var el = document.querySelector('.letter');
+      if (!el) return;
+      var tb = document.querySelector('.web-toolbar');
+      var tbH = tb ? tb.offsetHeight : 0;
+      var padding = 24;
+      var w = Math.max(1, (window.innerWidth || 1) - padding);
+      var scale = Math.min(1, w / el.offsetWidth);
+      document.documentElement.style.setProperty('--scale', String(scale));
+      document.body.style.height = String(Math.round(el.offsetHeight * scale + padding + tbH)) + 'px';
+    }
+    window.addEventListener('resize', apply);
+    apply();
+  })();
+ </script>`.trim() : '';
+  const autoPrintScript = webPreview ? `
+<script>
+  (function () {
+    window.__PDF_READY__ = false;
+    function imagesReady() {
+      var imgs = Array.prototype.slice.call(document.images || []);
+      for (var i = 0; i < imgs.length; i++) {
+        var img = imgs[i];
+        if (!img.complete) return false;
+        if (typeof img.naturalWidth === 'number' && img.naturalWidth === 0) return false;
+      }
+      return true;
+    }
+    function tryPrint() {
+      if (!imagesReady()) return setTimeout(tryPrint, 60);
+      window.__PDF_READY__ = true;
+    }
+    window.addEventListener('load', function () { setTimeout(tryPrint, 300); });
+  })();
+</script>`.trim() : '';
+   
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>${esc(docTitle)}</title>
+ <style>
+  @page { size: A4 portrait; margin: 0; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  :root{--scale:1;--print-scale:1;}
+  html,body{margin:0;padding:0;background:#e9edf0;font-family:Arial,sans-serif;-webkit-text-size-adjust:100%;}
+  body{background:rgba(218, 213, 213, 0.76);display:flex;justify-content:center;align-items:center;flex-direction:column;padding:14px;}
+  body.preview{justify-content:flex-start;}
+  .scale{transform-origin:top center;}
+  body.preview .scale{transform:scale(var(--scale));}
+  @media print{
+    body{padding:0 !important;background:#fff;}
+    body.preview{padding:0 !important;}
+    body.preview .scale{transform:scale(var(--print-scale)) !important;transform-origin:top center;}
+    body:not(.preview) .scale{transform:none !important;}
+    /* Stay single-page even with browser print margins */
+    .letter{width:200mm !important;height:287mm !important;margin:0 auto !important;}
+  }
+  ${webPreview ? `
+  .web-toolbar{position:sticky;top:0;z-index:10;width:100%;max-width:820px;margin:0 auto 12px auto;background:#111827;color:#fff;border-radius:14px;padding:10px 12px;display:flex;gap:12px;align-items:center;justify-content:space-between;box-shadow:0 10px 28px rgba(0,0,0,0.18);}
+  .web-toolbar-title{font-weight:800;font-size:13px;line-height:16px;}
+  .web-toolbar-sub{font-size:12px;color:rgba(255,255,255,0.8);line-height:16px;margin-top:2px;}
+  .web-toolbar-actions{display:flex;gap:8px;flex-shrink:0;}
+  .web-toolbar-btn{appearance:none;border:none;border-radius:12px;padding:9px 12px;background:#22c55e;color:#052e16;font-weight:800;font-size:12px;cursor:pointer;}
+  .web-toolbar-btn.secondary{background:rgba(255,255,255,0.12);color:#fff;}
+  @media print{.web-toolbar{display:none !important;}}
+  ` : ''}
+  .letter{width:210mm;height:297mm;background:#e9edf0;display:flex;flex-direction:column;break-inside:avoid-page;page-break-inside:avoid;}
+
+  /* SVG backgrounds can render incorrectly in print preview (oversized blocks). Use CSS backgrounds instead. */
+  .svg-fill{display:none !important;}
 
   /* PRESS */
   .press-badge{display:flex;justify-content:center;padding-top:20px;padding-bottom:14px;}
-  .press-badge span{font-size:18px;font-weight:800;color:#fff;background:#dc2626;padding:10px 38px;border-radius:999px;letter-spacing:3px;}
+  .press-pill{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:10px 38px;border-radius:999px;overflow:hidden;background:#dc2626;}
+  .press-pill span{position:relative;z-index:1;font-size:18px;font-weight:800;color:#fff;letter-spacing:3px;}
 
   /* LOGO ROW */
   .logo-row{display:flex;align-items:flex-end;justify-content:center;padding:22px 28px 0px;gap:15px;}
@@ -278,13 +492,19 @@ async function buildAppointmentLetterHtml(profile) {
   .center-logo{width:115px;height:115px;border-radius:50%;border:3px solid #15803d;overflow:hidden;flex-shrink:0;background:#fff;}
   .center-logo img{width:100%;height:100%;object-fit:cover;}
   .network-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
-  .network-badge{background:#1d4ed8;border-radius:4px;padding:10px 16px;text-align:center;width:100%;}
+  .network-badge{position:relative;background:#1d4ed8;border-radius:4px;padding:10px 16px;text-align:center;width:100%;overflow:hidden;}
+  .network-badge > *{position:relative;z-index:1;}
   .network-badge div{font-size:20px;font-weight:700;color:#fff;line-height:26px;}
   .udyam{font-size:9px;color:#dc2626;font-weight:900;text-align:center;width:100%;}
 
   /* RED BANNER */
-  .red-banner{background:#dc2626;padding:10px 40px;margin:4px 16px 10px;}
+  .red-banner{position:relative;background:#dc2626;padding:10px 40px;margin:4px 16px 10px;overflow:hidden;}
+  .red-banner > *{position:relative;z-index:1;}
   .red-banner div{font-size:32px;font-weight:900;color:#fff;text-align:center;}
+
+  /* GREEN BANNER */
+  .green-wrap{padding:0 12px;margin-top:-4px;margin-bottom:6px;}
+  .green-wrap img{width:100%;height:15px;object-fit:fill;display:block;}
 
   /* SUBTITLE */
   .subtitle{font-size:16px;font-weight:600;color:#374151;text-align:center;padding:8px 16px;line-height:22px;}
@@ -318,12 +538,21 @@ async function buildAppointmentLetterHtml(profile) {
   .sign-sub{font-size:15px;color:#6b7280;margin-top:2px;}
 
   /* FOOTER */
-  .footer{background:#dc2626;color:#fff;text-align:center;padding:8px 20px;font-size:14px;font-weight:600;line-height:20px;margin:4px 16px 10px;border-radius:0;}
-</style>
-</head><body>
-<div class="letter">
+  .footer{position:relative;background:#dc2626;color:#fff;text-align:center;padding:8px 20px;font-size:14px;font-weight:600;line-height:20px;margin:4px 16px 10px;border-radius:0;overflow:hidden;}
+  .footer > *{position:relative;z-index:1;}
+ </style>
+ </head><body class="${bodyClass}">
+ ${webToolbar}
+ <div class="letter scale">
 
-  <div class="press-badge"><span>PRESS</span></div>
+  <div class="press-badge">
+    <div class="press-pill">
+      <svg class="svg-fill" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="100" height="100" rx="50" ry="50" fill="#dc2626"></rect>
+      </svg>
+      <span>PRESS</span>
+    </div>
+  </div>
 
   <div class="logo-row">
     <div class="brand">
@@ -336,16 +565,25 @@ async function buildAppointmentLetterHtml(profile) {
     <div class="center-logo">
       <img src="${esc(certLogoSrc || RTI_LOGO_B64)}" alt="Logo"/>
     </div>
-    <div class="network-wrap">
-      <div class="network-badge">
-        <div>All India RTI News</div>
-        <div>Network</div>
+      <div class="network-wrap">
+        <div class="network-badge">
+          <svg class="svg-fill" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="100" height="100" fill="#1d4ed8"></rect>
+          </svg>
+          <div>All India RTI News</div>
+          <div>Network</div>
+        </div>
+        <div class="udyam">UDYAM-MH-29-0022246</div>
       </div>
-      <div class="udyam">UDYAM-MH-29-0022246</div>
-    </div>
   </div>
 
-  <div class="red-banner"><div>Bhartiya Mahiti Adhikar</div></div>
+   <div class="red-banner">
+     <svg class="svg-fill" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+       <rect x="0" y="0" width="100" height="100" fill="#dc2626"></rect>
+     </svg>
+     <div>Bhartiya Mahiti Adhikar</div>
+   </div>
+   ${greenBannerHtml}
 
   <div class="subtitle">
     News Paper Published in Marathi, Hindi &amp; English language<br/>
@@ -408,11 +646,16 @@ async function buildAppointmentLetterHtml(profile) {
   </div>
 
   <div class="footer">
-    E-mail: ${esc(profile.email || '___________')} | Web: www.bhartiyamahitladhikar.com
+    <svg class="svg-fill" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="100" height="100" fill="#dc2626"></rect>
+    </svg>
+    <div>E-mail: ${esc(profile.email || '___________')} | Web: www.bhartiyamahitladhikar.com</div>
   </div>
 
 </div>
-</body></html>`;
+${responsiveScript}
+${autoPrintScript}
+ </body></html>`;
 }
 function RankBadge({ referralCount }) {
   const rank = getRank(referralCount);
@@ -444,27 +687,7 @@ function ReferralCodeCard({ referralCode, onCopy }) {
   );
 }
 
-function SimpleDropdown({ value, options = [], onSelect, placeholder }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <View style={{ position:'relative' }}>
-      <TouchableOpacity style={ProfileStyles.dropdownTrigger} onPress={() => setOpen(!open)}>
-        <Text style={value ? ProfileStyles.dropdownValue : ProfileStyles.dropdownPlaceholder}>{value || placeholder}</Text>
-        <Feather name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#8a94a6" />
-      </TouchableOpacity>
-      {open ? (
-        <View style={ProfileStyles.dropdownList}>
-          {options.map(opt => (
-            <TouchableOpacity key={opt} style={[ProfileStyles.dropdownItem, opt === value && ProfileStyles.dropdownItemActive]} onPress={() => { onSelect(opt); setOpen(false); }}>
-              <Text style={[ProfileStyles.dropdownItemText, opt === value && ProfileStyles.dropdownItemTextActive]}>{opt}</Text>
-              {opt === value ? <Feather name="check" size={14} color="#7d38ff" /> : null}
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
-    </View>
-  );
-}
+// SimpleDropdown removed (photo-only updates)
 function SavedProfileCard({ profile }) {
   const fields = [
     { icon:'user',        label:'Full Name',         value:profile.name,              accent:'#7d38ff' },
@@ -504,22 +727,22 @@ function SavedProfileCard({ profile }) {
           </View>
         ))}
       </View>
-      <View style={ProfileStyles.hintRow}>
-        <Feather name="info" size={12} color="#a0a8bf" />
-        <Text style={ProfileStyles.hintText}>Tap <Text style={ProfileStyles.hintBold}>Edit Profile</Text> below to update your details</Text>
-      </View>
-    </View>
-  );
-}
+      <View style={ProfileStyles.hintRow}> 
+        <Feather name="info" size={12} color="#a0a8bf" /> 
+        <Text style={ProfileStyles.hintText}>Tap <Text style={ProfileStyles.hintBold}>Update Photo</Text> below to change your profile photo</Text> 
+      </View> 
+    </View> 
+  ); 
+} 
 
-export default function ProfileScreen({ navigation }) {
-  const { showToast } = useToast();
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('Profile');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+export default function ProfileScreen({ navigation }) { 
+  const { showToast } = useToast(); 
+  const [sidebarVisible, setSidebarVisible] = useState(false); 
+  const [activeTab, setActiveTab] = useState('Profile'); 
+  const [loading, setLoading] = useState(true); 
+  const [saving, setSaving] = useState(false); 
+  const [uploading, setUploading] = useState(false); 
+  const [isEditing, setIsEditing] = useState(false); 
   const [downloadingDoc, setDownloadingDoc] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [savedProfile, setSavedProfile] = useState(initialForm);
@@ -549,12 +772,12 @@ export default function ProfileScreen({ navigation }) {
     setSavedProfile(profileData); setForm(profileData);
   }, [navigation, showToast]);
 
-  useFocusEffect(useCallback(() => { loadCurrentUser(); }, [loadCurrentUser]));
-
-  const openEdit = () => { setForm(savedProfile); setIsEditing(true); };
-  const closeEdit = () => { setForm(savedProfile); setIsEditing(false); };
-  const handleChange = (k, v) => setForm(p => ({ ...p, [k]: v }));
-  const hasDocumentSubscription = Boolean((isEditing ? form : savedProfile).is_subscribed);
+  useFocusEffect(useCallback(() => { loadCurrentUser(); }, [loadCurrentUser])); 
+ 
+  const openEdit = () => { setForm(savedProfile); setIsEditing(true); }; 
+  const closeEdit = () => { setForm(savedProfile); setIsEditing(false); }; 
+  const handleChange = (k, v) => setForm(p => ({ ...p, [k]: v })); 
+  const hasDocumentSubscription = Boolean((isEditing ? form : savedProfile).is_subscribed); 
 
   const promptSubscriptionRequired = useCallback((documentLabel) => {
     Alert.alert(
@@ -605,21 +828,150 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
     if (!hasDocumentSource(profile)) { showToast('Please complete profile details first.', 'error'); return; }
-    const html = type === 'id-card' ? await buildIdCardHtml(profile) : await buildAppointmentLetterHtml(profile);
     try {
       setDownloadingDoc(type);
+
+      let printWindow = null;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          // Popup blocked: fall back to printing in this tab (hidden iframe) below.
+        }
+        if (printWindow) {
+          try {
+          printWindow.document.open();
+          printWindow.document.write('<!doctype html><html><head><meta charset="utf-8"/><title>Generating…</title></head><body style="font-family:Arial,sans-serif;padding:18px;color:#111827;"><h3 style="margin:0 0 8px 0;">Generating…</h3><div style="color:#6b7280;">Please wait.</div></body></html>');
+          printWindow.document.close();
+          } catch (_) {}
+        }
+      }
+
+      const html =
+        type === 'id-card'
+          ? await buildIdCardHtml(profile, { webPreview: Platform.OS === 'web' && Boolean(printWindow) })
+          : await buildAppointmentLetterHtml(profile, { webPreview: Platform.OS === 'web' && Boolean(printWindow) });
+
+      if (Platform.OS === 'web' && printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+        // Avoid printing too early (images may not be decoded yet). Wait for the tab to signal readiness.
+        try {
+          const start = Date.now();
+          const timer = setInterval(() => {
+            if (!printWindow || printWindow.closed) { clearInterval(timer); return; }
+            const ready = Boolean(printWindow.__PDF_READY__);
+            if (ready) {
+              clearInterval(timer);
+              try { printWindow.focus(); } catch (_) {}
+              try { printWindow.print(); } catch (_) {}
+              return;
+            }
+            if (Date.now() - start > 20000) {
+              clearInterval(timer);
+              try { printWindow.focus(); } catch (_) {}
+              showToast('PDF tab is open. Click “Download PDF” in that tab to print/save.', 'success');
+            }
+          }, 120);
+        } catch (_) {}
+        showToast('Preparing PDF… print dialog will open. If it doesn’t, use “Download PDF” in the new tab.', 'success');
+        return;
+      }
+
       if (Platform.OS === 'web' && typeof document !== 'undefined') {
-        const b = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const u = URL.createObjectURL(b);
-        const a = document.createElement('a');
-        a.href = u; a.download = `${safeName(profile.name)}-${type}.html`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
-        showToast('Document downloaded!', 'success');
-      } else {
-        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        const printViaIframe = async (htmlToPrint) => {
+          const iframe = document.createElement('iframe');
+          iframe.setAttribute('title', 'pdf-print');
+          iframe.style.position = 'fixed';
+          iframe.style.right = '0';
+          iframe.style.bottom = '0';
+          iframe.style.width = '0';
+          iframe.style.height = '0';
+          iframe.style.border = '0';
+          iframe.style.opacity = '0';
+          document.body.appendChild(iframe);
+
+          const win = iframe.contentWindow;
+          const doc = iframe.contentDocument || win?.document;
+          if (!win || !doc) throw new Error('iframe not ready');
+
+          doc.open();
+          doc.write(htmlToPrint);
+          doc.close();
+
+          const waitForImages = async (timeoutMs = 15000) => {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+              const imgs = Array.from(doc.images || []);
+              const allOk = imgs.every((img) => img.complete && (typeof img.naturalWidth !== 'number' || img.naturalWidth > 0));
+              if (allOk) return;
+              await new Promise((r) => setTimeout(r, 80));
+            }
+          };
+
+          await waitForImages();
+          try { win.focus(); } catch (_) {}
+          win.print();
+          setTimeout(() => { try { iframe.remove(); } catch (_) {} }, 1200);
+        };
+
+        try {
+          await printViaIframe(html);
+          showToast('Print dialog opened. Choose "Save as PDF" to download.', 'success');
+        } catch (_) {
+          showToast('Unable to open print dialog. Please allow popups and try again.', 'error');
+        }
+        return;
+      }
+
+      {
+        const a4 = { width: 595, height: 842 };
+        let uri = '';
+        try {
+          ({ uri } = await Print.printToFileAsync({ html, base64: false, ...a4 }));
+        } catch (e) {
+          // Some Android devices fail when writing PDF data; fall back to system print flow.
+          try {
+            await Print.printAsync({ html, ...a4 });
+            showToast('Print opened. Choose "Save as PDF" to download.', 'success');
+            return;
+          } catch (_) {
+            throw e;
+          }
+        }
+        const safe = (v = '') => String(v || '').trim().replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+        const namePart = safe(profile?.name) || 'user';
+        const filename = `${type === 'id-card' ? 'ID-Card' : 'Appointment-Letter'}-${namePart}.pdf`;
+
+        const trySaveAndroid = async () => {
+          try {
+            if (Platform.OS !== 'android') return false;
+            const SAF = FileSystem.StorageAccessFramework;
+            if (!SAF?.requestDirectoryPermissionsAsync || !SAF?.createFileAsync) return false;
+            const permissions = await SAF.requestDirectoryPermissionsAsync();
+            if (!permissions?.granted) return false;
+            const b64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+            const dest = await SAF.createFileAsync(permissions.directoryUri, filename, 'application/pdf');
+            await FileSystem.writeAsStringAsync(dest, b64, { encoding: FileSystem.EncodingType.Base64 });
+            return true;
+          } catch (_) {
+            return false;
+          }
+        };
+
+        const saved = await trySaveAndroid();
+        if (saved) {
+          showToast('PDF saved successfully.', 'success');
+          return;
+        }
+
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
-          await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: type === 'id-card' ? 'Save ID Card PDF' : 'Save Appointment Letter PDF', UTI: 'com.adobe.pdf' });
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: type === 'id-card' ? 'Save ID Card PDF' : 'Save Appointment Letter PDF',
+            UTI: 'com.adobe.pdf',
+          });
           showToast('PDF ready! Save or share from the dialog.', 'success');
         } else {
           showToast(`PDF saved: ${uri.split('/').pop()}`, 'success');
@@ -633,43 +985,21 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const handleSave = async () => {
-    if (!form.name.trim()) { showToast('Full Name is required.', 'error'); return; }
-    setSaving(true);
-    const genId = hasDocumentSource(form) ? GENERATED_ID_CARD : '';
-    const genAppt = hasDocumentSource(form) ? GENERATED_APPOINTMENT_LETTER : '';
-    const refCode = form.referral_code || generateReferralCode(form.email);
-    const updated = await UserStore.updateUser(form.email, {
-      name: form.name.trim(), village: form.village.trim(), state: form.state,
-      bio: form.bio.trim(),
-      phone_number: form.phone_number.trim(),
-      mobile_number: form.mobile_number.trim(),
-      contact_number: form.mobile_number.trim(),
-      mobile: form.mobile_number.trim(),
-      profile_image: form.profile_image,
-      my_referral_code: refCode,
-      id_card_image: genId, appointment_letter_image: genAppt,
-      id_card_status: genId ? 'approved' : '', appointment_letter_status: genAppt ? 'approved' : '',
-    });
-    setSaving(false);
-    if (!updated) { showToast('Error saving profile.', 'error'); return; }
-    const next = {
-      name: updated.name || '', email: updated.email || '', village: updated.village || '',
-      state: updated.state || '', bio: updated.bio || '', contact_number: updated.contact_number || '',
-      phone_number: updated.phone_number || '',
-      mobile_number: updated.mobile_number || updated.mobile || updated.contact_number || '',
-      subscription_type: updated.subscription_type || '', profile_image: updated.profile_image || '',
-      role_label: updated.role_label || UserStore.getRoleLabel(updated.role || 'free'),
-      is_subscribed: UserStore.hasActiveSubscription(updated),
-      id_card_image: updated.id_card_image || '', appointment_letter_image: updated.appointment_letter_image || '',
-      id_card_status: updated.id_card_status || '', appointment_letter_status: updated.appointment_letter_status || '',
-      referral_count: updated.referral_count || 0,
-      referral_code: updated.my_referral_code || refCode,
-    };
-    setSavedProfile(next); setForm(next); setIsEditing(false);
-    setSuccessMessage('Profile updated successfully.');
-    setTimeout(() => setSuccessMessage(''), 3000);
-  };
+  const handleSave = async () => { 
+    // Restrict updates: users can only update their profile photo from this screen.
+    if (form.profile_image === savedProfile.profile_image) {
+      showToast('No photo changes to save.', 'info');
+      return;
+    }
+    setSaving(true); 
+    const updated = await UserStore.updateUser(form.email, { profile_image: form.profile_image }); 
+    setSaving(false); 
+    if (!updated) { showToast('Error saving profile.', 'error'); return; } 
+    const next = { ...savedProfile, profile_image: updated.profile_image || '' }; 
+    setSavedProfile(next); setForm(next); setIsEditing(false); 
+    setSuccessMessage('Photo updated successfully.'); 
+    setTimeout(() => setSuccessMessage(''), 3000); 
+  }; 
 
   const handleLogout = async () => { await UserStore.clearCurrentUser(); navigation.replace('Login'); };
   const displayProfile = isEditing ? form : savedProfile;
@@ -708,18 +1038,18 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={ProfileStyles.metricValueAccent}>{generateMemberId(displayProfile.email)}</Text>
               </View>
             </View>
-            <View style={ProfileStyles.uploadBarCard}>
-              <View style={ProfileStyles.uploadBarTrack}>
-                <View style={ProfileStyles.uploadWaveOne} /><View style={ProfileStyles.uploadWaveTwo} />
-                <View style={ProfileStyles.uploadDotOne} /><View style={ProfileStyles.uploadDotTwo} /><View style={ProfileStyles.uploadDotThree} />
-              </View>
-              <View style={ProfileStyles.quickIconRow}>
-                <TouchableOpacity style={ProfileStyles.quickIconButton} onPress={openEdit}>
-                  <Feather name="edit-3" size={16} color="#ff7e85" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+            <View style={ProfileStyles.uploadBarCard}> 
+              <View style={ProfileStyles.uploadBarTrack}> 
+                <View style={ProfileStyles.uploadWaveOne} /><View style={ProfileStyles.uploadWaveTwo} /> 
+                <View style={ProfileStyles.uploadDotOne} /><View style={ProfileStyles.uploadDotTwo} /><View style={ProfileStyles.uploadDotThree} /> 
+              </View> 
+              <View style={ProfileStyles.quickIconRow}> 
+                <TouchableOpacity style={ProfileStyles.quickIconButton} onPress={openEdit}> 
+                  <Feather name="camera" size={16} color="#ff7e85" /> 
+                </TouchableOpacity> 
+              </View> 
+            </View> 
+          </View> 
 
           {!isEditing && (
             <>
@@ -728,46 +1058,31 @@ export default function ProfileScreen({ navigation }) {
             </>
           )}
 
-          {isEditing ? (
-            <View style={ProfileStyles.formCard}>
-              <View style={ProfileStyles.sectionHeaderRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={ProfileStyles.sectionHeading}>Edit Profile Details</Text>
-                  <Text style={ProfileStyles.sectionSubtitle}>Update your profile information.</Text>
-                  {successMessage ? <Text style={ProfileStyles.successText}>{successMessage}</Text> : null}
-                </View>
-                <TouchableOpacity style={ProfileStyles.uploadPill} onPress={handlePickImage} disabled={uploading}>
-                  <Feather name="image" size={14} color="#6d3df5" />
-                  <Text style={ProfileStyles.uploadPillText}>{uploading ? 'Opening...' : 'Photo'}</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={ProfileStyles.previewRow}>
-                <Image source={form.profile_image ? { uri: form.profile_image } : DEFAULT_AVATAR} style={ProfileStyles.formPreviewAvatar} />
-                <View style={ProfileStyles.previewInfo}>
-                  <Text style={ProfileStyles.previewTitle}>Profile Photo</Text>
-                  <Text style={ProfileStyles.helperText}>{form.profile_image ? 'Image selected.' : 'No image selected yet.'}</Text>
-                </View>
-                {form.profile_image ? (<TouchableOpacity style={ProfileStyles.removeMiniButton} onPress={() => handleChange('profile_image', '')}><Feather name="x" size={15} color="#ff7d86" /></TouchableOpacity>) : null}
-              </View>
-              <View style={ProfileStyles.fieldGrid}>
-                {profileFields.map(field => (
-                  <View key={field.key} style={ProfileStyles.inputGroup}>
-                    <Text style={ProfileStyles.inputLabel}>{field.label}</Text>
-                    <View style={[ProfileStyles.inputWrap, !field.editable && ProfileStyles.inputWrapDisabled]}>
-                      <Feather name={field.icon} size={16} color="#8a94a6" />
-                      <TextInput style={[ProfileStyles.input, !field.editable && ProfileStyles.inputDisabled]} value={form[field.key]} editable={field.editable} onChangeText={t => handleChange(field.key, t)} placeholderTextColor="#94a3b8" />
-                    </View>
-                  </View>
-                ))}
-              </View>
-              <View style={ProfileStyles.fullWidthGroup}>
-                <Text style={ProfileStyles.inputLabel}>State</Text>
-                <SimpleDropdown value={form.state} options={INDIAN_STATES} onSelect={v => handleChange('state', v)} placeholder="Select your state..." />
-              </View>
-              <View style={ProfileStyles.fullWidthGroup}>
-                <Text style={ProfileStyles.inputLabel}>Subscription</Text>
-                <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
-                  <Feather name="star" size={16} color="#8a94a6" />
+          {isEditing ? ( 
+            <View style={ProfileStyles.formCard}> 
+              <View style={ProfileStyles.sectionHeaderRow}> 
+                <View style={{ flex: 1 }}> 
+                  <Text style={ProfileStyles.sectionHeading}>Update Photo</Text> 
+                  <Text style={ProfileStyles.sectionSubtitle}>You can only update your profile photo.</Text> 
+                  {successMessage ? <Text style={ProfileStyles.successText}>{successMessage}</Text> : null} 
+                </View> 
+                <TouchableOpacity style={ProfileStyles.uploadPill} onPress={handlePickImage} disabled={uploading}> 
+                  <Feather name="image" size={14} color="#6d3df5" /> 
+                  <Text style={ProfileStyles.uploadPillText}>{uploading ? 'Opening...' : 'Photo'}</Text> 
+                </TouchableOpacity> 
+              </View> 
+              <View style={ProfileStyles.previewRow}> 
+                <Image source={form.profile_image ? { uri: form.profile_image } : DEFAULT_AVATAR} style={ProfileStyles.formPreviewAvatar} /> 
+                <View style={ProfileStyles.previewInfo}> 
+                  <Text style={ProfileStyles.previewTitle}>Profile Photo</Text> 
+                  <Text style={ProfileStyles.helperText}>{form.profile_image ? 'Image selected.' : 'No image selected yet.'}</Text> 
+                </View> 
+                {form.profile_image ? (<TouchableOpacity style={ProfileStyles.removeMiniButton} onPress={() => handleChange('profile_image', '')}><Feather name="x" size={15} color="#ff7d86" /></TouchableOpacity>) : null} 
+              </View> 
+              <View style={ProfileStyles.fullWidthGroup}> 
+                <Text style={ProfileStyles.inputLabel}>Subscription</Text> 
+                <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}> 
+                  <Feather name="star" size={16} color="#8a94a6" /> 
                   <TextInput
                     style={[ProfileStyles.input, ProfileStyles.inputDisabled]}
                     value={form.role_label ? `${form.role_label} (${form.subscription_type || 'free'})` : (form.subscription_type || 'free')}
@@ -779,19 +1094,12 @@ export default function ProfileScreen({ navigation }) {
                     <Feather name="credit-card" size={14} color="#6d3df5" />
                     <Text style={ProfileStyles.uploadPillText}>Take Subscription</Text>
                   </TouchableOpacity>
-                ) : null}
-              </View>
-              <View style={ProfileStyles.fullWidthGroup}>
-                <Text style={ProfileStyles.inputLabel}>Bio</Text>
-                <View style={[ProfileStyles.inputWrap, ProfileStyles.textAreaWrap]}>
-                  <Feather name="file-text" size={16} color="#8a94a6" style={ProfileStyles.textAreaIcon} />
-                  <TextInput style={[ProfileStyles.input, ProfileStyles.textArea]} value={form.bio} multiline onChangeText={t => handleChange('bio', t)} placeholder="Tell people a little about yourself" placeholderTextColor="#94a3b8" />
-                </View>
-              </View>
-              <View style={[ProfileStyles.fullWidthGroup, { marginBottom: 0 }]}>
-                <Text style={ProfileStyles.inputLabel}>Your Referral Code</Text>
-                <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
-                  <Feather name="share-2" size={16} color="#8a94a6" />
+                ) : null} 
+              </View> 
+              <View style={[ProfileStyles.fullWidthGroup, { marginBottom: 0 }]}> 
+                <Text style={ProfileStyles.inputLabel}>Your Referral Code</Text> 
+                <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}> 
+                  <Feather name="share-2" size={16} color="#8a94a6" /> 
                   <TextInput style={[ProfileStyles.input, ProfileStyles.inputDisabled]} value={form.referral_code || generateReferralCode(form.email)} editable={false} />
                 </View>
               </View>
@@ -843,31 +1151,31 @@ export default function ProfileScreen({ navigation }) {
                     </TouchableOpacity>
                   </>
                 ) : null}
-              </View>
-              <View style={ProfileStyles.formFooterRow}>
-                <TouchableOpacity style={ProfileStyles.cancelButton} onPress={closeEdit}><Text style={ProfileStyles.cancelButtonText}>Cancel</Text></TouchableOpacity>
-                <TouchableOpacity style={ProfileStyles.submitButton} onPress={handleSave} disabled={saving}><Text style={ProfileStyles.submitButtonText}>{saving ? 'Saving...' : 'Update'}</Text></TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <SavedProfileCard profile={savedProfile} />
-          )}
+              </View> 
+              <View style={ProfileStyles.formFooterRow}> 
+                <TouchableOpacity style={ProfileStyles.cancelButton} onPress={closeEdit}><Text style={ProfileStyles.cancelButtonText}>Cancel</Text></TouchableOpacity> 
+                <TouchableOpacity style={ProfileStyles.submitButton} onPress={handleSave} disabled={saving}><Text style={ProfileStyles.submitButtonText}>{saving ? 'Saving...' : 'Save Photo'}</Text></TouchableOpacity> 
+              </View> 
+            </View> 
+          ) : ( 
+            <SavedProfileCard profile={savedProfile} /> 
+          )} 
         </View>
         {loading ? <Text style={ProfileStyles.loadingText}>Loading profile...</Text> : null}
       </ScrollView>
 
-      {!isEditing && (
-        <View style={ProfileStyles.stickyActionWrap}>
-          <View style={ProfileStyles.stickyActionCard}>
-            <Text style={ProfileStyles.actionTitle}>Actions</Text>
-            <View style={ProfileStyles.actionRow}>
-              <TouchableOpacity style={[ProfileStyles.actionButton, ProfileStyles.updateButton]} onPress={openEdit} disabled={saving}>
-                <Feather name="edit-3" size={16} color="#fff" /><Text style={ProfileStyles.actionButtonText}>Edit Profile</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
+      {!isEditing && ( 
+        <View style={ProfileStyles.stickyActionWrap}> 
+          <View style={ProfileStyles.stickyActionCard}> 
+            <Text style={ProfileStyles.actionTitle}>Actions</Text> 
+            <View style={ProfileStyles.actionRow}> 
+              <TouchableOpacity style={[ProfileStyles.actionButton, ProfileStyles.updateButton]} onPress={openEdit} disabled={saving}> 
+                <Feather name="camera" size={16} color="#fff" /><Text style={ProfileStyles.actionButtonText}>Update Photo</Text> 
+              </TouchableOpacity> 
+            </View> 
+          </View> 
+        </View> 
+      )} 
 
       <Footer activeTab={activeTab} onTabPress={setActiveTab} />
       <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} activeItem="Profile" />

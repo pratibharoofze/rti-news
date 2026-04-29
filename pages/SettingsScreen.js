@@ -11,7 +11,7 @@ import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import styles from '../styles/SettingsStyles';
 import { UserStore } from '../store/UserStore';
-import { INDIAN_STATES, MAHARASHTRA_DISTRICT_LIST, getTalukas } from './locationData';
+import { INDIAN_STATES, getDistricts, getTalukas } from './locationData'; 
 
 // ── Dropdown Modal (same as Register) ────────────────────────────────────────
 function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
@@ -138,8 +138,8 @@ export default function SettingsScreen({ navigation }) {
     setLocTaluka('');
   };
 
-  const districtList = locState === 'Maharashtra' ? MAHARASHTRA_DISTRICT_LIST : [];
-  const talukaList   = locDistrict ? getTalukas(locDistrict) : [];
+  const districtList = locState ? getDistricts(locState) : []; 
+  const talukaList   = locDistrict ? getTalukas(locState, locDistrict) : []; 
 
   const handleSave = async () => {
     if (!form.language.trim()) { showToast('Language is required.', 'error'); return; }
@@ -152,13 +152,12 @@ export default function SettingsScreen({ navigation }) {
   };
 
   // Save location to user profile
-  const handleSaveLocation = async () => {
-    if (!locState) { showToast('Please select your state.', 'error'); return; }
-    if (locState === 'Maharashtra' && !locDistrict) {
-      showToast('Please select your district.', 'error'); return;
-    }
-
-    setSavingLocation(true);
+  const handleSaveLocation = async () => { 
+    if (!locState) { showToast('Please select your state.', 'error'); return; } 
+    if (districtList.length > 0 && !locDistrict) { showToast('Please select your district.', 'error'); return; } 
+    if (locDistrict && talukaList.length > 0 && !locTaluka) { showToast('Please select your taluka.', 'error'); return; } 
+ 
+    setSavingLocation(true); 
     const user = settingsData.currentUser;
     const result = await UserStore.updateUser(user.email, {
       state: locState,
@@ -234,19 +233,19 @@ export default function SettingsScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* District (only Maharashtra) */}
-          {locState === 'Maharashtra' && (
-            <View style={localStyles.inputGroup}>
-              <Text style={localStyles.inputLabel}>District</Text>
-              <TouchableOpacity style={localStyles.dropdown} onPress={() => setDistrictModal(true)} activeOpacity={0.8}>
-                <Ionicons name="business-outline" size={18} color="#2563eb" />
-                <Text style={[localStyles.dropdownText, !locDistrict && localStyles.placeholder]}>
-                  {locDistrict || 'Select district'}
-                </Text>
-                <Ionicons name="chevron-down-outline" size={18} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* District */} 
+          {districtList.length > 0 && ( 
+            <View style={localStyles.inputGroup}> 
+              <Text style={localStyles.inputLabel}>District</Text> 
+              <TouchableOpacity style={localStyles.dropdown} onPress={() => setDistrictModal(true)} activeOpacity={0.8}> 
+                <Ionicons name="business-outline" size={18} color="#2563eb" /> 
+                <Text style={[localStyles.dropdownText, !locDistrict && localStyles.placeholder]}> 
+                  {locDistrict || 'Select district'} 
+                </Text> 
+                <Ionicons name="chevron-down-outline" size={18} color="#94a3b8" /> 
+              </TouchableOpacity> 
+            </View> 
+          )} 
 
           {/* Taluka */}
           {locDistrict !== '' && talukaList.length > 0 && (

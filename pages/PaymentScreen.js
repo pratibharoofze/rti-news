@@ -19,6 +19,7 @@ import PaymentStyles from '../styles/PaymentStyles';
 export default function PaymentScreen({ route, navigation }) {
   const { showToast } = useToast();
   const orderFromRoute = route?.params?.order || null;
+  const returnTo = route?.params?.returnTo || 'Subscription Plans';
 
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('Home');
@@ -51,6 +52,8 @@ export default function PaymentScreen({ route, navigation }) {
         order_id: orderFromRoute.order_id,
         amount: orderFromRoute.amount,
         plan_id: orderFromRoute.plan_id,
+        seat_state: orderFromRoute.seat_state,
+        seat_role_id: orderFromRoute.seat_role_id,
       });
       setLoading(false);
       if (!order) {
@@ -81,12 +84,14 @@ export default function PaymentScreen({ route, navigation }) {
   };
 
   // ✅ Payment success ke baad common logic
-  const onPaymentSuccess = async (paymentId, orderId, signature, planId) => {
+  const onPaymentSuccess = async (paymentId, orderId, signature, order) => {
     const verifyResult = await UserStore.verifyPayment({
       payment_id: paymentId,
       order_id: orderId,
       signature: signature || '',
-      plan_id: planId,
+      plan_id: order?.plan_id,
+      seat_state: order?.seat_state,
+      seat_role_id: order?.seat_role_id,
     });
 
     setPaying(false);
@@ -109,7 +114,7 @@ export default function PaymentScreen({ route, navigation }) {
     }
 
     loadPayment();
-    navigation.replace('Subscription Plans', { subscriptionSuccessMessage });
+    navigation.replace(returnTo, { subscriptionSuccessMessage });
   };
 
   const handlePay = async () => {
@@ -127,7 +132,7 @@ export default function PaymentScreen({ route, navigation }) {
         `pay_${Date.now()}`,
         order.order_id,
         '',
-        order.plan_id
+        order
       );
     } catch (_error) {
       setPaying(false);

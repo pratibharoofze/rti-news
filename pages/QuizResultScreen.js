@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -66,6 +67,11 @@ export default function QuizResultScreen({ navigation, route }) {
     }
     if (!hasSubscription) {
       promptSubscriptionRequired();
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      navigation.navigate('CertificatePreview', { result });
       return;
     }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, Image, TextInput,
   TouchableOpacity, StyleSheet,
@@ -13,12 +13,8 @@ import AppFooter from '../components/AppFooter';
 import WebLayout from '../components/WebLayout';
 import { UserStore } from '../store/UserStore';
 
-import {
-  featuredNews, topStories, latestNews as staticLatestNews,
-  trendingNews, categories,
-} from '../data/newsData';
-
 const isWeb = Platform.OS === 'web';
+const DEFAULT_AVATAR = require('../assets/images/icon.png');
 
 const categoryColorMap = {
   orange: '#f97316', blue: '#3b82f6', green: '#16a34a',
@@ -99,6 +95,11 @@ function toLatestNewsCardShape(item) {
 
   return {
     id: item?.id || `news-${hashToSeed(title)}`,
+    createdBy: String(item?.createdBy || item?.created_by || '').trim().toLowerCase(),
+    author_name: item?.author_name || item?.author || '',
+    author_profile_image: item?.author_profile_image || item?.authorProfileImage || item?.profile_image || '',
+    author_seat_name: item?.author_seat_name || item?.authorSeatName || '',
+    author_role_label: item?.author_role_label || item?.authorRoleLabel || '',
     title,
     category,
     categoryColor,
@@ -217,16 +218,39 @@ const ts = StyleSheet.create({
   date:       { fontSize: 12, color: '#9ca3af' },
   dateMobile: { fontSize: 11 },
   dot:        { fontSize: 12, color: '#d1d5db' },
+  authorInline: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '62%' },
+  authorAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#e5e7eb' },
   author:     { fontSize: 12, color: '#f97316', fontWeight: '600' },
   readMore:   { fontSize: 12, color: '#f97316', fontWeight: '700' },
 });
 
 // ─── Latest News Card ─────────────────────────────────────────────────────────
 
-function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = false, onPress }) {
-  const { title, category, categoryColor = 'orange', image, date, author, excerpt, mediaType, video } = article;
+function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = false, onPress, onAuthorPress }) {
+  const {
+    title,
+    category,
+    categoryColor = 'orange',
+    image,
+    date,
+    author,
+    author_profile_image,
+    excerpt,
+    mediaType,
+    video,
+  } = article;
   const badge = colorMap[categoryColor] || colorMap.orange;
   const hasVideo = mediaType === 'Video' && typeof video === 'string' && video.length > 0;
+  const avatarPressRef = useRef(false);
+  const showAuthor = Boolean((author || '').trim() || (author_profile_image || '').trim());
+
+  const handleCardPress = () => {
+    if (avatarPressRef.current) {
+      avatarPressRef.current = false;
+      return;
+    }
+    onPress?.();
+  };
   const webCardStyle = [
     ln.cardWeb,
     colIndex < 2 && ln.cardWebMarginRight,
@@ -241,7 +265,7 @@ function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = f
           : webCardStyle,
       ]}
       activeOpacity={0.85}
-      onPress={onPress}
+      onPress={handleCardPress}
     >
       <View style={[ln.imageContainer, isMobile && ln.imageContainerMobile]}>
         {hasVideo ? (
@@ -266,12 +290,28 @@ function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = f
         {excerpt && <Text style={[ln.excerpt, isMobile && ln.excerptMobile]} numberOfLines={2}>{excerpt}</Text>}
         <View style={ln.meta}>
           <Text style={[ln.date, isMobile && ln.dateMobile]}>{date}</Text>
-          {author && (
+          {showAuthor ? (
             <>
               <Text style={[ln.dot, isMobile && ln.dateMobile]}> | </Text>
-              <Text style={[ln.author, isMobile && ln.dateMobile]}>{author}</Text>
+              <TouchableOpacity
+                style={ln.authorInline}
+                onPressIn={() => { avatarPressRef.current = true; }}
+                onPress={() => {
+                  onAuthorPress?.(article);
+                  setTimeout(() => { avatarPressRef.current = false; }, 0);
+                }}
+                activeOpacity={0.85}
+              >
+                <Image
+                  source={author_profile_image ? { uri: author_profile_image } : DEFAULT_AVATAR}
+                  style={ln.authorAvatar}
+                />
+                <Text style={[ln.author, isMobile && ln.dateMobile]} numberOfLines={1}>
+                  {author || 'User'}
+                </Text>
+              </TouchableOpacity>
             </>
-          )}
+          ) : null}
           <View style={{ flex: 1 }} />
           <Text style={[ln.readMore, isMobile && ln.dateMobile]}>Read more →</Text>
         </View>
@@ -313,6 +353,8 @@ const ln = StyleSheet.create({
   dateMobile: { fontSize: 11 },
   dot:        { fontSize: 12, color: '#d1d5db' },
   author:     { fontSize: 12, color: '#f97316', fontWeight: '600' },
+  authorInline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  authorAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#e5e7eb' },
   readMore:   { fontSize: 12, color: '#f97316', fontWeight: '700' },
 });
 
@@ -350,39 +392,45 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
-  const [heroIndex, setHeroIndex] = useState(0);
-  const [latestNews, setLatestNews] = useState(staticLatestNews);
+  const [latestNews, setLatestNews] = useState([]);
 
   const openDetails = useCallback((article) => {
     if (!article) return;
     navigation?.navigate?.('NewsDetails', { article });
   }, [navigation]);
 
+  const openAuthorProfile = useCallback((article) => {
+    if (!article) return;
+    const authorEmail = String(article.createdBy || '').trim().toLowerCase();
+    const fallbackAuthor = {
+      name: article.author_name || article.author || '',
+      author_profile_image: article.author_profile_image || '',
+      author_seat_name: article.author_seat_name || '',
+      author_role_label: article.author_role_label || '',
+      author_is_premium: Boolean(article.author_is_premium),
+      author_is_subscriber: Boolean(article.author_is_subscriber),
+    };
+    if (!authorEmail && !fallbackAuthor.name && !fallbackAuthor.author_profile_image) return;
+    navigation?.navigate?.('UserProfile', { email: authorEmail, author: fallbackAuthor });
+  }, [navigation]);
+
   const loadLatestNews = useCallback(async () => {
     try {
       const summary = await UserStore.getNewsFeedSummary();
-      if (!summary?.currentUser) {
-        setLatestNews(staticLatestNews);
+      const currentEmail = String(summary?.currentUser?.email || '').trim().toLowerCase();
+      if (!summary?.currentUser || !currentEmail) {
+        setLatestNews([]);
         return;
       }
 
-      const normalized = (summary.items || [])
-        .slice(0, 9)
+      const mine = (summary.items || [])
         .map(toLatestNewsCardShape)
+        .filter((item) => item?.createdBy && item.createdBy === currentEmail)
         .filter((item) => item?.title);
 
-      if (normalized.length === 0) {
-        setLatestNews(staticLatestNews);
-        return;
-      }
-
-      const merged = [...normalized, ...staticLatestNews.map(toLatestNewsCardShape)]
-        .filter((item, idx, arr) => arr.findIndex((e) => e.id === item.id) === idx)
-        .slice(0, 9);
-
-      setLatestNews(merged);
+      setLatestNews(mine);
     } catch {
-      setLatestNews(staticLatestNews);
+      setLatestNews([]);
     }
   }, []);
 
@@ -397,176 +445,67 @@ export default function HomeScreen() {
     }, [loadLatestNews])
   );
 
-  const heroImages = useMemo(() => {
-    const uris = [
-      featuredNews?.image,
-      ...(topStories  || []).map((item) => item?.image),
-      ...(latestNews  || []).map((item) => item?.image),
-    ].filter(Boolean);
-    return Array.from(new Set(uris));
-  }, [latestNews]);
-
-  useEffect(() => {
-    if (heroImages.length <= 1) return undefined;
-    const timer = setInterval(() => {
-      setHeroIndex((prev) => (prev + 1) % heroImages.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [heroImages.length]);
-
-  const heroImageUri = heroImages[heroIndex] || featuredNews.image;
+  const displayedNews = useMemo(() => {
+    const q = String(searchQuery || '').trim().toLowerCase();
+    if (!q) return latestNews;
+    return (latestNews || []).filter((item) => {
+      const haystack = `${item.title} ${item.category} ${item.excerpt} ${item.author}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [latestNews, searchQuery]);
 
   const pageContent = (
     <>
-      {/* ── Hero ── */}
-      <TouchableOpacity
-        style={[s.heroContainer, isMobile && s.heroContainerMobile]}
-        activeOpacity={0.92}
-        onPress={() => openDetails(toLatestNewsCardShape(featuredNews))}
-      >
-        <Image source={{ uri: heroImageUri }} style={s.heroImage} />
-        <View style={s.heroOverlay} />
-        <View style={[s.breakingBadge, isMobile && s.breakingBadgeMobile]}>
-          <Text style={[s.breakingText, isMobile && s.breakingTextMobile]}>BREAKING NEWS</Text>
-        </View>
-        <View style={[s.heroContent, isMobile && s.heroContentMobile]}>
-          <View style={[s.categoryBadge, { backgroundColor: '#f97316' }]}>
-            <Text style={[s.categoryBadgeText, isMobile && s.categoryBadgeTextMobile]}>
-              {featuredNews.category}
-            </Text>
-          </View>
-          <Text style={[s.heroTitle, isMobile && s.heroTitleMobile]}>{featuredNews.title}</Text>
-          <Text style={[s.heroExcerpt, isMobile && s.heroExcerptMobile]} numberOfLines={2}>
-            {featuredNews.excerpt}
-          </Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* ── Search ── */}
+      {/* Search */}
       <View style={[s.searchContainer, isMobile && s.searchContainerMobile]}>
         <View style={s.searchBox}>
           <TextInput
             style={[s.searchInput, isMobile && s.searchInputMobile]}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search headlines, topics..."
+            placeholder="Search your news..."
           />
         </View>
       </View>
 
       <View style={[s.body, isMobile && s.bodyMobile]}>
-
-        {/* ── Top Stories ── */}
         <View style={[s.section, isMobile && s.sectionMobile]}>
-          <SectionHeader title="Top Stories" isMobile={isMobile} />
-          <View style={isMobile ? s.colStack : s.threeColGrid}>
-            {topStories.map((a, i) => (
-              <TopStoryCard
-                key={a.id}
-                article={a}
-                isMobile={isMobile}
-                isLast={i === topStories.length - 1}
-                onPress={() => openDetails(toLatestNewsCardShape(a))}
-              />
-            ))}
-          </View>
-        </View>
+          <SectionHeader title="My News" isMobile={isMobile} />
 
-        {/* ── Latest News + Sidebar ── */}
-        <View style={isMobile ? s.colStack : s.twoColLayout}>
-
-          {/* Left: Latest News */}
-          <View style={isMobile ? s.fullWidth : s.mainCol}>
-            <SectionHeader title="Latest News" isMobile={isMobile} />
+          {displayedNews.length ? (
             <View style={isMobile ? s.colStack : s.threeColGridWrap}>
-              {latestNews.map((a, i) => (
+              {displayedNews.map((a, i) => (
                 <LatestNewsCard
                   key={a.id}
                   article={a}
                   isMobile={isMobile}
-                  isLast={i === latestNews.length - 1}
+                  isLast={i === displayedNews.length - 1}
                   colIndex={i % 3}
-                  isLastRow={i >= latestNews.length - 3}
+                  isLastRow={i >= displayedNews.length - 3}
                   onPress={() => openDetails(a)}
+                  onAuthorPress={openAuthorProfile}
                 />
               ))}
             </View>
-          </View>
-
-          {/* Right: Sidebar */}
-          <View style={isMobile ? s.fullWidth : s.sidebar}>
-
-            {/* Trending */}
-            <View style={[s.sidebarCard, isMobile && s.sidebarCardMobile]}>
-              <SectionHeader title="Trending Now" isMobile={isMobile} />
-              {trendingNews.map((item, i) => (
-                <TouchableOpacity key={item.id} style={[s.trendingItem, isMobile && s.trendingItemMobile]}>
-                  <Text style={[s.trendingNum, isMobile && s.trendingNumMobile]}>0{i + 1}</Text>
-                  <View style={s.trendingContent}>
-                    <Text style={[s.trendingTitle, isMobile && s.trendingTitleMobile]} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    <View style={s.trendingMeta}>
-                      <Text style={[s.trendingViews, isMobile && s.trendingMetaMobile]}>Views: {item.views}</Text>
-                      <Text style={[s.trendingDot,  isMobile && s.trendingMetaMobile]}> | </Text>
-                      <Text style={[s.trendingDate, isMobile && s.trendingMetaMobile]}>Date: {item.date}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+          ) : (
+            <View style={s.emptyBox}>
+              <Text style={s.emptyTitle}>No news yet</Text>
+              <Text style={s.emptyText}>Aap jo news add karenge, wahi yahan show hogi.</Text>
+              <TouchableOpacity
+                style={s.emptyCta}
+                onPress={() => navigation?.navigate?.('Add News')}
+                activeOpacity={0.85}
+              >
+                <Text style={s.emptyCtaText}>Add your first news</Text>
+              </TouchableOpacity>
             </View>
-
-            {/* Categories */}
-            <View style={[s.sidebarCard, s.sidebarCardTop, isMobile && s.sidebarCardMobile]}>
-              <SectionHeader title="Browse Categories" isMobile={isMobile} />
-              {categories.map((cat) => (
-                <TouchableOpacity key={cat.name} style={[s.categoryItem, isMobile && s.categoryItemMobile]}>
-                  <View style={[s.categoryDot, { backgroundColor: categoryColorMap[cat.color] }]} />
-                  <Text style={[s.categoryName, isMobile && s.categoryNameMobile]}>{cat.name}</Text>
-                  <Text style={[s.categoryCount, isMobile && s.categoryCountMobile]}>{cat.count}</Text>
-                  <Text style={[s.categoryArrow, isMobile && s.categoryArrowMobile]}>›</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Know Your Rights */}
-            <View style={s.sidebarCardTop}>
-              <KnowYourRightsCard isMobile={isMobile} />
-            </View>
-
-          </View>
-        </View>
-
-      </View>
-
-      {/* ── Stay Informed Banner ── */}
-      {/* FIX: position:'relative' added to container, bannerBg uses absoluteFillObject + resizeMode:'cover' */}
-      <View style={[s.bannerContainer, isMobile && s.bannerContainerMobile]}>
-        <Image
-          source={{ uri: 'https://picsum.photos/1200/300?random=200' }}
-          style={s.bannerBg}
-          resizeMode="cover"
-        />
-        <View style={s.bannerOverlay} />
-        <View style={s.bannerContent}>
-          <Text style={[s.bannerTitle, isMobile && s.bannerTitleMobile]}>
-            Stay informed. Stay empowered.
-          </Text>
-          <Text style={[s.bannerSubtitle, isMobile && s.bannerSubtitleMobile]}>
-            Simple questions | Precise answers | By the Constitution
-          </Text>
-          <TouchableOpacity style={[s.bannerBtn, isMobile && s.bannerBtnMobile]} activeOpacity={0.85}>
-            <Text style={[s.bannerBtnText, isMobile && s.bannerBtnTextMobile]}>
-              Join the community →
-            </Text>
-          </TouchableOpacity>
+          )}
         </View>
       </View>
 
       <AppFooter navigation={navigation} />
     </>
   );
-
   const page = (
     <View style={{ flex: 1 }}>
       <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
@@ -623,6 +562,39 @@ const s = StyleSheet.create({
   section:       { marginBottom: 28 },
   sectionMobile: { marginBottom: 20 },
 
+  // My News
+  myNewsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  addNewsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  addNewsBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
+  emptyBox: {
+    marginTop: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
+  emptyText: { fontSize: 13, color: '#64748b', lineHeight: 19, textAlign: 'center' },
+  emptyCta: {
+    marginTop: 6,
+    backgroundColor: '#0f172a',
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  emptyCtaText: { color: '#ffffff', fontSize: 13, fontWeight: '900' },
+
   // Layout helpers
   threeColGrid:    { flexDirection: 'row' },
   threeColGridWrap:{ flexDirection: 'row', flexWrap: 'wrap' },
@@ -669,24 +641,23 @@ const s = StyleSheet.create({
   categoryArrow:       { fontSize: 18, color: '#9ca3af' },
   categoryArrowMobile: { fontSize: 16 },
 
-  // ── Stay Informed Banner ── FIX: position:'relative' + absoluteFillObject for bg image
   bannerContainer: {
     marginHorizontal: 24,
     marginBottom: 32,
     borderRadius: 14,
     overflow: 'hidden',
     height: 200,
-    position: 'relative',        // ← FIX: added
+    position: 'relative',
   },
   bannerContainerMobile: {
     marginHorizontal: 12,
     marginBottom: 24,
     height: 140,
-    position: 'relative',        // ← FIX: added
+    position: 'relative',
   },
   bannerBg: {
-    ...StyleSheet.absoluteFillObject,  // ← FIX: replaces width/height/position:'absolute'
-    resizeMode: 'cover',               // ← FIX: added
+    ...StyleSheet.absoluteFillObject,
+    resizeMode: 'cover',
   },
   bannerOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15,15,15,0.75)' },
   bannerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },

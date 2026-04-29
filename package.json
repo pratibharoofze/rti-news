@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build": "expo export --platform web",
+    "build": "expo export --platform web --max-workers 1 && node ./scripts/fix-web-base-path.js",
     "lint": "expo lint"
   },
   "dependencies": {

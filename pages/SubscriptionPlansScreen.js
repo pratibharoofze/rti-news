@@ -1,12 +1,12 @@
-import React, { useCallback, useState } from 'react';
-import {
-  ScrollView,
-  Text,
-  View,
-  TouchableOpacity,
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react'; 
+import { 
+  ScrollView, 
+  Text, 
+  View, 
+  TouchableOpacity, 
+} from 'react-native'; 
+import { Feather } from '@expo/vector-icons'; 
+import { useFocusEffect } from '@react-navigation/native'; 
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
@@ -22,7 +22,7 @@ const ROLE_COLORS = {
   premium: { bg: '#fefce8', text: '#b45309', border: '#fcd34d' },
 };
 
-function RoleBadge({ role = 'free', label }) {
+function RoleBadge({ role = 'free', label }) { 
   const colors = ROLE_COLORS[role] || ROLE_COLORS.free;
   return (
     <View style={{
@@ -46,18 +46,21 @@ function RoleBadge({ role = 'free', label }) {
         {label || UserStore.getRoleLabel(role)}
       </Text>
     </View>
-  );
-}
-
-export default function SubscriptionPlansScreen({ navigation, route }) {
-  const { showToast } = useToast();
-  const [sidebarVisible, setSidebarVisible]   = useState(false);
-  const [loading, setLoading]                 = useState(true);
-
-  const [subscriptionData, setSubscriptionData] = useState({
-    currentUser:      null,
-    activePlan:       null,
-    plans:            [],
+  ); 
+} 
+ 
+export default function SubscriptionPlansScreen({ navigation, route }) { 
+  const { showToast, showPopup } = useToast(); 
+  const [sidebarVisible, setSidebarVisible]   = useState(false); 
+  const [loading, setLoading]                 = useState(true); 
+  const [seatSummary, setSeatSummary]         = useState(null); 
+  const [selectedSeatId, setSelectedSeatId]   = useState(''); 
+  const [pendingPlan, setPendingPlan]         = useState(null);
+ 
+  const [subscriptionData, setSubscriptionData] = useState({ 
+    currentUser:      null, 
+    activePlan:       null, 
+    plans:            [], 
     currentRole:      'free',
     currentRoleLabel: 'Free Member',
   });
@@ -66,7 +69,10 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
 
   const loadPlans = useCallback(async () => {
     setLoading(true);
-    const data = await UserStore.getSubscriptionSummary();
+    const [data, seatData] = await Promise.all([
+      UserStore.getSubscriptionSummary(),
+      UserStore.getStateSeatSummary(),
+    ]);
     setLoading(false);
 
     if (!data) {
@@ -74,6 +80,9 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
       return;
     }
     setSubscriptionData(data);
+    setSeatSummary(seatData || null);
+    const seatId = seatData?.current_seat?.seat_id || '';
+    setSelectedSeatId((prev) => prev || seatId);
   }, [navigation]);
 
   useFocusEffect(
@@ -82,30 +91,77 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
     }, [loadPlans])
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      if (route?.params?.subscriptionSuccessMessage) {
-        showToast(route.params.subscriptionSuccessMessage, 'success');
-        navigation.setParams({ subscriptionSuccessMessage: undefined });
-      }
-    }, [navigation, route?.params?.subscriptionSuccessMessage, showToast])
-  );
+  useFocusEffect( 
+    useCallback(() => { 
+      if (route?.params?.subscriptionSuccessMessage) { 
+        showToast(route.params.subscriptionSuccessMessage, 'success'); 
+        navigation.setParams({ subscriptionSuccessMessage: undefined }); 
+      } 
+    }, [navigation, route?.params?.subscriptionSuccessMessage, showToast]) 
+  ); 
 
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
+  useEffect(() => {
+    const preselectedPlanId = route?.params?.preselectedPlanId;
+    const preselectedSeatId = route?.params?.preselectedSeatId;
+    if (!preselectedPlanId || !preselectedSeatId) return;
+    if (!subscriptionData?.plans?.length) return;
+
+    const plan = subscriptionData.plans.find((p) => p.plan_id === preselectedPlanId) || null;
+    if (!plan) return;
+
+    setPendingPlan(plan);
+    setSelectedSeatId(preselectedSeatId);
+
+    navigation.setParams({
+      preselectedPlanId: undefined,
+      preselectedSeatId: undefined,
+      fromDashboard: undefined,
+    });
+  }, [navigation, route?.params?.preselectedPlanId, route?.params?.preselectedSeatId, subscriptionData?.plans]);
+
+  const stateName = seatSummary?.state || subscriptionData.currentUser?.state || '';
+  const activeSeatId = seatSummary?.current_seat?.seat_id || '';
+  const effectiveSeatId = activeSeatId || selectedSeatId;
+  const canBuy = useMemo(() => Boolean(pendingPlan && stateName && effectiveSeatId), [effectiveSeatId, pendingPlan, stateName]);
+
+  const handleLogout = async () => { 
+    await UserStore.clearCurrentUser(); 
+    navigation.replace('Login'); 
+  }; 
+ 
+  const navigateToPayment = (plan, stateName, seatRoleIdToUse) => {
+    navigation.navigate('Payment', { 
+      order: { 
+        plan_id:   plan.plan_id, 
+        plan_name: plan.plan_name, 
+        amount:    plan.price, 
+        seat_state: stateName, 
+        seat_role_id: seatRoleIdToUse, 
+      }, 
+    }); 
   };
 
   const handleBuyPlan = (plan) => {
-    navigation.navigate('Payment', {
-      order: {
-        plan_id:   plan.plan_id,
-        plan_name: plan.plan_name,
-        amount:    plan.price,
-      },
-    });
-  };
+    if (!stateName) {
+      showPopup('Please select your state first.', 'error', {
+        primaryLabel: 'Open',
+        secondaryLabel: 'Cancel',
+        onPrimaryPress: () => navigation.navigate('StateSelect', { fromPremium: true, autoOpen: true }),  
+      });  
+      return;
+    }
 
+    setPendingPlan(plan);
+    // Seat selection is only allowed on Dashboard flow
+    if (!activeSeatId && !selectedSeatId) {
+      showPopup('Seat selection is available on Dashboard only. Please select a seat there.', 'info', {
+        primaryLabel: 'Go to Dashboard',
+        secondaryLabel: 'Cancel',
+        onPrimaryPress: () => navigation.navigate('Dashboard'),
+      });
+    }
+  };
+ 
   return (
     <View style={SubscriptionPlansStyles.root}>
       <Header
@@ -180,27 +236,81 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Available Plans */}
-        <View style={SubscriptionPlansStyles.card}>
-          <Text style={SubscriptionPlansStyles.sectionTitle}>Available Plans</Text>
-
-          {loading ? (
+        {/* State Seats */} 
+        <View style={SubscriptionPlansStyles.card}> 
+          <Text style={SubscriptionPlansStyles.sectionTitle}>State Seats</Text> 
+ 
+          {!seatSummary ? ( 
+            <Text style={SubscriptionPlansStyles.loadingText}>Loading seats...</Text> 
+          ) : ( 
+            <> 
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}> 
+                <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '700' }}> 
+                  STATE 
+                </Text> 
+                <Text style={{ fontSize: 12, color: '#0f172a', fontWeight: '800' }}> 
+                  {seatSummary.state || '-'} 
+                </Text> 
+              </View> 
+ 
+              {seatSummary.current_seat?.seat_id ? ( 
+                <View style={{ 
+                  marginTop: 10, 
+                  backgroundColor: '#ecfdf5', 
+                  borderColor: '#86efac', 
+                  borderWidth: 1, 
+                  borderRadius: 12, 
+                  padding: 12, 
+                }}> 
+                  <Text style={{ fontSize: 12, color: '#166534', fontWeight: '900' }}> 
+                    YOUR SELECTED SEAT 
+                  </Text> 
+                  <Text style={{ marginTop: 4, fontSize: 14, color: '#14532d', fontWeight: '800' }}> 
+                    {seatSummary.current_seat.seat_name || seatSummary.current_seat.seat_id} 
+                  </Text> 
+                  <Text style={{ marginTop: 4, fontSize: 12, color: '#166534' }}> 
+                    Payment ke baad seat lock ho jaati hai. 
+                  </Text> 
+                </View> 
+              ) : ( 
+                <Text style={{ marginTop: 10, fontSize: 12, color: '#64748b' }}> 
+                  Apni state ke liye ek seat select karein. Payment success ke baad woh seat dusre users ke liye available nahi rahegi. 
+                </Text> 
+              )} 
+            </> 
+          )} 
+        </View> 
+ 
+        {/* Available Plans */} 
+        <View style={SubscriptionPlansStyles.card}> 
+          <Text style={SubscriptionPlansStyles.sectionTitle}>Available Plans</Text> 
+ 
+          {loading ? ( 
             <Text style={SubscriptionPlansStyles.loadingText}>
               Loading plans...
             </Text>
           ) : subscriptionData.plans.length ? (
-            subscriptionData.plans.map((plan) => {
-              const isActive = subscriptionData.activePlan?.plan_id === plan.plan_id;
-              const planRole = UserStore.getRoleFromPlanId(plan.plan_id);
-
-              return (
-                <View
-                  key={plan.plan_id}
-                  style={[
-                    SubscriptionPlansStyles.planCard,
-                    isActive && SubscriptionPlansStyles.planCardActive,
-                  ]}
-                >
+            subscriptionData.plans.map((plan) => { 
+              const isActive = subscriptionData.activePlan?.plan_id === plan.plan_id; 
+              const planRole = UserStore.getRoleFromPlanId(plan.plan_id); 
+              const isPending = pendingPlan?.plan_id === plan.plan_id;
+              const showBuyCta = !isActive && isPending && canBuy;
+              const cardDisabled = isActive || showBuyCta;
+ 
+              return ( 
+                <TouchableOpacity
+                  key={plan.plan_id} 
+                  activeOpacity={cardDisabled ? 1 : 0.92}
+                  disabled={cardDisabled}
+                  onPress={() => {
+                    if (cardDisabled) return;
+                    handleBuyPlan(plan);
+                  }}
+                  style={[ 
+                    SubscriptionPlansStyles.planCard, 
+                    isActive && SubscriptionPlansStyles.planCardActive, 
+                  ]} 
+                > 
                   {/* Plan Top Row */}
                   <View style={SubscriptionPlansStyles.planTopRow}>
                     <View style={SubscriptionPlansStyles.planTitleWrap}>
@@ -231,10 +341,10 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
                   </Text>
 
                   {/* Features list */}
-                  {Array.isArray(plan.features) && plan.features.length > 0 && (
-                    <View style={SubscriptionPlansStyles.featuresList}>
-                      {plan.features.map((feature, idx) => (
-                        <View key={idx} style={SubscriptionPlansStyles.featureRow}>
+                  {Array.isArray(plan.features) && plan.features.length > 0 && ( 
+                    <View style={SubscriptionPlansStyles.featuresList}> 
+                      {plan.features.map((feature, idx) => ( 
+                        <View key={idx} style={SubscriptionPlansStyles.featureRow}> 
                           <Feather
                             name="check"
                             size={13}
@@ -246,45 +356,59 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
                           </Text>
                         </View>
                       ))}
-                    </View>
-                  )}
+                    </View> 
+                  )} 
 
-                  {/* ✅ Role assignment info */}
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                    marginTop: 8,
-                    marginBottom: 4,
-                    backgroundColor: '#f8fafc',
-                    borderRadius: 8,
-                    padding: 8,
-                  }}>
-                    <Feather name="shield" size={13} color="#64748b" />
-                    <Text style={{ fontSize: 12, color: '#64748b' }}>
-                      After purchase: Role will be assigned as{' '}
-                      <Text style={{ fontWeight: '700', color: '#0f172a' }}>
-                        {UserStore.getRoleLabel(planRole)}
-                      </Text>
+                  {/* ✅ Role assignment info */} 
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
+                    gap: 6, 
+                    marginTop: 8, 
+                    marginBottom: 4, 
+                    backgroundColor: '#f8fafc', 
+                    borderRadius: 8, 
+                    padding: 8, 
+                  }}> 
+                    <Feather name="shield" size={13} color="#64748b" /> 
+                    <Text style={{ fontSize: 12, color: '#64748b' }}> 
+                      After purchase: Role will be assigned as{' '} 
+                      <Text style={{ fontWeight: '700', color: '#0f172a' }}> 
+                        {UserStore.getRoleLabel(planRole)} 
+                      </Text> 
+                    </Text> 
+                  </View> 
+
+                  {!isActive && isPending && effectiveSeatId ? (
+                    <Text style={{ marginTop: 6, fontSize: 12, color: '#0f172a', fontWeight: '900' }}>
+                      Seat selected: {seatSummary?.current_seat?.seat_name || seatSummary?.seats?.find((s) => s.id === effectiveSeatId)?.name || effectiveSeatId}
                     </Text>
-                  </View>
+                  ) : null}
 
-                  {/* Buy Button */}
-                  {!isActive && (
+                  {showBuyCta ? (
                     <TouchableOpacity
-                      style={SubscriptionPlansStyles.buyBtn}
-                      onPress={() => handleBuyPlan(plan)}
+                      style={[SubscriptionPlansStyles.buyBtn, { marginTop: 10 }]}
+                      onPress={() => {
+                        if (!pendingPlan || !stateName || !effectiveSeatId) return;
+                        const planToBuy = pendingPlan;
+                        setPendingPlan(null);
+                        navigateToPayment(planToBuy, stateName, effectiveSeatId);
+                      }}
                     >
                       <Feather name="credit-card" size={14} color="#fff" />
                       <Text style={SubscriptionPlansStyles.buyBtnText}>
                         Buy Plan
                       </Text>
                     </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })
-          ) : (
+                  ) : !isActive ? (
+                    <Text style={{ marginTop: 6, fontSize: 12, color: '#1d4ed8', fontWeight: '900' }}>
+                      Tap to select seat
+                    </Text>
+                  ) : null}
+                </TouchableOpacity> 
+              ); 
+            }) 
+          ) : ( 
             <Text style={SubscriptionPlansStyles.emptyText}>
               No plans available.
             </Text>

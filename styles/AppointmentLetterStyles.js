@@ -2,7 +2,22 @@ import { StyleSheet } from 'react-native';
 
 const AppointmentLetterStyles = StyleSheet.create({
   // ✅ UPDATED: borderRadius 0 - sharp corners
-  apptCard:         { borderRadius:0, overflow:'hidden', marginBottom:4, elevation:6, backgroundColor:'#e9edf0' },
+  apptCard:         {
+    borderRadius: 0,
+    overflow: 'hidden',
+    marginBottom: 4,
+    elevation: 6,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    backgroundColor: '#e9edf0',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+  },
   apptPressBadge:   { alignItems:'center', paddingTop:10 },
   apptPressBadgeText:{ fontSize:10, fontWeight:'800', color:'#fff', backgroundColor:'#dc2626', paddingHorizontal:14, paddingVertical:3, borderRadius:999, letterSpacing:2, overflow:'hidden' },
   apptLogoRow:      { flexDirection:'row', alignItems:'center', justifyContent:'space-between', padding:12, paddingBottom:4, gap:8 },

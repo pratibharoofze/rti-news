@@ -10,6 +10,15 @@ import {
 const USERS_KEY        = 'users';
 const OTP_KEY          = 'mock_reset_otps';
 const CURRENT_USER_KEY = 'current_user_email';
+const STATE_SEATS_KEY  = 'state_seat_allocations_v1';
+
+const STATE_SEAT_ROLES = [
+  { id: 'chief_editor_published',     name: 'Chief Editor / Published' },
+  { id: 'executive_editor',           name: 'Executive Editor' },
+  { id: 'deputy_editor_national',     name: 'Deputy Editor (National)' },
+  { id: 'public_relations_officer',   name: 'Public Relations Officer (PRO)' },
+  { id: 'national_bureau_chief',      name: 'National Bureau Chief' },
+];
 
 // eslint-disable-next-line import/namespace
 const certificateDirectory = FileSystem['documentDirectory'];
@@ -17,13 +26,6 @@ const CERTIFICATE_DIR = certificateDirectory
   ? `${certificateDirectory}certificates/`
   : null;
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  ROLE SYSTEM
-//  plan-basic    → role: 'basic'
-//  plan-pro      → role: 'pro'
-//  plan-premium  → role: 'premium'
-//  no plan       → role: 'free'
-// ─────────────────────────────────────────────────────────────────────────────
 const getRoleFromPlanId = (planId = '') => {
   const id = String(planId).toLowerCase();
   if (id === 'plan-premium') return 'premium';
@@ -41,9 +43,6 @@ const ROLE_LABELS = {
 
 const getRoleLabel = (role = 'free') => ROLE_LABELS[role] || 'Free Member';
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  RANK SYSTEM
-// ─────────────────────────────────────────────────────────────────────────────
 const RANK_TIERS = [
   { rank: 'Director',  min: 500 },
   { rank: 'Manager',   min: 100 },
@@ -58,9 +57,6 @@ const calculateRank = (referralCount = 0) => {
   return tier ? tier.rank : 'Member';
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  REFERRAL CODE GENERATOR  →  RTI-XXXXXX  (6 alphanumeric chars)
-// ─────────────────────────────────────────────────────────────────────────────
 const generateReferralCode = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = 'RTI-';
@@ -81,9 +77,6 @@ const generateUniqueReferralCode = async (existingUsers = []) => {
   return code;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  DEFAULT DATA
-// ─────────────────────────────────────────────────────────────────────────────
 const defaultWalletTransactions = [
   {
     id:     'txn-welcome-credit',
@@ -207,10 +200,8 @@ const defaultNotifications = [
 
 const defaultSettings = { language: 'English', password: '' };
 
+// ─── Normalizers ──────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  NORMALIZERS
-// ─────────────────────────────────────────────────────────────────────────────
 const getWalletTransactionSortValue = (transaction = {}) => {
   const idValue   = Number(String(transaction.id || '').replace(/\D/g, '')) || 0;
   const dateValue = new Date(transaction.date || 0).getTime();
@@ -281,24 +272,28 @@ const normalizeNewsFeed = (items = []) => {
   const src = Array.isArray(items) && items.length ? items : defaultNewsFeed;
   return src.map((item, i) => ({
     id:          item.id          || `news-${i + 1}`,
+    createdBy:   String(item.createdBy || item.created_by || '').trim().toLowerCase(),
     title:       item.title       || 'News Update',
     description: (item.description || item.subtitle || '').replace(/<[^>]*>/g, ' ').trim(),
     subtitle:    (item.subtitle || '').replace(/<[^>]*>/g, ' ').trim(),
     media:       item.media || (item.mediaType === 'Image'
       ? `${item.images?.length || 0} image(s)`
-      : item.mediaType === 'Video'
-        ? 'video attached'
-        : item.mediaType === 'File'
-          ? (item.file?.name ? `file: ${item.file.name}` : 'file attached')
-          : 'no media'),
+      : item.mediaType === 'Video' ? 'video attached'
+      : item.mediaType === 'File' ? (item.file?.name ? `file: ${item.file.name}` : 'file attached')
+      : 'no media'),
     category:    item.category || item.state || 'General',
     mediaType:   item.mediaType || 'None',
     state:       item.state || item.category || 'General',
     district:    item.district || '',
     taluka:      item.taluka || '',
     author_name: item.author_name || item.createdByName || item.createdBy || 'RTI News',
+    author_profile_image: item.author_profile_image || item.authorProfileImage || item.createdByProfileImage || item.profile_image || '',
     author_is_premium: Boolean(item.author_is_premium || item.createdByPremium || false),
     author_is_subscriber: Boolean(item.author_is_subscriber || item.author_is_premium || item.createdBySubscriber || false),
+    author_role: item.author_role || item.authorRole || item.createdByRole || '',
+    author_role_label: item.author_role_label || item.authorRoleLabel || item.createdByRoleLabel || '',
+    author_seat_id: String(item.author_seat_id || item.authorSeatId || item.createdBySeatId || '').trim(),
+    author_seat_name: String(item.author_seat_name || item.authorSeatName || item.createdBySeatName || '').trim(),
     liked_by:    Array.isArray(item.liked_by) ? item.liked_by : [],
     comments_list: normalizeComments(item.comments_list),
     images:      Array.isArray(item.images) ? item.images : [],
@@ -322,24 +317,29 @@ const normalizeUserNewsItems = (items = []) => {
   if (!Array.isArray(items)) return [];
   return items
     .map((item) => ({
-      id: item.id, title: item.title,
+      id: item.id,
+      createdBy: String(item.createdBy || item.created_by || '').trim().toLowerCase(),
+      title: item.title,
       description: (item.description || item.subtitle || '').replace(/<[^>]*>/g, ' ').trim(),
       subtitle: (item.subtitle || '').replace(/<[^>]*>/g, ' ').trim(),
       media: item.media || (item.mediaType === 'Image'
         ? `${item.images?.length || 0} image(s)`
-        : item.mediaType === 'Video'
-          ? 'video attached'
-          : item.mediaType === 'File'
-            ? (item.file?.name ? `file: ${item.file.name}` : 'file attached')
-            : 'no media'),
+        : item.mediaType === 'Video' ? 'video attached'
+        : item.mediaType === 'File' ? (item.file?.name ? `file: ${item.file.name}` : 'file attached')
+        : 'no media'),
       category: item.category || item.state || 'General',
       mediaType: item.mediaType || 'None',
       state: item.state || item.category || 'General',
       district: item.district || '',
       taluka: item.taluka || '',
       author_name: item.author_name || item.createdByName || item.createdBy || 'RTI News',
+      author_profile_image: item.author_profile_image || item.authorProfileImage || item.createdByProfileImage || item.profile_image || '',
       author_is_premium: Boolean(item.author_is_premium || item.createdByPremium || false),
       author_is_subscriber: Boolean(item.author_is_subscriber || item.author_is_premium || item.createdBySubscriber || false),
+      author_role: item.author_role || item.authorRole || item.createdByRole || '',
+      author_role_label: item.author_role_label || item.authorRoleLabel || item.createdByRoleLabel || '',
+      author_seat_id: String(item.author_seat_id || item.authorSeatId || item.createdBySeatId || '').trim(),
+      author_seat_name: String(item.author_seat_name || item.authorSeatName || item.createdBySeatName || '').trim(),
       liked_by: Array.isArray(item.liked_by) ? item.liked_by : [],
       comments_list: normalizeComments(item.comments_list),
       images: Array.isArray(item.images) ? item.images : [],
@@ -441,6 +441,37 @@ const normalizeSettings = (s = {}) => ({
   password: s.password || defaultSettings.password,
 });
 
+const normalizeStateKey = (state = '') => String(state || '').trim().toLowerCase();
+
+const getStateSeatRole = (seatRoleId = '') =>
+  STATE_SEAT_ROLES.find((r) => r.id === seatRoleId) || null;
+
+const normalizeStateSeat = (seat = null) => {
+  if (!seat || typeof seat !== 'object') return null;
+  const state = String(seat.state || '').trim();
+  const seat_id = String(seat.seat_id || '').trim();
+  if (!state || !seat_id) return null;
+  const role = getStateSeatRole(seat_id);
+  return {
+    state,
+    seat_id,
+    seat_name: String(seat.seat_name || role?.name || '').trim(),
+    assigned_at: seat.assigned_at || null,
+    plan_id: String(seat.plan_id || '').trim(),
+  };
+};
+
+const getStateSeatAllocationsFromStorage = async () => {
+  const raw = await AsyncStorage.getItem(STATE_SEATS_KEY);
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
 const normalizePaymentHistory = (items = []) => {
   const src = Array.isArray(items) ? items : [];
   return src.map((item, i) => ({
@@ -457,7 +488,7 @@ const normalizePaymentHistory = (items = []) => {
 };
 
 const isPremiumPlan = (plan = {}) => {
-  const planId = String(plan.plan_id || '').toLowerCase();
+  const planId   = String(plan.plan_id   || '').toLowerCase();
   const planName = String(plan.plan_name || '').toLowerCase();
   return planId === 'plan-premium' || planName.includes('premium');
 };
@@ -475,50 +506,42 @@ const hasActiveSubscription = (user = {}) => {
   return false;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  FULL USER NORMALIZER
-// ─────────────────────────────────────────────────────────────────────────────
 const normalizeUser = (user = {}) => {
   const referralCount = Number(user.referral_count || 0);
-
-  // ✅ Role: use saved role, or derive from subscription_plan, or default 'free'
   const savedPlan = normalizeSubscriptionPlan(user.subscription_plan);
   const role = user.role || getRoleFromPlanId(savedPlan?.plan_id) || 'free';
 
   return {
     ...user,
+    // ✅ FIX: email hamesha lowercase save hogi
+    email:               user.email ? user.email.trim().toLowerCase() : '',
     name:                user.name                || '',
     mobile:              user.mobile              || user.contact_number || '',
     contact_number:      user.contact_number      || user.mobile_number || user.mobile || '',
     phone_number:        user.phone_number        || '',
     mobile_number:       user.mobile_number       || user.mobile || user.contact_number || '',
-    email:               user.email               || '',
     state:               user.state               || '',
     district:            user.district            || '',
     taluka:              user.taluka              || '',
     location_complete:   user.location_complete   !== undefined ? user.location_complete : false,
+    state_seat:          normalizeStateSeat(user.state_seat),
     subscription_type:   user.subscription_type   || role || 'free',
-
-    // ✅ Role fields
     role,
     role_label:          getRoleLabel(role),
     is_subscribed:       user.is_subscribed !== undefined
                            ? Boolean(user.is_subscribed)
                            : role !== 'free',
-
     village:             user.village             || '',
     bio:                 user.bio                 || '',
     profile_image:       user.profile_image       || '',
     id_card:             user.id_card             || '',
     appointment_letter:  user.appointment_letter  || '',
-    // ── Referral fields ──
     my_referral_code:    user.my_referral_code    || '',
     referred_by:         user.referred_by         || '',
     referral_code_used:  user.referral_code_used  || '',
     referral_count:      referralCount,
     rank:                calculateRank(referralCount),
     join_date:           user.join_date           || new Date().toISOString().slice(0, 10),
-    // ── Nested objects ──
     wallet_transactions: normalizeWalletTransactions(user.wallet_transactions),
     withdraw_requests:   normalizeWithdrawRequests(user.withdraw_requests),
     subscription_plan:   savedPlan,
@@ -527,18 +550,21 @@ const normalizeUser = (user = {}) => {
   };
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  STORAGE HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Storage Helpers ──────────────────────────────────────────────────────────
+
+// ✅ FIX: getUsersFromStorage mein email normalize karo
 const getUsersFromStorage = async () => {
   const data  = await AsyncStorage.getItem(USERS_KEY);
   const users = data ? JSON.parse(data) : [];
-  return users.map(normalizeUser);
+  return users.map((u) => normalizeUser({
+    ...u,
+    // ✅ Purane users jinka email uppercase tha, unhe bhi fix karo
+    email: u.email ? u.email.trim().toLowerCase() : u.email,
+  }));
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  NETWORK HELPER
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Network Helper ───────────────────────────────────────────────────────────
+
 const getLevelFromCurrentUser = (user, currentUser, usersByEmail) => {
   if (!currentUser || !user?.email) return '-';
   if (user.email === currentUser.email) return '0';
@@ -555,25 +581,16 @@ const getLevelFromCurrentUser = (user, currentUser, usersByEmail) => {
   return user.referred_by ? 'Linked' : 'Direct';
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  CERTIFICATE SVG BUILDER
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Certificate SVG Builder ──────────────────────────────────────────────────
+
 const escapeXml = (value = '') =>
   String(value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
 const buildCertificateSvg = ({
-  userName,
-  quizTitle,
-  score,
-  resultType,
-  issueDate,
-  certificateNumber,
-  photoUri,
-  email,
-  village,
-  contactNumber,
+  userName, quizTitle, score, resultType, issueDate,
+  certificateNumber, photoUri, email, village, contactNumber,
 }) => {
   const safePhoto = photoUri && !String(photoUri).startsWith('blob:') ? escapeXml(photoUri) : '';
   const photoMarkup = safePhoto
@@ -641,16 +658,15 @@ const ensureCertificateDirectoryAsync = async () => {
   return CERTIFICATE_DIR;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  USER STORE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── User Store ───────────────────────────────────────────────────────────────
 export const UserStore = {
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
   getUser: async (email) => {
     try {
+      // ✅ FIX: search bhi lowercase se karo
+      const normalizedEmail = email ? email.trim().toLowerCase() : '';
       const users = await getUsersFromStorage();
-      return users.find((u) => u.email === email) || null;
+      return users.find((u) => u.email === normalizedEmail) || null;
     } catch { return null; }
   },
 
@@ -670,8 +686,6 @@ export const UserStore = {
   hasPremiumAccess: (user) => hasPremiumAccess(user),
   hasActiveSubscription: (user) => hasActiveSubscription(user),
   isPremiumPlan: (plan) => isPremiumPlan(plan),
-
-  // ✅ Role helpers — accessible from any screen
   getRoleFromPlanId,
   getRoleLabel,
 
@@ -687,7 +701,17 @@ export const UserStore = {
     referral_code_used = null,
   }) => {
     try {
+      // ✅ FIX: Register karte waqt email lowercase karo
+      const normalizedEmail = email ? email.trim().toLowerCase() : '';
+
       const users = await getUsersFromStorage();
+
+      // ✅ FIX: Duplicate check normalized email se
+      const existing = users.find((u) => u.email === normalizedEmail);
+      if (existing) {
+        return { ok: false, message: 'This email is already registered!' };
+      }
+
       const my_referral_code = await generateUniqueReferralCode(users);
 
       let referred_by = '';
@@ -704,14 +728,14 @@ export const UserStore = {
       const newUser = normalizeUser({
         name,
         mobile,
-        email,
+        email: normalizedEmail, // ✅ lowercase email save karo
         password,
         state,
         district,
         taluka,
         location_complete: false,
         subscription_type,
-        role: 'free',           // ✅ New users start as 'free'
+        role: 'free',
         is_subscribed: false,
         my_referral_code,
         referred_by,
@@ -750,10 +774,13 @@ export const UserStore = {
     try {
       const data  = await AsyncStorage.getItem(USERS_KEY);
       const users = data ? JSON.parse(data) : [];
+      // ✅ FIX: update bhi lowercase email se match karo
+      const normalizedEmail = email ? email.trim().toLowerCase() : '';
       let updatedUser = null;
 
       const updatedUsers = users.map((user) => {
-        if (user.email !== email) return user;
+        const userEmail = user.email ? user.email.trim().toLowerCase() : '';
+        if (userEmail !== normalizedEmail) return user;
         const mergedReferralCount = updates.referral_count !== undefined
           ? Number(updates.referral_count)
           : Number(user.referral_count || 0);
@@ -761,6 +788,7 @@ export const UserStore = {
         updatedUser = normalizeUser({
           ...user,
           ...updates,
+          email: normalizedEmail, // ✅ email lowercase rakho
           referral_count: mergedReferralCount,
           rank: calculateRank(mergedReferralCount),
           wallet_transactions: normalizeWalletTransactions(updates.wallet_transactions !== undefined ? updates.wallet_transactions : user.wallet_transactions),
@@ -779,25 +807,26 @@ export const UserStore = {
   },
 
   completeLocationSetup: async (email, state, district = '', taluka = '') => {
-    return await UserStore.updateUser(email, {
-      state,
-      district,
-      taluka,
-      location_complete: true,
-    });
+    return await UserStore.updateUser(email, { state, district, taluka, location_complete: true });
   },
 
+  // ✅ FIX: setCurrentUser mein lowercase save karo
   setCurrentUser: async (email) => {
-    try { await AsyncStorage.setItem(CURRENT_USER_KEY, email); return true; }
-    catch { return false; }
+    try {
+      const normalizedEmail = email ? email.trim().toLowerCase() : '';
+      await AsyncStorage.setItem(CURRENT_USER_KEY, normalizedEmail);
+      return true;
+    } catch { return false; }
   },
 
   getCurrentUser: async () => {
     try {
       const email = await AsyncStorage.getItem(CURRENT_USER_KEY);
       if (!email) return null;
+      // ✅ FIX: stored email bhi lowercase se match karo
+      const normalizedEmail = email.trim().toLowerCase();
       const users = await getUsersFromStorage();
-      return users.find((u) => u.email === email) || null;
+      return users.find((u) => u.email === normalizedEmail) || null;
     } catch { return null; }
   },
 
@@ -923,10 +952,44 @@ export const UserStore = {
         currentUser: user,
         activePlan:  hasActiveSubscription(user) ? normalizeSubscriptionPlan(user.subscription_plan) : null,
         plans:       defaultSubscriptionPlans,
-        // ✅ Current role info
         currentRole:      user.role || 'free',
         currentRoleLabel: getRoleLabel(user.role || 'free'),
       };
+    } catch { return null; }
+  },
+
+  getStateSeatSummary: async () => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return null;
+
+      const state = String(user.state || '').trim();
+      const current_seat = normalizeStateSeat(user.state_seat);
+
+      if (!state) {
+        return {
+          currentUser: user,
+          state: '',
+          current_seat,
+          seats: STATE_SEAT_ROLES.map((role) => ({ ...role, status: 'disabled' })),
+        };
+      }
+
+      const allocations = await getStateSeatAllocationsFromStorage();
+      const stateKey = normalizeStateKey(state);
+      const stateAlloc = allocations[stateKey] && typeof allocations[stateKey] === 'object'
+        ? allocations[stateKey]
+        : {};
+
+      const seats = STATE_SEAT_ROLES.map((role) => {
+        const takenBy = String(stateAlloc?.[role.id]?.email || '').trim().toLowerCase();
+        const status = takenBy
+          ? (takenBy === user.email ? 'mine' : 'taken')
+          : 'available';
+        return { ...role, status };
+      });
+
+      return { currentUser: user, state, current_seat, seats };
     } catch { return null; }
   },
 
@@ -938,15 +1001,18 @@ export const UserStore = {
     } catch { return null; }
   },
 
-  createPaymentOrder: async ({ order_id, amount, plan_id }) => {
+  createPaymentOrder: async ({ order_id, amount, plan_id, seat_state, seat_role_id }) => {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return null;
-
       const activePlan = defaultSubscriptionPlans.find((p) => p.plan_id === plan_id);
       if (!activePlan) return null;
-
       const nextOrderId = order_id || `ORD_${Date.now()}`;
+
+      const seatState = String(seat_state || '').trim();
+      const seatRoleId = String(seat_role_id || '').trim();
+      const seatRole = seatRoleId ? getStateSeatRole(seatRoleId) : null;
+
       return {
         order_id: nextOrderId,
         amount: Number(amount ?? activePlan.price),
@@ -955,37 +1021,105 @@ export const UserStore = {
         duration: activePlan.duration,
         role: activePlan.role || getRoleFromPlanId(activePlan.plan_id),
         created_by: user.email || '',
+        seat_state: seatState,
+        seat_role_id: seatRoleId,
+        seat_role_name: seatRole?.name || '',
       };
     } catch { return null; }
   },
 
-  // ✅ FIXED: verifyPayment — proper role assignment for all plans
-  verifyPayment: async ({ payment_id, order_id, signature, plan_id }) => {
+  verifyPayment: async ({ payment_id, order_id, signature, plan_id, seat_state, seat_role_id }) => {
+    let allocationsBefore = null;
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
 
       const today      = new Date().toISOString().slice(0, 10);
       const activePlan = defaultSubscriptionPlans.find((p) => p.plan_id === plan_id) || defaultActiveSubscription;
-
-      // ✅ Role assignment based on plan
-      const newRole = getRoleFromPlanId(plan_id);  // 'basic' | 'pro' | 'premium'
-
-      // ✅ subscription_type for backward compat
+      const newRole    = getRoleFromPlanId(plan_id);
       const newSubscriptionType = newRole;
 
+      const profileState = String(user.state || '').trim();
+      const requestedSeatState = String(seat_state || '').trim();
+      const requestedSeatRoleId = String(seat_role_id || '').trim();
+      const wantsSeatSelection = Boolean(requestedSeatState || requestedSeatRoleId);
+
+      const existingSeat = normalizeStateSeat(user.state_seat);
+      const hasSeatInProfileState = Boolean(existingSeat?.state && normalizeStateKey(existingSeat.state) === normalizeStateKey(profileState));
+
+      if (hasSeatInProfileState && wantsSeatSelection && requestedSeatRoleId && existingSeat?.seat_id && requestedSeatRoleId !== existingSeat.seat_id) {
+        return { ok: false, message: `Aapne pehle se "${existingSeat.seat_name || existingSeat.seat_id}" seat select ki hai. Seat change nahi ho sakti.` };
+      }
+
+      let seatToAssign = null;
+
+      if (profileState) {
+        if (hasSeatInProfileState && requestedSeatState && normalizeStateKey(requestedSeatState) !== normalizeStateKey(profileState)) {
+          return { ok: false, message: 'Selected seat state aapki profile state se match nahi karti.' };
+        }
+
+        if (!hasSeatInProfileState && !wantsSeatSelection) {
+          return { ok: false, message: 'Payment se pehle apni state ki seat select karein.' };
+        }
+
+        if (!hasSeatInProfileState && wantsSeatSelection) {
+          if (!requestedSeatState || !requestedSeatRoleId) {
+            return { ok: false, message: 'Seat selection incomplete. Please select a seat again.' };
+          }
+          if (normalizeStateKey(requestedSeatState) !== normalizeStateKey(profileState)) {
+            return { ok: false, message: 'Selected seat state aapki profile state se match nahi karti.' };
+          }
+
+          const roleMeta = getStateSeatRole(requestedSeatRoleId);
+          if (!roleMeta) return { ok: false, message: 'Invalid seat selection. Please try again.' };
+
+          allocationsBefore = await getStateSeatAllocationsFromStorage();
+          const stateKey = normalizeStateKey(profileState);
+          const stateAllocBefore = allocationsBefore[stateKey] && typeof allocationsBefore[stateKey] === 'object'
+            ? allocationsBefore[stateKey]
+            : {};
+
+          const takenBy = String(stateAllocBefore?.[requestedSeatRoleId]?.email || '').trim().toLowerCase();
+          if (takenBy && takenBy !== user.email) {
+            return {
+              ok: false,
+              message: `"${roleMeta.name}" seat (${profileState}) already taken. Please select another seat.`,
+            };
+          }
+
+          const allocationsAfter = {
+            ...allocationsBefore,
+            [stateKey]: {
+              ...stateAllocBefore,
+              [requestedSeatRoleId]: {
+                email: user.email,
+                name: user.name || '',
+                assigned_at: today,
+              },
+            },
+          };
+
+          await AsyncStorage.setItem(STATE_SEATS_KEY, JSON.stringify(allocationsAfter));
+
+          seatToAssign = {
+            state: profileState,
+            seat_id: requestedSeatRoleId,
+            seat_name: roleMeta.name,
+            assigned_at: today,
+            plan_id: String(plan_id || '').trim(),
+          };
+        }
+      }
+
       const newPayment = {
-        order_id,
-        payment_id,
+        order_id, payment_id,
         amount: activePlan.price || 0,
         status: 'success',
-        date:   today,
-        plan_id,
+        date: today, plan_id,
         plan_name: activePlan.plan_name,
         signature,
       };
 
-      // ✅ Add role assignment notification
       const roleNotification = {
         id:      `notif-role-${Date.now()}`,
         title:   `🎉 ${activePlan.plan_name} Activated!`,
@@ -997,33 +1131,36 @@ export const UserStore = {
       const currentNotifications = normalizeNotifications(user.notifications);
 
       const updatedUser = await UserStore.updateUser(user.email, {
-        subscription_plan:   activePlan,
-        subscription_type:   newSubscriptionType,
-        role:                newRole,           // ✅ Role saved
-        role_label:          getRoleLabel(newRole),
-        is_subscribed:       true,              // ✅ Subscribed flag
-        payment_history:     [...normalizePaymentHistory(user.payment_history).filter((item) => item.order_id !== order_id), newPayment],
-        notifications:       [...currentNotifications, roleNotification], // ✅ Notification
+        subscription_plan: activePlan,
+        subscription_type: newSubscriptionType,
+        role:              newRole,
+        role_label:        getRoleLabel(newRole),
+        is_subscribed:     true,
+        payment_history:   [...normalizePaymentHistory(user.payment_history).filter((item) => item.order_id !== order_id), newPayment],
+        notifications:     [...currentNotifications, roleNotification],
+        ...(seatToAssign ? { state_seat: seatToAssign } : {}),
       });
 
-      if (!updatedUser) return { ok: false, message: 'Payment verification failed.' };
-
-      return {
-        ok:         true,
-        role:       newRole,
-        role_label: getRoleLabel(newRole),
-        plan:       activePlan,
-      };
-    } catch { return { ok: false, message: 'Payment verification failed.' }; }
+      if (!updatedUser) {
+        if (allocationsBefore) await AsyncStorage.setItem(STATE_SEATS_KEY, JSON.stringify(allocationsBefore));
+        return { ok: false, message: 'Payment verification failed.' };
+      }
+      return { ok: true, role: newRole, role_label: getRoleLabel(newRole), plan: activePlan };
+    } catch {
+      if (allocationsBefore) {
+        try { await AsyncStorage.setItem(STATE_SEATS_KEY, JSON.stringify(allocationsBefore)); } catch { /* noop */ }
+      }
+      return { ok: false, message: 'Payment verification failed.' };
+    }
   },
 
   getNewsFeedSummary: async () => {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return null;
-      const feedItems  = normalizeNewsFeed(user.news_feed);
+      const feedItems     = normalizeNewsFeed(user.news_feed);
       const userNewsItems = normalizeUserNewsItems(user.news);
-      const mergedItems = [...userNewsItems, ...feedItems]
+      const mergedItems   = [...userNewsItems, ...feedItems]
         .filter((item, index, arr) => arr.findIndex((e) => e.id === item.id) === index)
         .sort((a, b) => getNewsSortValue(b) - getNewsSortValue(a));
       return { currentUser: user, items: mergedItems, totalViews: mergedItems.reduce((s, i) => s + i.views, 0), totalShares: mergedItems.reduce((s, i) => s + i.shares, 0) };
@@ -1052,8 +1189,7 @@ export const UserStore = {
           ...item,
           views: action === 'view' ? item.views + 1 : item.views,
           shares: action === 'share' ? item.shares + 1 : item.shares,
-          likes: nextLikes,
-          liked_by: nextLikedBy,
+          likes: nextLikes, liked_by: nextLikedBy,
           comments: action === 'comment' ? (Number(item.comments || 0) + 1) : Number(item.comments || 0),
         };
       });
@@ -1073,8 +1209,7 @@ export const UserStore = {
           ...item,
           views: action === 'view' ? Number(item.views || 0) + 1 : Number(item.views || 0),
           shares: action === 'share' ? Number(item.shares || 0) + 1 : Number(item.shares || 0),
-          likes: nextLikes,
-          liked_by: nextLikedBy,
+          likes: nextLikes, liked_by: nextLikedBy,
           comments: action === 'comment' ? (Number(item.comments || 0) + 1) : Number(item.comments || 0),
         };
       }) : [];
@@ -1090,25 +1225,19 @@ export const UserStore = {
       if (!user) return { ok: false, message: 'Please login again.' };
       const text = String(commentText || '').trim();
       if (!text) return { ok: false, message: 'Please enter a comment.' };
-
       const newComment = {
-        id: `cmt-${Date.now()}`,
-        text,
+        id: `cmt-${Date.now()}`, text,
         author: user.name || user.email || 'User',
         author_email: user.email || '',
         date: new Date().toLocaleDateString('en-IN'),
-        edited_at: null,
-        likes: 0,
-        liked_by: [],
+        edited_at: null, likes: 0, liked_by: [],
       };
-
       const updateItem = (item) => {
         if (item.id !== itemId) return item;
         const list = normalizeComments(item.comments_list);
         const updatedList = [...list, newComment];
         return { ...item, comments_list: updatedList, comments: updatedList.length };
       };
-
       const items = normalizeNewsFeed(user.news_feed).map(updateItem);
       const newsItems = Array.isArray(user.news) ? user.news.map(updateItem) : [];
       const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
@@ -1123,7 +1252,6 @@ export const UserStore = {
       if (!user) return { ok: false, message: 'Please login again.' };
       const email = user.email;
       if (!email) return { ok: false, message: 'Email missing.' };
-
       let likedNow = false;
       const updateItem = (item) => {
         if (item.id !== itemId) return item;
@@ -1139,7 +1267,6 @@ export const UserStore = {
         });
         return { ...item, comments_list: updatedList, comments: updatedList.length };
       };
-
       const items = normalizeNewsFeed(user.news_feed).map(updateItem);
       const newsItems = Array.isArray(user.news) ? user.news.map(updateItem) : [];
       const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
@@ -1154,13 +1281,11 @@ export const UserStore = {
       if (!user) return { ok: false, message: 'Please login again.' };
       const text = String(nextText || '').trim();
       if (!text) return { ok: false, message: 'Please enter a comment.' };
-
       const isOwner = (c) => {
         if (c.author_email && user.email) return c.author_email === user.email;
         const identity = user.email || user.name || '';
         return identity && c.author === identity;
       };
-
       const updateItem = (item) => {
         if (item.id !== itemId) return item;
         const list = normalizeComments(item.comments_list);
@@ -1171,7 +1296,6 @@ export const UserStore = {
         });
         return { ...item, comments_list: updatedList, comments: updatedList.length };
       };
-
       const items = normalizeNewsFeed(user.news_feed).map(updateItem);
       const newsItems = Array.isArray(user.news) ? user.news.map(updateItem) : [];
       const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
@@ -1184,13 +1308,11 @@ export const UserStore = {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
-
       const isOwner = (c) => {
         if (c.author_email && user.email) return c.author_email === user.email;
         const identity = user.email || user.name || '';
         return identity && c.author === identity;
       };
-
       const updateItem = (item) => {
         if (item.id !== itemId) return item;
         const list = normalizeComments(item.comments_list);
@@ -1200,7 +1322,6 @@ export const UserStore = {
         });
         return { ...item, comments_list: updatedList, comments: updatedList.length };
       };
-
       const items = normalizeNewsFeed(user.news_feed).map(updateItem);
       const newsItems = Array.isArray(user.news) ? user.news.map(updateItem) : [];
       const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
@@ -1256,12 +1377,9 @@ export const UserStore = {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
-
       const existingStreams = normalizeStreams(user.live_streams).map((stream) => ({
-        ...stream,
-        status: stream.status === 'live' ? 'ended' : stream.status,
+        ...stream, status: stream.status === 'live' ? 'ended' : stream.status,
       }));
-
       const nextStream = {
         id: `stream-${Date.now()}`,
         stream_title: stream_title || 'Live Stream',
@@ -1270,11 +1388,7 @@ export const UserStore = {
         stream_key: stream_key || 'stream',
         status: 'live',
       };
-
-      const updatedUser = await UserStore.updateUser(user.email, {
-        live_streams: [nextStream, ...existingStreams],
-      });
-
+      const updatedUser = await UserStore.updateUser(user.email, { live_streams: [nextStream, ...existingStreams] });
       if (!updatedUser) return { ok: false, message: 'Unable to create live stream.' };
       return { ok: true, stream: nextStream };
     } catch { return { ok: false, message: 'Unable to create live stream.' }; }
@@ -1284,17 +1398,12 @@ export const UserStore = {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
-
       const streams = normalizeStreams(user.live_streams);
       const hasActive = streams.some((stream) => stream.status === 'live');
       if (!hasActive) return { ok: false, message: 'No active live stream found.' };
-
       const updatedUser = await UserStore.updateUser(user.email, {
-        live_streams: streams.map((stream) =>
-          stream.status === 'live' ? { ...stream, status: 'ended' } : stream
-        ),
+        live_streams: streams.map((stream) => stream.status === 'live' ? { ...stream, status: 'ended' } : stream),
       });
-
       if (!updatedUser) return { ok: false, message: 'Unable to stop live stream.' };
       return { ok: true };
     } catch { return { ok: false, message: 'Unable to stop live stream.' }; }
@@ -1323,8 +1432,7 @@ export const UserStore = {
         const issuedAt = new Date().toISOString();
         const certificateNumber = `RTI-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
         submittedItem = {
-          ...item,
-          score,
+          ...item, score,
           result_type: pass ? 'Pass' : 'Fail',
           certificate_file: pass ? 'pending_local_generation' : null,
           local_certificate_path: null,
@@ -1356,59 +1464,42 @@ export const UserStore = {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
-
       const dir = await ensureCertificateDirectoryAsync();
       if (!dir) return { ok: false, message: 'Certificate download is not supported on this platform.' };
-
       const certifications = normalizeCertifications(user.certifications);
       const targetItem = certifications.find((item) => item.id === certId);
-
       if (!targetItem || (targetItem.result_type || '').toLowerCase() !== 'pass') {
         return { ok: false, message: 'Certificate not available. Pass the quiz first.' };
       }
-
       const issueDate = targetItem.issued_at
         ? new Date(targetItem.issued_at).toLocaleDateString('en-IN')
         : new Date().toLocaleDateString('en-IN');
-
-      const certificateNumber =
-        targetItem.certificate_number ||
-        `RTI-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-
+      const certificateNumber = targetItem.certificate_number || `RTI-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
       const svgMarkup = buildCertificateSvg({
         userName:      targetItem.user_name || user.name || 'Participant',
         quizTitle:     targetItem.quiz_title || 'Quiz Examination',
         score:         targetItem.score ?? 0,
         resultType:    targetItem.result_type || 'Pass',
-        issueDate,
-        certificateNumber,
+        issueDate, certificateNumber,
         photoUri:      user.profile_image || '',
         email:         user.email || '',
         village:       user.village || '',
         contactNumber: user.contact_number || user.mobile || '',
       });
-
       const svgPath = `${dir}certificate-${targetItem.id}.svg`;
-      await FileSystem.writeAsStringAsync(svgPath, svgMarkup, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-
+      await FileSystem.writeAsStringAsync(svgPath, svgMarkup, { encoding: FileSystem.EncodingType.UTF8 });
       const items = certifications.map((item) =>
-        item.id !== certId
-          ? item
-          : {
-              ...item,
-              certificate_file:       svgPath,
-              local_certificate_path: svgPath,
-              certificate_number:     certificateNumber,
-              issued_at:              item.issued_at || new Date().toISOString(),
-              downloads:              item.downloads + 1,
-            }
+        item.id !== certId ? item : {
+          ...item,
+          certificate_file:       svgPath,
+          local_certificate_path: svgPath,
+          certificate_number:     certificateNumber,
+          issued_at:              item.issued_at || new Date().toISOString(),
+          downloads:              item.downloads + 1,
+        }
       );
-
       const updatedUser = await UserStore.updateUser(user.email, { certifications: items });
       if (!updatedUser) return { ok: false, message: 'Unable to record download.' };
-
       return { ok: true, savedPath: svgPath, isLocalSvg: true };
     } catch (err) {
       console.error('downloadCertificate error:', err);
@@ -1485,19 +1576,26 @@ export const UserStore = {
 
   updatePassword: async (email, password) => {
     try {
+      // ✅ FIX: updatePassword bhi lowercase email se
+      const normalizedEmail = email ? email.trim().toLowerCase() : '';
       const data    = await AsyncStorage.getItem(USERS_KEY);
       const users   = data ? JSON.parse(data) : [];
-      const updated = users.map((u) => u.email === email ? { ...u, password } : u);
+      const updated = users.map((u) => {
+        const userEmail = u.email ? u.email.trim().toLowerCase() : '';
+        return userEmail === normalizedEmail ? { ...u, password } : u;
+      });
       await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updated));
-      return updated.some((u) => u.email === email);
+      return updated.some((u) => (u.email || '').trim().toLowerCase() === normalizedEmail);
     } catch { return false; }
   },
 
   saveResetOtp: async ({ email, otp, expiresAt }) => {
     try {
+      // ✅ FIX: OTP bhi lowercase email se save karo
+      const normalizedEmail = email ? email.trim().toLowerCase() : '';
       const data   = await AsyncStorage.getItem(OTP_KEY);
       const otpMap = data ? JSON.parse(data) : {};
-      otpMap[email] = { otp, expiresAt };
+      otpMap[normalizedEmail] = { otp, expiresAt };
       await AsyncStorage.setItem(OTP_KEY, JSON.stringify(otpMap));
       return true;
     } catch { return false; }
@@ -1505,17 +1603,19 @@ export const UserStore = {
 
   getResetOtp: async (email) => {
     try {
+      const normalizedEmail = email ? email.trim().toLowerCase() : '';
       const data   = await AsyncStorage.getItem(OTP_KEY);
       const otpMap = data ? JSON.parse(data) : {};
-      return otpMap[email] || null;
+      return otpMap[normalizedEmail] || null;
     } catch { return null; }
   },
 
   clearResetOtp: async (email) => {
     try {
+      const normalizedEmail = email ? email.trim().toLowerCase() : '';
       const data   = await AsyncStorage.getItem(OTP_KEY);
       const otpMap = data ? JSON.parse(data) : {};
-      delete otpMap[email];
+      delete otpMap[normalizedEmail];
       await AsyncStorage.setItem(OTP_KEY, JSON.stringify(otpMap));
       return true;
     } catch { return false; }

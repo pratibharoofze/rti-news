@@ -164,6 +164,27 @@ const NewsFeedStyles = StyleSheet.create({
     gap: 6,
     marginBottom: 6,
   },
+  authorAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#e2e8f0',
+  },
+  authorAvatarBtn: {
+    borderRadius: 11,
+  },
+  authorMetaDot: {
+    fontSize: 12,
+    color: '#cbd5e1',
+    fontWeight: '800',
+    marginHorizontal: 2,
+  },
+  authorSeat: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '700',
+    maxWidth: 170,
+  },
   authorLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -839,3 +860,5 @@ const NewsFeedStyles = StyleSheet.create({
 });
 
 export default NewsFeedStyles;
+
+

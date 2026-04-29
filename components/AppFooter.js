@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput,
-  Linking, StyleSheet, ScrollView,
+  Linking, StyleSheet,
 } from 'react-native';
 
 const quickLinks = [

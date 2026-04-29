@@ -36,6 +36,7 @@ import PaymentScreen from '../pages/PaymentScreen';
 import AttemptQuizScreen from '../pages/AttemptQuizScreen';
 import QuizResultScreen from '../pages/QuizResultScreen';
 import CertificatePreviewScreen from '../pages/CertificatePreviewScreen';
+import UserPublicProfileScreen from '../pages/UserPublicProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -81,6 +82,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Settings"          component={SettingsScreen} />
         <Stack.Screen name="ViewMember"        component={ViewMemberScreen} />
         <Stack.Screen name="EditMember"        component={EditMemberScreen} />
+        <Stack.Screen name="UserProfile"       component={UserPublicProfileScreen} />
         <Stack.Screen name="Payment"           component={PaymentScreen} />
         <Stack.Screen name="AttemptQuiz"       component={AttemptQuizScreen} />
         <Stack.Screen name="QuizResult"        component={QuizResultScreen} />

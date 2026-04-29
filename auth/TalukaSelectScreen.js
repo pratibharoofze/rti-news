@@ -103,14 +103,11 @@ export default function TalukaSelectScreen({ navigation, route }) {
     return unsubscribe;
   }, [navigation]);
 
-  const talukaList = selectedDistrict ? getTalukas(selectedDistrict) : [];
+  const talukaList = selectedDistrict ? getTalukas(selectedState, selectedDistrict) : []; 
 
-  const handleComplete = async () => {
-    if (talukaList.length > 0 && !taluka) {
-      alert('Please select your taluka');
-      return;
-    }
-    const user = await UserStore.getCurrentUser();
+  const handleComplete = async () => { 
+    if (!taluka.trim()) { alert('Please select or enter your taluka'); return; } 
+    const user = await UserStore.getCurrentUser(); 
     if (!user) {
       navigation.replace('Login');
       return;
@@ -190,9 +187,19 @@ export default function TalukaSelectScreen({ navigation, route }) {
               </>
             ) : (
               <>
-                <Text style={{ color: '#faf5ff', textAlign: 'center', marginBottom: 20 }}>
-                  Taluka selection is not available for this district.
-                </Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Taluka <Text style={styles.required}>*</Text></Text>
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="map-outline" size={18} color="#a78bfa" />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your taluka"
+                      placeholderTextColor="#64748b"
+                      value={taluka}
+                      onChangeText={setTaluka}
+                    />
+                  </View>
+                </View>
 
                 {/* ── Complete Button ── */}
                 <TouchableOpacity style={styles.submitBtn} onPress={handleComplete}>

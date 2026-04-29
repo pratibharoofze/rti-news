@@ -6,25 +6,13 @@ const CERT_LOGO = require('../assets/images/certificate_logo.jpg');
 const DEFAULT_AVATAR = require('../assets/images/icon.png');
 const RIBBON_IMAGE = require('../assets/images/ribon.png');
 const GREEN_BANNER = require('../assets/images/green_banner.jpeg');
-
-const RANKS = [
-  { label: 'Director', minReferrals: 500, color: '#7d38ff', icon: '🏆' },
-  { label: 'Manager',  minReferrals: 100, color: '#f97316', icon: '⭐' },
-  { label: 'Leader',   minReferrals: 25,  color: '#22aaf3', icon: '➡️' },
-  { label: 'Promoter', minReferrals: 5,   color: '#16a34a', icon: '🚀' },
-  { label: 'Starter',  minReferrals: 1,   color: '#64748b', icon: '✨' },
-  { label: 'Member',   minReferrals: 0,   color: '#94a3b8', icon: '👤' },
-];
-
-function getRank(n = 0) { return RANKS.find((r) => n >= r.minReferrals) || RANKS[RANKS.length - 1]; }
 function fmt(d = new Date()) { return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d); }
 function fmtValidUpto(d = new Date()) { const n = new Date(d); n.setFullYear(n.getFullYear() + 1); return fmt(n); }
 
 export default function AutoAppointmentLetterPreview({ profile }) {
-  const rank = getRank(profile.referral_count || 0);
   const location = [profile.village, profile.state].filter(Boolean).join(', ') || 'Not provided';
   const phoneNumber = profile.phone_number || profile.contact_number || '';
-  const mobileNumber = profile.mobile_number || profile.contact_number2 || '';
+  const mobileNumber = profile.mobile_number || profile.mobile || profile.contact_number || '';
 
   return (
     <View style={ProfileStyles.apptCard}>
@@ -39,7 +27,7 @@ export default function AutoAppointmentLetterPreview({ profile }) {
             <Text style={ProfileStyles.apptBrandRti}>RTI</Text>
             <Text style={ProfileStyles.apptBranya}>ya</Text>
           </Text>
-          <Text style={ProfileStyles.apptBrandVoice}>
+        <Text style={ProfileStyles.apptBrandVoice}>
             V<Text style={ProfileStyles.apptBrandEmoji}>😊</Text>ICE
           </Text>
           <Text style={ProfileStyles.apptRNI}>RNI/MAH/MUL/66399</Text>
@@ -60,8 +48,12 @@ export default function AutoAppointmentLetterPreview({ profile }) {
 
       {/* ── GREEN BANNER ── */}
       <View style={{ paddingHorizontal: 12 }}>
-  <Image source={GREEN_BANNER} style={{ width: '100%', height: 15, resizeMode: 'stretch' }} />
-</View>
+        <Image
+          source={GREEN_BANNER}
+          resizeMode="stretch"
+          style={{ width: '100%', height: 15 }}
+        />
+      </View>
 
       <Text style={ProfileStyles.apptSubtitle}>
         {`News Paper Published in Marathi, Hindi & English language\nMember: ${profile.name || '___________'}`}

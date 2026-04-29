@@ -17,6 +17,8 @@ import styles from '../styles/NewsFeedStyles';
 import { UserStore } from '../store/UserStore';
 import { INDIAN_STATES } from './locationData';
 
+const DEFAULT_AVATAR = require('../assets/images/icon.png');
+
 // ─── Filter constants ──────────────────────────────────────────────
 const REPORT_TYPES = [
   'All', 'Breaking News', 'Investigation', 'Opinion',
@@ -257,6 +259,26 @@ export default function NewsFeedScreen({ navigation }) {
   };
 
   const toggleExpanded = (itemId) => setExpandedItems((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
+
+  const openAuthorProfile = (item) => {
+    if (!item) return;
+    const authorEmail = String(item.createdBy || '').trim().toLowerCase();
+    const fallbackAuthor = {
+      name: item.author_name || '',
+      author_profile_image: item.author_profile_image || '',
+      author_seat_name: item.author_seat_name || '',
+      author_role_label: item.author_role_label || '',
+      author_is_premium: Boolean(item.author_is_premium),
+      author_is_subscriber: Boolean(item.author_is_subscriber),
+    };
+
+    if (!authorEmail && !fallbackAuthor.name && !fallbackAuthor.author_profile_image) {
+      showToast('Author profile not available.', 'error');
+      return;
+    }
+
+    navigation.navigate('UserProfile', { email: authorEmail, author: fallbackAuthor });
+  };
 
   const handleAddComment = async () => {
     if (!activeCommentItem) return;
@@ -576,8 +598,24 @@ export default function NewsFeedScreen({ navigation }) {
                 ) : null}
 
                 <View style={styles.authorRow}>
+                  <TouchableOpacity
+                    style={styles.authorAvatarBtn}
+                    onPress={() => openAuthorProfile(item)}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={item.author_profile_image ? { uri: item.author_profile_image } : DEFAULT_AVATAR}
+                      style={styles.authorAvatar}
+                    />
+                  </TouchableOpacity>
                   <Text style={styles.authorLabel}>By</Text>
                   <Text style={styles.authorName}>{item.author_name || 'RTI News'}</Text>
+                  {item.author_seat_name ? (
+                    <>
+                      <Text style={styles.authorMetaDot}>•</Text>
+                      <Text style={styles.authorSeat} numberOfLines={1}>{item.author_seat_name}</Text>
+                    </>
+                  ) : null}
                   {(item.author_is_subscriber || item.author_is_premium) ? (
                     <PremiumBadge size={14} style={styles.authorBadge} />
                   ) : null}
@@ -811,3 +849,5 @@ export default function NewsFeedScreen({ navigation }) {
     </View>
   );
 }
+
+

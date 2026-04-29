@@ -8,7 +8,14 @@ const IdCardStyles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 4,
     elevation: 6,
+    width: '100%',
+    maxWidth: 360,
+    alignSelf: 'center',
     backgroundColor: 'rgba(218, 213, 213, 0.76)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
   },
 
   // ── HEADER ──
@@ -73,7 +80,7 @@ const IdCardStyles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    
+    resizeMode: 'cover',
   },
   idCardPhotoBox: {
     width: 138,

@@ -12,20 +12,13 @@ import {
   FlatList,
   StyleSheet,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { UserStore } from '../store/UserStore';
-import styles from '../styles/RegisterStyles'; // Reuse styles
+import { Ionicons } from '@expo/vector-icons'; 
+import { useToast } from '../components/ui/ToastProvider'; 
+import { INDIAN_STATES } from '../pages/locationData';
+import styles from '../styles/RegisterStyles'; // Reuse styles 
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const INDIAN_STATES = [
-  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh',
-  'Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka',
-  'Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram',
-  'Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana',
-  'Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
-  'Andaman & Nicobar','Chandigarh','Delhi','Jammu & Kashmir','Ladakh',
-  'Lakshadweep','Puducherry',
-];
+// INDIAN_STATES is sourced from `pages/locationData.js` (LGD compiled data)
 
 // ── Dropdown Modal ────────────────────────────────────────────────────────────
 function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
@@ -95,9 +88,17 @@ const dropStyles = StyleSheet.create({
 });
 
 export default function StateSelectScreen({ navigation, route }) {
+  const { showPopup } = useToast();
   const [state, setState] = useState('');
   const [stateModal, setStateModal] = useState(false);
   const fromPremium = route?.params?.fromPremium;
+  const autoOpen = route?.params?.autoOpen;
+
+  useEffect(() => {
+    if (!autoOpen) return;
+    setTimeout(() => setStateModal(true), 80);
+    navigation.setParams({ autoOpen: undefined });
+  }, [autoOpen, navigation]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -116,8 +117,7 @@ export default function StateSelectScreen({ navigation, route }) {
   const handleNext = async () => {
     console.log('handleNext called, state:', state);
     if (!state) {
-      // Show a simple toast-like message
-      console.log('Please select your state');
+      showPopup('Please select your state to continue.', 'error');
       return;
     }
     try {
@@ -132,6 +132,9 @@ export default function StateSelectScreen({ navigation, route }) {
   const handleStateSelect = (selectedState) => {
     console.log('State selected:', selectedState);
     setState(selectedState);
+    setTimeout(() => {
+      showPopup(`State selected: ${selectedState}`, 'success');
+    }, 100);
   };
 
   return (

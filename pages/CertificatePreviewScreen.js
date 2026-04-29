@@ -4,10 +4,11 @@ import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   ImageBackground,
+  Platform,
   ScrollView,
   StatusBar,
   Text,
@@ -41,6 +42,14 @@ const CERT_HEIGHT = 1536;
 const FONT_SCALE = CERT_WIDTH / 375;
 const assetDataUriCache = new Map();
 
+const blobToDataUriAsync = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error('Unable to read blob'));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(blob);
+  });
+
 const escapeHtml = (value = '') =>
   String(value)
     .replace(/&/g, '&amp;')
@@ -64,10 +73,19 @@ const moduleToDataUri = async (moduleRef) => {
   if (!asset.localUri) await asset.downloadAsync();
 
   const localUri = asset.localUri || asset.uri;
-  const base64 = await FileSystem.readAsStringAsync(localUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  const dataUri = `data:${mimeTypeFromUri(localUri)};base64,${base64}`;
+
+  let dataUri = '';
+  if (Platform.OS === 'web') {
+    const response = await fetch(localUri);
+    const blob = await response.blob();
+    dataUri = await blobToDataUriAsync(blob);
+  } else {
+    const base64 = await FileSystem.readAsStringAsync(localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    dataUri = `data:${mimeTypeFromUri(localUri)};base64,${base64}`;
+  }
+
   assetDataUriCache.set(moduleRef, dataUri);
   return dataUri;
 };
@@ -76,14 +94,27 @@ const resolvePhotoUriForHtml = async (uri) => {
   if (!uri) return '';
   if (String(uri).startsWith('data:')) return uri;
 
-  if (String(uri).startsWith('file://')) {
-    const base64 = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    return `data:${mimeTypeFromUri(uri)};base64,${base64}`;
+  const str = String(uri);
+
+  if (Platform.OS === 'web') {
+    try {
+      if (str.startsWith('file://')) return '';
+      const response = await fetch(str);
+      const blob = await response.blob();
+      return await blobToDataUriAsync(blob);
+    } catch {
+      return str;
+    }
   }
 
-  return uri;
+  if (str.startsWith('file://')) {
+    const base64 = await FileSystem.readAsStringAsync(str, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return `data:${mimeTypeFromUri(str)};base64,${base64}`;
+  }
+
+  return str;
 };
 
 const buildCertificateHtml = ({ images, userName, issueDate, photoUri }) => `
@@ -202,10 +233,21 @@ const buildCertificateHtml = ({ images, userName, issueDate, photoUri }) => `
       height: ${15 * FONT_SCALE}px;
     }
     .email-banner { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+
+    :root { --scale: 1; }
+    body.preview {
+      width: 100%;
+      height: auto;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      background: #e4d7b8;
+    }
+    .scale { transform-origin: top left; transform: scale(var(--scale)); }
   </style>
 </head>
-<body>
-  <div class="page">
+<body class="%BODY_CLASS%">
+  <div class="page %PAGE_CLASS%">
     <div class="certificate">
       <img class="layer logo-left" src="${images.logoLeft}" alt="" />
       <img class="layer logo-center" src="${images.logoCenter}" alt="" />
@@ -240,6 +282,7 @@ President Bhartiya Mahiti Adhikar<span class="small"> (All India RTI News Work)<
       <div class="email-wrap"><img class="email-banner" src="${images.emailBanner}" alt="" /></div>
     </div>
   </div>
+  %RESPONSIVE_SCRIPT%
 </body>
 </html>
 `;
@@ -251,6 +294,13 @@ export default function CertificatePreviewScreen({ navigation, route }) {
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [downloading, setDownloading]       = useState(false);
   const [currentUser, setCurrentUser]       = useState(null);
+  const [webHtml, setWebHtml]               = useState('');
+  const [webPreviewWidth, setWebPreviewWidth] = useState(0);
+
+  const IFrame = useMemo(() => {
+    if (Platform.OS !== 'web') return null;
+    return (props) => React.createElement('iframe', props);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -260,9 +310,89 @@ export default function CertificatePreviewScreen({ navigation, route }) {
         if (!mounted) return;
         if (!user) { navigation.replace('Login'); return; }
         setCurrentUser(user);
+
+        if (Platform.OS === 'web') {
+          try {
+            const userNameForHtml = user?.name || result?.user_name || 'Participant';
+            const issueDateForHtml = result?.date || new Date().toLocaleDateString('en-IN');
+            const photoForHtml = user?.profile_image || result?.user_photo || '';
+
+            const [
+              template,
+              ribbon,
+              logoLeft,
+              logoRight,
+              logoCenter,
+              header,
+              excellent,
+              goldWings,
+              goldLatter,
+              photoFrame,
+              dateBanner,
+              emailBanner,
+              resolvedPhotoUri,
+            ] = await Promise.all([
+              moduleToDataUri(CERT_TEMPLATE),
+              moduleToDataUri(RIBBON_IMG),
+              moduleToDataUri(LOGO_LEFT),
+              moduleToDataUri(LOGO_RIGHT),
+              moduleToDataUri(LOGO_CENTER),
+              moduleToDataUri(HEADER_BHARTIYA),
+              moduleToDataUri(EXCELLENT_IMG),
+              moduleToDataUri(GOLD_WINGS),
+              moduleToDataUri(GOLD_LATTER),
+              moduleToDataUri(USER_IMG_FRAME),
+              moduleToDataUri(DATE_BANNER),
+              moduleToDataUri(EMAIL_BANNER),
+              resolvePhotoUriForHtml(photoForHtml),
+            ]);
+
+            const responsiveScript = `
+<script>
+  (function () {
+    function apply() {
+      var w = Math.max(1, window.innerWidth || 1);
+      var scale = Math.min(1, w / ${CERT_WIDTH});
+      document.documentElement.style.setProperty('--scale', String(scale));
+      document.body.style.height = String(Math.round(${CERT_HEIGHT} * scale)) + 'px';
+    }
+    window.addEventListener('resize', apply);
+    apply();
+  })();
+</script>`.trim();
+
+            const html = buildCertificateHtml({
+              images: {
+                template,
+                ribbon,
+                logoLeft,
+                logoRight,
+                logoCenter,
+                header,
+                excellent,
+                goldWings,
+                goldLatter,
+                photoFrame,
+                dateBanner,
+                emailBanner,
+              },
+              userName: userNameForHtml,
+              issueDate: issueDateForHtml,
+              photoUri: resolvedPhotoUri,
+            })
+              .replace('%BODY_CLASS%', 'preview')
+              .replace('%PAGE_CLASS%', 'scale')
+              .replace('%RESPONSIVE_SCRIPT%', responsiveScript);
+
+            if (mounted) setWebHtml(html);
+          } catch (e) {
+            console.error('Certificate web preview error:', e);
+            if (mounted) setWebHtml('');
+          }
+        }
       })();
       return () => { mounted = false; };
-    }, [navigation])
+    }, [navigation, result])
   );
 
   const handleLogout = async () => {
@@ -327,7 +457,72 @@ export default function CertificatePreviewScreen({ navigation, route }) {
         userName,
         issueDate,
         photoUri: resolvedPhotoUri,
-      });
+      })
+        .replace('%BODY_CLASS%', '')
+        .replace('%PAGE_CLASS%', '')
+        .replace('%RESPONSIVE_SCRIPT%', '');
+
+      if (Platform.OS === 'web') {
+        if (typeof window === 'undefined') throw new Error('window is not available');
+
+        // Open popup synchronously to avoid popup blockers.
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          showToast('Popup blocked. Please allow popups to download PDF.', 'error');
+          return;
+        }
+
+        const autoPrintScript = `
+<script>
+  (function () {
+    function doPrint() {
+      try { window.focus(); } catch (e) {}
+      try { window.print(); } catch (e) {}
+    }
+    function ready() { setTimeout(doPrint, 250); }
+    if (document.readyState === 'complete') ready();
+    else window.addEventListener('load', ready);
+    window.onafterprint = function () { try { window.close(); } catch (e) {} };
+  })();
+</script>`.trim();
+
+        const printHtml = buildCertificateHtml({
+          images: {
+            template,
+            ribbon,
+            logoLeft,
+            logoRight,
+            logoCenter,
+            header,
+            excellent,
+            goldWings,
+            goldLatter,
+            photoFrame,
+            dateBanner,
+            emailBanner,
+          },
+          userName,
+          issueDate,
+          photoUri: resolvedPhotoUri,
+        })
+          .replace('%BODY_CLASS%', '')
+          .replace('%PAGE_CLASS%', '')
+          .replace('%RESPONSIVE_SCRIPT%', autoPrintScript);
+
+        try {
+          printWindow.document.open();
+          printWindow.document.write(printHtml);
+          printWindow.document.close();
+        } catch (e) {
+          console.error('Print window write error:', e);
+          showToast('Unable to open print window.', 'error');
+          try { printWindow.close(); } catch {}
+          return;
+        }
+
+        showToast('Print dialog opened. Save as PDF to download.', 'success');
+        return;
+      }
 
       const { uri } = await Print.printToFileAsync({
         html,
@@ -351,6 +546,9 @@ export default function CertificatePreviewScreen({ navigation, route }) {
     }
   };
 
+  const webPreviewHeight =
+    webPreviewWidth > 0 ? Math.round(webPreviewWidth * (CERT_HEIGHT / CERT_WIDTH)) : 520;
+
   return (
     <View style={styles.root}>
       <Header
@@ -365,12 +563,28 @@ export default function CertificatePreviewScreen({ navigation, route }) {
       >
         <StatusBar barStyle="dark-content" backgroundColor="#f5e6c8" />
 
-        <View style={styles.templateCard}>
-          <ImageBackground
-            source={CERT_TEMPLATE}
-            style={styles.templateImage}
-            imageStyle={styles.templateImageStyle}
-          >
+        <View
+          style={styles.templateCard}
+          onLayout={(e) => {
+            if (Platform.OS !== 'web') return;
+            const nextWidth = Math.round(e?.nativeEvent?.layout?.width || 0);
+            if (nextWidth > 0 && nextWidth !== webPreviewWidth) setWebPreviewWidth(nextWidth);
+          }}
+        >
+          {Platform.OS === 'web' && webHtml && IFrame ? (
+            <View style={{ width: '100%', height: webPreviewHeight }}>
+              <IFrame
+                title="Certificate Preview"
+                srcDoc={webHtml}
+                style={{ width: '100%', height: '100%', border: '0' }}
+              />
+            </View>
+          ) : (
+            <ImageBackground
+              source={CERT_TEMPLATE}
+              style={styles.templateImage}
+              imageStyle={styles.templateImageStyle}
+            >
             <View style={styles.overlay}>
 
               {/* ── TOP LOGOS ── */}
@@ -464,6 +678,7 @@ export default function CertificatePreviewScreen({ navigation, route }) {
 
             </View>
           </ImageBackground>
+          )}
         </View>
 
         {/* ── DOWNLOAD BUTTON ── */}

@@ -43,7 +43,6 @@ function chunk(arr, size) {
   return out;
 }
 
-// ─── Section Label ────────────────────────────────────────────────────────────
 function SectionLabel({ label, title, isMobile }) {
   return (
     <>
@@ -56,6 +55,8 @@ function SectionLabel({ label, title, isMobile }) {
     </>
   );
 }
+
+const isWeb = Platform.OS === 'web';
 
 export default function AboutScreen({ navigation }) {
   const getWidth = () => {
@@ -76,261 +77,238 @@ export default function AboutScreen({ navigation }) {
       window.removeEventListener('orientationchange', update);
     };
   }, []);
-  const isWeb = Platform.OS === 'web';
 
   const teamRows = chunk(team, isMobile ? 1 : 3);
 
+  // ✅ FIX: AppNavbar ScrollView ke BAHAR
   return (
-    <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
-      <AppHeader navigation={navigation} />
-      <AppNavbar navigation={navigation} activeScreen="About" />
+    <View style={{ flex: 1 }}>
+      {/* Web pe TOP navbar */}
+      {isWeb && <AppNavbar navigation={navigation} activeScreen="About" />}
 
-      {/* ── Hero ── */}
-      <View style={[s.hero, isMobile && s.heroMobile]}>
-        <View style={s.heroCircle1} />
-        <View style={s.heroCircle2} />
-        <View style={s.heroBadge}>
-          <Text style={[s.heroBadgeText, isMobile && s.heroBadgeTextMobile]}>🇮🇳 India's #1 RTI News Portal</Text>
+      <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
+        <AppHeader navigation={navigation} />
+
+        {/* ── Hero ── */}
+        <View style={[s.hero, isMobile && s.heroMobile]}>
+          <View style={s.heroCircle1} />
+          <View style={s.heroCircle2} />
+          <View style={s.heroBadge}>
+            <Text style={[s.heroBadgeText, isMobile && s.heroBadgeTextMobile]}>🇮🇳 India's #1 RTI News Portal</Text>
+          </View>
+          <Text style={[s.heroTitle, isMobile && s.heroTitleMobile]}>About RTI News</Text>
+          <Text style={[s.heroSub, isMobile && s.heroSubMobile]}>
+            सरल सवाल · सटीक जवाब · संविधान द्वारा{'\n'}
+            Empowering citizens with the Right to Information since 2015.
+          </Text>
         </View>
-        <Text style={[s.heroTitle, isMobile && s.heroTitleMobile]}>About RTI News</Text>
-        <Text style={[s.heroSub, isMobile && s.heroSubMobile]}>
-          सरल सवाल · सटीक जवाब · संविधान द्वारा{'\n'}
-          Empowering citizens with the Right to Information since 2015.
-        </Text>
-      </View>
 
-      <View style={[s.body, isMobile && s.bodyMobile]}>
+        <View style={[s.body, isMobile && s.bodyMobile]}>
 
-        {/* ── Mission ── */}
-        <View style={[s.missionCard, isMobile && s.missionCardMobile]}>
-          <View style={isMobile ? s.missionRowMobile : s.missionRow}>
-
-            {/* Image */}
-            <View style={isMobile ? s.missionImgWrapMobile : s.missionImgWrap}>
-              <Image
-                source={{ uri: 'https://picsum.photos/700/450?random=300' }}
-                style={isMobile ? s.missionImgMobile : s.missionImg}
-                resizeMode="cover"
-              />
-              <View style={[s.missionBadge, isMobile && s.missionBadgeMobile]}>
-                <Text style={[s.missionBadgeTitle, isMobile && s.missionBadgeTitleMobile]}>11+ Years</Text>
-                <Text style={[s.missionBadgeSub, isMobile && s.missionBadgeSubMobile]}>of RTI Journalism</Text>
+          {/* ── Mission ── */}
+          <View style={[s.missionCard, isMobile && s.missionCardMobile]}>
+            <View style={isMobile ? s.missionRowMobile : s.missionRow}>
+              <View style={isMobile ? s.missionImgWrapMobile : s.missionImgWrap}>
+                <Image
+                  source={{ uri: 'https://picsum.photos/700/450?random=300' }}
+                  style={isMobile ? s.missionImgMobile : s.missionImg}
+                  resizeMode="cover"
+                />
+                <View style={[s.missionBadge, isMobile && s.missionBadgeMobile]}>
+                  <Text style={[s.missionBadgeTitle, isMobile && s.missionBadgeTitleMobile]}>11+ Years</Text>
+                  <Text style={[s.missionBadgeSub, isMobile && s.missionBadgeSubMobile]}>of RTI Journalism</Text>
+                </View>
+              </View>
+              <View style={isMobile ? s.missionTextMobile : s.missionText}>
+                <View style={s.missionLabelRow}>
+                  <View style={s.orangeBar} />
+                  <Text style={s.missionLabel}>OUR MISSION</Text>
+                </View>
+                <Text style={[s.missionTitle, isMobile && s.missionTitleMobile]}>
+                  Making Transparency{'\n'}
+                  <Text style={{ color: '#f97316' }}>Everyone's Right</Text>
+                </Text>
+                <Text style={[s.missionDesc, isMobile && s.missionDescMobile]}>
+                  RTI News was founded with a single, powerful belief —{' '}
+                  <Text style={{ fontWeight: '700', color: '#111827' }}>every Indian citizen deserves to know</Text>
+                  {' '}how their government functions, where public money goes, and what decisions are being made in their name.
+                </Text>
+                <Text style={[s.missionDesc2, isMobile && s.missionDescMobile]}>
+                  We cover RTI case outcomes, legal updates, government accountability stories, and empower citizens to exercise their Right to Information. From village panchayats to the highest courts, we bring you the truth.
+                </Text>
+                {points.map((p) => (
+                  <View key={p} style={s.pointRow}>
+                    <Text style={s.pointIcon}>✅</Text>
+                    <Text style={[s.pointText, isMobile && s.pointTextMobile]}>{p}</Text>
+                  </View>
+                ))}
               </View>
             </View>
+          </View>
 
-            {/* Text */}
-            <View style={isMobile ? s.missionTextMobile : s.missionText}>
-              <View style={s.missionLabelRow}>
-                <View style={s.orangeBar} />
-                <Text style={s.missionLabel}>OUR MISSION</Text>
-              </View>
-              <Text style={[s.missionTitle, isMobile && s.missionTitleMobile]}>
-                Making Transparency{'\n'}
-                <Text style={{ color: '#f97316' }}>Everyone's Right</Text>
-              </Text>
-              <Text style={[s.missionDesc, isMobile && s.missionDescMobile]}>
-                RTI News was founded with a single, powerful belief —{' '}
-                <Text style={{ fontWeight: '700', color: '#111827' }}>every Indian citizen deserves to know</Text>
-                {' '}how their government functions, where public money goes, and what decisions are being made in their name.
-              </Text>
-              <Text style={[s.missionDesc2, isMobile && s.missionDescMobile]}>
-                We cover RTI case outcomes, legal updates, government accountability stories, and empower citizens to exercise their Right to Information. From village panchayats to the highest courts, we bring you the truth.
-              </Text>
-              {points.map((p) => (
-                <View key={p} style={s.pointRow}>
-                  <Text style={s.pointIcon}>✅</Text>
-                  <Text style={[s.pointText, isMobile && s.pointTextMobile]}>{p}</Text>
+          {/* ── Core Values ── */}
+          <View style={[s.section, isMobile && s.sectionMobile]}>
+            <SectionLabel label="WHAT WE STAND FOR" title="Our Core Values" isMobile={isMobile} />
+            <View style={isMobile ? s.valuesGridMobile : s.valuesGrid}>
+              {values.map((v, i) => (
+                <View
+                  key={v.title}
+                  style={[
+                    isMobile ? s.valueCardMobile : s.valueCard,
+                    !isMobile && i < values.length - 1 && s.valueCardGap,
+                    isMobile && i < values.length - 1 && s.valueCardMobileGap,
+                  ]}
+                >
+                  <View style={[s.valueIcon, { backgroundColor: v.color }, isMobile && s.valueIconMobile]}>
+                    <Text style={[s.valueIconText, isMobile && s.valueIconTextMobile]}>{v.icon}</Text>
+                  </View>
+                  <View style={s.valueTextWrap}>
+                    <Text style={[s.valueName, isMobile && s.valueNameMobile]}>{v.title}</Text>
+                    <Text style={[s.valueDesc, isMobile && s.valueDescMobile]}>{v.desc}</Text>
+                  </View>
                 </View>
               ))}
             </View>
           </View>
-        </View>
 
-        {/* ── Core Values ── */}
-        <View style={[s.section, isMobile && s.sectionMobile]}>
-          <SectionLabel label="WHAT WE STAND FOR" title="Our Core Values" isMobile={isMobile} />
-          <View style={isMobile ? s.valuesGridMobile : s.valuesGrid}>
-            {values.map((v, i) => (
+          {/* ── Team ── */}
+          <View style={[s.section, isMobile && s.sectionMobile]}>
+            <SectionLabel label="THE PEOPLE BEHIND THE STORIES" title="Meet Our Team" isMobile={isMobile} />
+            {teamRows.map((row, ri) => (
               <View
-                key={v.title}
+                key={ri}
                 style={[
-                  isMobile ? s.valueCardMobile : s.valueCard,
-                  !isMobile && i < values.length - 1 && s.valueCardGap,
-                  isMobile && i < values.length - 1 && s.valueCardMobileGap,
+                  isMobile ? s.teamRowMobile : s.teamRow,
+                  ri < teamRows.length - 1 && s.teamRowGap,
                 ]}
               >
-                <View style={[s.valueIcon, { backgroundColor: v.color }, isMobile && s.valueIconMobile]}>
-                  <Text style={[s.valueIconText, isMobile && s.valueIconTextMobile]}>{v.icon}</Text>
-                </View>
-                <View style={s.valueTextWrap}>
-                  <Text style={[s.valueName, isMobile && s.valueNameMobile]}>{v.title}</Text>
-                  <Text style={[s.valueDesc, isMobile && s.valueDescMobile]}>{v.desc}</Text>
-                </View>
+                {row.map((m, mi) => (
+                  <View
+                    key={m.name}
+                    style={[
+                      isMobile ? s.teamCardMobile : s.teamCard,
+                      !isMobile && mi < row.length - 1 && s.teamCardGap,
+                      isMobile && mi < row.length - 1 && s.teamCardMobileGap,
+                    ]}
+                  >
+                    <View style={[s.teamAvatarWrap, isMobile && s.teamAvatarWrapMobile]}>
+                      <Image
+                        source={{ uri: m.avatar }}
+                        style={isMobile ? s.teamAvatarMobile : s.teamAvatar}
+                      />
+                      <View style={[s.teamBadge, isMobile && s.teamBadgeMobile]}>
+                        <Text style={s.teamBadgeText}>{m.badge}</Text>
+                      </View>
+                    </View>
+                    <View style={isMobile ? s.teamInfoMobile : s.teamInfo}>
+                      <Text style={[s.teamName, isMobile && s.teamNameMobile]}>{m.name}</Text>
+                      <Text style={[s.teamRole, isMobile && s.teamRoleMobile]}>{m.role}</Text>
+                      <Text style={[s.teamBio, isMobile && s.teamBioMobile]}>{m.bio}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
             ))}
           </View>
-        </View>
 
-        {/* ── Team ── */}
-        <View style={[s.section, isMobile && s.sectionMobile]}>
-          <SectionLabel label="THE PEOPLE BEHIND THE STORIES" title="Meet Our Team" isMobile={isMobile} />
-          {teamRows.map((row, ri) => (
-            <View
-              key={ri}
-              style={[
-                isMobile ? s.teamRowMobile : s.teamRow,
-                ri < teamRows.length - 1 && s.teamRowGap,
-              ]}
-            >
-              {row.map((m, mi) => (
-                <View
-                  key={m.name}
-                  style={[
-                    isMobile ? s.teamCardMobile : s.teamCard,
-                    !isMobile && mi < row.length - 1 && s.teamCardGap,
-                    isMobile && mi < row.length - 1 && s.teamCardMobileGap,
-                  ]}
-                >
-                  <View style={[s.teamAvatarWrap, isMobile && s.teamAvatarWrapMobile]}>
-                    <Image
-                      source={{ uri: m.avatar }}
-                      style={isMobile ? s.teamAvatarMobile : s.teamAvatar}
-                    />
-                    <View style={[s.teamBadge, isMobile && s.teamBadgeMobile]}>
-                      <Text style={s.teamBadgeText}>{m.badge}</Text>
+          {/* ── Milestones Timeline ── */}
+          <View style={[s.section, isMobile && s.sectionMobile]}>
+            <SectionLabel label="OUR JOURNEY" title="Milestones" isMobile={isMobile} />
+            {isMobile ? (
+              <View style={s.timelineMobile}>
+                <View style={s.timelineVLineMobile} />
+                {milestones.map((m, i) => (
+                  <View key={m.year} style={[s.milestoneMobileRow, i < milestones.length - 1 && s.milestoneMobileRowGap]}>
+                    <View style={s.milestoneDotWrapMobile}>
+                      <View style={s.milestoneDot} />
+                    </View>
+                    <View style={s.milestoneCardMobile}>
+                      <Text style={s.milestoneYear}>{m.year}</Text>
+                      <Text style={s.milestoneTitleText}>{m.title}</Text>
+                      <Text style={s.milestoneDesc}>{m.desc}</Text>
                     </View>
                   </View>
-                  <View style={isMobile ? s.teamInfoMobile : s.teamInfo}>
-                    <Text style={[s.teamName, isMobile && s.teamNameMobile]}>{m.name}</Text>
-                    <Text style={[s.teamRole, isMobile && s.teamRoleMobile]}>{m.role}</Text>
-                    <Text style={[s.teamBio, isMobile && s.teamBioMobile]}>{m.bio}</Text>
+                ))}
+              </View>
+            ) : (
+              <View style={s.timeline}>
+                <View style={s.timelineVLine} />
+                {milestones.map((m, i) => (
+                  <View key={m.year} style={[s.milestoneRow, i < milestones.length - 1 && s.milestoneRowGap]}>
+                    <View style={s.milestoneSlot}>
+                      {m.side === 'left' && (
+                        <View style={s.milestoneCard}>
+                          <Text style={s.milestoneYear}>{m.year}</Text>
+                          <Text style={s.milestoneTitleText}>{m.title}</Text>
+                          <Text style={s.milestoneDesc}>{m.desc}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={s.milestoneDotWrap}>
+                      <View style={s.milestoneDot} />
+                    </View>
+                    <View style={s.milestoneSlot}>
+                      {m.side === 'right' && (
+                        <View style={s.milestoneCard}>
+                          <Text style={s.milestoneYear}>{m.year}</Text>
+                          <Text style={s.milestoneTitleText}>{m.title}</Text>
+                          <Text style={s.milestoneDesc}>{m.desc}</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
+                ))}
+              </View>
+            )}
+          </View>
 
-        {/* ── Milestones Timeline ── */}
-        <View style={[s.section, isMobile && s.sectionMobile]}>
-          <SectionLabel label="OUR JOURNEY" title="Milestones" isMobile={isMobile} />
+          {/* ── CTA Banner ── */}
+          <View style={[s.ctaBanner, isMobile && s.ctaBannerMobile]}>
+            <Image source={{ uri: 'https://picsum.photos/1200/200?random=301' }} style={s.ctaBannerImg} resizeMode="cover" />
+            <View style={s.ctaOverlay} />
+            <View style={[s.ctaContent, isMobile && s.ctaContentMobile]}>
+              <View style={s.ctaBadgeWrap}>
+                <Text style={[s.ctaBadge, isMobile && s.ctaBadgeMobile]}>🤝 Join Our Mission</Text>
+              </View>
+              <Text style={[s.ctaTitle, isMobile && s.ctaTitleMobile]}>Be a Voice for Transparency & Justice 🇮🇳</Text>
+              <Text style={[s.ctaDesc, isMobile && s.ctaDescMobile]}>
+                Whether you're a journalist, RTI activist, lawyer, or a concerned citizen — we welcome you to contribute to India's largest RTI news platform.
+              </Text>
+              <View style={[s.ctaButtons, isMobile && s.ctaButtonsMobile]}>
+                <TouchableOpacity style={[s.ctaBtn1, isMobile ? s.ctaBtnMobile : s.ctaBtn1Gap]} onPress={() => navigation.navigate('Contact')}>
+                  <Text style={[s.ctaBtn1Text, isMobile && s.ctaBtnTextMobile]}>👥 Join as Reporter</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.ctaBtn2, isMobile && s.ctaBtnMobile]} onPress={() => navigation.navigate('Contact')}>
+                  <Text style={[s.ctaBtn2Text, isMobile && s.ctaBtnTextMobile]}>✉️ Contact Us</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
 
-          {isMobile ? (
-            /* Mobile: vertical single-column timeline */
-            <View style={s.timelineMobile}>
-              <View style={s.timelineVLineMobile} />
-              {milestones.map((m, i) => (
-                <View
-                  key={m.year}
-                  style={[s.milestoneMobileRow, i < milestones.length - 1 && s.milestoneMobileRowGap]}
-                >
-                  <View style={s.milestoneDotWrapMobile}>
-                    <View style={s.milestoneDot} />
-                  </View>
-                  <View style={s.milestoneCardMobile}>
-                    <Text style={s.milestoneYear}>{m.year}</Text>
-                    <Text style={s.milestoneTitleText}>{m.title}</Text>
-                    <Text style={s.milestoneDesc}>{m.desc}</Text>
-                  </View>
-                </View>
-              ))}
+          {/* ── Contact Strip ── */}
+          <View style={[s.contactStrip, isMobile && s.contactStripMobile]}>
+            <View style={[s.contactStripLeft, isMobile && s.contactStripLeftMobile]}>
+              <Text style={[s.contactStripTitle, isMobile && s.contactStripTitleMobile]}>Have Questions?</Text>
+              <Text style={[s.contactStripSub, isMobile && s.contactStripSubMobile]}>Reach out to our editorial team anytime.</Text>
             </View>
-          ) : (
-            /* Web: zigzag timeline */
-            <View style={s.timeline}>
-              <View style={s.timelineVLine} />
-              {milestones.map((m, i) => (
-                <View
-                  key={m.year}
-                  style={[s.milestoneRow, i < milestones.length - 1 && s.milestoneRowGap]}
-                >
-                  <View style={s.milestoneSlot}>
-                    {m.side === 'left' && (
-                      <View style={s.milestoneCard}>
-                        <Text style={s.milestoneYear}>{m.year}</Text>
-                        <Text style={s.milestoneTitleText}>{m.title}</Text>
-                        <Text style={s.milestoneDesc}>{m.desc}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={s.milestoneDotWrap}>
-                    <View style={s.milestoneDot} />
-                  </View>
-                  <View style={s.milestoneSlot}>
-                    {m.side === 'right' && (
-                      <View style={s.milestoneCard}>
-                        <Text style={s.milestoneYear}>{m.year}</Text>
-                        <Text style={s.milestoneTitleText}>{m.title}</Text>
-                        <Text style={s.milestoneDesc}>{m.desc}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* ── CTA Banner ── */}
-        {/* FIX: position:'relative' added, ctaBannerImg uses absoluteFillObject */}
-        <View style={[s.ctaBanner, isMobile && s.ctaBannerMobile]}>
-          <Image
-            source={{ uri: 'https://picsum.photos/1200/200?random=301' }}
-            style={s.ctaBannerImg}
-            resizeMode="cover"
-          />
-          <View style={s.ctaOverlay} />
-          <View style={[s.ctaContent, isMobile && s.ctaContentMobile]}>
-            <View style={s.ctaBadgeWrap}>
-              <Text style={[s.ctaBadge, isMobile && s.ctaBadgeMobile]}>🤝 Join Our Mission</Text>
-            </View>
-            <Text style={[s.ctaTitle, isMobile && s.ctaTitleMobile]}>Be a Voice for Transparency & Justice 🇮🇳</Text>
-            <Text style={[s.ctaDesc, isMobile && s.ctaDescMobile]}>
-              Whether you're a journalist, RTI activist, lawyer, or a concerned citizen — we welcome you to contribute to India's largest RTI news platform.
-            </Text>
-            <View style={[s.ctaButtons, isMobile && s.ctaButtonsMobile]}>
-              <TouchableOpacity
-                style={[s.ctaBtn1, isMobile ? s.ctaBtnMobile : s.ctaBtn1Gap]}
-                onPress={() => navigation.navigate('Contact')}
-              >
-                <Text style={[s.ctaBtn1Text, isMobile && s.ctaBtnTextMobile]}>👥 Join as Reporter</Text>
+            <View style={[s.contactBtns, isMobile && s.contactBtnsMobile]}>
+              <TouchableOpacity style={[s.contactBtn1, isMobile ? s.contactBtnFullMobile : s.contactBtn1Gap]} onPress={() => Linking.openURL('tel:+911234567890')}>
+                <Text style={[s.contactBtn1Text, isMobile && s.contactBtnTextMobile]}>📞 +91 12345 67890</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.ctaBtn2, isMobile && s.ctaBtnMobile]}
-                onPress={() => navigation.navigate('Contact')}
-              >
-                <Text style={[s.ctaBtn2Text, isMobile && s.ctaBtnTextMobile]}>✉️ Contact Us</Text>
+              <TouchableOpacity style={[s.contactBtn2, isMobile && s.contactBtnFullMobile]} onPress={() => Linking.openURL('mailto:info@rtinews.in')}>
+                <Text style={[s.contactBtn2Text, isMobile && s.contactBtnTextMobile]}>✉️ info@rtinews.in</Text>
               </TouchableOpacity>
             </View>
           </View>
+
         </View>
 
-        {/* ── Contact Strip ── */}
-        <View style={[s.contactStrip, isMobile && s.contactStripMobile]}>
-          <View style={[s.contactStripLeft, isMobile && s.contactStripLeftMobile]}>
-            <Text style={[s.contactStripTitle, isMobile && s.contactStripTitleMobile]}>Have Questions?</Text>
-            <Text style={[s.contactStripSub, isMobile && s.contactStripSubMobile]}>Reach out to our editorial team anytime.</Text>
-          </View>
-          <View style={[s.contactBtns, isMobile && s.contactBtnsMobile]}>
-            <TouchableOpacity
-              style={[s.contactBtn1, isMobile ? s.contactBtnFullMobile : s.contactBtn1Gap]}
-              onPress={() => Linking.openURL('tel:+911234567890')}
-            >
-              <Text style={[s.contactBtn1Text, isMobile && s.contactBtnTextMobile]}>📞 +91 12345 67890</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.contactBtn2, isMobile && s.contactBtnFullMobile]}
-              onPress={() => Linking.openURL('mailto:info@rtinews.in')}
-            >
-              <Text style={[s.contactBtn2Text, isMobile && s.contactBtnTextMobile]}>✉️ info@rtinews.in</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <AppFooter navigation={navigation} />
+      </ScrollView>
 
-      </View>
-
-      <AppFooter navigation={navigation} />
-    </ScrollView>
+      {/* Mobile pe BOTTOM navbar — ScrollView ke BAHAR */}
+      {!isWeb && <AppNavbar navigation={navigation} activeScreen="About" />}
+    </View>
   );
 }
 
@@ -341,11 +319,7 @@ const s = StyleSheet.create({
   section:       { marginBottom: 40 },
   sectionMobile: { marginBottom: 28 },
 
-  // ── Hero ──
-  hero: {
-    backgroundColor: '#f97316', padding: 40,
-    alignItems: 'center', overflow: 'hidden', position: 'relative',
-  },
+  hero: { backgroundColor: '#f97316', padding: 40, alignItems: 'center', overflow: 'hidden', position: 'relative' },
   heroMobile: { padding: 24 },
   heroCircle1: { position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.1)' },
   heroCircle2: { position: 'absolute', bottom: -50, left: -20, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' },
@@ -357,54 +331,35 @@ const s = StyleSheet.create({
   heroSub:       { color: '#fed7aa', fontSize: 14, textAlign: 'center', lineHeight: 22 },
   heroSubMobile: { fontSize: 12, lineHeight: 20 },
 
-  // ── Mission ──
-  missionCard: {
-    backgroundColor: '#fff', borderRadius: 18, padding: 16,
-    borderWidth: 1, borderColor: '#f3f4f6',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, marginBottom: 40,
-  },
+  missionCard: { backgroundColor: '#fff', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, marginBottom: 40 },
   missionCardMobile: { marginBottom: 28, padding: 0, borderRadius: 14 },
-
   missionRow:       { flexDirection: 'row', alignItems: 'flex-start' },
   missionRowMobile: { flexDirection: 'column' },
-
   missionImgWrap:       { flex: 1, position: 'relative', marginRight: 28 },
   missionImgWrapMobile: { width: '100%', position: 'relative' },
-
   missionImg:       { width: '100%', height: 320, borderRadius: 16 },
   missionImgMobile: { width: '100%', height: 200, borderRadius: 14 },
-
-  missionBadge: {
-    position: 'absolute', bottom: -14, right: 16,
-    backgroundColor: '#f97316', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
-  },
+  missionBadge: { position: 'absolute', bottom: -14, right: 16, backgroundColor: '#f97316', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
   missionBadgeMobile: { bottom: 12, right: 12, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10 },
   missionBadgeTitle:       { color: '#fff', fontWeight: '900', fontSize: 18 },
   missionBadgeTitleMobile: { fontSize: 14 },
   missionBadgeSub:       { color: '#fed7aa', fontSize: 11 },
   missionBadgeSubMobile: { fontSize: 10 },
-
   missionText:       { flex: 1, paddingTop: 8 },
   missionTextMobile: { padding: 16 },
-
   missionLabelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   orangeBar:       { width: 4, height: 20, backgroundColor: '#f97316', borderRadius: 2, marginRight: 8 },
   missionLabel:    { color: '#f97316', fontWeight: '800', fontSize: 11, letterSpacing: 1 },
-
   missionTitle:       { fontSize: 26, fontWeight: '900', color: '#111827', marginBottom: 12, lineHeight: 34 },
   missionTitleMobile: { fontSize: 20, lineHeight: 28 },
-
   missionDesc:       { color: '#6b7280', fontSize: 14, lineHeight: 24, marginBottom: 10 },
   missionDesc2:      { color: '#6b7280', fontSize: 14, lineHeight: 24, marginBottom: 14 },
   missionDescMobile: { fontSize: 13, lineHeight: 20 },
-
   pointRow:       { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
   pointIcon:      { fontSize: 14, marginTop: 2, marginRight: 8 },
   pointText:      { color: '#374151', fontSize: 14, flex: 1, lineHeight: 22 },
   pointTextMobile:{ fontSize: 13, lineHeight: 20 },
 
-  // ── Section Label ──
   centeredLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   labelLine:        { height: 1, width: 40, backgroundColor: '#f97316', opacity: 0.5, marginHorizontal: 10 },
   sectionLabel:       { color: '#f97316', fontWeight: '800', fontSize: 11, letterSpacing: 1, textAlign: 'center' },
@@ -412,22 +367,11 @@ const s = StyleSheet.create({
   sectionTitle:       { color: '#111827', fontWeight: '900', fontSize: 22, textAlign: 'center', marginBottom: 20 },
   sectionTitleMobile: { fontSize: 18, marginBottom: 14 },
 
-  // ── Values ──
   valuesGrid:       { flexDirection: 'row' },
   valuesGridMobile: { flexDirection: 'column' },
-
-  valueCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 18,
-    borderWidth: 1, borderColor: '#f3f4f6',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
+  valueCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   valueCardGap:   { marginRight: 14 },
-  valueCardMobile: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: '#f3f4f6',
-    flexDirection: 'row', alignItems: 'flex-start',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
+  valueCardMobile: { backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#f3f4f6', flexDirection: 'row', alignItems: 'flex-start', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   valueCardMobileGap: { marginBottom: 10 },
   valueIcon:       { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   valueIconMobile: { width: 44, height: 44, borderRadius: 12, marginBottom: 0, flexShrink: 0, marginRight: 12 },
@@ -439,120 +383,50 @@ const s = StyleSheet.create({
   valueDesc:       { fontSize: 12, color: '#6b7280', lineHeight: 18 },
   valueDescMobile: { fontSize: 12, lineHeight: 17 },
 
-  // ── Team ──
   teamRow:       { flexDirection: 'row' },
   teamRowMobile: {},
   teamRowGap:    { marginBottom: 14 },
-
-  teamCard: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 20,
-    alignItems: 'center', borderWidth: 1, borderColor: '#f3f4f6',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
+  teamCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   teamCardGap:    { marginRight: 14 },
-  teamCardMobile: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 14,
-    flexDirection: 'row', alignItems: 'flex-start',
-    borderWidth: 1, borderColor: '#f3f4f6',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
+  teamCardMobile: { backgroundColor: '#fff', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'flex-start', borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   teamCardMobileGap: { marginBottom: 10 },
-
   teamAvatarWrap:       { position: 'relative', marginBottom: 12 },
   teamAvatarWrapMobile: { marginBottom: 0, flexShrink: 0, marginRight: 14 },
-
   teamAvatar:       { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#ffedd5' },
   teamAvatarMobile: { width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: '#ffedd5' },
-
-  teamBadge: {
-    position: 'absolute',
-    bottom: -6,
-    alignSelf: 'center',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    backgroundColor: '#f97316',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  teamBadgeMobile: {
-    bottom: -8,
-    left: 0,
-    right: 'auto',
-    alignSelf: undefined,
-    alignItems: undefined,
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
+  teamBadge: { position: 'absolute', bottom: -6, alignSelf: 'center', left: 0, right: 0, alignItems: 'center', backgroundColor: '#f97316', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+  teamBadgeMobile: { bottom: -8, left: 0, right: 'auto', alignSelf: undefined, alignItems: undefined, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
   teamBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-
   teamInfo:       { alignItems: 'center' },
   teamInfoMobile: { flex: 1, alignItems: 'flex-start', paddingTop: 2 },
-
   teamName:       { fontSize: 14, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 4 },
   teamNameMobile: { textAlign: 'left', fontSize: 13 },
-
   teamRole:       { fontSize: 11, color: '#f97316', fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   teamRoleMobile: { textAlign: 'left', marginBottom: 4 },
-
   teamBio:       { fontSize: 12, color: '#6b7280', lineHeight: 18, textAlign: 'center' },
   teamBioMobile: { textAlign: 'left', fontSize: 12, lineHeight: 17 },
 
-  // ── Zigzag Timeline (web) ──
   timeline:      { position: 'relative', paddingVertical: 8 },
-  timelineVLine: {
-    position: 'absolute', top: 0, bottom: 0, left: '50%',
-    width: 2, backgroundColor: '#fed7aa', marginLeft: -1,
-  },
+  timelineVLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, backgroundColor: '#fed7aa', marginLeft: -1 },
   milestoneRow:    { flexDirection: 'row', alignItems: 'center' },
   milestoneRowGap: { marginBottom: 24 },
   milestoneSlot:    { flex: 1, paddingHorizontal: 12 },
   milestoneDotWrap: { width: 20, alignItems: 'center' },
-
-  // ── Single-column Timeline (mobile) ──
   timelineMobile:    { position: 'relative', paddingLeft: 28 },
-  timelineVLineMobile: {
-    position: 'absolute', top: 8, bottom: 8, left: 8,
-    width: 2, backgroundColor: '#fed7aa',
-  },
+  timelineVLineMobile: { position: 'absolute', top: 8, bottom: 8, left: 8, width: 2, backgroundColor: '#fed7aa' },
   milestoneMobileRow:    { flexDirection: 'row', alignItems: 'flex-start' },
   milestoneMobileRowGap: { marginBottom: 16 },
   milestoneDotWrapMobile:{ width: 20, alignItems: 'center', paddingTop: 4, marginLeft: -28, marginRight: 12 },
-  milestoneCardMobile:   {
-    flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: '#f3f4f6',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-  },
-
-  // Shared milestone parts
-  milestoneDot: {
-    width: 16, height: 16, borderRadius: 8,
-    backgroundColor: '#f97316', borderWidth: 3, borderColor: '#fff',
-    shadowColor: '#f97316', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4,
-  },
-  milestoneCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: '#f3f4f6',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
+  milestoneCardMobile:   { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  milestoneDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#f97316', borderWidth: 3, borderColor: '#fff', shadowColor: '#f97316', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
+  milestoneCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   milestoneYear:      { color: '#f97316', fontWeight: '800', fontSize: 14, marginBottom: 4 },
   milestoneTitleText: { color: '#111827', fontWeight: '700', fontSize: 15, marginBottom: 6 },
   milestoneDesc:      { color: '#6b7280', fontSize: 13, lineHeight: 20 },
 
-  // ── CTA Banner ── FIX: position:'relative' + absoluteFillObject for bg image
-  ctaBanner: {
-    backgroundColor: '#111827', borderRadius: 18,
-    overflow: 'hidden', marginBottom: 20,
-    position: 'relative',          // ← FIX: added
-  },
+  ctaBanner: { backgroundColor: '#111827', borderRadius: 18, overflow: 'hidden', marginBottom: 20, position: 'relative' },
   ctaBannerMobile: { borderRadius: 14 },
-  ctaBannerImg: {
-    ...StyleSheet.absoluteFillObject,  // ← FIX: replaces position:'absolute' + width/height:'100%'
-    resizeMode: 'cover',               // ← FIX: added
-    opacity: 0.15,
-  },
+  ctaBannerImg: { ...StyleSheet.absoluteFillObject, resizeMode: 'cover', opacity: 0.15 },
   ctaOverlay:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,10,20,0.5)' },
   ctaContent:       { padding: 36, alignItems: 'center' },
   ctaContentMobile: { padding: 20 },
@@ -573,7 +447,6 @@ const s = StyleSheet.create({
   ctaBtnMobile:     { borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginBottom: 10 },
   ctaBtnTextMobile: { fontSize: 13 },
 
-  // ── Contact Strip ──
   contactStrip:       { backgroundColor: '#fff7ed', borderRadius: 16, borderWidth: 1, borderColor: '#fed7aa', padding: 20, marginBottom: 32, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   contactStripMobile: { flexDirection: 'column', alignItems: 'flex-start', padding: 16 },
   contactStripLeft:       { flex: 1, minWidth: 180, marginRight: 16 },

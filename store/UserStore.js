@@ -269,7 +269,7 @@ const normalizeComments = (comments = []) => {
 };
 
 const normalizeNewsFeed = (items = []) => {
-  const src = Array.isArray(items) && items.length ? items : defaultNewsFeed;
+  const src = Array.isArray(items) && items.length ? items : [];
   return src.map((item, i) => ({
     id:          item.id          || `news-${i + 1}`,
     createdBy:   String(item.createdBy || item.created_by || '').trim().toLowerCase(),
@@ -1156,17 +1156,52 @@ export const UserStore = {
 
   getNewsFeedSummary: async () => {
     try {
-      const user = await UserStore.getCurrentUser();
-      if (!user) return null;
-      const feedItems     = normalizeNewsFeed(user.news_feed);
-      const userNewsItems = normalizeUserNewsItems(user.news);
-      const mergedItems   = [...userNewsItems, ...feedItems]
+      const currentUser = await UserStore.getCurrentUser();
+      const allUsers = await UserStore.getAllUsers();
+
+      const aggregateItems = allUsers.flatMap((user) => {
+        const injectAuthor = (item) => ({
+          ...item,
+          author_name:
+            item.author_name || item.createdByName || user.name || '',
+          author_profile_image:
+            item.author_profile_image ||
+            item.authorProfileImage ||
+            item.createdByProfileImage ||
+            item.profile_image ||
+            user.profile_image || // ✅ FIX: user ka profile image inject karo
+            '',
+          author_seat_name:
+            item.author_seat_name ||
+            item.authorSeatName ||
+            user.state_seat?.seat_name ||
+            '',
+          author_is_premium:
+            Boolean(item.author_is_premium || item.createdByPremium || user.is_subscribed || false),
+        });
+
+        return [
+          ...normalizeUserNewsItems(user.news).map(injectAuthor),
+          ...normalizeNewsFeed(user.news_feed).map(injectAuthor),
+        ];
+      });
+
+      const mergedItems = aggregateItems
         .filter((item, index, arr) => arr.findIndex((e) => e.id === item.id) === index)
         .sort((a, b) => getNewsSortValue(b) - getNewsSortValue(a));
-      return { currentUser: user, items: mergedItems, totalViews: mergedItems.reduce((s, i) => s + i.views, 0), totalShares: mergedItems.reduce((s, i) => s + i.shares, 0) };
-    } catch { return null; }
+
+      return {
+        currentUser,
+        items: mergedItems,
+        totalViews: mergedItems.reduce((s, i) => s + i.views, 0),
+        totalShares: mergedItems.reduce((s, i) => s + i.shares, 0),
+      };
+    } catch {
+      return null;
+    }
   },
 
+  
   updateNewsFeedItem: async (itemId, action) => {
     try {
       const user = await UserStore.getCurrentUser();

@@ -250,18 +250,22 @@ export default function AddNewsScreen({ navigation }) {
     return true;
   };
 
+  const normalizeMediaType = (typeValue) => {
+    if (!typeValue) return undefined;
+    const normalized = String(typeValue).toLowerCase();
+    if (normalized.includes('images')) return ImagePicker.MediaType?.Images || 'images';
+    if (normalized.includes('videos')) return ImagePicker.MediaType?.Videos || 'videos';
+    if (normalized.includes('all')) return ImagePicker.MediaType?.All || 'all';
+    return typeValue;
+  };
+
   const getImagePickerTypes = () => {
-    // Expo exposes these enums differently across SDK versions.
-    // eslint-disable-next-line import/namespace
-    const mediaType = ImagePicker?.['MediaType'];
-    // eslint-disable-next-line import/namespace
-    const mediaTypeOptions = ImagePicker?.['MediaTypeOptions'];
-    const usesNewEnums = !!mediaType && typeof mediaType === 'object';
+    const mediaType = ImagePicker.MediaType;
+    const mediaOption = ImagePicker.MediaTypeOptions;
     return {
-      images: mediaType?.Images ?? mediaTypeOptions?.Images,
-      videos: mediaType?.Videos ?? mediaTypeOptions?.Videos,
-      usesNewEnums,
-      all: mediaType?.All ?? mediaTypeOptions?.All,
+      images: normalizeMediaType(mediaType?.Images || mediaOption?.Images),
+      videos: normalizeMediaType(mediaType?.Videos || mediaOption?.Videos),
+      all: normalizeMediaType(mediaType?.All || mediaOption?.All),
     };
   };
 
@@ -294,23 +298,44 @@ export default function AddNewsScreen({ navigation }) {
       const ok = await ensureLibraryPermission();
       if (!ok) return;
 
-      const { images, usesNewEnums } = getImagePickerTypes();
+      const { images } = getImagePickerTypes();
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: images ? (usesNewEnums ? [images] : images) : undefined,
+        mediaTypes: images || undefined,
         allowsMultipleSelection: true,
         base64: false,
-        quality: 0.7,
+        quality: 0.6,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        allowsEditing: false,
+        exif: false,
       });
 
       if (!result.canceled && result.assets?.length) {
-        setImages((prev) => [
-          ...prev,
-          ...result.assets.map((asset) =>
-            asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri
-          ),
-        ]);
+        // Process images to prevent OOM - limit to 5 images max
+        const processedImages = [];
+        const maxImages = 5;
+
+        for (let i = 0; i < Math.min(result.assets.length, maxImages); i++) {
+          const asset = result.assets[i];
+
+          // Check file size - skip if over 10MB
+          if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+            showToast(`Image ${i + 1} is too large (max 10MB). Skipping.`, 'warning');
+            continue;
+          }
+
+          processedImages.push(asset.uri);
+        }
+
+        if (processedImages.length > 0) {
+          setImages((prev) => [...prev, ...processedImages]);
+          if (result.assets.length > maxImages) {
+            showToast(`Only first ${maxImages} images added.`, 'info');
+          }
+        }
       }
-    } catch (_err) {
+    } catch (err) {
+      console.warn('Image picker error:', err);
       showToast('Unable to open image picker.', 'error');
     }
   };
@@ -335,6 +360,12 @@ export default function AddNewsScreen({ navigation }) {
           return;
         }
 
+        // Check file size for web - max 50MB
+        if (asset.size && asset.size > 50 * 1024 * 1024) {
+          showToast('Video is too large (max 50MB).', 'error');
+          return;
+        }
+
         if (!validateVideoDuration(asset.duration)) return;
         setVideo(asset.uri);
         return;
@@ -343,16 +374,25 @@ export default function AddNewsScreen({ navigation }) {
       const ok = await ensureLibraryPermission();
       if (!ok) return;
 
-      const { videos, usesNewEnums } = getImagePickerTypes();
+      const { videos } = getImagePickerTypes();
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: videos ? (usesNewEnums ? [videos] : videos) : undefined,
+        mediaTypes: videos || undefined,
         allowsMultipleSelection: false,
         base64: false,
-        quality: 1,
+        quality: 0.8,
+        videoMaxDuration: 60, // 1 minute max
+        allowsEditing: false,
       });
 
       if (!result.canceled && result.assets?.[0]) {
         const asset = result.assets[0];
+
+        // Check file size - max 50MB
+        if (asset.fileSize && asset.fileSize > 50 * 1024 * 1024) {
+          showToast('Video is too large (max 50MB).', 'error');
+          return;
+        }
+
         if (!isVideoAsset(asset)) {
           showToast('Please select a video file.', 'error');
           return;
@@ -361,8 +401,8 @@ export default function AddNewsScreen({ navigation }) {
         if (!validateVideoDuration(asset.duration)) return;
         setVideo(asset.uri);
       }
-    } catch (_err) {
-      console.warn('Video picker error', _err);
+    } catch (err) {
+      console.warn('Video picker error:', err);
       showToast('Unable to open video picker.', 'error');
     }
   };

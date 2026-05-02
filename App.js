@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import AppNavigator from './navigation/AppNavigator';
 import { ToastProvider } from './components/ui/ToastProvider';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,8 +59,10 @@ export default function App() {
   }
 
   return (
-    <ToastProvider>
-      <AppNavigator />
-    </ToastProvider>
+    <LanguageProvider>
+      <ToastProvider>
+        <AppNavigator />
+      </ToastProvider>
+    </LanguageProvider>
   );
 }

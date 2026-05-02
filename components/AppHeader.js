@@ -1,144 +1,283 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity,
-  StyleSheet, Platform, StatusBar, Dimensions, Image
+  StyleSheet, Platform, StatusBar, Dimensions, Image,
+  FlatList, TextInput, ScrollView,
 } from 'react-native';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const IS_MOBILE = SCREEN_WIDTH < 768;
 
+const IS_WEB = Platform.OS === 'web';
+const IS_WEB_MOBILE = IS_WEB && (
+  typeof window !== 'undefined' ? window.innerWidth < 768 : SCREEN_WIDTH < 768
+);
+const IS_NATIVE_MOBILE = Platform.OS === 'android' || Platform.OS === 'ios';
+const IS_MOBILE = IS_NATIVE_MOBILE || IS_WEB_MOBILE;
+
+const INDIAN_LANGUAGES = [
+  { code: 'as',  label: 'Assamese',  native: 'অসমীয়া'   },
+  { code: 'bn',  label: 'Bengali',   native: 'বাংলা'      },
+  { code: 'bo',  label: 'Bodo',      native: 'बड़ो'        },
+  { code: 'do',  label: 'Dogri',     native: 'डोगरी'      },
+  { code: 'en',  label: 'English',   native: 'English'    },
+  { code: 'gu',  label: 'Gujarati',  native: 'ગુજરાતી'    },
+  { code: 'hi',  label: 'Hindi',     native: 'हिन्दी'     },
+  { code: 'kn',  label: 'Kannada',   native: 'ಕನ್ನಡ'      },
+  { code: 'ks',  label: 'Kashmiri',  native: 'کٲشُر'      },
+  { code: 'kok', label: 'Konkani',   native: 'कोंकणी'     },
+  { code: 'mai', label: 'Maithili',  native: 'मैथिली'     },
+  { code: 'ml',  label: 'Malayalam', native: 'മലയാളം'     },
+  { code: 'mni', label: 'Manipuri',  native: 'মৈতৈলোন্'   },
+  { code: 'mr',  label: 'Marathi',   native: 'मराठी'      },
+  { code: 'ne',  label: 'Nepali',    native: 'नेपाली'     },
+  { code: 'or',  label: 'Odia',      native: 'ଓଡ଼ିଆ'      },
+  { code: 'pa',  label: 'Punjabi',   native: 'ਪੰਜਾਬੀ'     },
+  { code: 'sa',  label: 'Sanskrit',  native: 'संस्कृतम्'  },
+  { code: 'sat', label: 'Santali',   native: 'ᱥᱟᱱᱛᱟᱲᱤ'   },
+  { code: 'sd',  label: 'Sindhi',    native: 'سنڌي'       },
+  { code: 'ta',  label: 'Tamil',     native: 'தமிழ்'      },
+  { code: 'te',  label: 'Telugu',    native: 'తెలుగు'     },
+  { code: 'ur',  label: 'Urdu',      native: 'اردو'       },
+];
+
+// ─── Language Selector ───────────────────────────────────────────────────────
+// Modal hataya — pure inline View dropdown use kar raha hai
+// Yeh web aur native dono pe perfectly kaam karta hai
+function LanguageSelector({ compact = false }) {
+  const { language, changeLanguage } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const selected = INDIAN_LANGUAGES.find((l) => l.code === language) || INDIAN_LANGUAGES[4];
+
+  const filtered = search.trim()
+    ? INDIAN_LANGUAGES.filter(
+        (l) =>
+          l.label.toLowerCase().includes(search.toLowerCase()) ||
+          l.native.toLowerCase().includes(search.toLowerCase())
+      )
+    : INDIAN_LANGUAGES;
+
+  const handleSelect = (lang) => {
+    changeLanguage(lang.code);
+    setOpen(false);
+    setSearch('');
+  };
+
+  return (
+    <View style={{ position: 'relative', zIndex: 1000 }}>
+      {/* Trigger button */}
+      <TouchableOpacity
+        style={[s.langBtn, compact && s.langBtnCompact]}
+        onPress={() => { setOpen(!open); setSearch(''); }}
+        activeOpacity={0.8}
+      >
+        <Text style={s.langBtnIcon}>🌐</Text>
+        <Text style={[s.langBtnText, compact && s.langBtnTextCompact]}>
+          {selected.native}
+        </Text>
+        <Text style={s.langChevron}>{open ? '▴' : '▾'}</Text>
+      </TouchableOpacity>
+
+      {/* Inline dropdown — Modal nahi, seedha View */}
+      {open && (
+        <>
+          {/* Invisible overlay to close on outside tap */}
+          <TouchableOpacity
+            style={s.dropdownOverlay}
+            activeOpacity={1}
+            onPress={() => { setOpen(false); setSearch(''); }}
+          />
+          <View style={s.dropdown}>
+            {/* Search */}
+            <View style={s.searchRow}>
+              <Text style={s.searchIcon}>🔍</Text>
+              <TextInput
+                style={s.searchInput}
+                placeholder="Search..."
+                placeholderTextColor="#bbb"
+                value={search}
+                onChangeText={setSearch}
+                autoFocus={Platform.OS === 'web'}
+              />
+              {search.length > 0 && (
+                <TouchableOpacity onPress={() => setSearch('')}>
+                  <Text style={{ color: '#bbb', fontSize: 14, paddingHorizontal: 4 }}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* List */}
+            <ScrollView style={s.langList} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+              {filtered.length === 0
+                ? <Text style={s.noResult}>No language found</Text>
+                : filtered.map((item) => (
+                    <TouchableOpacity
+                      key={item.code}
+                      style={[s.langItem, item.code === selected.code && s.langItemSelected]}
+                      onPress={() => handleSelect(item)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={s.langItemNative}>{item.native}</Text>
+                      <Text style={s.langItemLabel}>{item.label}</Text>
+                      {item.code === selected.code
+                        ? <Text style={s.langItemCheck}>✓</Text>
+                        : null}
+                    </TouchableOpacity>
+                  ))
+              }
+            </ScrollView>
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
+// ─── Main Header ─────────────────────────────────────────────────────────────
 export default function AppHeader({ navigation, compact = false }) {
-
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
-
+    const interval = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
+  const formatDate = (date) =>
+    date.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('en-IN');
-  };
+  const formatTime = (date) => date.toLocaleTimeString('en-IN');
 
   const androidPad = Platform.OS === 'android'
     ? { paddingTop: StatusBar.currentHeight || 0 }
     : null;
 
-  return (
-    <View style={[s.root, androidPad]}>
-
-      {IS_MOBILE ? (
-        <View style={s.mobileBar}>
-
-          {/* LEFT: LOGO */}
+  // ─────────────────────────────────────────────────────────────
+  // MOBILE LAYOUT — Native Android/iOS + Mobile Web
+  // Row 1: Logo | Title
+  // Row 2: Language | SignUp
+  // Row 3: Orange Date/Time bar
+  // ─────────────────────────────────────────────────────────────
+  if (IS_MOBILE) {
+    return (
+      <View style={[s.root, androidPad]}>
+        {/* Row 1: Logo + Title */}
+        <View style={s.mobileRow1}>
           <Image
             source={require('../assets/images/certificate_logo.jpg')}
-            style={s.logoTop}
+            style={s.mobileLogo}
             resizeMode="contain"
           />
-
-          {/* CENTER: TEXT */}
-          <Text style={s.centerTitle}>
-            भारतीय माहिती अधिकार
+          <Text style={s.mobileTitle} numberOfLines={2} adjustsFontSizeToFit>
+            {'भारतीय माहिती अधिकार'}
           </Text>
+        </View>
 
-          {/* RIGHT: SIGNUP */}
+        {/* Row 2: Language + SignUp */}
+        <View style={s.mobileRow2}>
+          <LanguageSelector compact />
           <TouchableOpacity
             style={s.signupBtn}
             onPress={() => navigation?.navigate('Login')}
           >
-            <Text style={s.signupIcon}>👤</Text>
-            <Text style={s.signupText}>Sign Up</Text>
+            <Text style={s.signupIcon}>{'👤'}</Text>
+            <Text style={s.signupText}>{'Sign Up'}</Text>
           </TouchableOpacity>
-
         </View>
 
-      ) : (
-        <>
-          <View style={s.utilityBar}>
+        {/* Row 3: Orange Date/Time */}
+        <View style={s.brandBar}>
+          <Text style={s.tickerText}>{'📅 '}{formatDate(time)}</Text>
+          <Text style={s.tickerText}>{'⏰ '}{formatTime(time)}</Text>
+        </View>
 
-            {/* LEFT: LOGO */}
-            <Image
-              source={require('../assets/images/certificate_logo.jpg')}
-              style={s.logoTop}
-              resizeMode="contain"
-            />
+        <View style={s.bottomBar} />
+      </View>
+    );
+  }
 
-            {/* CENTER: TEXT */}
-            <Text style={s.centerTitle}>
-              भारतीय माहिती अधिकार
-            </Text>
+  // ─────────────────────────────────────────────────────────────
+  // DESKTOP WEB LAYOUT — bilkul pehle jaisa
+  // ─────────────────────────────────────────────────────────────
+  return (
+    <View style={[s.root, androidPad]}>
+      <View style={s.utilityBar}>
+        <Image
+          source={require('../assets/images/certificate_logo.jpg')}
+          style={s.logoTop}
+          resizeMode="contain"
+        />
+        <Text style={s.centerTitle}>{'भारतीय माहिती अधिकार'}</Text>
+        <View style={s.rightGroup}>
+          <LanguageSelector />
+          <TouchableOpacity
+            style={s.signupBtn}
+            onPress={() => navigation?.navigate('Login')}
+          >
+            <Text style={s.signupIcon}>{'👤'}</Text>
+            <Text style={s.signupText}>{'Sign Up'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-            {/* RIGHT: SIGNUP */}
-            <TouchableOpacity
-              style={s.signupBtn}
-              onPress={() => navigation?.navigate('Login')}
-            >
-              <Text style={s.signupIcon}>👤</Text>
-              <Text style={s.signupText}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 🔥 BRAND BAR (LEFT DATE • RIGHT TIME) */}
-          <View style={[s.brandBar, compact && s.brandBarCompact]}>
-
-            {/* LEFT: DATE */}
-            <Text style={s.tickerText}>
-              📅 {formatDate(time)}
-            </Text>
-
-            {/* RIGHT: TIME */}
-            <Text style={s.tickerText}>
-              ⏰ {formatTime(time)}
-            </Text>
-
-          </View>
-        </>
-      )}
+      <View style={[s.brandBar, compact && s.brandBarCompact]}>
+        <Text style={s.tickerText}>{'📅 '}{formatDate(time)}</Text>
+        <Text style={s.tickerText}>{'⏰ '}{formatTime(time)}</Text>
+      </View>
 
       <View style={s.bottomBar} />
-
     </View>
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
 
   root: {
     backgroundColor: '#fff',
     elevation: 6,
+    zIndex: 100,
     ...Platform.select({
       web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.10)' },
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.10,
-        shadowRadius: 8,
-      },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 8 },
       default: {},
     }),
   },
 
-  mobileBar: {
-    backgroundColor: '#fff',
-    justifyContent: 'center',
+  // ── Mobile Row 1 ──
+  mobileRow1: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(249,115,22,0.15)',
+    paddingTop: 10,
+    paddingBottom: 6,
+    gap: 10,
+  },
+  mobileLogo: {
+    width: 50,
+    height: 50,
+    flexShrink: 0,
+  },
+  mobileTitle: {
+    flex: 1,
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#f97316',
+    textAlign: 'center',
   },
 
+  // ── Mobile Row 2 ──
+  mobileRow2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    zIndex: 1000,
+  },
+
+  // ── Desktop ──
   utilityBar: {
     backgroundColor: '#fff',
     justifyContent: 'center',
@@ -146,28 +285,116 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(249,115,22,0.15)',
+    zIndex: 100,
   },
-
-  // LEFT LOGO
   logoTop: {
     position: 'absolute',
     left: 12,
     width: 85,
     height: 85,
   },
-
-  // CENTER TEXT
   centerTitle: {
     textAlign: 'center',
     fontSize: 48,
     fontWeight: '900',
     color: '#f97316',
   },
-
-  // RIGHT SIGNUP
-  signupBtn: {
+  rightGroup: {
     position: 'absolute',
     right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 200,
+  },
+
+  // ── Language Button ──
+  langBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1.5,
+    borderColor: '#f97316',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  langBtnCompact: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  langBtnIcon: { fontSize: 13 },
+  langBtnText: { color: '#f97316', fontSize: 13, fontWeight: '800' },
+  langBtnTextCompact: { fontSize: 11 },
+  langChevron: { color: '#f97316', fontSize: 10, fontWeight: '800' },
+
+  // ── Inline Dropdown ──
+  dropdownOverlay: {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 998,
+    ...Platform.select({
+      web: { position: 'fixed' },
+      default: { position: 'absolute', width: 9999, height: 9999 },
+    }),
+  },
+  dropdown: {
+    position: 'absolute',
+    top: '110%',
+    left: 0,
+    width: 220,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#f97316',
+    zIndex: 9999,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: { boxShadow: '0 8px 32px rgba(249,115,22,0.20)' },
+      ios: {
+        shadowColor: '#f97316',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
+      },
+      android: { elevation: 20 },
+    }),
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(249,115,22,0.12)',
+    gap: 6,
+    backgroundColor: '#fff',
+  },
+  searchIcon: { fontSize: 14 },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#333',
+    paddingVertical: 2,
+    outlineStyle: 'none',
+  },
+  langList: { maxHeight: 220, backgroundColor: '#fff' },
+  langItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  langItemSelected: { backgroundColor: '#fff7ed' },
+  langItemNative: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', flex: 1 },
+  langItemLabel: { fontSize: 11, color: '#999' },
+  langItemCheck: { fontSize: 14, color: '#f97316', fontWeight: '900' },
+  noResult: { textAlign: 'center', padding: 16, color: '#bbb', fontSize: 13 },
+
+  // ── Signup ──
+  signupBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -176,33 +403,20 @@ const s = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 7,
   },
-
   signupIcon: { fontSize: 12 },
+  signupText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
-  signupText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-
-  // 🔥 BRAND BAR
+  // ── Brand Bar ──
   brandBar: {
     backgroundColor: '#f97316',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
+  brandBarCompact: {},
+  tickerText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
-  tickerText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-
-  bottomBar: {
-    height: 4,
-    backgroundColor: 'white',
-  },
+  bottomBar: { height: 4, backgroundColor: 'white' },
 });

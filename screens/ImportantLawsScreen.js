@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Platform } from 'react-native';
 import AppHeader from '../components/AppHeader';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
@@ -56,94 +56,103 @@ const keyFacts = [
   { icon: '🆓', label: 'BPL Citizens', value: 'Free' },
 ];
 
+const isWeb = Platform.OS === 'web';
+
 export default function ImportantLawsScreen({ navigation }) {
+  // ✅ FIX: AppNavbar ScrollView ke BAHAR
   return (
-    <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
-      <AppHeader navigation={navigation} />
-      <AppNavbar navigation={navigation} activeScreen="ImportantLaws" />
+    <View style={{ flex: 1 }}>
+      {/* Web pe TOP navbar */}
+      {isWeb && <AppNavbar navigation={navigation} activeScreen="ImportantLaws" />}
 
-      {/* Hero */}
-      <View style={s.hero}>
-        <View style={s.heroCircle1} />
-        <View style={s.heroCircle2} />
-        <Text style={s.heroEmoji}>⚖️</Text>
-        <Text style={s.heroTitle}>Important Laws</Text>
-        <Text style={s.heroSub}>RTI Act आणि संबंधित महत्त्वाचे कायदे जे प्रत्येक नागरिकाने जाणले पाहिजेत.</Text>
-      </View>
+      <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
+        <AppHeader navigation={navigation} />
 
-      <View style={s.body}>
-
-        {/* Key Facts */}
-        <View style={s.factsRow}>
-          {keyFacts.map((f) => (
-            <View key={f.label} style={s.factCard}>
-              <Text style={s.factIcon}>{f.icon}</Text>
-              <Text style={s.factValue}>{f.value}</Text>
-              <Text style={s.factLabel}>{f.label}</Text>
-            </View>
-          ))}
+        {/* Hero */}
+        <View style={s.hero}>
+          <View style={s.heroCircle1} />
+          <View style={s.heroCircle2} />
+          <Text style={s.heroEmoji}>⚖️</Text>
+          <Text style={s.heroTitle}>Important Laws</Text>
+          <Text style={s.heroSub}>RTI Act आणि संबंधित महत्त्वाचे कायदे जे प्रत्येक नागरिकाने जाणले पाहिजेत.</Text>
         </View>
 
-        {/* Section Title */}
-        <Text style={s.sectionLabel}>IMPORTANT LAWS & ACTS</Text>
-        <Text style={s.sectionTitle}>महत्त्वाचे कायदे</Text>
+        <View style={s.body}>
 
-        {/* Law Cards */}
-        {laws.map((law, idx) => (
-          <View key={idx} style={[s.lawCard, { borderLeftColor: law.color }]}>
-            <View style={s.lawCardHeader}>
-              <View style={[s.lawIcon, { backgroundColor: law.color }]}>
-                <Text style={s.lawIconText}>{law.icon}</Text>
+          {/* Key Facts */}
+          <View style={s.factsRow}>
+            {keyFacts.map((f) => (
+              <View key={f.label} style={s.factCard}>
+                <Text style={s.factIcon}>{f.icon}</Text>
+                <Text style={s.factValue}>{f.value}</Text>
+                <Text style={s.factLabel}>{f.label}</Text>
               </View>
-              <View style={s.lawTitleWrap}>
-                <Text style={[s.lawShort, { color: law.color }]}>{law.short}</Text>
-                <Text style={s.lawTitle}>{law.title}</Text>
-              </View>
-            </View>
-            <Text style={s.lawDesc}>{law.desc}</Text>
+            ))}
           </View>
-        ))}
 
-        {/* RTI Process Steps */}
-        <View style={s.stepsCard}>
-          <Text style={s.stepsTitle}>📋 RTI अर्ज प्रक्रिया</Text>
-          {[
-            { step: '1', title: 'अर्ज तयार करा', desc: 'साध्या कागदावर हातात किंवा टाइप करून माहिती मागणीचा अर्ज लिहा.' },
-            { step: '2', title: 'शुल्क भरा', desc: '₹10 चा डिमांड ड्राफ्ट, पोस्टल ऑर्डर किंवा रोख रक्कम भरा. BPL धारकांना माफी.' },
-            { step: '3', title: 'अर्ज सादर करा', desc: 'संबंधित जन माहिती अधिकाऱ्याकडे अर्ज सादर करा व पोहच घ्या.' },
-            { step: '4', title: 'उत्तराची प्रतीक्षा करा', desc: '३० दिवसांत उत्तर येणे अपेक्षित आहे. उत्तर न मिळाल्यास नकार समजावा.' },
-            { step: '5', title: 'अपील दाखल करा', desc: 'समाधान न झाल्यास ३० दिवसांत प्रथम अपील, नंतर CIC/SIC कडे दाखल करा.' },
-          ].map((item) => (
-            <View key={item.step} style={s.stepItem}>
-              <View style={s.stepNum}>
-                <Text style={s.stepNumText}>{item.step}</Text>
+          {/* Section Title */}
+          <Text style={s.sectionLabel}>IMPORTANT LAWS & ACTS</Text>
+          <Text style={s.sectionTitle}>महत्त्वाचे कायदे</Text>
+
+          {/* Law Cards */}
+          {laws.map((law, idx) => (
+            <View key={idx} style={[s.lawCard, { borderLeftColor: law.color }]}>
+              <View style={s.lawCardHeader}>
+                <View style={[s.lawIcon, { backgroundColor: law.color }]}>
+                  <Text style={s.lawIconText}>{law.icon}</Text>
+                </View>
+                <View style={s.lawTitleWrap}>
+                  <Text style={[s.lawShort, { color: law.color }]}>{law.short}</Text>
+                  <Text style={s.lawTitle}>{law.title}</Text>
+                </View>
               </View>
-              <View style={s.stepContent}>
-                <Text style={s.stepTitle}>{item.title}</Text>
-                <Text style={s.stepDesc}>{item.desc}</Text>
-              </View>
+              <Text style={s.lawDesc}>{law.desc}</Text>
             </View>
           ))}
+
+          {/* RTI Process Steps */}
+          <View style={s.stepsCard}>
+            <Text style={s.stepsTitle}>📋 RTI अर्ज प्रक्रिया</Text>
+            {[
+              { step: '1', title: 'अर्ज तयार करा', desc: 'साध्या कागदावर हातात किंवा टाइप करून माहिती मागणीचा अर्ज लिहा.' },
+              { step: '2', title: 'शुल्क भरा', desc: '₹10 चा डिमांड ड्राफ्ट, पोस्टल ऑर्डर किंवा रोख रक्कम भरा. BPL धारकांना माफी.' },
+              { step: '3', title: 'अर्ज सादर करा', desc: 'संबंधित जन माहिती अधिकाऱ्याकडे अर्ज सादर करा व पोहच घ्या.' },
+              { step: '4', title: 'उत्तराची प्रतीक्षा करा', desc: '३० दिवसांत उत्तर येणे अपेक्षित आहे. उत्तर न मिळाल्यास नकार समजावा.' },
+              { step: '5', title: 'अपील दाखल करा', desc: 'समाधान न झाल्यास ३० दिवसांत प्रथम अपील, नंतर CIC/SIC कडे दाखल करा.' },
+            ].map((item) => (
+              <View key={item.step} style={s.stepItem}>
+                <View style={s.stepNum}>
+                  <Text style={s.stepNumText}>{item.step}</Text>
+                </View>
+                <View style={s.stepContent}>
+                  <Text style={s.stepTitle}>{item.title}</Text>
+                  <Text style={s.stepDesc}>{item.desc}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Contact CIC Banner */}
+          <View style={s.cicBanner}>
+            <Text style={s.cicTitle}>🏛️ केंद्रीय माहिती आयोग</Text>
+            <Text style={s.cicAddress}>ऑगस्ट क्रांती भवन, भिकाजी कामा प्लेस,{'\n'}नवी दिल्ली - ११०००६</Text>
+            <Text style={s.cicWeb}>🌐 www.cic.gov.in</Text>
+          </View>
+
         </View>
 
-        {/* Contact CIC Banner */}
-        <View style={s.cicBanner}>
-          <Text style={s.cicTitle}>🏛️ केंद्रीय माहिती आयोग</Text>
-          <Text style={s.cicAddress}>ऑगस्ट क्रांती भवन, भिकाजी कामा प्लेस,{'\n'}नवी दिल्ली - ११०००६</Text>
-          <Text style={s.cicWeb}>🌐 www.cic.gov.in</Text>
-        </View>
+        <AppFooter navigation={navigation} />
+      </ScrollView>
 
-      </View>
-
-      <AppFooter navigation={navigation} />
-    </ScrollView>
+      {/* Mobile pe BOTTOM navbar — ScrollView ke BAHAR */}
+      {!isWeb && <AppNavbar navigation={navigation} activeScreen="ImportantLaws" />}
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
 
-  // Hero
   hero: { backgroundColor: '#1e293b', padding: 28, alignItems: 'center', position: 'relative', overflow: 'hidden' },
   heroCircle1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(249,115,22,0.15)' },
   heroCircle2: { position: 'absolute', bottom: -50, left: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(249,115,22,0.1)' },
@@ -153,18 +162,15 @@ const s = StyleSheet.create({
 
   body: { paddingHorizontal: 14, paddingTop: 16, paddingBottom: 8 },
 
-  // Facts
   factsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
   factCard: { flex: 1, minWidth: '45%', backgroundColor: '#fff', borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#f3f4f6', elevation: 2 },
   factIcon: { fontSize: 24, marginBottom: 6 },
   factValue: { fontSize: 18, fontWeight: '900', color: '#f97316', marginBottom: 2 },
   factLabel: { fontSize: 11, color: '#6b7280', fontWeight: '600', textAlign: 'center' },
 
-  // Section labels
   sectionLabel: { color: '#f97316', fontWeight: '800', fontSize: 11, letterSpacing: 1, textAlign: 'center', marginBottom: 4 },
   sectionTitle: { color: '#111827', fontWeight: '900', fontSize: 20, textAlign: 'center', marginBottom: 16 },
 
-  // Law Cards
   lawCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12, borderLeftWidth: 4, elevation: 2, borderWidth: 1, borderColor: '#f3f4f6' },
   lawCardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
   lawIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -174,7 +180,6 @@ const s = StyleSheet.create({
   lawTitle: { fontSize: 13, fontWeight: '800', color: '#111827', lineHeight: 18 },
   lawDesc: { fontSize: 12, color: '#6b7280', lineHeight: 20 },
 
-  // Steps
   stepsCard: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#f3f4f6', elevation: 2 },
   stepsTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 16 },
   stepItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
@@ -184,7 +189,6 @@ const s = StyleSheet.create({
   stepTitle: { fontSize: 13, fontWeight: '800', color: '#111827', marginBottom: 4 },
   stepDesc: { fontSize: 12, color: '#6b7280', lineHeight: 18 },
 
-  // CIC Banner
   cicBanner: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginBottom: 14, alignItems: 'center' },
   cicTitle: { color: '#f97316', fontSize: 16, fontWeight: '800', marginBottom: 10 },
   cicAddress: { color: '#e2e8f0', fontSize: 13, textAlign: 'center', lineHeight: 22, marginBottom: 8 },

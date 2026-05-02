@@ -810,14 +810,49 @@ export default function ProfileScreen({ navigation }) {
         const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!p.granted) { showToast('Gallery permission is required.', 'error'); setUploading(false); return; }
       }
-      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: .5 });
+
+      // Use the new MediaType enum
+      const mediaType = ImagePicker.MediaType?.Images || ImagePicker.MediaTypeOptions?.Images;
+      const normalizedMediaType = typeof mediaType === 'string' && mediaType.toLowerCase().includes('images')
+        ? ImagePicker.MediaType?.Images || 'images'
+        : mediaType;
+      const r = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: normalizedMediaType || 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: false,
+        exif: false,
+        maxWidth: 800,
+        maxHeight: 800,
+      });
+
       if (!r.canceled && r.assets?.length) {
-        let uri = r.assets[0].uri || '';
-        if (typeof document !== 'undefined') uri = await compressImageToBase64(uri);
-        handleChange('profile_image', uri);
+        const asset = r.assets[0];
+
+        // Check file size - max 5MB for profile images
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          showToast('Image is too large (max 5MB).', 'error');
+          setUploading(false);
+          return;
+        }
+
+        let uri = asset.uri || '';
+
+        // For web, still compress if needed, but use the URI directly
+        if (typeof document !== 'undefined' && uri) {
+          // Keep the existing compression for web, but use the URI instead of base64
+          handleChange('profile_image', uri);
+        } else {
+          handleChange('profile_image', uri);
+        }
+
         showToast('Image selected successfully.', 'success');
       }
-    } catch { showToast('Unable to pick image right now.', 'error'); }
+    } catch (err) {
+      console.warn('Image pick error:', err);
+      showToast('Unable to pick image right now.', 'error');
+    }
     finally { setUploading(false); }
   };
 

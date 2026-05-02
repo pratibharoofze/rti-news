@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Platform,
   Linking,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,6 +19,11 @@ import WebLayout from '../components/WebLayout';
 import VideoPreview from '../components/VideoPreview';
 
 const isWeb = Platform.OS === 'web';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const IS_WEB_MOBILE = isWeb && (
+  typeof window !== 'undefined' ? window.innerWidth < 768 : SCREEN_WIDTH < 768
+);
+const IS_MOBILE = Platform.OS === 'android' || Platform.OS === 'ios' || IS_WEB_MOBILE;
 
 function stripHtml(value) {
   return String(value || '')
@@ -34,25 +40,24 @@ function buildLocation({ state, district, taluka }) {
 export default function NewsDetailsScreen({ route, navigation }) {
   const article = route?.params?.article || null;
 
-  const title = article?.title || 'News Details';
-  const category = article?.category || 'News';
-  const date = article?.date || '';
-  const author = article?.author_name || article?.author || '';
-  const location = buildLocation(article || {});
+  const title       = article?.title        || 'News Details';
+  const category    = article?.category     || 'News';
+  const date        = article?.date         || '';
+  const author      = article?.author_name  || article?.author || '';
+  const location    = buildLocation(article || {});
 
   const description = useMemo(() => {
     const value =
       article?.description ||
-      article?.excerpt ||
-      article?.subtitle ||
-      '';
+      article?.excerpt     ||
+      article?.subtitle    || '';
     return stripHtml(value);
   }, [article]);
 
   const images = useMemo(() => {
-    const src = Array.isArray(article?.images) ? article.images : [];
+    const src     = Array.isArray(article?.images) ? article.images : [];
     const primary = article?.image ? [article.image] : [];
-    const merged = [...primary, ...src].filter(Boolean);
+    const merged  = [...primary, ...src].filter(Boolean);
     return Array.from(new Set(merged));
   }, [article]);
 
@@ -62,8 +67,10 @@ export default function NewsDetailsScreen({ route, navigation }) {
     try { await Linking.openURL(uri); } catch {}
   }, [article]);
 
+  // ── Page content (inside ScrollView) ─────────────────────────────────────
   const pageContent = (
     <>
+      {/* Back button */}
       <View style={s.topRow}>
         <TouchableOpacity
           style={s.backBtn}
@@ -75,7 +82,10 @@ export default function NewsDetailsScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
+      {/* Main card */}
       <View style={s.card}>
+
+        {/* Hero image */}
         {images[0] ? (
           <View style={s.heroImageWrap}>
             <Image source={{ uri: images[0] }} style={s.heroImage} />
@@ -88,6 +98,7 @@ export default function NewsDetailsScreen({ route, navigation }) {
         <View style={s.body}>
           <Text style={s.title}>{title}</Text>
 
+          {/* Meta pills */}
           <View style={s.metaRow}>
             {date ? (
               <View style={s.metaPill}>
@@ -118,16 +129,20 @@ export default function NewsDetailsScreen({ route, navigation }) {
             ) : null}
           </View>
 
-          {description ? (
-            <Text style={s.description}>{description}</Text>
-          ) : (
-            <Text style={s.descriptionMuted}>No additional details available.</Text>
-          )}
+          {/* Description */}
+          {description
+            ? <Text style={s.description}>{description}</Text>
+            : <Text style={s.descriptionMuted}>No additional details available.</Text>}
 
+          {/* Photo gallery */}
           {images.length > 1 ? (
             <View style={s.gallery}>
               <Text style={s.sectionTitle}>Photos</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.galleryRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.galleryRow}
+              >
                 {images.slice(1).map((uri) => (
                   <Image key={uri} source={{ uri }} style={s.galleryImage} />
                 ))}
@@ -135,53 +150,102 @@ export default function NewsDetailsScreen({ route, navigation }) {
             </View>
           ) : null}
 
+          {/* Video */}
           {article?.video ? (
             <View style={s.videoBox}>
               <Text style={s.sectionTitle}>Video</Text>
-              <VideoPreview uri={article.video} style={s.video} contentFit="contain" />
+              <VideoPreview
+                uri={article.video}
+                style={s.video}
+                contentFit="contain"
+              />
             </View>
           ) : null}
 
+          {/* File attachment */}
           {article?.file?.uri ? (
             <View style={s.fileBox}>
               <Text style={s.sectionTitle}>Attachment</Text>
-              <TouchableOpacity style={s.fileBtn} onPress={openFile} activeOpacity={0.85}>
+              <TouchableOpacity
+                style={s.fileBtn}
+                onPress={openFile}
+                activeOpacity={0.85}
+              >
                 <Ionicons name="document-attach-outline" size={18} color="#fff" />
-                <Text style={s.fileBtnText}>{article?.file?.name || 'Open file'}</Text>
+                <Text style={s.fileBtnText}>
+                  {article?.file?.name || 'Open file'}
+                </Text>
               </TouchableOpacity>
             </View>
           ) : null}
         </View>
       </View>
 
-      <AppFooter navigation={navigation} />
+      {/* Footer — only desktop web */}
+      {!IS_MOBILE && <AppFooter navigation={navigation} />}
     </>
   );
 
+  // ── Layout ────────────────────────────────────────────────────────────────
+  // ✅ KEY FIX:
+  //   - Outer View = flex:1 column
+  //   - AppNavbar BAHAR ScrollView ke — tab bar content ko kabhi nahi dhakega
+  //   - ScrollView paddingBottom se content tab bar ke neeche nahi jayega
+
   const page = (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
-        <AppHeader navigation={navigation} compact={!isWeb} />
+    <View style={s.pageContainer}>
+
+      {/* Desktop web: top navbar */}
+      {isWeb && !IS_WEB_MOBILE && (
         <AppNavbar navigation={navigation} activeScreen={null} />
+      )}
+
+      {/* Scrollable content */}
+      <ScrollView
+        style={s.scrollArea}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <AppHeader navigation={navigation} compact={!isWeb || IS_WEB_MOBILE} />
         <View style={s.wrapper}>
           {pageContent}
         </View>
       </ScrollView>
+
+      {/* ✅ Mobile bottom tab bar — ScrollView ke BAHAR
+          Content kabhi is ke neeche nahi chupp payega */}
+      {IS_MOBILE && (
+        <AppNavbar navigation={navigation} activeScreen={null} />
+      )}
+
     </View>
   );
 
-  return isWeb ? <WebLayout>{page}</WebLayout> : page;
+  return isWeb && !IS_WEB_MOBILE ? <WebLayout>{page}</WebLayout> : page;
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  // ── container: full width, no side gaps ──
-  container: { flex: 1, backgroundColor: '#f9fafb' },
 
-  // ── wrapper: zero horizontal padding on mobile, small on web ──
+  // ✅ Outer container — flex column, full screen
+  pageContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    backgroundColor: '#f9fafb',
+  },
+
+  // ✅ ScrollView takes all remaining space between header and bottom navbar
+  scrollArea: {
+    flex: 1,
+  },
+
+  // ✅ Extra bottom padding so last content clears the bottom tab bar
+  scrollContent: {
+    paddingBottom: IS_MOBILE ? 20 : 40,
+  },
+
   wrapper: {
-    paddingHorizontal: isWeb ? 0 : 0,
     paddingTop: 10,
-    paddingBottom: 0,
   },
 
   topRow: {
@@ -203,7 +267,6 @@ const s = StyleSheet.create({
   },
   backText: { fontSize: 12, fontWeight: '800', color: '#111827' },
 
-  // ── card: flush edges on mobile, no border-radius clipping ──
   card: {
     backgroundColor: '#fff',
     borderRadius: isWeb ? 16 : 0,
@@ -218,7 +281,11 @@ const s = StyleSheet.create({
     marginBottom: 0,
   },
 
-  heroImageWrap: { height: 220, position: 'relative', backgroundColor: '#e5e7eb' },
+  heroImageWrap: {
+    height: 220,
+    position: 'relative',
+    backgroundColor: '#e5e7eb',
+  },
   heroImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   heroBadge: {
     position: 'absolute',
@@ -232,9 +299,20 @@ const s = StyleSheet.create({
   heroBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
 
   body: { padding: 14 },
-  title: { fontSize: 18, fontWeight: '900', color: '#111827', lineHeight: 26, marginBottom: 10 },
+  title: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#111827',
+    lineHeight: 26,
+    marginBottom: 10,
+  },
 
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
   metaPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,7 +329,13 @@ const s = StyleSheet.create({
   description: { fontSize: 13, color: '#374151', lineHeight: 21 },
   descriptionMuted: { fontSize: 13, color: '#6b7280', lineHeight: 21 },
 
-  sectionTitle: { marginTop: 16, marginBottom: 10, fontSize: 14, fontWeight: '900', color: '#111827' },
+  sectionTitle: {
+    marginTop: 16,
+    marginBottom: 10,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#111827',
+  },
 
   gallery: { marginTop: 4 },
   galleryRow: { paddingBottom: 4 },
@@ -264,7 +348,12 @@ const s = StyleSheet.create({
   },
 
   videoBox: { marginTop: 4 },
-  video: { width: '100%', height: 240, borderRadius: 14, backgroundColor: '#0b1220' },
+  video: {
+    width: '100%',
+    height: 240,
+    borderRadius: 14,
+    backgroundColor: '#0b1220',
+  },
 
   fileBox: { marginTop: 4 },
   fileBtn: {

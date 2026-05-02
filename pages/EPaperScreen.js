@@ -50,11 +50,18 @@ const INDIA_STATES = [
   'Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
 ];
 
-// Expo exposes these enums differently across SDK versions.
-// eslint-disable-next-line import/namespace
-const IMAGE_PICKER_MEDIA_TYPE = ImagePicker?.['MediaType'];
-// eslint-disable-next-line import/namespace
-const IMAGE_PICKER_MEDIA_TYPE_OPTIONS = ImagePicker?.['MediaTypeOptions'];
+// Use the new MediaType enum from expo-image-picker
+const IMAGE_PICKER_MEDIA_TYPE = ImagePicker.MediaType;
+const IMAGE_PICKER_MEDIA_TYPE_OPTIONS = ImagePicker.MediaTypeOptions; // Fallback for older versions
+
+const normalizeEPaperMediaType = (typeValue) => {
+  if (!typeValue) return undefined;
+  const normalized = String(typeValue).toLowerCase();
+  if (normalized.includes('images')) return ImagePicker.MediaType?.Images || 'images';
+  if (normalized.includes('videos')) return ImagePicker.MediaType?.Videos || 'videos';
+  if (normalized.includes('all')) return ImagePicker.MediaType?.All || 'all';
+  return typeValue;
+};
 
 function StatePickerModal({ visible, selected, onSelect, onClose }) {
   const [search, setSearch] = useState('');
@@ -247,15 +254,39 @@ export default function EPaperScreen({ navigation }) {
     if (status !== 'granted') { showToast('Gallery permission needed.', 'error'); return; }
     setFMediaType('Images');
     setFVideo(null);
-    const imageType = IMAGE_PICKER_MEDIA_TYPE?.Images ?? IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Images;
+    const imageType = normalizeEPaperMediaType(IMAGE_PICKER_MEDIA_TYPE?.Images ?? IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Images);
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: imageType ? [imageType] : undefined,
+      mediaTypes: imageType || undefined,
       allowsMultipleSelection: true,
-      base64: true,
-      quality: 0.5,
+      base64: false,
+      quality: 0.7,
+      maxWidth: 1280,
+      maxHeight: 1280,
+      exif: false,
     });
     if (!result.canceled && result.assets?.length) {
-      setFImages(prev => [...prev, ...result.assets.map(a => `data:image/jpeg;base64,${a.base64}`)]);
+      // Process images to prevent OOM - limit to 10 images max
+      const processedImages = [];
+      const maxImages = 10;
+
+      for (let i = 0; i < Math.min(result.assets.length, maxImages); i++) {
+        const asset = result.assets[i];
+
+        // Check file size - skip if over 10MB
+        if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          showToast(`Image ${i + 1} is too large (max 10MB). Skipping.`, 'warning');
+          continue;
+        }
+
+        processedImages.push(asset.uri);
+      }
+
+      if (processedImages.length > 0) {
+        setFImages(prev => [...prev, ...processedImages]);
+        if (result.assets.length > maxImages) {
+          showToast(`Only first ${maxImages} images added.`, 'info');
+        }
+      }
     }
   };
 
@@ -292,19 +323,21 @@ export default function EPaperScreen({ navigation }) {
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { showToast('Gallery permission needed.', 'error'); return; }
-    const videoType = IMAGE_PICKER_MEDIA_TYPE?.Videos ?? IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Videos;
+    const videoType = normalizeEPaperMediaType(IMAGE_PICKER_MEDIA_TYPE?.Videos ?? IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Videos);
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: videoType ? [videoType] : undefined,
+      mediaTypes: videoType || undefined,
       allowsMultipleSelection: false,
-      base64: true,
-      quality: 0.5,
+      base64: false,
+      quality: 0.6,
+      videoMaxDuration: 60,
+      allowsEditing: false,
     });
     if (!result.canceled && result.assets?.[0]) {
       if (!isVideoAsset(result.assets[0])) {
         showToast('Please select a video file.', 'error');
         return;
       }
-      setFVideo(`data:video/mp4;base64,${result.assets[0].base64}`);
+      setFVideo(result.assets[0].uri);
     }
   };
 

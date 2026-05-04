@@ -1,13 +1,15 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   FlatList, Image, Dimensions, Modal, TextInput,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
   Animated, useWindowDimensions,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import AppNavbar from '../components/AppNavbar';
 import WebLayout from '../components/WebLayout';
+import { UserStore } from '../store/UserStore';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
@@ -18,6 +20,23 @@ const DEFAULT_MUTED = false;
 const SAMPLE_REEL_VIDEO = 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4';
 const SAMPLE_REEL_VIDEO_ALT = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4';
 const WEB_MAX_WIDTH = 430;
+
+// ✅ FIX: Function to validate image URLs and filter out blob: URLs
+function isValidImageUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  // Filter out blob: URLs, localhost URLs, and file URLs
+  if (url.startsWith('blob:')) return false;
+  if (url.startsWith('http://localhost')) return false;
+  if (url.startsWith('file://')) return false;
+  if (url === '' || url === 'null' || url === 'undefined') return false;
+  return true;
+}
+
+// ✅ FIX: Get safe image URL with fallback
+function getSafeImageUrl(url, fallbackId = 'default') {
+  if (isValidImageUrl(url)) return url;
+  return `https://picsum.photos/400/600?random=${fallbackId}`;
+}
 
 function isPlayableVideoSource(uri) {
   return typeof uri === 'string'
@@ -308,25 +327,52 @@ function CommentsModal({ visible, onClose, comments, onAddComment }) {
 }
 
 // ── Single Reel Card ──────────────────────────────────────────────────────────
-function ReelCard({ post, onLike, onBookmark, onComment, onShare, isActive, cardWidth, cardHeight }) {
+function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress, isActive, cardWidth, cardHeight }) {
+  const safePost = post || {};
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  // ✅ FIX 4: caption expand state — full description dikhne ke liye
   const [captionExpanded, setCaptionExpanded] = useState(false);
-  // ✅ FIX 1: muted sirf user ke action se change hoga — default false (unmuted)
   const [muted, setMuted] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [showPoster, setShowPoster] = useState(!!post.thumbnail);
+  const [showPoster, setShowPoster] = useState(!!safePost.thumbnail);
+  
+  // ✅ FIX: Image error states
+  const [avatarError, setAvatarError] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
 
-  const canPlayVideo = post.type === 'video' && isPlayableVideoSource(post.media);
+  const comments = Array.isArray(safePost.comments) ? safePost.comments : [];
+  const caption = String(safePost.caption || '');
+  const shares = Number(safePost.shares || 0);
+  const userName = String(safePost.user || 'User');
+  const avatarUri = String(safePost.avatar || safePost.author_profile_image || '');
+  const location = String(safePost.location || safePost.author_seat_name || '');
+  const headline = String(safePost.headline || '');
+  const role = String(safePost.role || safePost.author_role || '');
+  const time = String(safePost.time || '');
+  const verified = Boolean(safePost.verified || safePost.author_is_premium || false);
+  const postId = String(safePost.id || '');
+
+  // ✅ FIX: Safe avatar URL
+  const safeAvatarUrl = useMemo(() => {
+    if (!avatarError && isValidImageUrl(avatarUri)) return avatarUri;
+    return null;
+  }, [avatarUri, avatarError]);
+
+  // ✅ FIX: Safe thumbnail URL
+  const safeThumbnailUrl = useMemo(() => {
+    if (!thumbnailError && isValidImageUrl(safePost?.thumbnail || safePost?.image)) {
+      return safePost?.thumbnail || safePost?.image;
+    }
+    return `https://picsum.photos/400/600?random=${postId}`;
+  }, [safePost?.thumbnail, safePost?.image, thumbnailError, postId]);
+
+  const canPlayVideo = safePost.type === 'video' && isPlayableVideoSource(safePost.media);
   const player = useVideoPlayer(
-    canPlayVideo ? { uri: post.media } : null,
+    canPlayVideo ? { uri: safePost.media } : null,
     (videoPlayer) => { videoPlayer.loop = true; }
   );
 
-  useEffect(() => { setShowPoster(!!post.thumbnail); }, [post.thumbnail, post.media]);
-
-  // Reset caption expand when post changes
-  useEffect(() => { setCaptionExpanded(false); }, [post.id]);
+  useEffect(() => { setShowPoster(!!safePost.thumbnail); }, [safePost.thumbnail, safePost.media]);
+  useEffect(() => { setCaptionExpanded(false); }, [postId]);
 
   useEffect(() => {
     if (!canPlayVideo) return;
@@ -343,7 +389,15 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, isActive, card
     player.pause();
   }, [canPlayVideo, isActive, paused, player]);
 
-  // ✅ FIX 2: Like animation proper
+  // ✅ FIX: Cleanup video player on unmount
+  useEffect(() => {
+    return () => {
+      if (player) {
+        player.pause();
+      }
+    };
+  }, [player]);
+
   const handleLikePress = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 1.4, duration: 120, useNativeDriver: USE_NATIVE_DRIVER }),
@@ -354,12 +408,10 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, isActive, card
 
   const formatCount = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n);
 
-  // ✅ FIX 1: Tap on video = pause/play only. Mute button alag hai.
   const handleMediaPress = () => {
     setPaused((v) => !v);
   };
 
-  // ✅ FIX 1: Dedicated mute toggle — sirf mute button se mute hoga
   const handleMuteToggle = () => {
     setMuted((v) => !v);
   };
@@ -384,12 +436,22 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, isActive, card
               playsInline
               onFirstFrameRender={() => setShowPoster(false)}
             />
-            {showPoster && post.thumbnail ? (
-              <Image source={{ uri: post.thumbnail }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            {showPoster && (safePost.thumbnail || safePost.image) ? (
+              <Image 
+                source={{ uri: safeThumbnailUrl }} 
+                style={StyleSheet.absoluteFill} 
+                resizeMode="cover"
+                onError={() => setThumbnailError(true)}
+              />
             ) : null}
           </>
         ) : (
-          <Image source={{ uri: post.thumbnail || post.media }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <Image 
+            source={{ uri: safeThumbnailUrl }} 
+            style={StyleSheet.absoluteFill} 
+            resizeMode="cover"
+            onError={() => setThumbnailError(true)}
+          />
         )}
       </TouchableOpacity>
 
@@ -404,12 +466,11 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, isActive, card
         </View>
       )}
 
-      {/* ✅ FIX 2: TOP bar — sirf Tag + Mute button. Views icon HATA diya. */}
+      {/* TOP bar — Tag + Mute button */}
       <View style={styles.reelTopBar}>
-        <View style={[styles.reelTagBadge, { backgroundColor: post.tagColor }]}>
-          <Text style={styles.reelTagText}>{post.tag}</Text>
+        <View style={[styles.reelTagBadge, { backgroundColor: String(safePost.tagColor || '#16a34a') }]}>
+          <Text style={styles.reelTagText}>{String(safePost.tag || '')}</Text>
         </View>
-        {/* Sirf mute button — koi views icon nahi */}
         <TouchableOpacity style={styles.muteBtn} onPress={handleMuteToggle} activeOpacity={0.8}>
           <Text style={{ fontSize: 18 }}>{muted ? '🔇' : '🔊'}</Text>
         </TouchableOpacity>
@@ -418,63 +479,66 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, isActive, card
       {/* RIGHT: Actions */}
       <View style={styles.reelActions}>
         <View style={styles.reelAvatarWrap}>
-          <Image source={{ uri: post.avatar }} style={styles.reelAvatar} />
-          {post.verified && (
+          <Image 
+            source={safeAvatarUrl ? { uri: safeAvatarUrl } : { uri: 'https://i.pravatar.cc/100?img=5' }}
+            style={styles.reelAvatar} 
+            onError={() => setAvatarError(true)}
+          />
+          {verified && (
             <View style={styles.verifiedBadge}>
               <Text style={{ fontSize: 8, color: '#fff' }}>✓</Text>
             </View>
           )}
         </View>
 
-        {/* ✅ FIX 3: Like — properly toggles with count */}
         <TouchableOpacity style={styles.reelActionBtn} onPress={handleLikePress} activeOpacity={0.7}>
-          <Animated.Text style={[styles.reelActionIcon, { transform: [{ scale: scaleAnim }] }]}>
-            {post.liked ? '❤️' : '🤍'}
+          <Animated.Text style={[styles.reelActionIcon, { transform: [{ scale: scaleAnim }] }]}> 
+            {safePost.liked ? '❤️' : '🤍'}
           </Animated.Text>
           <Text style={styles.reelActionCount}>
-            {formatCount(post.liked ? post.likes + 1 : post.likes)}
+            {formatCount(safePost.liked ? Number(safePost.likes || 0) + 1 : Number(safePost.likes || 0))}
           </Text>
         </TouchableOpacity>
 
-        {/* ✅ FIX 3: Comment — opens modal with count */}
-        <TouchableOpacity style={styles.reelActionBtn} onPress={() => onComment(post.id)} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.reelActionBtn} onPress={() => onComment(postId)} activeOpacity={0.7}>
           <Text style={styles.reelActionIcon}>💬</Text>
-          <Text style={styles.reelActionCount}>{post.comments.length}</Text>
+          <Text style={styles.reelActionCount}>{comments.length}</Text>
         </TouchableOpacity>
 
-        {/* ✅ FIX 3: Share — proper count */}
-        <TouchableOpacity style={styles.reelActionBtn} onPress={() => onShare(post.id)} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.reelActionBtn} onPress={() => onShare(postId)} activeOpacity={0.7}>
           <Text style={styles.reelActionIcon}>📤</Text>
-          <Text style={styles.reelActionCount}>{formatCount(post.shares)}</Text>
+          <Text style={styles.reelActionCount}>{formatCount(shares)}</Text>
         </TouchableOpacity>
 
-        {/* Bookmark */}
-        <TouchableOpacity style={styles.reelActionBtn} onPress={() => onBookmark(post.id)} activeOpacity={0.7}>
-          <Text style={styles.reelActionIcon}>{post.bookmarked ? '🔖' : '🏷️'}</Text>
+        <TouchableOpacity style={styles.reelActionBtn} onPress={() => onBookmark(postId)} activeOpacity={0.7}>
+          <Text style={styles.reelActionIcon}>{Boolean(safePost.bookmarked) ? '🔖' : '🏷️'}</Text>
         </TouchableOpacity>
       </View>
 
       {/* BOTTOM: User info + headline + caption */}
       <View style={styles.reelBottom}>
-        <View style={styles.reelUserRow}>
-          <Image source={{ uri: post.avatar }} style={styles.reelUserAvatar} />
+        <TouchableOpacity style={styles.reelUserRow} onPress={() => onProfilePress(safePost)} activeOpacity={0.8}>
+          <Image 
+            source={safeAvatarUrl ? { uri: safeAvatarUrl } : { uri: 'https://i.pravatar.cc/100?img=5' }}
+            style={styles.reelUserAvatar}
+            onError={() => setAvatarError(true)}
+          />
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Text style={styles.reelUserName}>{post.user}</Text>
-              {post.verified && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
+              <Text style={styles.reelUserName}>{userName}</Text>
+              {verified && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
             </View>
-            <Text style={styles.reelUserRole}>{post.role} · {post.time}</Text>
+            <Text style={styles.reelUserRole}>{role} · {time}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.reelLocationRow}>
           <Text style={styles.reelLocationIcon}>📍</Text>
-          <Text style={styles.reelLocationText}>{post.location}</Text>
+          <Text style={styles.reelLocationText}>{location}</Text>
         </View>
 
         {post.headline ? <Text style={styles.reelHeadline}>{post.headline}</Text> : null}
 
-        {/* ✅ FIX 4: Caption — pura dikhta hai jab expand hota hai */}
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={() => setCaptionExpanded((v) => !v)}
@@ -483,19 +547,19 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, isActive, card
             style={styles.reelCaption}
             numberOfLines={captionExpanded ? undefined : 2}
           >
-            {post.caption}
+            {caption}
           </Text>
-          {post.caption.length > 80 && (
+          {caption.length > 80 && (
             <Text style={styles.reelCaptionMore}>
               {captionExpanded ? '▲ kam dikhao' : '▼ aur dikhao'}
             </Text>
           )}
         </TouchableOpacity>
 
-        {post.comments.length > 0 && (
+        {comments.length > 0 && (
           <TouchableOpacity onPress={() => onComment(post.id)} style={{ marginTop: 6 }}>
             <Text style={styles.reelViewComments}>
-              💬 View all {post.comments.length} comments
+              💬 View all {comments.length} comments
             </Text>
           </TouchableOpacity>
         )}
@@ -510,6 +574,7 @@ export default function FeedScreen({ navigation }) {
   const [uploadVisible, setUploadVisible] = useState(false);
   const [commentPost, setCommentPost] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [loadingFeed, setLoadingFeed] = useState(true);
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
@@ -525,7 +590,6 @@ export default function FeedScreen({ navigation }) {
 
   const handleComment = useCallback((id) => setCommentPost(id), []);
 
-  // ✅ FIX 3: Share count increment
   const handleShare = useCallback((id) =>
     setPosts((prev) => prev.map((p) => p.id === id ? { ...p, shares: p.shares + 1 } : p)), []);
 
@@ -561,6 +625,36 @@ export default function FeedScreen({ navigation }) {
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
   const activeCommentData = posts.find((p) => p.id === commentPost);
 
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setLoadingFeed(true);
+
+      const fetchFeed = async () => {
+        try {
+          const summary = await UserStore.getNewsFeedSummary();
+          if (!active) return;
+          if (summary?.items) {
+            // ✅ FIX: Clean posts to remove blob URLs
+            const cleanedPosts = summary.items.map(item => ({
+              ...item,
+              avatar: isValidImageUrl(item.avatar) ? item.avatar : null,
+              thumbnail: isValidImageUrl(item.thumbnail) ? item.thumbnail : null,
+              image: isValidImageUrl(item.image) ? item.image : null,
+            }));
+            setPosts(cleanedPosts);
+          }
+        } catch (error) {
+          console.log('Error fetching feed:', error);
+        }
+        setLoadingFeed(false);
+      };
+
+      fetchFeed();
+      return () => { active = false; };
+    }, [])
+  );
+
   const webOuterStyle = isWeb ? {
     flex: 1,
     backgroundColor: '#000',
@@ -593,6 +687,17 @@ export default function FeedScreen({ navigation }) {
                 onBookmark={handleBookmark}
                 onComment={handleComment}
                 onShare={handleShare}
+                onProfilePress={(postData) => navigation.navigate('UserProfile', {
+                  email: String(postData.user || '').trim().toLowerCase().replace(/\s+/g, '.'),
+                  author: {
+                    name: postData.user,
+                    author_profile_image: isValidImageUrl(postData.avatar) ? postData.avatar : null,
+                    author_role_label: postData.role,
+                    author_seat_name: postData.location,
+                    author_is_premium: Boolean(postData.verified),
+                    author_is_subscriber: false,
+                  },
+                })}
                 isActive={index === activeIndex}
                 cardWidth={cardWidth}
                 cardHeight={cardHeight}
@@ -663,7 +768,6 @@ const styles = StyleSheet.create({
     default: {},
   }),
 
-  // ✅ Top bar — clean, no views clutter
   reelTopBar: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 54 : 16,
@@ -678,7 +782,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
 
-  // Right actions
   reelActions: {
     position: 'absolute', right: 12, bottom: 120,
     alignItems: 'center', gap: 18,
@@ -709,7 +812,6 @@ const styles = StyleSheet.create({
     }),
   },
 
-  // Bottom info
   reelBottom: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 44 : 24,
@@ -753,7 +855,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)', fontWeight: '600',
   },
 
-  // Modals
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
   },

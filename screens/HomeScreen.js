@@ -55,6 +55,35 @@ function hashToSeed(input) {
   return Math.abs(hash) % 1000;
 }
 
+// ✅ FIX: Function to validate image URLs and filter out blob: URLs
+function isValidImageUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  // Filter out blob: URLs, localhost URLs, and file URLs
+  if (url.startsWith('blob:')) return false;
+  if (url.startsWith('http://localhost')) return false;
+  if (url.startsWith('file://')) return false;
+  // Also filter out empty or invalid URLs
+  if (url === '' || url === 'null' || url === 'undefined') return false;
+  return true;
+}
+
+// ✅ FIX: Function to get a valid image URL with fallback
+function getValidImageUrl(item, title, id) {
+  // Check images array first
+  if (Array.isArray(item?.images) && item.images.length > 0) {
+    const validImage = item.images.find(img => isValidImageUrl(img));
+    if (validImage) return validImage;
+  }
+  
+  // Check single image field
+  if (item?.image && isValidImageUrl(item?.image)) {
+    return item.image;
+  }
+  
+  // Return fallback placeholder
+  return `https://picsum.photos/400/300?random=${hashToSeed(id || title)}`;
+}
+
 function toLatestNewsCardShape(item) {
   const title = item?.title || 'Untitled';
   const category = item?.report_type || item?.category || 'News';
@@ -71,10 +100,8 @@ function toLatestNewsCardShape(item) {
     (item?.file ? 'File' : null) ||
     'None';
 
-  const image =
-    item?.images?.[0] ||
-    item?.image ||
-    `https://picsum.photos/400/300?random=${hashToSeed(item?.id || title)}`;
+  // ✅ FIX: Use the new validation function
+  const image = getValidImageUrl(item, title, item?.id);
 
   const description =
     stripHtml(item?.description) ||
@@ -110,7 +137,8 @@ function toLatestNewsCardShape(item) {
     excerpt,
     description,
     subtitle: stripHtml(item?.subtitle) || '',
-    images: Array.isArray(item?.images) ? item.images.filter(Boolean) : [],
+    // ✅ FIX: Filter images array to remove invalid URLs
+    images: Array.isArray(item?.images) ? item.images.filter(isValidImageUrl) : [],
     file: item?.file || null,
     state: item?.state || '',
     district: item?.district || '',
@@ -152,6 +180,10 @@ const sh = StyleSheet.create({
 function TopStoryCard({ article, isMobile, isLast, onPress }) {
   const { title, category, categoryColor = 'orange', image, date, author, excerpt } = article;
   const badge = colorMap[categoryColor] || colorMap.orange;
+  
+  // ✅ FIX: Add safety for image URL
+  const safeImage = isValidImageUrl(image) ? image : `https://picsum.photos/400/300?random=${hashToSeed(article?.id || title)}`;
+  
   return (
     <TouchableOpacity
       style={[
@@ -164,7 +196,15 @@ function TopStoryCard({ article, isMobile, isLast, onPress }) {
       onPress={onPress}
     >
       <View style={[ts.imageContainer, isMobile && ts.imageContainerMobile]}>
-        <Image source={{ uri: image }} style={ts.image} resizeMode="cover" />
+        <Image 
+          source={{ uri: safeImage }} 
+          style={ts.image} 
+          resizeMode="cover"
+          onError={(e) => {
+            // Silent fail - image will show nothing or you can set a fallback
+            console.warn('Image failed to load in TopStoryCard');
+          }}
+        />
         <View style={[ts.badge, { backgroundColor: badge.bg }]}>
           <Text style={[ts.badgeText, { color: badge.text }]}>{category}</Text>
         </View>
@@ -239,11 +279,20 @@ function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = f
   const [commentCount, setCommentCount] = useState(comments);
   const [shareCount, setShareCount] = useState(shares);
   const [viewCount, setViewCount] = useState(views);
+  const [imageError, setImageError] = useState(false);
 
   const badge = colorMap[categoryColor] || colorMap.orange;
   const hasVideo = mediaType === 'Video' && typeof video === 'string' && video.length > 0;
   const avatarPressRef = useRef(false);
   const showAuthor = Boolean((author || '').trim() || (author_profile_image || '').trim());
+
+  // ✅ FIX: Safe image URL with fallback
+  const safeImageUrl = useMemo(() => {
+    if (!imageError && isValidImageUrl(image)) {
+      return image;
+    }
+    return `https://picsum.photos/400/300?random=${hashToSeed(article?.id || title)}`;
+  }, [image, imageError, article?.id, title]);
 
   const handleLike = useCallback(() => {
     setIsLiked(!isLiked);
@@ -258,6 +307,10 @@ function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = f
     if (avatarPressRef.current) { avatarPressRef.current = false; return; }
     onPress?.();
   };
+
+  const handleImageError = useCallback(() => {
+    setImageError(true);
+  }, []);
 
   const webCardStyle = [
     ln.cardWeb,
@@ -280,7 +333,7 @@ function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = f
             activeOpacity={0.85}
           >
             <Image
-              source={author_profile_image ? { uri: author_profile_image } : DEFAULT_AVATAR}
+              source={author_profile_image && isValidImageUrl(author_profile_image) ? { uri: author_profile_image } : DEFAULT_AVATAR}
               style={[ln.authorHeaderAvatar, isMobile && ln.authorHeaderAvatarMobile]}
             />
             <View style={ln.authorHeaderText}>
@@ -318,13 +371,23 @@ function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = f
       <View style={[ln.imageContainer, isMobile && ln.imageContainerMobile]}>
         {hasVideo ? (
           <>
-            <Image source={{ uri: image }} style={ln.image} resizeMode="cover" />
+            <Image 
+              source={{ uri: safeImageUrl }} 
+              style={ln.image} 
+              resizeMode="cover"
+              onError={handleImageError}
+            />
             <View style={ln.videoOverlay}>
               <Ionicons name="play-circle" size={44} color="#ffffff" />
             </View>
           </>
         ) : (
-          <Image source={{ uri: image }} style={ln.image} resizeMode="cover" />
+          <Image 
+            source={{ uri: safeImageUrl }} 
+            style={ln.image} 
+            resizeMode="cover"
+            onError={handleImageError}
+          />
         )}
         <View style={[ln.badge, { backgroundColor: badge.bg }]}>
           <Text style={[ln.badgeText, { color: badge.text }]}>{category}</Text>
@@ -550,7 +613,6 @@ export default function HomeScreen() {
     </>
   );
 
-  // ✅ KEY FIX: flex column layout — navbar naturally bottom pe rahega
   const page = (
     <View style={s.pageContainer}>
       {isWeb && <AppNavbar navigation={navigation} activeScreen="Home" />}
@@ -564,7 +626,6 @@ export default function HomeScreen() {
         {pageContent}
       </ScrollView>
 
-      {/* ✅ Mobile navbar — flex mein last, touches kisi ko block nahi karega */}
       {!isWeb && <AppNavbar navigation={navigation} activeScreen="Home" />}
     </View>
   );
@@ -573,17 +634,16 @@ export default function HomeScreen() {
 }
 
 const s = StyleSheet.create({
-  // ✅ KEY FIX: flex:1 + column direction
   pageContainer: {
     flex: 1,
     flexDirection: 'column',
     backgroundColor: '#f9fafb',
   },
   scrollArea: {
-    flex: 1, // ✅ ScrollView remaining space lega, navbar push hoga neeche
+    flex: 1,
   },
   scrollContent: {
-    paddingBottom: 16, // Sirf thoda breathing room
+    paddingBottom: 16,
   },
 
   container: { flex: 1, backgroundColor: '#f9fafb' },

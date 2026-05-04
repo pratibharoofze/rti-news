@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -37,8 +37,28 @@ function buildLocation({ state, district, taluka }) {
   return parts.join(', ');
 }
 
+// ✅ FIX: Function to validate image URLs and filter out blob: URLs
+function isValidImageUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  // Filter out blob: URLs, localhost URLs, and file URLs
+  if (url.startsWith('blob:')) return false;
+  if (url.startsWith('http://localhost')) return false;
+  if (url.startsWith('file://')) return false;
+  // Also filter out empty or invalid URLs
+  if (url === '' || url === 'null' || url === 'undefined') return false;
+  return true;
+}
+
+// ✅ FIX: Function to get valid images array
+function getValidImages(imagesArray) {
+  if (!Array.isArray(imagesArray)) return [];
+  return imagesArray.filter(isValidImageUrl);
+}
+
 export default function NewsDetailsScreen({ route, navigation }) {
   const article = route?.params?.article || null;
+  const [heroImageError, setHeroImageError] = useState(false);
+  const [galleryImageErrors, setGalleryImageErrors] = useState({});
 
   const title       = article?.title        || 'News Details';
   const category    = article?.category     || 'News';
@@ -54,12 +74,39 @@ export default function NewsDetailsScreen({ route, navigation }) {
     return stripHtml(value);
   }, [article]);
 
+  // ✅ FIX: Filter out invalid image URLs
   const images = useMemo(() => {
     const src     = Array.isArray(article?.images) ? article.images : [];
     const primary = article?.image ? [article.image] : [];
     const merged  = [...primary, ...src].filter(Boolean);
-    return Array.from(new Set(merged));
+    const unique = Array.from(new Set(merged));
+    // Filter out blob: and invalid URLs
+    return getValidImages(unique);
   }, [article]);
+
+  // ✅ FIX: Get safe hero image with fallback
+  const heroImageUrl = useMemo(() => {
+    if (!heroImageError && images[0] && isValidImageUrl(images[0])) {
+      return images[0];
+    }
+    // Return a placeholder image
+    return `https://picsum.photos/800/400?random=${article?.id || 'news'}`;
+  }, [images, heroImageError, article?.id]);
+
+  const handleHeroImageError = useCallback(() => {
+    setHeroImageError(true);
+  }, []);
+
+  const handleGalleryImageError = useCallback((uri) => {
+    setGalleryImageErrors(prev => ({ ...prev, [uri]: true }));
+  }, []);
+
+  const getGalleryImageUrl = useCallback((uri, index) => {
+    if (galleryImageErrors[uri]) {
+      return `https://picsum.photos/400/300?random=gallery-${index}`;
+    }
+    return uri;
+  }, [galleryImageErrors]);
 
   const openFile = useCallback(async () => {
     const uri = article?.file?.uri;
@@ -86,9 +133,13 @@ export default function NewsDetailsScreen({ route, navigation }) {
       <View style={s.card}>
 
         {/* Hero image */}
-        {images[0] ? (
+        {images.length > 0 ? (
           <View style={s.heroImageWrap}>
-            <Image source={{ uri: images[0] }} style={s.heroImage} />
+            <Image 
+              source={{ uri: heroImageUrl }} 
+              style={s.heroImage} 
+              onError={handleHeroImageError}
+            />
             <View style={s.heroBadge}>
               <Text style={s.heroBadgeText}>{category}</Text>
             </View>
@@ -143,9 +194,18 @@ export default function NewsDetailsScreen({ route, navigation }) {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={s.galleryRow}
               >
-                {images.slice(1).map((uri) => (
-                  <Image key={uri} source={{ uri }} style={s.galleryImage} />
-                ))}
+                {images.slice(1).map((uri, index) => {
+                  const imageUrl = getGalleryImageUrl(uri, index);
+                  if (!isValidImageUrl(imageUrl)) return null;
+                  return (
+                    <Image 
+                      key={uri} 
+                      source={{ uri: imageUrl }} 
+                      style={s.galleryImage}
+                      onError={() => handleGalleryImageError(uri)}
+                    />
+                  );
+                })}
               </ScrollView>
             </View>
           ) : null}
@@ -187,11 +247,6 @@ export default function NewsDetailsScreen({ route, navigation }) {
   );
 
   // ── Layout ────────────────────────────────────────────────────────────────
-  // ✅ KEY FIX:
-  //   - Outer View = flex:1 column
-  //   - AppNavbar BAHAR ScrollView ke — tab bar content ko kabhi nahi dhakega
-  //   - ScrollView paddingBottom se content tab bar ke neeche nahi jayega
-
   const page = (
     <View style={s.pageContainer}>
 
@@ -212,8 +267,7 @@ export default function NewsDetailsScreen({ route, navigation }) {
         </View>
       </ScrollView>
 
-      {/* ✅ Mobile bottom tab bar — ScrollView ke BAHAR
-          Content kabhi is ke neeche nahi chupp payega */}
+      {/* Mobile bottom tab bar */}
       {IS_MOBILE && (
         <AppNavbar navigation={navigation} activeScreen={null} />
       )}
@@ -227,19 +281,19 @@ export default function NewsDetailsScreen({ route, navigation }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
 
-  // ✅ Outer container — flex column, full screen
+  // Outer container — flex column, full screen
   pageContainer: {
     flex: 1,
     flexDirection: 'column',
     backgroundColor: '#f9fafb',
   },
 
-  // ✅ ScrollView takes all remaining space between header and bottom navbar
+  // ScrollView takes all remaining space between header and bottom navbar
   scrollArea: {
     flex: 1,
   },
 
-  // ✅ Extra bottom padding so last content clears the bottom tab bar
+  // Extra bottom padding so last content clears the bottom tab bar
   scrollContent: {
     paddingBottom: IS_MOBILE ? 20 : 40,
   },

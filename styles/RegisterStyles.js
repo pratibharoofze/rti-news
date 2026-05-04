@@ -106,6 +106,26 @@ const RegisterStyles = StyleSheet.create({
     lineHeight: 18,
   },
 
+  // ── Back Button ──
+  backButtonContainer: {
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(168, 85, 247, 0.12)',
+  },
+  backButtonText: {
+    fontSize: 14,
+    color: '#c4b5fd',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+
   // ── Input ──
   inputGroup: {
     marginBottom: 10,

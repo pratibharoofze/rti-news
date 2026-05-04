@@ -16,10 +16,7 @@ const IS_NATIVE_MOBILE = Platform.OS === 'android' || Platform.OS === 'ios';
 const IS_MOBILE = IS_NATIVE_MOBILE || IS_WEB_MOBILE;
 
 function blurActiveElement() {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    return;
-  }
-
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
   const activeElement = document.activeElement;
   if (activeElement && typeof activeElement.blur === 'function') {
     activeElement.blur();
@@ -52,9 +49,6 @@ const INDIAN_LANGUAGES = [
   { code: 'ur',  label: 'Urdu',      native: 'اردو'       },
 ];
 
-// ─── Language Selector ───────────────────────────────────────────────────────
-// Modal hataya — pure inline View dropdown use kar raha hai
-// Yeh web aur native dono pe perfectly kaam karta hai
 function LanguageSelector({ compact = false }) {
   const { language, changeLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -79,13 +73,10 @@ function LanguageSelector({ compact = false }) {
 
   return (
     <View style={{ position: 'relative', zIndex: 1000 }}>
-      {/* Trigger button */}
       <TouchableOpacity
         style={[s.langBtn, compact && s.langBtnCompact]}
         onPress={() => {
-          if (open) {
-            blurActiveElement();
-          }
+          if (open) blurActiveElement();
           setOpen(!open);
           setSearch('');
         }}
@@ -98,10 +89,8 @@ function LanguageSelector({ compact = false }) {
         <Text style={s.langChevron}>{open ? '▴' : '▾'}</Text>
       </TouchableOpacity>
 
-      {/* Inline dropdown — Modal nahi, seedha View */}
       {open && (
         <>
-          {/* Invisible overlay to close on outside tap */}
           <TouchableOpacity
             style={s.dropdownOverlay}
             activeOpacity={1}
@@ -112,7 +101,6 @@ function LanguageSelector({ compact = false }) {
             }}
           />
           <View style={s.dropdown}>
-            {/* Search */}
             <View style={s.searchRow}>
               <Text style={s.searchIcon}>🔍</Text>
               <TextInput
@@ -129,8 +117,6 @@ function LanguageSelector({ compact = false }) {
                 </TouchableOpacity>
               )}
             </View>
-
-            {/* List */}
             <ScrollView style={s.langList} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
               {filtered.length === 0
                 ? <Text style={s.noResult}>No language found</Text>
@@ -157,7 +143,6 @@ function LanguageSelector({ compact = false }) {
   );
 }
 
-// ─── Main Header ─────────────────────────────────────────────────────────────
 export default function AppHeader({ navigation, compact = false }) {
   const [time, setTime] = useState(new Date());
 
@@ -175,25 +160,27 @@ export default function AppHeader({ navigation, compact = false }) {
     ? { paddingTop: StatusBar.currentHeight || 0 }
     : null;
 
-  // ─────────────────────────────────────────────────────────────
-  // MOBILE LAYOUT — Native Android/iOS + Mobile Web
-  // Row 1: Logo | Title
-  // Row 2: Language | SignUp
-  // Row 3: Orange Date/Time bar
-  // ─────────────────────────────────────────────────────────────
+  // ── MOBILE LAYOUT ──
   if (IS_MOBILE) {
     return (
       <View style={[s.root, androidPad]}>
-        {/* Row 1: Logo + Title */}
+        {/* Row 1: Logo + Title - dono tap karne pe Home jayega */}
         <View style={s.mobileRow1}>
-          <Image
-            source={require('../assets/images/certificate_logo.jpg')}
-            style={s.mobileLogo}
-            resizeMode="contain"
-          />
-          <Text style={s.mobileTitle} numberOfLines={2} adjustsFontSizeToFit>
-            {'भारतीय माहिती अधिकार'}
-          </Text>
+          <TouchableOpacity onPress={() => navigation?.navigate('Home')}>
+            <Image
+              source={require('../assets/images/certificate_logo.jpg')}
+              style={s.mobileLogo}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation?.navigate('Home')}
+            style={{ flex: 1 }}
+          >
+            <Text style={s.mobileTitle} numberOfLines={2} adjustsFontSizeToFit>
+              {'भारतीय माहिती अधिकार'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Row 2: Language + SignUp */}
@@ -219,18 +206,27 @@ export default function AppHeader({ navigation, compact = false }) {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // DESKTOP WEB LAYOUT — bilkul pehle jaisa
-  // ─────────────────────────────────────────────────────────────
+  // ── DESKTOP WEB LAYOUT ──
   return (
     <View style={[s.root, androidPad]}>
       <View style={s.utilityBar}>
-        <Image
-          source={require('../assets/images/certificate_logo.jpg')}
-          style={s.logoTop}
-          resizeMode="contain"
-        />
-        <Text style={s.centerTitle}>{'भारतीय माहिती अधिकार'}</Text>
+        {/* Logo - tap karne pe Home jayega */}
+        <TouchableOpacity
+          onPress={() => navigation?.navigate('Home')}
+          style={s.logoWrap}
+        >
+          <Image
+            source={require('../assets/images/certificate_logo.jpg')}
+            style={s.logoTop}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+
+        {/* Title - tap karne pe Home jayega */}
+        <TouchableOpacity onPress={() => navigation?.navigate('Home')}>
+          <Text style={s.centerTitle}>{'भारतीय माहिती अधिकार'}</Text>
+        </TouchableOpacity>
+
         <View style={s.rightGroup}>
           <LanguageSelector />
           <TouchableOpacity
@@ -253,9 +249,7 @@ export default function AppHeader({ navigation, compact = false }) {
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-
   root: {
     backgroundColor: '#fff',
     elevation: 6,
@@ -267,7 +261,7 @@ const s = StyleSheet.create({
     }),
   },
 
-  // ── Mobile Row 1 ──
+  // ── Mobile ──
   mobileRow1: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -288,8 +282,6 @@ const s = StyleSheet.create({
     color: '#f97316',
     textAlign: 'center',
   },
-
-  // ── Mobile Row 2 ──
   mobileRow2: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -303,15 +295,18 @@ const s = StyleSheet.create({
   utilityBar: {
     backgroundColor: '#fff',
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(249,115,22,0.15)',
     zIndex: 100,
   },
-  logoTop: {
+  logoWrap: {
     position: 'absolute',
     left: 12,
+  },
+  logoTop: {
     width: 85,
     height: 85,
   },
@@ -351,7 +346,7 @@ const s = StyleSheet.create({
   langBtnTextCompact: { fontSize: 11 },
   langChevron: { color: '#f97316', fontSize: 10, fontWeight: '800' },
 
-  // ── Inline Dropdown ──
+  // ── Dropdown ──
   dropdownOverlay: {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -374,12 +369,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     ...Platform.select({
       web: { boxShadow: '0 8px 32px rgba(249,115,22,0.20)' },
-      ios: {
-        shadowColor: '#f97316',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.18,
-        shadowRadius: 16,
-      },
+      ios: { shadowColor: '#f97316', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 16 },
       android: { elevation: 20 },
     }),
   },

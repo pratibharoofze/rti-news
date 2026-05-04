@@ -11,18 +11,13 @@ const IS_WEB = Platform.OS === 'web';
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 function blurActiveElement() {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    return;
-  }
-
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
   const activeElement = document.activeElement;
   if (activeElement && typeof activeElement.blur === 'function') {
     activeElement.blur();
   }
 }
 
-// ✅ KEY FIX: mobile web detection
-// Web pe window.innerWidth se check karo
 const IS_WEB_MOBILE = IS_WEB && (
   typeof window !== 'undefined' ? window.innerWidth < 768 : SCREEN_WIDTH < 768
 );
@@ -46,35 +41,14 @@ const mobileLabels = {
 };
 
 export default function AppNavbar({ activeScreen, navigation }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
-  const overlayAnim = useRef(new Animated.Value(0)).current;
-
-  const openSidebar = () => {
-    setSidebarOpen(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 0, duration: 280, useNativeDriver: USE_NATIVE_DRIVER }),
-      Animated.timing(overlayAnim, { toValue: 1, duration: 280, useNativeDriver: USE_NATIVE_DRIVER }),
-    ]).start();
-  };
-
-  const closeSidebar = () => {
-    Animated.parallel([
-      Animated.timing(slideAnim, { toValue: -SIDEBAR_WIDTH, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
-      Animated.timing(overlayAnim, { toValue: 0, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
-    ]).start(() => setSidebarOpen(false));
-  };
-
   const handleNav = (screen) => {
     blurActiveElement();
-    if (sidebarOpen) closeSidebar();
     if (navigation && navigation.navigate) {
       navigation.navigate(screen);
     }
   };
 
-  // ── CASE 1: Native Android/iOS  OR  Mobile Web (phone me link khola)
-  // → Bottom Tab Bar dikhao
+  // ── CASE 1: Native Android/iOS OR Mobile Web
   if (!IS_WEB || IS_WEB_MOBILE) {
     return (
       <View style={s.bottomBar}>
@@ -102,55 +76,36 @@ export default function AppNavbar({ activeScreen, navigation }) {
     );
   }
 
-  // ── CASE 2: Desktop Web → Top Navbar + Sidebar
+  // ── CASE 2: Desktop Web → Center Navbar Links
   return (
-    <>
-      <View style={s.navbar}>
-        <TouchableOpacity onPress={openSidebar} style={s.hamburger}>
-          <View style={s.hamLine} />
-          <View style={[s.hamLine, { width: 16 }]} />
-          <View style={s.hamLine} />
-        </TouchableOpacity>
-        <Text style={s.title}>RTI Portal</Text>
+    <View style={s.navbar}>
+      {/* Left: Logo/Title */}
+      <Text style={s.title}>🇮🇳 RTI Portal</Text>
+
+      {/* Center: Nav Links */}
+      <View style={s.navLinks}>
+        {navLinks.map((item) => {
+          const isActive = activeScreen === item.screen;
+          return (
+            <TouchableOpacity
+              key={item.screen}
+              style={[s.navLink, isActive && s.navLinkActive]}
+              onPress={() => handleNav(item.screen)}
+            >
+              <Text style={[s.navLinkText, isActive && s.navLinkTextActive]}>
+                {item.label}
+              </Text>
+              {isActive && <View style={s.activeUnderline} />}
+            </TouchableOpacity>
+          );
+        })}
       </View>
-
-      {sidebarOpen && (
-        <View style={s.sidebarContainer}>
-          <Pressable onPress={closeSidebar}>
-            <Animated.View style={[s.overlay, { opacity: overlayAnim }]} />
-          </Pressable>
-
-          <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]}>
-            <View style={s.sidebarHeader}>
-              <Text style={s.sidebarHeaderTitle}>Menu</Text>
-              <TouchableOpacity onPress={closeSidebar} style={s.closeBtn}>
-                <Text style={s.closeBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {navLinks.map((item) => {
-              const isActive = activeScreen === item.screen;
-              return (
-                <TouchableOpacity
-                  key={item.screen}
-                  style={[s.sidebarLink, isActive && s.sidebarLinkActive]}
-                  onPress={() => handleNav(item.screen)}
-                >
-                  <Text style={[s.linkText, isActive && s.linkTextActive]}>
-                    {item.icon}  {item.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </Animated.View>
-        </View>
-      )}
-    </>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  // ── Mobile / Mobile-Web Bottom Bar
+  // ── Mobile Bottom Bar
   bottomBar: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -159,7 +114,6 @@ const s = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 20 : 6,
     paddingTop: 6,
     elevation: 20,
-    // ✅ Web pe fixed bottom me rahega
     ...Platform.select({
       web: {
         position: 'fixed',
@@ -194,43 +148,58 @@ const s = StyleSheet.create({
     backgroundColor: 'green',
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     zIndex: 10,
+    ...Platform.select({
+      web: {
+        position: 'sticky',
+        top: 0,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      },
+      default: {},
+    }),
   },
-  hamburger: { marginRight: 10, padding: 4 },
-  hamLine: { width: 22, height: 2.5, backgroundColor: '#fff', marginVertical: 2, borderRadius: 2 },
-  title: { color: '#fff', fontWeight: '700', fontSize: 16 },
-
-  // ── Sidebar
-  sidebarContainer: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    zIndex: 999,
+  title: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 16,
+    marginRight: 24,
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sidebar: {
-    position: 'absolute',
-    top: 0, left: 0, bottom: 0,
-    width: SIDEBAR_WIDTH,
-    backgroundColor: '#fff',
-    zIndex: 1000,
-    elevation: 30,
-  },
-  sidebarHeader: {
-    padding: 20,
-    backgroundColor: '#f97316',
+  navLinks: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 4,
   },
-  sidebarHeaderTitle: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  closeBtn: { padding: 4 },
-  closeBtnText: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  sidebarLink: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  sidebarLinkActive: { backgroundColor: '#fff7ed' },
-  linkText: { fontSize: 14, color: '#374151' },
-  linkTextActive: { color: '#f97316', fontWeight: '700' },
+  navLink: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  navLinkActive: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  navLinkText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '600',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  navLinkTextActive: {
+    color: '#fff',
+    fontWeight: '800',
+  },
+  activeUnderline: {
+    position: 'absolute',
+    bottom: 4,
+    left: 14,
+    right: 14,
+    height: 2,
+    backgroundColor: '#fff',
+    borderRadius: 1,
+  },
 });

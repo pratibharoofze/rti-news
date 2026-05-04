@@ -9,15 +9,14 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import AppNavbar from '../components/AppNavbar';
 import WebLayout from '../components/WebLayout';
 
-// ── NOTE: SCREEN_WIDTH/HEIGHT sirf fallback ke liye hain
-// Actual rendering mein useWindowDimensions use hoga
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
-const DEFAULT_MUTED = Platform.OS === 'web';
+
+// ✅ FIX 1: DEFAULT_MUTED hamesha false — user manually mute kare tabhi mute hoga
+const DEFAULT_MUTED = false;
+
 const SAMPLE_REEL_VIDEO = 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4';
 const SAMPLE_REEL_VIDEO_ALT = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4';
-
-// Web pe max width (mobile-like experience)
 const WEB_MAX_WIDTH = 430;
 
 function isPlayableVideoSource(uri) {
@@ -41,7 +40,7 @@ const DUMMY_POSTS = [
     thumbnail: 'https://images.shiksha.com/mediadata/images/articles/1733209282phpDQvZRu.png',
     headline: 'RTI se pani supply ka sach aaya samne!',
     caption: 'Lucknow ke Ward 14 mein 3 mahine se pani nahi aa raha tha. RTI daali, 30 din mein collector ne jawab diya — pipeline repair ka budget release ho gaya. Jan Shakti Zindabad! 🎉 #RTI #JanAdhikar #Water',
-    likes: 1240, views: 8900, shares: 312,
+    likes: 1240, shares: 312,
     comments: [
       { id: 'c1', user: 'Priya Verma', text: 'Bahut acha kaam kiya bhai! 👏' },
       { id: 'c2', user: 'Mohan Lal', text: 'RTI ek powerful tool hai, use it!' },
@@ -61,7 +60,7 @@ const DUMMY_POSTS = [
     media: SAMPLE_REEL_VIDEO_ALT,
     headline: 'Sarkari school ke funds kahan gaye? RTI se poochha!',
     caption: 'Bhopal ke Government Primary School No. 7 mein mid-day meal funds ka hisaab nahi tha. RTI application file ki — 20 din mein documents maange hain. #RTI #Education #Accountability',
-    likes: 890, views: 5400, shares: 145,
+    likes: 890, shares: 145,
     comments: [
       { id: 'c3', user: 'Admin RTI', text: 'Best of luck! Hum sath hain.' },
       { id: 'c4', user: 'Ravi Kumar', text: 'Aisi RTI aur daalo!' },
@@ -82,7 +81,7 @@ const DUMMY_POSTS = [
     thumbnail: 'https://images.shiksha.com/mediadata/images/articles/1733209282phpDQvZRu.png',
     headline: 'Sadak RTI ke baad bani — yahi hai Jan Shakti!',
     caption: 'Ahmedabad ke Narol area mein 2 saal se sadak nahi bani thi. RTI daaline ke baad PWD ne 15 din mein kaam shuru kar diya. 🛣️ #RTI #Infrastructure #Gujarat',
-    likes: 3120, views: 21000, shares: 890,
+    likes: 3120, shares: 890,
     comments: [
       { id: 'c5', user: 'Neha Shah', text: 'Wah! Ekdam inspiring hai yeh!' },
       { id: 'c6', user: 'Suresh Bhai', text: 'Kaise daali RTI? Steps share karo please.' },
@@ -104,7 +103,7 @@ const DUMMY_POSTS = [
     thumbnail: 'https://picsum.photos/seed/news4/600/900',
     headline: 'Sarkari hospital mein dawai ka stock kahan hai?',
     caption: 'Patna Civil Hospital mein zaruri dawaiyan stock mein nahi thi. RTI ke through medicine purchase records maange. Sarkar ko jawab dena hi padega! 💊 #RTI #Health #Bihar',
-    likes: 2050, views: 14300, shares: 567,
+    likes: 2050, shares: 567,
     comments: [
       { id: 'c8', user: 'Asha Devi', text: 'Yahan bhi same problem hai!' },
       { id: 'c9', user: 'Health Watch', text: 'Important RTI hai yeh. Share karo.' },
@@ -125,7 +124,7 @@ const DUMMY_POSTS = [
     thumbnail: 'https://picsum.photos/seed/news5/600/900',
     headline: 'Ab ghar baithe file karo RTI — sirf 5 minute mein!',
     caption: '📢 Ab aap RTI online bhi file kar sakte ho! rtionline.gov.in pe jaake registration karo. Koi fee nahi, koi agent nahi — seedha sarkar se sawaal poochho! #RTIOnline #DigitalIndia',
-    likes: 8910, views: 65000, shares: 4200,
+    likes: 8910, shares: 4200,
     comments: [
       { id: 'c10', user: 'Raj Mishra', text: 'Thank you! Bahut kaam ka update hai.' },
       { id: 'c11', user: 'Pooja Gupta', text: 'Share kiya sab ko! 🙏' },
@@ -146,7 +145,7 @@ const DUMMY_POSTS = [
     thumbnail: 'https://picsum.photos/seed/news6/600/900',
     headline: 'Teachers ki attendance RTI mein maangi — school shocked!',
     caption: 'Jaipur ke ek sarkari school mein teachers regularly absent rehte the. RTI daali — attendance register ki copy maangi. School administration ab seedha ho gayi! 📚 #RTI #Education',
-    likes: 670, views: 4100, shares: 198,
+    likes: 670, shares: 198,
     comments: [
       { id: 'c13', user: 'Parent Group', text: 'Bahut sahi kiya! Hum sab sath hain.' },
     ],
@@ -166,7 +165,7 @@ const DUMMY_POSTS = [
     thumbnail: 'https://picsum.photos/seed/news7/600/900',
     headline: 'MGNREGA funds ki RTI — 2 crore ka khel pakda!',
     caption: 'Hyderabad ke ek block mein MGNREGA ke naam pe 2 crore ka fund aaya lekin majdooron ko ek paisa nahi mila. RTI daali — ab CBI jaanch shuru! ⚖️ #RTI #MGNREGA #Corruption',
-    likes: 5430, views: 38000, shares: 2100,
+    likes: 5430, shares: 2100,
     comments: [
       { id: 'c14', user: 'Ramesh', text: 'Yeh toh bahut bada expose hai!' },
       { id: 'c15', user: 'Media Watch', text: 'Hum cover karenge yeh story.' },
@@ -309,11 +308,12 @@ function CommentsModal({ visible, onClose, comments, onAddComment }) {
 }
 
 // ── Single Reel Card ──────────────────────────────────────────────────────────
-// cardWidth & cardHeight props se aata hai — web pe centered fixed width
-function ReelCard({ post, onLike, onBookmark, onComment, isActive, cardWidth, cardHeight }) {
+function ReelCard({ post, onLike, onBookmark, onComment, onShare, isActive, cardWidth, cardHeight }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  // ✅ FIX 4: caption expand state — full description dikhne ke liye
   const [captionExpanded, setCaptionExpanded] = useState(false);
-  const [muted, setMuted] = useState(DEFAULT_MUTED);
+  // ✅ FIX 1: muted sirf user ke action se change hoga — default false (unmuted)
+  const [muted, setMuted] = useState(false);
   const [paused, setPaused] = useState(false);
   const [showPoster, setShowPoster] = useState(!!post.thumbnail);
 
@@ -324,6 +324,9 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive, cardWidth, ca
   );
 
   useEffect(() => { setShowPoster(!!post.thumbnail); }, [post.thumbnail, post.media]);
+
+  // Reset caption expand when post changes
+  useEffect(() => { setCaptionExpanded(false); }, [post.id]);
 
   useEffect(() => {
     if (!canPlayVideo) return;
@@ -340,6 +343,7 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive, cardWidth, ca
     player.pause();
   }, [canPlayVideo, isActive, paused, player]);
 
+  // ✅ FIX 2: Like animation proper
   const handleLikePress = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 1.4, duration: 120, useNativeDriver: USE_NATIVE_DRIVER }),
@@ -350,18 +354,17 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive, cardWidth, ca
 
   const formatCount = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n);
 
+  // ✅ FIX 1: Tap on video = pause/play only. Mute button alag hai.
   const handleMediaPress = () => {
-    if (canPlayVideo && muted) {
-      setMuted(false);
-      setPaused(false);
-      Promise.resolve(player.play()).catch(() => {});
-      return;
-    }
     setPaused((v) => !v);
   };
 
+  // ✅ FIX 1: Dedicated mute toggle — sirf mute button se mute hoga
+  const handleMuteToggle = () => {
+    setMuted((v) => !v);
+  };
+
   return (
-    // ── KEY FIX: width & height dynamically set from props ──
     <View style={[styles.reel, { width: cardWidth, height: cardHeight }]}>
 
       {/* Full screen VIDEO */}
@@ -401,27 +404,15 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive, cardWidth, ca
         </View>
       )}
 
-      {/* Sound hint */}
-      {canPlayVideo && muted && (
-        <View style={[styles.soundHint, styles.pointerEventsNone]} pointerEvents={Platform.OS === 'web' ? undefined : 'none'}>
-          <Text style={styles.soundHintText}>Tap for sound</Text>
-        </View>
-      )}
-
-      {/* TOP: Tag + Views + Mute */}
+      {/* ✅ FIX 2: TOP bar — sirf Tag + Mute button. Views icon HATA diya. */}
       <View style={styles.reelTopBar}>
         <View style={[styles.reelTagBadge, { backgroundColor: post.tagColor }]}>
           <Text style={styles.reelTagText}>{post.tag}</Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          <View style={styles.viewsRow}>
-            <Text style={styles.viewsIcon}>👁</Text>
-            <Text style={styles.viewsText}>{formatCount(post.views)}</Text>
-          </View>
-          <TouchableOpacity style={styles.muteBtn} onPress={() => setMuted((v) => !v)}>
-            <Text style={{ fontSize: 16 }}>{muted ? '🔇' : '🔊'}</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Sirf mute button — koi views icon nahi */}
+        <TouchableOpacity style={styles.muteBtn} onPress={handleMuteToggle} activeOpacity={0.8}>
+          <Text style={{ fontSize: 18 }}>{muted ? '🔇' : '🔊'}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* RIGHT: Actions */}
@@ -435,23 +426,29 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive, cardWidth, ca
           )}
         </View>
 
+        {/* ✅ FIX 3: Like — properly toggles with count */}
         <TouchableOpacity style={styles.reelActionBtn} onPress={handleLikePress} activeOpacity={0.7}>
           <Animated.Text style={[styles.reelActionIcon, { transform: [{ scale: scaleAnim }] }]}>
             {post.liked ? '❤️' : '🤍'}
           </Animated.Text>
-          <Text style={styles.reelActionCount}>{formatCount(post.liked ? post.likes + 1 : post.likes)}</Text>
+          <Text style={styles.reelActionCount}>
+            {formatCount(post.liked ? post.likes + 1 : post.likes)}
+          </Text>
         </TouchableOpacity>
 
+        {/* ✅ FIX 3: Comment — opens modal with count */}
         <TouchableOpacity style={styles.reelActionBtn} onPress={() => onComment(post.id)} activeOpacity={0.7}>
           <Text style={styles.reelActionIcon}>💬</Text>
           <Text style={styles.reelActionCount}>{post.comments.length}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.reelActionBtn} activeOpacity={0.7}>
+        {/* ✅ FIX 3: Share — proper count */}
+        <TouchableOpacity style={styles.reelActionBtn} onPress={() => onShare(post.id)} activeOpacity={0.7}>
           <Text style={styles.reelActionIcon}>📤</Text>
           <Text style={styles.reelActionCount}>{formatCount(post.shares)}</Text>
         </TouchableOpacity>
 
+        {/* Bookmark */}
         <TouchableOpacity style={styles.reelActionBtn} onPress={() => onBookmark(post.id)} activeOpacity={0.7}>
           <Text style={styles.reelActionIcon}>{post.bookmarked ? '🔖' : '🏷️'}</Text>
         </TouchableOpacity>
@@ -477,18 +474,29 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive, cardWidth, ca
 
         {post.headline ? <Text style={styles.reelHeadline}>{post.headline}</Text> : null}
 
-        <Text style={styles.reelCaption} numberOfLines={captionExpanded ? undefined : 2}>
-          {post.caption}
-        </Text>
-        {post.caption.length > 80 && (
-          <TouchableOpacity onPress={() => setCaptionExpanded((v) => !v)}>
-            <Text style={styles.reelCaptionMore}>{captionExpanded ? '▲ less' : '▼ more'}</Text>
-          </TouchableOpacity>
-        )}
+        {/* ✅ FIX 4: Caption — pura dikhta hai jab expand hota hai */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => setCaptionExpanded((v) => !v)}
+        >
+          <Text
+            style={styles.reelCaption}
+            numberOfLines={captionExpanded ? undefined : 2}
+          >
+            {post.caption}
+          </Text>
+          {post.caption.length > 80 && (
+            <Text style={styles.reelCaptionMore}>
+              {captionExpanded ? '▲ kam dikhao' : '▼ aur dikhao'}
+            </Text>
+          )}
+        </TouchableOpacity>
 
         {post.comments.length > 0 && (
-          <TouchableOpacity onPress={() => onComment(post.id)}>
-            <Text style={styles.reelViewComments}>💬 View all {post.comments.length} comments</Text>
+          <TouchableOpacity onPress={() => onComment(post.id)} style={{ marginTop: 6 }}>
+            <Text style={styles.reelViewComments}>
+              💬 View all {post.comments.length} comments
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -503,21 +511,23 @@ export default function FeedScreen({ navigation }) {
   const [commentPost, setCommentPost] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // ── KEY FIX: Actual window size use karo ──
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
 
-  // Web pe: screen center mein fixed max width wala column
-  // Mobile pe: poori screen
-  const cardWidth = isWeb
-    ? Math.min(windowWidth, WEB_MAX_WIDTH)
-    : windowWidth;
-
+  const cardWidth = isWeb ? Math.min(windowWidth, WEB_MAX_WIDTH) : windowWidth;
   const cardHeight = windowHeight;
 
-  const handleLike     = useCallback((id) => setPosts((prev) => prev.map((p) => p.id === id ? { ...p, liked: !p.liked } : p)), []);
-  const handleBookmark = useCallback((id) => setPosts((prev) => prev.map((p) => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p)), []);
-  const handleComment  = useCallback((id) => setCommentPost(id), []);
+  const handleLike = useCallback((id) =>
+    setPosts((prev) => prev.map((p) => p.id === id ? { ...p, liked: !p.liked } : p)), []);
+
+  const handleBookmark = useCallback((id) =>
+    setPosts((prev) => prev.map((p) => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p)), []);
+
+  const handleComment = useCallback((id) => setCommentPost(id), []);
+
+  // ✅ FIX 3: Share count increment
+  const handleShare = useCallback((id) =>
+    setPosts((prev) => prev.map((p) => p.id === id ? { ...p, shares: p.shares + 1 } : p)), []);
 
   const handleAddComment = useCallback((text) => {
     setPosts((prev) =>
@@ -538,7 +548,7 @@ export default function FeedScreen({ navigation }) {
       media: `https://picsum.photos/seed/${Date.now()}/600/900`,
       thumbnail: `https://picsum.photos/seed/${Date.now()}/600/900`,
       headline: headline || 'Meri RTI Story',
-      caption, likes: 0, views: 1, shares: 0, comments: [],
+      caption, likes: 0, shares: 0, comments: [],
       liked: false, bookmarked: false, tag, tagColor: '#16a34a',
     };
     setPosts((prev) => [newPost, ...prev]);
@@ -551,11 +561,10 @@ export default function FeedScreen({ navigation }) {
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
   const activeCommentData = posts.find((p) => p.id === commentPost);
 
-  // ── Web wrapper: black background + center mein card column ──
   const webOuterStyle = isWeb ? {
     flex: 1,
     backgroundColor: '#000',
-    alignItems: 'center',       // ← horizontally center
+    alignItems: 'center',
     justifyContent: 'center',
   } : { flex: 1, backgroundColor: '#000' };
 
@@ -563,13 +572,11 @@ export default function FeedScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       {isWeb && <AppNavbar navigation={navigation} activeScreen="Feed" />}
 
-      {/* ── Web pe centered column, mobile pe full screen ── */}
       <View style={webOuterStyle}>
         <View style={{
           width: cardWidth,
           flex: 1,
           overflow: 'hidden',
-          // Web pe subtle border taaki column visible rahe desktop pe
           ...(isWeb && windowWidth > WEB_MAX_WIDTH ? {
             borderLeftWidth: 1,
             borderRightWidth: 1,
@@ -585,21 +592,22 @@ export default function FeedScreen({ navigation }) {
                 onLike={handleLike}
                 onBookmark={handleBookmark}
                 onComment={handleComment}
+                onShare={handleShare}
                 isActive={index === activeIndex}
-                cardWidth={cardWidth}      // ← pass karo
-                cardHeight={cardHeight}    // ← pass karo
+                cardWidth={cardWidth}
+                cardHeight={cardHeight}
               />
             )}
             pagingEnabled
-            snapToInterval={cardHeight}          // ← dynamic height
+            snapToInterval={cardHeight}
             snapToAlignment="start"
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
             onViewableItemsChanged={onViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
             getItemLayout={(_, index) => ({
-              length: cardHeight,                // ← dynamic height
-              offset: cardHeight * index,        // ← dynamic height
+              length: cardHeight,
+              offset: cardHeight * index,
               index,
             })}
             style={{ flex: 1 }}
@@ -631,7 +639,6 @@ export default function FeedScreen({ navigation }) {
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  // ── reel: width/height NAHI hain — props se aata hai ──
   reel: {
     backgroundColor: '#000',
     position: 'relative',
@@ -651,22 +658,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   pausedIcon: { fontSize: 64, opacity: 0.8 },
-  soundHint: {
-    position: 'absolute',
-    left: 14,
-    bottom: Platform.OS === 'ios' ? 150 : 130,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  soundHintText: { color: '#fff', fontSize: 12, fontWeight: '800' },
   pointerEventsNone: Platform.select({
     web: { pointerEvents: 'none' },
     default: {},
   }),
 
-  // Top bar
+  // ✅ Top bar — clean, no views clutter
   reelTopBar: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 54 : 16,
@@ -675,14 +672,11 @@ const styles = StyleSheet.create({
   },
   reelTagBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   reelTagText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  viewsRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
+  muteBtn: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    padding: 8,
+    borderRadius: 20,
   },
-  viewsIcon: { fontSize: 12 },
-  viewsText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  muteBtn: { backgroundColor: 'rgba(0,0,0,0.4)', padding: 6, borderRadius: 20 },
 
   // Right actions
   reelActions: {
@@ -748,9 +742,14 @@ const styles = StyleSheet.create({
     }),
   },
   reelCaption: { color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 18 },
-  reelCaptionMore: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 3 },
+  reelCaptionMore: {
+    color: '#f97316',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 3,
+  },
   reelViewComments: {
-    marginTop: 6, fontSize: 12,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.6)', fontWeight: '600',
   },
 

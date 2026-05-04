@@ -270,6 +270,13 @@ export default function RegisterScreen({ navigation }) {
           <View style={styles.formContainer}>
             <View style={styles.topAccent} />
 
+            <View style={styles.backButtonContainer}>
+              <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={20} color="#c4b5fd" />
+                <Text style={styles.backButtonText}>Back to Home</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.brandLogoWrap}>
               <Image source={CERTIFICATE_LOGO} style={styles.brandLogo} resizeMode="cover" />
             </View>

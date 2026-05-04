@@ -238,10 +238,13 @@ function CollapsibleLegalText({ children, id }) {
   );
 }
 
+// Ye line component ke BAHAR rakho (export default se pehle)
+const isWeb = Platform.OS === 'web';
+
 export default function RTIPage({ navigation }) {
   const [openId, setOpenId] = useState(null);
   const { width } = useWindowDimensions();
-  const isWeb = width >= 768;
+  // isWeb wali line yahan se HATAO
 
   const toggle = (id) => setOpenId(openId === id ? null : id);
 
@@ -403,21 +406,15 @@ export default function RTIPage({ navigation }) {
   );
 
   const page = (
-    <View style={{ flex: 1 }}>
-      {/* Web pe TOP navbar */}
-      {isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
-
-      {/* Content */}
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <AppHeader navigation={navigation} compact={!isWeb} />
-        {pageContent}
-      </ScrollView>
-
-      {/* Mobile pe BOTTOM tabs — ScrollView ke bahar! */}
-      {!isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
-    </View>
-  );
-
+  <View style={{ flex: 1 }}>
+    {isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
+    <AppHeader navigation={navigation} compact={!isWeb} />
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {pageContent}
+    </ScrollView>
+    {!isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
+  </View>
+);
   return isWeb ? <WebLayout>{page}</WebLayout> : page;
 }
 

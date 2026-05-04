@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity,
   StyleSheet, Platform, StatusBar, Dimensions, Image,
-  FlatList, TextInput, ScrollView,
+  TextInput, ScrollView,
 } from 'react-native';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -14,6 +14,17 @@ const IS_WEB_MOBILE = IS_WEB && (
 );
 const IS_NATIVE_MOBILE = Platform.OS === 'android' || Platform.OS === 'ios';
 const IS_MOBILE = IS_NATIVE_MOBILE || IS_WEB_MOBILE;
+
+function blurActiveElement() {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    return;
+  }
+
+  const activeElement = document.activeElement;
+  if (activeElement && typeof activeElement.blur === 'function') {
+    activeElement.blur();
+  }
+}
 
 const INDIAN_LANGUAGES = [
   { code: 'as',  label: 'Assamese',  native: 'অসমীয়া'   },
@@ -61,6 +72,7 @@ function LanguageSelector({ compact = false }) {
 
   const handleSelect = (lang) => {
     changeLanguage(lang.code);
+    blurActiveElement();
     setOpen(false);
     setSearch('');
   };
@@ -70,7 +82,13 @@ function LanguageSelector({ compact = false }) {
       {/* Trigger button */}
       <TouchableOpacity
         style={[s.langBtn, compact && s.langBtnCompact]}
-        onPress={() => { setOpen(!open); setSearch(''); }}
+        onPress={() => {
+          if (open) {
+            blurActiveElement();
+          }
+          setOpen(!open);
+          setSearch('');
+        }}
         activeOpacity={0.8}
       >
         <Text style={s.langBtnIcon}>🌐</Text>
@@ -87,7 +105,11 @@ function LanguageSelector({ compact = false }) {
           <TouchableOpacity
             style={s.dropdownOverlay}
             activeOpacity={1}
-            onPress={() => { setOpen(false); setSearch(''); }}
+            onPress={() => {
+              blurActiveElement();
+              setOpen(false);
+              setSearch('');
+            }}
           />
           <View style={s.dropdown}>
             {/* Search */}

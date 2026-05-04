@@ -1,21 +1,32 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   FlatList, Image, Dimensions, Modal, TextInput,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
-  Animated,
+  Animated, useWindowDimensions,
 } from 'react-native';
-import { useWindowDimensions } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
-import AppHeader from '../components/AppHeader';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import AppNavbar from '../components/AppNavbar';
-import AppFooter from '../components/AppFooter';
 import WebLayout from '../components/WebLayout';
 
+// ── NOTE: SCREEN_WIDTH/HEIGHT sirf fallback ke liye hain
+// Actual rendering mein useWindowDimensions use hoga
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+const DEFAULT_MUTED = Platform.OS === 'web';
+const SAMPLE_REEL_VIDEO = 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4';
+const SAMPLE_REEL_VIDEO_ALT = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4';
 
-// ── News-style Reels Dummy Data — Real Video URLs ───────────────────────────
-// Free public domain / creative commons short news-style videos
+// Web pe max width (mobile-like experience)
+const WEB_MAX_WIDTH = 430;
+
+function isPlayableVideoSource(uri) {
+  return typeof uri === 'string'
+    && /^(https?:|blob:|data:)/i.test(uri)
+    && !/(youtube\.com|youtu\.be)/i.test(uri)
+    && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
+}
+
 const DUMMY_POSTS = [
   {
     id: '1',
@@ -26,8 +37,7 @@ const DUMMY_POSTS = [
     location: 'Lucknow, Uttar Pradesh',
     time: '2 min ago',
     type: 'video',
-    // Public domain news/nature video — water supply topic
-   
+    media: SAMPLE_REEL_VIDEO,
     thumbnail: 'https://images.shiksha.com/mediadata/images/articles/1733209282phpDQvZRu.png',
     headline: 'RTI se pani supply ka sach aaya samne!',
     caption: 'Lucknow ke Ward 14 mein 3 mahine se pani nahi aa raha tha. RTI daali, 30 din mein collector ne jawab diya — pipeline repair ka budget release ho gaya. Jan Shakti Zindabad! 🎉 #RTI #JanAdhikar #Water',
@@ -48,8 +58,7 @@ const DUMMY_POSTS = [
     location: 'Bhopal, Madhya Pradesh',
     time: '15 min ago',
     type: 'video',
-    media: 'https://www.youtube.com/watch?v=BL8h5fTWOZ4',
-    
+    media: SAMPLE_REEL_VIDEO_ALT,
     headline: 'Sarkari school ke funds kahan gaye? RTI se poochha!',
     caption: 'Bhopal ke Government Primary School No. 7 mein mid-day meal funds ka hisaab nahi tha. RTI application file ki — 20 din mein documents maange hain. #RTI #Education #Accountability',
     likes: 890, views: 5400, shares: 145,
@@ -69,7 +78,7 @@ const DUMMY_POSTS = [
     location: 'Ahmedabad, Gujarat',
     time: '1 hr ago',
     type: 'video',
-    media: 'https://www.youtube.com/watch?v=BL8h5fTWOZ4',
+    media: SAMPLE_REEL_VIDEO,
     thumbnail: 'https://images.shiksha.com/mediadata/images/articles/1733209282phpDQvZRu.png',
     headline: 'Sadak RTI ke baad bani — yahi hai Jan Shakti!',
     caption: 'Ahmedabad ke Narol area mein 2 saal se sadak nahi bani thi. RTI daaline ke baad PWD ne 15 din mein kaam shuru kar diya. 🛣️ #RTI #Infrastructure #Gujarat',
@@ -299,71 +308,107 @@ function CommentsModal({ visible, onClose, comments, onAddComment }) {
   );
 }
 
-// ── Single Reel Card — Video Player ──────────────────────────────────────────
-function ReelCard({ post, onLike, onBookmark, onComment, isActive }) {
+// ── Single Reel Card ──────────────────────────────────────────────────────────
+// cardWidth & cardHeight props se aata hai — web pe centered fixed width
+function ReelCard({ post, onLike, onBookmark, onComment, isActive, cardWidth, cardHeight }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [captionExpanded, setCaptionExpanded] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(DEFAULT_MUTED);
   const [paused, setPaused] = useState(false);
-  const videoRef = useRef(null);
+  const [showPoster, setShowPoster] = useState(!!post.thumbnail);
+
+  const canPlayVideo = post.type === 'video' && isPlayableVideoSource(post.media);
+  const player = useVideoPlayer(
+    canPlayVideo ? { uri: post.media } : null,
+    (videoPlayer) => { videoPlayer.loop = true; }
+  );
+
+  useEffect(() => { setShowPoster(!!post.thumbnail); }, [post.thumbnail, post.media]);
+
+  useEffect(() => {
+    if (!canPlayVideo) return;
+    player.muted = muted;
+    player.volume = 1;
+  }, [canPlayVideo, muted, player]);
+
+  useEffect(() => {
+    if (!canPlayVideo) return;
+    if (isActive && !paused) {
+      Promise.resolve(player.play()).catch(() => {});
+      return;
+    }
+    player.pause();
+  }, [canPlayVideo, isActive, paused, player]);
 
   const handleLikePress = () => {
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 1.4, duration: 120, useNativeDriver: true }),
-      Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 1.4, duration: 120, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
     onLike(post.id);
   };
 
-  const formatCount = (n) => {
-    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-    return String(n);
+  const formatCount = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n);
+
+  const handleMediaPress = () => {
+    if (canPlayVideo && muted) {
+      setMuted(false);
+      setPaused(false);
+      Promise.resolve(player.play()).catch(() => {});
+      return;
+    }
+    setPaused((v) => !v);
   };
 
-  const togglePause = () => setPaused((v) => !v);
-
   return (
-    <View style={styles.reel}>
+    // ── KEY FIX: width & height dynamically set from props ──
+    <View style={[styles.reel, { width: cardWidth, height: cardHeight }]}>
 
-      {/* ── Full screen VIDEO ── */}
+      {/* Full screen VIDEO */}
       <TouchableOpacity
         style={StyleSheet.absoluteFill}
         activeOpacity={1}
-        onPress={togglePause}
+        onPress={handleMediaPress}
       >
-        {post.type === 'video' && post.media ? (
-          <Video
-            ref={videoRef}
-            source={{ uri: post.media }}
-            style={StyleSheet.absoluteFill}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={isActive && !paused}
-            isLooping
-            isMuted={muted}
-            posterSource={{ uri: post.thumbnail }}
-            usePoster
-          />
+        {canPlayVideo ? (
+          <>
+            <VideoView
+              player={player}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              nativeControls={false}
+              allowsFullscreen={false}
+              playsInline
+              onFirstFrameRender={() => setShowPoster(false)}
+            />
+            {showPoster && post.thumbnail ? (
+              <Image source={{ uri: post.thumbnail }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+            ) : null}
+          </>
         ) : (
-          <Image
-            source={{ uri: post.thumbnail || post.media }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-          />
+          <Image source={{ uri: post.thumbnail || post.media }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         )}
       </TouchableOpacity>
 
       {/* Dark overlays */}
-      <View style={styles.reelOverlayTop} pointerEvents="none" />
-      <View style={styles.reelOverlayBottom} pointerEvents="none" />
+      <View style={[styles.reelOverlayTop, styles.pointerEventsNone]} pointerEvents={Platform.OS === 'web' ? undefined : 'none'} />
+      <View style={[styles.reelOverlayBottom, styles.pointerEventsNone]} pointerEvents={Platform.OS === 'web' ? undefined : 'none'} />
 
       {/* Pause indicator */}
       {paused && (
-        <View style={styles.pausedOverlay} pointerEvents="none">
+        <View style={[styles.pausedOverlay, styles.pointerEventsNone]} pointerEvents={Platform.OS === 'web' ? undefined : 'none'}>
           <Text style={styles.pausedIcon}>⏸</Text>
         </View>
       )}
 
-      {/* ── TOP: Tag + Views + Mute button ── */}
+      {/* Sound hint */}
+      {canPlayVideo && muted && (
+        <View style={[styles.soundHint, styles.pointerEventsNone]} pointerEvents={Platform.OS === 'web' ? undefined : 'none'}>
+          <Text style={styles.soundHintText}>Tap for sound</Text>
+        </View>
+      )}
+
+      {/* TOP: Tag + Views + Mute */}
       <View style={styles.reelTopBar}>
         <View style={[styles.reelTagBadge, { backgroundColor: post.tagColor }]}>
           <Text style={styles.reelTagText}>{post.tag}</Text>
@@ -373,19 +418,14 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive }) {
             <Text style={styles.viewsIcon}>👁</Text>
             <Text style={styles.viewsText}>{formatCount(post.views)}</Text>
           </View>
-          {/* Mute toggle */}
-          <TouchableOpacity
-            style={styles.muteBtn}
-            onPress={() => setMuted((v) => !v)}
-          >
+          <TouchableOpacity style={styles.muteBtn} onPress={() => setMuted((v) => !v)}>
             <Text style={{ fontSize: 16 }}>{muted ? '🔇' : '🔊'}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── RIGHT: Actions ── */}
+      {/* RIGHT: Actions */}
       <View style={styles.reelActions}>
-        {/* Avatar */}
         <View style={styles.reelAvatarWrap}>
           <Image source={{ uri: post.avatar }} style={styles.reelAvatar} />
           {post.verified && (
@@ -395,7 +435,6 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive }) {
           )}
         </View>
 
-        {/* Like */}
         <TouchableOpacity style={styles.reelActionBtn} onPress={handleLikePress} activeOpacity={0.7}>
           <Animated.Text style={[styles.reelActionIcon, { transform: [{ scale: scaleAnim }] }]}>
             {post.liked ? '❤️' : '🤍'}
@@ -403,25 +442,22 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive }) {
           <Text style={styles.reelActionCount}>{formatCount(post.liked ? post.likes + 1 : post.likes)}</Text>
         </TouchableOpacity>
 
-        {/* Comment */}
         <TouchableOpacity style={styles.reelActionBtn} onPress={() => onComment(post.id)} activeOpacity={0.7}>
           <Text style={styles.reelActionIcon}>💬</Text>
           <Text style={styles.reelActionCount}>{post.comments.length}</Text>
         </TouchableOpacity>
 
-        {/* Share */}
         <TouchableOpacity style={styles.reelActionBtn} activeOpacity={0.7}>
           <Text style={styles.reelActionIcon}>📤</Text>
           <Text style={styles.reelActionCount}>{formatCount(post.shares)}</Text>
         </TouchableOpacity>
 
-        {/* Bookmark */}
         <TouchableOpacity style={styles.reelActionBtn} onPress={() => onBookmark(post.id)} activeOpacity={0.7}>
           <Text style={styles.reelActionIcon}>{post.bookmarked ? '🔖' : '🏷️'}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ── BOTTOM: User info + headline + caption ── */}
+      {/* BOTTOM: User info + headline + caption */}
       <View style={styles.reelBottom}>
         <View style={styles.reelUserRow}>
           <Image source={{ uri: post.avatar }} style={styles.reelUserAvatar} />
@@ -439,26 +475,20 @@ function ReelCard({ post, onLike, onBookmark, onComment, isActive }) {
           <Text style={styles.reelLocationText}>{post.location}</Text>
         </View>
 
-        {post.headline ? (
-          <Text style={styles.reelHeadline}>{post.headline}</Text>
-        ) : null}
+        {post.headline ? <Text style={styles.reelHeadline}>{post.headline}</Text> : null}
 
         <Text style={styles.reelCaption} numberOfLines={captionExpanded ? undefined : 2}>
           {post.caption}
         </Text>
         {post.caption.length > 80 && (
           <TouchableOpacity onPress={() => setCaptionExpanded((v) => !v)}>
-            <Text style={styles.reelCaptionMore}>
-              {captionExpanded ? '▲ less' : '▼ more'}
-            </Text>
+            <Text style={styles.reelCaptionMore}>{captionExpanded ? '▲ less' : '▼ more'}</Text>
           </TouchableOpacity>
         )}
 
         {post.comments.length > 0 && (
           <TouchableOpacity onPress={() => onComment(post.id)}>
-            <Text style={styles.reelViewComments}>
-              💬 View all {post.comments.length} comments
-            </Text>
+            <Text style={styles.reelViewComments}>💬 View all {post.comments.length} comments</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -472,8 +502,18 @@ export default function FeedScreen({ navigation }) {
   const [uploadVisible, setUploadVisible] = useState(false);
   const [commentPost, setCommentPost] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const { width } = useWindowDimensions();
-  const isWeb = width >= 768;
+
+  // ── KEY FIX: Actual window size use karo ──
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+
+  // Web pe: screen center mein fixed max width wala column
+  // Mobile pe: poori screen
+  const cardWidth = isWeb
+    ? Math.min(windowWidth, WEB_MAX_WIDTH)
+    : windowWidth;
+
+  const cardHeight = windowHeight;
 
   const handleLike     = useCallback((id) => setPosts((prev) => prev.map((p) => p.id === id ? { ...p, liked: !p.liked } : p)), []);
   const handleBookmark = useCallback((id) => setPosts((prev) => prev.map((p) => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p)), []);
@@ -508,48 +548,64 @@ export default function FeedScreen({ navigation }) {
     if (viewableItems.length > 0) setActiveIndex(viewableItems[0].index ?? 0);
   }, []);
 
-  const viewabilityConfig = useRef({ itemVisibilityPercentThreshold: 60 }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
   const activeCommentData = posts.find((p) => p.id === commentPost);
+
+  // ── Web wrapper: black background + center mein card column ──
+  const webOuterStyle = isWeb ? {
+    flex: 1,
+    backgroundColor: '#000',
+    alignItems: 'center',       // ← horizontally center
+    justifyContent: 'center',
+  } : { flex: 1, backgroundColor: '#000' };
 
   const page = (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       {isWeb && <AppNavbar navigation={navigation} activeScreen="Feed" />}
 
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <ReelCard
-            post={item}
-            onLike={handleLike}
-            onBookmark={handleBookmark}
-            onComment={handleComment}
-            isActive={index === activeIndex}
+      {/* ── Web pe centered column, mobile pe full screen ── */}
+      <View style={webOuterStyle}>
+        <View style={{
+          width: cardWidth,
+          flex: 1,
+          overflow: 'hidden',
+          // Web pe subtle border taaki column visible rahe desktop pe
+          ...(isWeb && windowWidth > WEB_MAX_WIDTH ? {
+            borderLeftWidth: 1,
+            borderRightWidth: 1,
+            borderColor: 'rgba(255,255,255,0.08)',
+          } : {}),
+        }}>
+          <FlatList
+            data={posts}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => (
+              <ReelCard
+                post={item}
+                onLike={handleLike}
+                onBookmark={handleBookmark}
+                onComment={handleComment}
+                isActive={index === activeIndex}
+                cardWidth={cardWidth}      // ← pass karo
+                cardHeight={cardHeight}    // ← pass karo
+              />
+            )}
+            pagingEnabled
+            snapToInterval={cardHeight}          // ← dynamic height
+            snapToAlignment="start"
+            decelerationRate="fast"
+            showsVerticalScrollIndicator={false}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            getItemLayout={(_, index) => ({
+              length: cardHeight,                // ← dynamic height
+              offset: cardHeight * index,        // ← dynamic height
+              index,
+            })}
+            style={{ flex: 1 }}
           />
-        )}
-        pagingEnabled
-        snapToInterval={SCREEN_HEIGHT}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        showsVerticalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        getItemLayout={(_, index) => ({
-          length: SCREEN_HEIGHT,
-          offset: SCREEN_HEIGHT * index,
-          index,
-        })}
-        style={{ flex: 1 }}
-      />
-
-      {/* FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setUploadVisible(true)}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.fabText}>+ Post</Text>
-      </TouchableOpacity>
+        </View>
+      </View>
 
       <UploadModal
         visible={uploadVisible}
@@ -575,9 +631,11 @@ export default function FeedScreen({ navigation }) {
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  // ── reel: width/height NAHI hain — props se aata hai ──
   reel: {
-    width: SCREEN_WIDTH, height: SCREEN_HEIGHT,
-    backgroundColor: '#000', position: 'relative', overflow: 'hidden',
+    backgroundColor: '#000',
+    position: 'relative',
+    overflow: 'hidden',
   },
   reelOverlayTop: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 140,
@@ -593,6 +651,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   pausedIcon: { fontSize: 64, opacity: 0.8 },
+  soundHint: {
+    position: 'absolute',
+    left: 14,
+    bottom: Platform.OS === 'ios' ? 150 : 130,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  soundHintText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  pointerEventsNone: Platform.select({
+    web: { pointerEvents: 'none' },
+    default: {},
+  }),
 
   // Top bar
   reelTopBar: {
@@ -601,9 +673,7 @@ const styles = StyleSheet.create({
     left: 14, right: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  reelTagBadge: {
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
-  },
+  reelTagBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   reelTagText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   viewsRow: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -612,10 +682,7 @@ const styles = StyleSheet.create({
   },
   viewsIcon: { fontSize: 12 },
   viewsText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  muteBtn: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    padding: 6, borderRadius: 20,
-  },
+  muteBtn: { backgroundColor: 'rgba(0,0,0,0.4)', padding: 6, borderRadius: 20 },
 
   // Right actions
   reelActions: {
@@ -638,8 +705,14 @@ const styles = StyleSheet.create({
   reelActionIcon: { fontSize: 26 },
   reelActionCount: {
     color: '#fff', fontSize: 11, fontWeight: '700',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
+    ...Platform.select({
+      web: { textShadow: '0px 1px 3px rgba(0,0,0,0.8)' },
+      default: {
+        textShadowColor: 'rgba(0,0,0,0.8)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+      },
+    }),
   },
 
   // Bottom info
@@ -665,8 +738,14 @@ const styles = StyleSheet.create({
   reelHeadline: {
     color: '#fff', fontSize: 16, fontWeight: '900',
     lineHeight: 22, marginBottom: 4,
-    textShadowColor: 'rgba(0,0,0,0.9)',
-    textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+    ...Platform.select({
+      web: { textShadow: '0px 1px 4px rgba(0,0,0,0.9)' },
+      default: {
+        textShadowColor: 'rgba(0,0,0,0.9)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+      },
+    }),
   },
   reelCaption: { color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 18 },
   reelCaptionMore: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 3 },
@@ -674,17 +753,6 @@ const styles = StyleSheet.create({
     marginTop: 6, fontSize: 12,
     color: 'rgba(255,255,255,0.6)', fontWeight: '600',
   },
-
-  // FAB
-  fab: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 16,
-    right: 16,
-    backgroundColor: '#f97316',
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 20, elevation: 6, zIndex: 99,
-  },
-  fabText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
   // Modals
   modalOverlay: {

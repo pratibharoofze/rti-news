@@ -464,8 +464,7 @@ export default function HomeScreen() {
   const loadLatestNews = useCallback(async () => {
     try {
       const summary = await UserStore.getNewsFeedSummary();
-      if (!summary?.currentUser) { setLatestNews([]); return; }
-      const allNews = (summary.items || []).map(toLatestNewsCardShape).filter((item) => item?.title);
+      const allNews = (summary?.items || []).map(toLatestNewsCardShape).filter((item) => item?.title);
       setLatestNews(allNews);
     } catch { setLatestNews([]); }
   }, []);
@@ -541,15 +540,7 @@ export default function HomeScreen() {
             ))
           ) : (
             <View style={s.emptyBox}>
-              <Text style={s.emptyTitle}>{'No news yet'}</Text>
-              <Text style={s.emptyText}>{'Aap jo news add karenge, wahi yahan show hogi.'}</Text>
-              <TouchableOpacity
-                style={s.emptyCta}
-                onPress={() => navigation?.navigate?.('Add News')}
-                activeOpacity={0.85}
-              >
-                <Text style={s.emptyCtaText}>{'Add your first news'}</Text>
-              </TouchableOpacity>
+              <Text style={s.emptyText}>{'No news available right now.'}</Text>
             </View>
           )}
         </View>
@@ -618,10 +609,7 @@ const s = StyleSheet.create({
   stateCountMobile: { fontSize: 12 },
 
   emptyBox: { marginTop: 10, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, padding: 16, alignItems: 'center', gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
   emptyText: { fontSize: 13, color: '#64748b', lineHeight: 19, textAlign: 'center' },
-  emptyCta: { marginTop: 6, backgroundColor: '#0f172a', borderRadius: 999, paddingVertical: 10, paddingHorizontal: 16 },
-  emptyCtaText: { color: '#ffffff', fontSize: 13, fontWeight: '900' },
 
   threeColGridWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   colStack:     { flexDirection: 'column' },

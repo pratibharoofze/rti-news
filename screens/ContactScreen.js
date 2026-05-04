@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Linking, Alert, Platform, Modal, FlatList,
+  StyleSheet, Linking, Alert, Platform, Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AppHeader from '../components/AppHeader';
@@ -50,6 +50,28 @@ const subjects = ['General Inquiry', 'News Tip', 'RTI Assistance', 'Feedback', '
 
 const mapUrl =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3769.6895!2d72.8344!3d19.1381!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7b63b5c5c5c5d%3A0x5c5c5c5c5c5c5c5c!2sJogeshwari%20West%2C%20Mumbai%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1700000000000';
+
+const cardShadow = Platform.select({
+  web: { boxShadow: '0px 1px 4px rgba(0,0,0,0.06)' },
+  default: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+});
+
+const modalShadow = Platform.select({
+  web: { boxShadow: '0px 8px 24px rgba(0,0,0,0.15)' },
+  default: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+});
 
 function MapEmbed() {
   if (Platform.OS === 'web') {
@@ -152,7 +174,7 @@ export default function ContactScreen({ navigation }) {
           </View>
           <Text style={s.heroTitle}>Contact Us</Text>
           <Text style={s.heroSub}>
-            We'd love to hear from you. Reach out with your queries, feedback, or news tips.
+            We&apos;d love to hear from you. Reach out with your queries, feedback, or news tips.
           </Text>
         </View>
 
@@ -201,7 +223,7 @@ export default function ContactScreen({ navigation }) {
             <View style={s.infoContent}>
               <Text style={s.infoTitle}>Email Address</Text>
               <Text style={[s.infoText, { color: '#3b82f6', fontWeight: '700' }]}>info@rtinews.in</Text>
-              <Text style={s.infoSubText}>We'll respond within 24 hours</Text>
+              <Text style={s.infoSubText}>We&apos;ll respond within 24 hours</Text>
             </View>
           </TouchableOpacity>
 
@@ -316,7 +338,7 @@ const s = StyleSheet.create({
 
   body: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
 
-  infoCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: '#f3f4f6', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+  infoCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
   infoIcon: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   infoIconText: { fontSize: 20 },
   infoContent: { flex: 1 },
@@ -324,7 +346,7 @@ const s = StyleSheet.create({
   infoText: { fontSize: 13, color: '#6b7280', lineHeight: 20 },
   infoSubText: { fontSize: 11, color: '#9ca3af', marginTop: 4 },
 
-  mapCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+  mapCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
   mapHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   sectionBar: { width: 4, height: 20, backgroundColor: '#f97316', borderRadius: 2, marginRight: 8 },
   mapTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },
@@ -333,7 +355,7 @@ const s = StyleSheet.create({
   directionBtn: { marginTop: 12, backgroundColor: '#f97316', borderRadius: 25, paddingVertical: 11, alignItems: 'center' },
   directionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
-  formCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+  formCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   sectionLabelLine: { flex: 1, height: 1, backgroundColor: '#f97316', opacity: 0.4 },
   sectionLabel: { color: '#f97316', fontWeight: '800', fontSize: 11, letterSpacing: 1.2, textAlign: 'center' },
@@ -349,7 +371,7 @@ const s = StyleSheet.create({
   pickerBtnText: { fontSize: 13, color: '#111827', flex: 1 },
   pickerArrow: { fontSize: 16, color: '#6b7280', marginLeft: 8 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalBox: { backgroundColor: '#fff', borderRadius: 16, padding: 8, width: '100%', maxWidth: 400, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 12 },
+  modalBox: { backgroundColor: '#fff', borderRadius: 16, padding: 8, width: '100%', maxWidth: 400, ...modalShadow },
   modalTitle: { fontSize: 14, fontWeight: '800', color: '#111827', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', marginBottom: 4 },
   modalOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 13, borderRadius: 10, marginHorizontal: 4 },
   modalOptionActive: { backgroundColor: '#fff7ed' },
@@ -359,7 +381,7 @@ const s = StyleSheet.create({
   submitBtn: { backgroundColor: '#f97316', borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginTop: 12, alignSelf: 'center', paddingHorizontal: 40 },
   submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
-  faqCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+  faqCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
   faqItem: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 16, marginBottom: 10 },
   faqItemOpen: { borderColor: '#fdba74' },
   faqHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },

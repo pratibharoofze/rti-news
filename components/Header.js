@@ -4,7 +4,7 @@ import {
   Text,
   TouchableOpacity,
   Modal,
-  TouchableWithoutFeedback,
+  Pressable,
   TextInput,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -151,55 +151,55 @@ export default function Header({ title = 'RTI News', onMenuPress, onLogout, navi
         animationType="fade"
         onRequestClose={() => setMenuVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.dropdownCard}>
-                {/* Header */}
-                <View style={styles.dropdownHeader}>
-                  <Feather name="settings" size={16} color="#2563eb" />
-                  <Text style={styles.dropdownTitle}>Account Settings</Text>
-                </View>
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+            onPress={() => setMenuVisible(false)}
+          />
+          <View style={styles.dropdownCard}>
+            {/* Header */}
+            <View style={styles.dropdownHeader}>
+              <Feather name="settings" size={16} color="#2563eb" />
+              <Text style={styles.dropdownTitle}>Account Settings</Text>
+            </View>
 
-                <View style={styles.dropdownDivider} />
+            <View style={styles.dropdownDivider} />
 
-                {/* Change Password */}
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={handleChangePassword}
-                >
-                  <View style={styles.dropdownItemIcon}>
-                    <Feather name="lock" size={16} color="#2563eb" />
-                  </View>
-                  <View style={styles.dropdownItemInfo}>
-                    <Text style={styles.dropdownItemText}>Change Password</Text>
-                    <Text style={styles.dropdownItemSub}>Update your password</Text>
-                  </View>
-                  <Feather name="chevron-right" size={14} color="#94a3b8" />
-                </TouchableOpacity>
-
-                <View style={styles.dropdownDivider} />
-
-                {/* Logout */}
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={handleLogout}
-                >
-                  <View style={[styles.dropdownItemIcon, styles.dropdownItemIconRed]}>
-                    <Feather name="log-out" size={16} color="#ef4444" />
-                  </View>
-                  <View style={styles.dropdownItemInfo}>
-                    <Text style={[styles.dropdownItemText, styles.dropdownItemTextRed]}>
-                      Logout
-                    </Text>
-                    <Text style={styles.dropdownItemSub}>Sign out of your account</Text>
-                  </View>
-                  <Feather name="chevron-right" size={14} color="#94a3b8" />
-                </TouchableOpacity>
+            {/* Change Password */}
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={handleChangePassword}
+            >
+              <View style={styles.dropdownItemIcon}>
+                <Feather name="lock" size={16} color="#2563eb" />
               </View>
-            </TouchableWithoutFeedback>
+              <View style={styles.dropdownItemInfo}>
+                <Text style={styles.dropdownItemText}>Change Password</Text>
+                <Text style={styles.dropdownItemSub}>Update your password</Text>
+              </View>
+              <Feather name="chevron-right" size={14} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View style={styles.dropdownDivider} />
+
+            {/* Logout */}
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={handleLogout}
+            >
+              <View style={[styles.dropdownItemIcon, styles.dropdownItemIconRed]}>
+                <Feather name="log-out" size={16} color="#ef4444" />
+              </View>
+              <View style={styles.dropdownItemInfo}>
+                <Text style={[styles.dropdownItemText, styles.dropdownItemTextRed]}>
+                  Logout
+                </Text>
+                <Text style={styles.dropdownItemSub}>Sign out of your account</Text>
+              </View>
+              <Feather name="chevron-right" size={14} color="#94a3b8" />
+            </TouchableOpacity>
           </View>
-        </TouchableWithoutFeedback>
+        </View>
       </Modal>
 
       <Modal
@@ -208,26 +208,28 @@ export default function Header({ title = 'RTI News', onMenuPress, onLogout, navi
         animationType="fade"
         onRequestClose={closePasswordModal}
       >
-        <TouchableWithoutFeedback onPress={closePasswordModal}>
-          <View style={styles.passwordOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.passwordModalCard}>
-                <View style={styles.passwordHeader}>
-                  <View style={styles.passwordHeaderIcon}>
-                    <Feather name="lock" size={18} color="#2563eb" />
-                  </View>
-                  <View style={styles.passwordHeaderInfo}>
-                    <Text style={styles.passwordTitle}>Change Password</Text>
-                    <Text style={styles.passwordSubtitle}>Update your account password securely</Text>
-                  </View>
-                </View>
+        <View style={styles.passwordOverlay}>
+          <Pressable
+            style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+            onPress={closePasswordModal}
+          />
+          <View style={styles.passwordModalCard}>
+            <View style={styles.passwordHeader}>
+              <View style={styles.passwordHeaderIcon}>
+                <Feather name="lock" size={18} color="#2563eb" />
+              </View>
+              <View style={styles.passwordHeaderInfo}>
+                <Text style={styles.passwordTitle}>Change Password</Text>
+                <Text style={styles.passwordSubtitle}>Update your account password securely</Text>
+              </View>
+            </View>
 
-                {passwordSuccess ? (
-                  <View style={styles.passwordSuccessBox}>
-                    <Feather name="check-circle" size={18} color="#16a34a" />
-                    <Text style={styles.passwordSuccessText}>{passwordSuccess}</Text>
-                  </View>
-                ) : null}
+            {passwordSuccess ? (
+              <View style={styles.passwordSuccessBox}>
+                <Feather name="check-circle" size={18} color="#16a34a" />
+                <Text style={styles.passwordSuccessText}>{passwordSuccess}</Text>
+              </View>
+            ) : null}
 
                 <View style={styles.passwordInputGroup}>
                   <Text style={styles.passwordLabel}>Current Password</Text>
@@ -290,25 +292,23 @@ export default function Header({ title = 'RTI News', onMenuPress, onLogout, navi
                   <Text style={styles.passwordFormError}>{passwordErrors.form}</Text>
                 ) : null}
 
-                <View style={styles.passwordActions}>
-                  <TouchableOpacity style={styles.passwordCancelBtn} onPress={closePasswordModal}>
-                    <Text style={styles.passwordCancelText}>Cancel</Text>
-                  </TouchableOpacity>
+            <View style={styles.passwordActions}>
+              <TouchableOpacity style={styles.passwordCancelBtn} onPress={closePasswordModal}>
+                <Text style={styles.passwordCancelText}>Cancel</Text>
+              </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.passwordSaveBtn}
-                    onPress={submitPasswordChange}
-                    disabled={savingPassword}
-                  >
-                    <Text style={styles.passwordSaveText}>
-                      {savingPassword ? 'Updating...' : 'Update Password'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
+              <TouchableOpacity
+                style={styles.passwordSaveBtn}
+                onPress={submitPasswordChange}
+                disabled={savingPassword}
+              >
+                <Text style={styles.passwordSaveText}>
+                  {savingPassword ? 'Updating...' : 'Update Password'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableWithoutFeedback>
+        </View>
       </Modal>
     </View>
   );

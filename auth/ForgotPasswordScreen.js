@@ -4,10 +4,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,7 +62,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         email: email.trim(),
         expiresAt,
       });
-    } catch (error) {
+    } catch (_error) {
       setLoading(false);
       showToast('Something went wrong', 'error');
     }
@@ -73,7 +73,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
         <View style={styles.root}>
           <View style={[styles.glow, styles.glowTop]} />
           <View style={[styles.glow, styles.glowBottom]} />
@@ -181,7 +181,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             </View>
           </ScrollView>
         </View>
-      </TouchableWithoutFeedback>
+      </Pressable>
     </KeyboardAvoidingView>
   );
 }

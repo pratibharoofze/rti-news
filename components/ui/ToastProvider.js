@@ -56,7 +56,10 @@ export function ToastProvider({ children }) {
           statusBarTranslucent
         >
           <Pressable style={styles.popupBackdrop} onPress={hidePopup} />
-          <View style={styles.popupContainer} pointerEvents="box-none">
+          <View
+            style={[styles.popupContainer, Platform.OS === 'web' ? styles.pointerEventsBoxNone : null]}
+            pointerEvents={Platform.OS === 'web' ? undefined : 'box-none'}
+          >
             <View style={[styles.popupCard, styles[popup.type] || styles.info]}>
               <Text style={styles.popupTitle}>
                 {popup.title || (popup.type === 'success' ? 'Success' : popup.type === 'error' ? 'Error' : 'Notice')}
@@ -131,6 +134,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 18,
+  },
+  pointerEventsBoxNone: {
+    pointerEvents: 'box-none',
   },
   popupCard: {
     width: '100%',

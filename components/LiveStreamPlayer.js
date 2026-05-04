@@ -3,17 +3,22 @@ import { Text, View } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import LiveStreamingStyles from '../styles/LiveStreamingStyles';
 
+function isLikelyPlayableStream(streamUrl) {
+  return typeof streamUrl === 'string' && /^(https?:|blob:|data:)/i.test(streamUrl);
+}
+
 export default function LiveStreamPlayer({ streamUrl, onError }) {
-  const player = useVideoPlayer(streamUrl || null, (instance) => {
+  const playableStreamUrl = isLikelyPlayableStream(streamUrl) ? streamUrl : null;
+  const player = useVideoPlayer(playableStreamUrl, (instance) => {
     instance.loop = false;
   });
 
-  if (!streamUrl) {
+  if (!playableStreamUrl) {
     return (
       <View style={LiveStreamingStyles.playerUnavailable}>
         <Text style={LiveStreamingStyles.playerUnavailableTitle}>No stream selected</Text>
         <Text style={LiveStreamingStyles.playerUnavailableText}>
-          Choose a live bulletin to begin playback.
+          Choose a valid live bulletin to begin playback.
         </Text>
       </View>
     );

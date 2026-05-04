@@ -16,6 +16,7 @@ import { UserStore } from '../store/UserStore';
 import styles from '../styles/RegisterStyles';
 
 const CERTIFICATE_LOGO = require('../assets/images/certificate_logo.jpg');
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 // ✅ FIX: Web pe html, body, #root ka background dark karo
 // Taaki white space visible na ho
@@ -72,7 +73,7 @@ const toastStyles = StyleSheet.create({
 });
 
 // ── Dropdown Modal ────────────────────────────────────────────────────────────
-function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
+export function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
   const [search, setSearch] = useState('');
   const filtered = items.filter(i => i.toLowerCase().includes(search.toLowerCase()));
 
@@ -199,13 +200,13 @@ export default function RegisterScreen({ navigation }) {
     opacity.setValue(0);
     translateY.setValue(20);
     Animated.parallel([
-      Animated.timing(opacity,    { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(opacity,    { toValue: 1, duration: 300, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(translateY, { toValue: 0, duration: 300, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
     timerRef.current = setTimeout(() => {
       Animated.parallel([
-        Animated.timing(opacity,    { toValue: 0, duration: 300, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: 20, duration: 300, useNativeDriver: true }),
+        Animated.timing(opacity,    { toValue: 0, duration: 300, useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.timing(translateY, { toValue: 20, duration: 300, useNativeDriver: USE_NATIVE_DRIVER }),
       ]).start(() => setToast(null));
     }, 2500);
   };

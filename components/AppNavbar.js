@@ -2,20 +2,30 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity,
   StyleSheet, Animated, Dimensions,
-  TouchableWithoutFeedback, Platform,
+  Platform, Pressable,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.75;
 const IS_WEB = Platform.OS === 'web';
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+
+function blurActiveElement() {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    return;
+  }
+
+  const activeElement = document.activeElement;
+  if (activeElement && typeof activeElement.blur === 'function') {
+    activeElement.blur();
+  }
+}
 
 // ✅ KEY FIX: mobile web detection
 // Web pe window.innerWidth se check karo
 const IS_WEB_MOBILE = IS_WEB && (
   typeof window !== 'undefined' ? window.innerWidth < 768 : SCREEN_WIDTH < 768
 );
-const IS_WEB_DESKTOP = IS_WEB && !IS_WEB_MOBILE;
 
 const navLinks = [
   { label: 'HOME',           screen: 'Home',          icon: '🏠' },
@@ -35,11 +45,7 @@ const mobileLabels = {
   Contact:       'Contact',
 };
 
-export default function AppNavbar({ activeScreen, navigation: navProp }) {
-  let navHook = null;
-  try { navHook = useNavigation(); } catch (e) { navHook = null; }
-  const navigation = navProp || navHook;
-
+export default function AppNavbar({ activeScreen, navigation }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
@@ -47,19 +53,20 @@ export default function AppNavbar({ activeScreen, navigation: navProp }) {
   const openSidebar = () => {
     setSidebarOpen(true);
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 0, duration: 280, useNativeDriver: true }),
-      Animated.timing(overlayAnim, { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 280, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(overlayAnim, { toValue: 1, duration: 280, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
   };
 
   const closeSidebar = () => {
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: -SIDEBAR_WIDTH, duration: 250, useNativeDriver: true }),
-      Animated.timing(overlayAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: -SIDEBAR_WIDTH, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(overlayAnim, { toValue: 0, duration: 250, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start(() => setSidebarOpen(false));
   };
 
   const handleNav = (screen) => {
+    blurActiveElement();
     if (sidebarOpen) closeSidebar();
     if (navigation && navigation.navigate) {
       navigation.navigate(screen);
@@ -109,9 +116,9 @@ export default function AppNavbar({ activeScreen, navigation: navProp }) {
 
       {sidebarOpen && (
         <View style={s.sidebarContainer}>
-          <TouchableWithoutFeedback onPress={closeSidebar}>
+          <Pressable onPress={closeSidebar}>
             <Animated.View style={[s.overlay, { opacity: overlayAnim }]} />
-          </TouchableWithoutFeedback>
+          </Pressable>
 
           <Animated.View style={[s.sidebar, { transform: [{ translateX: slideAnim }] }]}>
             <View style={s.sidebarHeader}>

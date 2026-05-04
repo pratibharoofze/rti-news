@@ -1158,6 +1158,13 @@ export const UserStore = {
     try {
       const currentUser = await UserStore.getCurrentUser();
       const allUsers = await UserStore.getAllUsers();
+      const defaultItems = normalizeNewsFeed(defaultNewsFeed).map((item) => ({
+        ...item,
+        author_name: item.author_name || 'RTI News',
+        author_profile_image: item.author_profile_image || '',
+        author_seat_name: item.author_seat_name || 'Editorial Desk',
+        author_is_premium: Boolean(item.author_is_premium || true),
+      }));
 
       const aggregateItems = allUsers.flatMap((user) => {
         const injectAuthor = (item) => ({
@@ -1186,7 +1193,7 @@ export const UserStore = {
         ];
       });
 
-      const mergedItems = aggregateItems
+      const mergedItems = [...defaultItems, ...aggregateItems]
         .filter((item, index, arr) => arr.findIndex((e) => e.id === item.id) === index)
         .sort((a, b) => getNewsSortValue(b) - getNewsSortValue(a));
 

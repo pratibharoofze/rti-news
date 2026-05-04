@@ -57,6 +57,36 @@ function SectionLabel({ label, title, isMobile }) {
 }
 
 const isWeb = Platform.OS === 'web';
+const cardShadow = Platform.select({
+  web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.05)' },
+  default: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+});
+const cardShadowLarge = Platform.select({
+  web: { boxShadow: '0px 2px 10px rgba(0,0,0,0.06)' },
+  default: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+});
+const milestoneDotShadow = Platform.select({
+  web: { boxShadow: '0px 2px 4px rgba(249,115,22,0.4)' },
+  default: {
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+});
 
 export default function AboutScreen({ navigation }) {
   const getWidth = () => {
@@ -94,7 +124,7 @@ export default function AboutScreen({ navigation }) {
           <View style={s.heroCircle1} />
           <View style={s.heroCircle2} />
           <View style={s.heroBadge}>
-            <Text style={[s.heroBadgeText, isMobile && s.heroBadgeTextMobile]}>🇮🇳 India's #1 RTI News Portal</Text>
+            <Text style={[s.heroBadgeText, isMobile && s.heroBadgeTextMobile]}>🇮🇳 India&apos;s #1 RTI News Portal</Text>
           </View>
           <Text style={[s.heroTitle, isMobile && s.heroTitleMobile]}>About RTI News</Text>
           <Text style={[s.heroSub, isMobile && s.heroSubMobile]}>
@@ -126,7 +156,7 @@ export default function AboutScreen({ navigation }) {
                 </View>
                 <Text style={[s.missionTitle, isMobile && s.missionTitleMobile]}>
                   Making Transparency{'\n'}
-                  <Text style={{ color: '#f97316' }}>Everyone's Right</Text>
+                  <Text style={{ color: '#f97316' }}>Everyone&apos;s Right</Text>
                 </Text>
                 <Text style={[s.missionDesc, isMobile && s.missionDescMobile]}>
                   RTI News was founded with a single, powerful belief —{' '}
@@ -272,7 +302,7 @@ export default function AboutScreen({ navigation }) {
               </View>
               <Text style={[s.ctaTitle, isMobile && s.ctaTitleMobile]}>Be a Voice for Transparency & Justice 🇮🇳</Text>
               <Text style={[s.ctaDesc, isMobile && s.ctaDescMobile]}>
-                Whether you're a journalist, RTI activist, lawyer, or a concerned citizen — we welcome you to contribute to India's largest RTI news platform.
+                Whether you&apos;re a journalist, RTI activist, lawyer, or a concerned citizen — we welcome you to contribute to India&apos;s largest RTI news platform.
               </Text>
               <View style={[s.ctaButtons, isMobile && s.ctaButtonsMobile]}>
                 <TouchableOpacity style={[s.ctaBtn1, isMobile ? s.ctaBtnMobile : s.ctaBtn1Gap]} onPress={() => navigation.navigate('Contact')}>
@@ -331,7 +361,7 @@ const s = StyleSheet.create({
   heroSub:       { color: '#fed7aa', fontSize: 14, textAlign: 'center', lineHeight: 22 },
   heroSubMobile: { fontSize: 12, lineHeight: 20 },
 
-  missionCard: { backgroundColor: '#fff', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, marginBottom: 40 },
+  missionCard: { backgroundColor: '#fff', borderRadius: 18, padding: 16, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadowLarge, marginBottom: 40 },
   missionCardMobile: { marginBottom: 28, padding: 0, borderRadius: 14 },
   missionRow:       { flexDirection: 'row', alignItems: 'flex-start' },
   missionRowMobile: { flexDirection: 'column' },
@@ -369,9 +399,9 @@ const s = StyleSheet.create({
 
   valuesGrid:       { flexDirection: 'row' },
   valuesGridMobile: { flexDirection: 'column' },
-  valueCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  valueCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
   valueCardGap:   { marginRight: 14 },
-  valueCardMobile: { backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#f3f4f6', flexDirection: 'row', alignItems: 'flex-start', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  valueCardMobile: { backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#f3f4f6', flexDirection: 'row', alignItems: 'flex-start', ...cardShadow },
   valueCardMobileGap: { marginBottom: 10 },
   valueIcon:       { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   valueIconMobile: { width: 44, height: 44, borderRadius: 12, marginBottom: 0, flexShrink: 0, marginRight: 12 },
@@ -386,9 +416,9 @@ const s = StyleSheet.create({
   teamRow:       { flexDirection: 'row' },
   teamRowMobile: {},
   teamRowGap:    { marginBottom: 14 },
-  teamCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  teamCard: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
   teamCardGap:    { marginRight: 14 },
-  teamCardMobile: { backgroundColor: '#fff', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'flex-start', borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  teamCardMobile: { backgroundColor: '#fff', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'flex-start', borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
   teamCardMobileGap: { marginBottom: 10 },
   teamAvatarWrap:       { position: 'relative', marginBottom: 12 },
   teamAvatarWrapMobile: { marginBottom: 0, flexShrink: 0, marginRight: 14 },
@@ -417,16 +447,16 @@ const s = StyleSheet.create({
   milestoneMobileRow:    { flexDirection: 'row', alignItems: 'flex-start' },
   milestoneMobileRowGap: { marginBottom: 16 },
   milestoneDotWrapMobile:{ width: 20, alignItems: 'center', paddingTop: 4, marginLeft: -28, marginRight: 12 },
-  milestoneCardMobile:   { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  milestoneDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#f97316', borderWidth: 3, borderColor: '#fff', shadowColor: '#f97316', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
-  milestoneCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  milestoneCardMobile:   { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
+  milestoneDot: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#f97316', borderWidth: 3, borderColor: '#fff', ...milestoneDotShadow },
+  milestoneCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
   milestoneYear:      { color: '#f97316', fontWeight: '800', fontSize: 14, marginBottom: 4 },
   milestoneTitleText: { color: '#111827', fontWeight: '700', fontSize: 15, marginBottom: 6 },
   milestoneDesc:      { color: '#6b7280', fontSize: 13, lineHeight: 20 },
 
   ctaBanner: { backgroundColor: '#111827', borderRadius: 18, overflow: 'hidden', marginBottom: 20, position: 'relative' },
   ctaBannerMobile: { borderRadius: 14 },
-  ctaBannerImg: { ...StyleSheet.absoluteFillObject, resizeMode: 'cover', opacity: 0.15 },
+  ctaBannerImg: { ...StyleSheet.absoluteFillObject, opacity: 0.15 },
   ctaOverlay:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,10,20,0.5)' },
   ctaContent:       { padding: 36, alignItems: 'center' },
   ctaContentMobile: { padding: 20 },

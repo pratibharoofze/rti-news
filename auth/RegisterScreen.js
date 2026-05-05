@@ -251,6 +251,10 @@ export default function RegisterScreen({ navigation }) {
     setTimeout(() => navigation.replace('StateSelect'), 2600);
   };
 
+  const handleClose = () => {
+    navigation.navigate('Home'); // Navigate to Home screen
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -268,14 +272,16 @@ export default function RegisterScreen({ navigation }) {
           bounces={false}
         >
           <View style={styles.formContainer}>
-            <View style={styles.topAccent} />
+            {/* Close Button - X icon */}
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={handleClose}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-outline" size={24} color="#94a3b8" />
+            </TouchableOpacity>
 
-            <View style={styles.backButtonContainer}>
-              <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={20} color="#c4b5fd" />
-                <Text style={styles.backButtonText}>Back to Home</Text>
-              </TouchableOpacity>
-            </View>
+            <View style={styles.topAccent} />
 
             <View style={styles.brandLogoWrap}>
               <Image source={CERTIFICATE_LOGO} style={styles.brandLogo} resizeMode="cover" />

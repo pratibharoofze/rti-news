@@ -55,6 +55,21 @@ const LoginStyles = StyleSheet.create({
     borderColor: 'rgba(125, 211, 252, 0.14)',
     elevation: 10,
     overflow: 'hidden',
+    position: 'relative',
+  },
+
+  // Close button styling
+  closeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   topAccent: {

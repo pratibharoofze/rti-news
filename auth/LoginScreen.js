@@ -83,6 +83,10 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  const handleClose = () => {
+    navigation.navigate('Home'); // Navigate to Home screen
+  };
+
   return (
     <KeyboardAvoidingView
       style={LoginStyles.flex}
@@ -102,6 +106,15 @@ export default function LoginScreen({ navigation }) {
           bounces={false}
         >
           <View style={LoginStyles.formContainer}>
+            {/* Close Button - X icon */}
+            <TouchableOpacity 
+              style={LoginStyles.closeButton} 
+              onPress={handleClose}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-outline" size={24} color="#94a3b8" />
+            </TouchableOpacity>
+
             <View style={LoginStyles.topAccent} />
 
             <View style={LoginStyles.brandLogoWrap}>

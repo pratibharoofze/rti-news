@@ -6,44 +6,44 @@ import AppFooter from '../components/AppFooter';
 
 const laws = [
   {
-    title: 'माहितीचा अधिकार अधिनियम, २००५',
+    title: 'Right to Information Act, 2005',
     short: 'RTI Act 2005',
-    desc: 'हा कायदा भारतीय नागरिकांना सरकारी माहिती मागण्याचा अधिकार देतो. सार्वजनिक प्राधिकरणांनी ३० दिवसांत माहिती द्यावी.',
+    desc: 'This act gives Indian citizens the right to request information from government authorities. Public authorities must provide information within 30 days.',
     color: '#f97316',
     icon: '📜',
   },
   {
-    title: 'दफ्तर दिरंगाई कायदा',
+    title: 'Prevention of Delay in Government Offices Act',
     short: 'Delay Prevention Act',
-    desc: 'महाराष्ट्र शासकीय कर्मचान्यांच्या बदल्यांचे विनियमन व शासकीय कर्तव्ये पार पाडताना होणाऱ्या विलंबास प्रतिबंध अधिनियम, २००५.',
+    desc: 'Maharashtra Government Act regulating transfers of government employees and preventing delays in discharging official duties, 2005.',
     color: '#3b82f6',
     icon: '⚖️',
   },
   {
-    title: 'केंद्रीय माहिती आयोग (CIC)',
+    title: 'Central Information Commission (CIC)',
     short: 'Central Information Commission',
-    desc: 'केंद्र सरकारच्या सार्वजनिक क्षेत्रातील प्राधिकरणांविषयाच्या तक्रारींसाठी. पत्ता: ऑगस्ट क्रांती भवन, भिकाजी कामा प्लेस, नवी दिल्ली ११०००६.',
+    desc: 'For complaints related to central government public sector authorities. Address: August Kranti Bhawan, Bhikaji Cama Place, New Delhi 110006.',
     color: '#16a34a',
     icon: '🏛️',
   },
   {
-    title: 'राज्य माहिती आयोग (SIC)',
+    title: 'State Information Commission (SIC)',
     short: 'State Information Commission',
-    desc: 'राज्य सरकारच्या सार्वजनिक क्षेत्रातील प्राधिकरणांविषयाच्या तक्रारींसाठी संबंधित राज्याच्या माहिती आयोगाकडे दाखल कराव्यात.',
+    desc: 'Complaints related to state government public sector authorities should be filed with the respective State Information Commission.',
     color: '#a855f7',
     icon: '🏢',
   },
   {
-    title: 'कलम ८ - माहिती देण्यास नकार',
+    title: 'Section 8 - Refusal to Provide Information',
     short: 'Section 8 - Exemptions',
-    desc: 'राष्ट्रीय सुरक्षा, व्यक्तिगत गोपनीयता, न्यायालयीन प्रकरणे यांसारख्या बाबतीत माहिती देण्यास नकार देता येतो.',
+    desc: 'Information can be refused in matters such as national security, personal privacy, and court proceedings.',
     color: '#ef4444',
     icon: '🚫',
   },
   {
-    title: 'कलम ९ - कॉपीराईट माहिती',
+    title: 'Section 9 - Copyrighted Information',
     short: 'Section 9 - Copyright',
-    desc: 'जर माहिती राज्याव्यतिरिक्त इतर कोण्या व्यक्तिच्या कॉपीराईटमध्ये मोडत असेल तर ती देण्यास नकार देता येतो.',
+    desc: 'If the information falls under the copyright of a person other than the state, it can be refused.',
     color: '#14b8a6',
     icon: '©️',
   },
@@ -56,87 +56,112 @@ const keyFacts = [
   { icon: '🆓', label: 'BPL Citizens', value: 'Free' },
 ];
 
+const rtiSteps = [
+  {
+    step: '1',
+    title: 'Prepare Your Application',
+    desc: 'Write the information request application by hand or typed on plain paper.',
+  },
+  {
+    step: '2',
+    title: 'Pay the Fee',
+    desc: 'Pay ₹10 via demand draft, postal order, or cash. BPL cardholders are exempt.',
+  },
+  {
+    step: '3',
+    title: 'Submit the Application',
+    desc: 'Submit the application to the concerned Public Information Officer and collect the acknowledgment receipt.',
+  },
+  {
+    step: '4',
+    title: 'Wait for a Response',
+    desc: 'A response is expected within 30 days. No response is treated as a refusal.',
+  },
+  {
+    step: '5',
+    title: 'File an Appeal',
+    desc: 'If not satisfied, file a first appeal within 30 days, then escalate to CIC/SIC.',
+  },
+];
+
 const isWeb = Platform.OS === 'web';
 
 export default function ImportantLawsScreen({ navigation }) {
-  // ✅ FIX: AppNavbar ScrollView ke BAHAR
   return (
-    <View style={{ flex: 1 }}>
-      {/* Web pe TOP navbar */}
+    <View style={s.screenWrapper}>
+      {/* Web: top navbar */}
       {isWeb && <AppNavbar navigation={navigation} activeScreen="ImportantLaws" />}
 
-      <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scrollContainer} showsVerticalScrollIndicator={false}>
         <AppHeader navigation={navigation} />
 
-        {/* Hero */}
-        <View style={s.hero}>
-          <View style={s.heroCircle1} />
-          <View style={s.heroCircle2} />
+        {/* Hero Section */}
+        <View style={s.heroSection}>
+          <View style={s.heroDecorCircleTop} />
+          <View style={s.heroDecorCircleBottom} />
           <Text style={s.heroEmoji}>⚖️</Text>
           <Text style={s.heroTitle}>Important Laws</Text>
-          <Text style={s.heroSub}>RTI Act आणि संबंधित महत्त्वाचे कायदे जे प्रत्येक नागरिकाने जाणले पाहिजेत.</Text>
+          <Text style={s.heroSubtitle}>
+            RTI Act and related important laws that every citizen should know.
+          </Text>
         </View>
 
-        <View style={s.body}>
+        <View style={s.bodyContainer}>
 
-          {/* Key Facts */}
-          <View style={s.factsRow}>
-            {keyFacts.map((f) => (
-              <View key={f.label} style={s.factCard}>
-                <Text style={s.factIcon}>{f.icon}</Text>
-                <Text style={s.factValue}>{f.value}</Text>
-                <Text style={s.factLabel}>{f.label}</Text>
+          {/* Key Facts Row */}
+          <View style={s.keyFactsRow}>
+            {keyFacts.map((fact) => (
+              <View key={fact.label} style={s.keyFactCard}>
+                <Text style={s.keyFactIcon}>{fact.icon}</Text>
+                <Text style={s.keyFactValue}>{fact.value}</Text>
+                <Text style={s.keyFactLabel}>{fact.label}</Text>
               </View>
             ))}
           </View>
 
-          {/* Section Title */}
-          <Text style={s.sectionLabel}>IMPORTANT LAWS & ACTS</Text>
-          <Text style={s.sectionTitle}>महत्त्वाचे कायदे</Text>
+          {/* Section Header */}
+          <Text style={s.sectionBadge}>IMPORTANT LAWS & ACTS</Text>
+          <Text style={s.sectionHeading}>Key Laws at a Glance</Text>
 
           {/* Law Cards */}
           {laws.map((law, idx) => (
             <View key={idx} style={[s.lawCard, { borderLeftColor: law.color }]}>
               <View style={s.lawCardHeader}>
-                <View style={[s.lawIcon, { backgroundColor: law.color }]}>
-                  <Text style={s.lawIconText}>{law.icon}</Text>
+                <View style={[s.lawIconWrapper, { backgroundColor: law.color }]}>
+                  <Text style={s.lawIconEmoji}>{law.icon}</Text>
                 </View>
-                <View style={s.lawTitleWrap}>
-                  <Text style={[s.lawShort, { color: law.color }]}>{law.short}</Text>
-                  <Text style={s.lawTitle}>{law.title}</Text>
+                <View style={s.lawTitleBlock}>
+                  <Text style={[s.lawShortTitle, { color: law.color }]}>{law.short}</Text>
+                  <Text style={s.lawFullTitle}>{law.title}</Text>
                 </View>
               </View>
-              <Text style={s.lawDesc}>{law.desc}</Text>
+              <Text style={s.lawDescription}>{law.desc}</Text>
             </View>
           ))}
 
           {/* RTI Process Steps */}
           <View style={s.stepsCard}>
-            <Text style={s.stepsTitle}>📋 RTI अर्ज प्रक्रिया</Text>
-            {[
-              { step: '1', title: 'अर्ज तयार करा', desc: 'साध्या कागदावर हातात किंवा टाइप करून माहिती मागणीचा अर्ज लिहा.' },
-              { step: '2', title: 'शुल्क भरा', desc: '₹10 चा डिमांड ड्राफ्ट, पोस्टल ऑर्डर किंवा रोख रक्कम भरा. BPL धारकांना माफी.' },
-              { step: '3', title: 'अर्ज सादर करा', desc: 'संबंधित जन माहिती अधिकाऱ्याकडे अर्ज सादर करा व पोहच घ्या.' },
-              { step: '4', title: 'उत्तराची प्रतीक्षा करा', desc: '३० दिवसांत उत्तर येणे अपेक्षित आहे. उत्तर न मिळाल्यास नकार समजावा.' },
-              { step: '5', title: 'अपील दाखल करा', desc: 'समाधान न झाल्यास ३० दिवसांत प्रथम अपील, नंतर CIC/SIC कडे दाखल करा.' },
-            ].map((item) => (
-              <View key={item.step} style={s.stepItem}>
-                <View style={s.stepNum}>
-                  <Text style={s.stepNumText}>{item.step}</Text>
+            <Text style={s.stepsCardTitle}>📋 RTI Application Process</Text>
+            {rtiSteps.map((item) => (
+              <View key={item.step} style={s.stepRow}>
+                <View style={s.stepNumberBadge}>
+                  <Text style={s.stepNumberText}>{item.step}</Text>
                 </View>
-                <View style={s.stepContent}>
+                <View style={s.stepTextBlock}>
                   <Text style={s.stepTitle}>{item.title}</Text>
-                  <Text style={s.stepDesc}>{item.desc}</Text>
+                  <Text style={s.stepDescription}>{item.desc}</Text>
                 </View>
               </View>
             ))}
           </View>
 
-          {/* Contact CIC Banner */}
+          {/* CIC Contact Banner */}
           <View style={s.cicBanner}>
-            <Text style={s.cicTitle}>🏛️ केंद्रीय माहिती आयोग</Text>
-            <Text style={s.cicAddress}>ऑगस्ट क्रांती भवन, भिकाजी कामा प्लेस,{'\n'}नवी दिल्ली - ११०००६</Text>
-            <Text style={s.cicWeb}>🌐 www.cic.gov.in</Text>
+            <Text style={s.cicBannerTitle}>🏛️ Central Information Commission</Text>
+            <Text style={s.cicBannerAddress}>
+              August Kranti Bhawan, Bhikaji Cama Place,{'\n'}New Delhi - 110006
+            </Text>
+            <Text style={s.cicBannerWebsite}>🌐 www.cic.gov.in</Text>
           </View>
 
         </View>
@@ -144,53 +169,246 @@ export default function ImportantLawsScreen({ navigation }) {
         <AppFooter navigation={navigation} />
       </ScrollView>
 
-      {/* Mobile pe BOTTOM navbar — ScrollView ke BAHAR */}
+      {/* Mobile: bottom navbar — outside ScrollView */}
       {!isWeb && <AppNavbar navigation={navigation} activeScreen="ImportantLaws" />}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  // Layout
+  screenWrapper: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  bodyContainer: {
+    paddingHorizontal: 14,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
 
-  hero: { backgroundColor: '#1e293b', padding: 28, alignItems: 'center', position: 'relative', overflow: 'hidden' },
-  heroCircle1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(249,115,22,0.15)' },
-  heroCircle2: { position: 'absolute', bottom: -50, left: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(249,115,22,0.1)' },
-  heroEmoji: { fontSize: 40, marginBottom: 10 },
-  heroTitle: { color: '#fff', fontSize: 26, fontWeight: '900', marginBottom: 10, textAlign: 'center' },
-  heroSub: { color: '#94a3b8', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  // Hero Section
+  heroSection: {
+    backgroundColor: '#1e293b',
+    padding: 28,
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroDecorCircleTop: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(249,115,22,0.15)',
+  },
+  heroDecorCircleBottom: {
+    position: 'absolute',
+    bottom: -50,
+    left: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(249,115,22,0.1)',
+  },
+  heroEmoji: {
+    fontSize: 40,
+    marginBottom: 10,
+  },
+  heroTitle: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '900',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  heroSubtitle: {
+    color: '#94a3b8',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 
-  body: { paddingHorizontal: 14, paddingTop: 16, paddingBottom: 8 },
+  // Key Facts
+  keyFactsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 20,
+  },
+  keyFactCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    elevation: 2,
+  },
+  keyFactIcon: {
+    fontSize: 24,
+    marginBottom: 6,
+  },
+  keyFactValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#f97316',
+    marginBottom: 2,
+  },
+  keyFactLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 
-  factsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  factCard: { flex: 1, minWidth: '45%', backgroundColor: '#fff', borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#f3f4f6', elevation: 2 },
-  factIcon: { fontSize: 24, marginBottom: 6 },
-  factValue: { fontSize: 18, fontWeight: '900', color: '#f97316', marginBottom: 2 },
-  factLabel: { fontSize: 11, color: '#6b7280', fontWeight: '600', textAlign: 'center' },
+  // Section Header
+  sectionBadge: {
+    color: '#f97316',
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  sectionHeading: {
+    color: '#111827',
+    fontWeight: '900',
+    fontSize: 20,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
 
-  sectionLabel: { color: '#f97316', fontWeight: '800', fontSize: 11, letterSpacing: 1, textAlign: 'center', marginBottom: 4 },
-  sectionTitle: { color: '#111827', fontWeight: '900', fontSize: 20, textAlign: 'center', marginBottom: 16 },
+  // Law Cards
+  lawCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  lawCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 10,
+  },
+  lawIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lawIconEmoji: {
+    fontSize: 20,
+  },
+  lawTitleBlock: {
+    flex: 1,
+  },
+  lawShortTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  lawFullTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+    lineHeight: 18,
+  },
+  lawDescription: {
+    fontSize: 12,
+    color: '#6b7280',
+    lineHeight: 20,
+  },
 
-  lawCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12, borderLeftWidth: 4, elevation: 2, borderWidth: 1, borderColor: '#f3f4f6' },
-  lawCardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
-  lawIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  lawIconText: { fontSize: 20 },
-  lawTitleWrap: { flex: 1 },
-  lawShort: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 },
-  lawTitle: { fontSize: 13, fontWeight: '800', color: '#111827', lineHeight: 18 },
-  lawDesc: { fontSize: 12, color: '#6b7280', lineHeight: 20 },
+  // RTI Steps Card
+  stepsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    elevation: 2,
+  },
+  stepsCardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 14,
+  },
+  stepNumberBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f97316',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  stepNumberText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 13,
+  },
+  stepTextBlock: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  stepDescription: {
+    fontSize: 12,
+    color: '#6b7280',
+    lineHeight: 18,
+  },
 
-  stepsCard: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#f3f4f6', elevation: 2 },
-  stepsTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 16 },
-  stepItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
-  stepNum: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f97316', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  stepNumText: { color: '#fff', fontWeight: '900', fontSize: 13 },
-  stepContent: { flex: 1 },
-  stepTitle: { fontSize: 13, fontWeight: '800', color: '#111827', marginBottom: 4 },
-  stepDesc: { fontSize: 12, color: '#6b7280', lineHeight: 18 },
-
-  cicBanner: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginBottom: 14, alignItems: 'center' },
-  cicTitle: { color: '#f97316', fontSize: 16, fontWeight: '800', marginBottom: 10 },
-  cicAddress: { color: '#e2e8f0', fontSize: 13, textAlign: 'center', lineHeight: 22, marginBottom: 8 },
-  cicWeb: { color: '#38bdf8', fontSize: 13, fontWeight: '700' },
+  // CIC Banner
+  cicBanner: {
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  cicBannerTitle: {
+    color: '#f97316',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  cicBannerAddress: {
+    color: '#e2e8f0',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  cicBannerWebsite: {
+    color: '#38bdf8',
+    fontSize: 13,
+    fontWeight: '700',
+  },
 });

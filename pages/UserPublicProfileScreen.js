@@ -28,11 +28,11 @@ function formatAccountAge(joinDate) {
   return `${Math.max(1, diffDays)} Day${diffDays === 1 ? '' : 's'}`;
 }
 
-function roleLabelToHindi(role = '') {
+function roleLabelToEnglish(role = '') {
   const v = String(role || '').toLowerCase();
-  if (v === 'reporter') return 'पत्रकार';
-  if (v === 'editor') return 'संपादक';
-  if (v === 'admin') return 'प्रशासक';
+  if (v === 'reporter') return 'Reporter';
+  if (v === 'editor') return 'Editor';
+  if (v === 'admin') return 'Admin';
   return '';
 }
 
@@ -84,7 +84,7 @@ export default function UserPublicProfileScreen({ route, navigation }) {
   const seatName = String(display?.state_seat?.seat_name || display?.author_seat_name || '').trim();
   const seatId = String(display?.state_seat?.seat_id || display?.author_seat_id || '').trim();
   const roleId = String(display?.role || display?.author_role || '').trim().toLowerCase();
-  const rolePillText = roleLabelToHindi(roleId) || roleLabel || seatName || '';
+  const rolePillText = roleLabelToEnglish(roleId) || roleLabel || seatName || '';
   const joinDate = String(display?.join_date || '').trim();
   const networkCount = Number(display?.referral_count || 0);
   const locationLine = [taluka, district, state].filter(Boolean).join(', ');
@@ -131,7 +131,7 @@ export default function UserPublicProfileScreen({ route, navigation }) {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
           <Feather name="arrow-left" size={20} color="#0f172a" />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>प्रोफाइल</Text>
+        <Text style={styles.topBarTitle}>Profile</Text>
         <TouchableOpacity style={styles.menuBtn} onPress={handleShareProfile} activeOpacity={0.8}>
           <Feather name="more-vertical" size={18} color="#0f172a" />
         </TouchableOpacity>
@@ -187,22 +187,22 @@ export default function UserPublicProfileScreen({ route, navigation }) {
           <View style={styles.metricsRow}>
             <View style={styles.metricBox}>
               <Text style={styles.metricValue}>{Number.isFinite(networkCount) ? String(networkCount) : '0'}</Text>
-              <Text style={styles.metricLabel}>नेटवर्क</Text>
+              <Text style={styles.metricLabel}>Network</Text>
             </View>
             <View style={styles.metricBox}>
               <Text style={styles.metricValue}>{accountAge || '—'}</Text>
-              <Text style={styles.metricLabel}>अकाउंट</Text>
+              <Text style={styles.metricLabel}>Account</Text>
             </View>
           </View>
 
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.subscribeBtn} onPress={handleSubscribe} activeOpacity={0.85}>
               <Feather name="user-plus" size={16} color="#ffffff" />
-              <Text style={styles.subscribeBtnText}>सब्सक्राइब</Text>
+              <Text style={styles.subscribeBtnText}>Subscribe</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.shareBtn} onPress={handleShareProfile} activeOpacity={0.85}>
               <Feather name="share-2" size={16} color="#0f172a" />
-              <Text style={styles.shareBtnText}>प्रोफाइल शेयर करा</Text>
+              <Text style={styles.shareBtnText}>Share Profile</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -213,14 +213,14 @@ export default function UserPublicProfileScreen({ route, navigation }) {
             onPress={() => setActiveTab('posts')}
             activeOpacity={0.85}
           >
-            <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>पोस्ट</Text>
+            <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>Posts</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'activity' && styles.tabBtnActive]}
             onPress={() => setActiveTab('activity')}
             activeOpacity={0.85}
           >
-            <Text style={[styles.tabText, activeTab === 'activity' && styles.tabTextActive]}>क्रियाकलाप</Text>
+            <Text style={[styles.tabText, activeTab === 'activity' && styles.tabTextActive]}>Activity</Text>
           </TouchableOpacity>
         </View>
 

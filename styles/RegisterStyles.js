@@ -51,7 +51,23 @@ const RegisterStyles = StyleSheet.create({
     borderColor: 'rgba(196, 181, 253, 0.16)',
     elevation: 10,
     overflow: 'hidden',
+    position: 'relative', // Added for absolute positioning of close button
   },
+
+  // Close button styling
+  closeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   topAccent: {
     position: 'absolute',
     top: 0, left: 0, right: 0,

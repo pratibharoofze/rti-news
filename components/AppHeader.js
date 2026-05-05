@@ -23,6 +23,7 @@ function blurActiveElement() {
   }
 }
 
+// सभी 22 आधिकारिक भारतीय भाषाएं
 const INDIAN_LANGUAGES = [
   { code: 'as',  label: 'Assamese',  native: 'অসমীয়া'   },
   { code: 'bn',  label: 'Bengali',   native: 'বাংলা'      },
@@ -50,11 +51,11 @@ const INDIAN_LANGUAGES = [
 ];
 
 function LanguageSelector({ compact = false }) {
-  const { language, changeLanguage } = useLanguage();
+  const { language, changeLanguage, t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
 
-  const selected = INDIAN_LANGUAGES.find((l) => l.code === language) || INDIAN_LANGUAGES[4];
+  const selected = INDIAN_LANGUAGES.find((l) => l.code === language) || INDIAN_LANGUAGES.find(l => l.code === 'hi') || INDIAN_LANGUAGES[4];
 
   const filtered = search.trim()
     ? INDIAN_LANGUAGES.filter(
@@ -105,7 +106,7 @@ function LanguageSelector({ compact = false }) {
               <Text style={s.searchIcon}>🔍</Text>
               <TextInput
                 style={s.searchInput}
-                placeholder="Search..."
+                placeholder={t('search') || 'Search...'}
                 placeholderTextColor="#bbb"
                 value={search}
                 onChangeText={setSearch}
@@ -119,7 +120,7 @@ function LanguageSelector({ compact = false }) {
             </View>
             <ScrollView style={s.langList} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
               {filtered.length === 0
-                ? <Text style={s.noResult}>No language found</Text>
+                ? <Text style={s.noResult}>{t('no.results') || 'No language found'}</Text>
                 : filtered.map((item) => (
                     <TouchableOpacity
                       key={item.code}
@@ -145,6 +146,7 @@ function LanguageSelector({ compact = false }) {
 
 export default function AppHeader({ navigation, compact = false }) {
   const [time, setTime] = useState(new Date());
+  const { t } = useLanguage();
 
   useEffect(() => {
     const interval = setInterval(() => setTime(new Date()), 1000);
@@ -164,7 +166,6 @@ export default function AppHeader({ navigation, compact = false }) {
   if (IS_MOBILE) {
     return (
       <View style={[s.root, androidPad]}>
-        {/* Row 1: Logo + Title - dono tap karne pe Home jayega */}
         <View style={s.mobileRow1}>
           <TouchableOpacity onPress={() => navigation?.navigate('Home')}>
             <Image
@@ -178,12 +179,11 @@ export default function AppHeader({ navigation, compact = false }) {
             style={{ flex: 1 }}
           >
             <Text style={s.mobileTitle} numberOfLines={2} adjustsFontSizeToFit>
-              {'भारतीय माहिती अधिकार'}
+              {t('app.title')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Row 2: Language + SignUp */}
         <View style={s.mobileRow2}>
           <LanguageSelector compact />
           <TouchableOpacity
@@ -191,11 +191,10 @@ export default function AppHeader({ navigation, compact = false }) {
             onPress={() => navigation?.navigate('Login')}
           >
             <Text style={s.signupIcon}>{'👤'}</Text>
-            <Text style={s.signupText}>{'Sign Up'}</Text>
+            <Text style={s.signupText}>{t('sign.up')}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Row 3: Orange Date/Time */}
         <View style={s.brandBar}>
           <Text style={s.tickerText}>{'📅 '}{formatDate(time)}</Text>
           <Text style={s.tickerText}>{'⏰ '}{formatTime(time)}</Text>
@@ -210,7 +209,6 @@ export default function AppHeader({ navigation, compact = false }) {
   return (
     <View style={[s.root, androidPad]}>
       <View style={s.utilityBar}>
-        {/* Logo - tap karne pe Home jayega */}
         <TouchableOpacity
           onPress={() => navigation?.navigate('Home')}
           style={s.logoWrap}
@@ -222,9 +220,8 @@ export default function AppHeader({ navigation, compact = false }) {
           />
         </TouchableOpacity>
 
-        {/* Title - tap karne pe Home jayega */}
         <TouchableOpacity onPress={() => navigation?.navigate('Home')}>
-          <Text style={s.centerTitle}>{'भारतीय माहिती अधिकार'}</Text>
+          <Text style={s.centerTitle}>{t('app.title')}</Text>
         </TouchableOpacity>
 
         <View style={s.rightGroup}>
@@ -234,7 +231,7 @@ export default function AppHeader({ navigation, compact = false }) {
             onPress={() => navigation?.navigate('Login')}
           >
             <Text style={s.signupIcon}>{'👤'}</Text>
-            <Text style={s.signupText}>{'Sign Up'}</Text>
+            <Text style={s.signupText}>{t('sign.up')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -261,7 +258,6 @@ const s = StyleSheet.create({
     }),
   },
 
-  // ── Mobile ──
   mobileRow1: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -291,7 +287,6 @@ const s = StyleSheet.create({
     zIndex: 1000,
   },
 
-  // ── Desktop ──
   utilityBar: {
     backgroundColor: '#fff',
     justifyContent: 'center',
@@ -325,7 +320,6 @@ const s = StyleSheet.create({
     zIndex: 200,
   },
 
-  // ── Language Button ──
   langBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -346,7 +340,6 @@ const s = StyleSheet.create({
   langBtnTextCompact: { fontSize: 11 },
   langChevron: { color: '#f97316', fontSize: 10, fontWeight: '800' },
 
-  // ── Dropdown ──
   dropdownOverlay: {
     position: 'fixed',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -360,7 +353,7 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: '110%',
     left: 0,
-    width: 220,
+    width: 260, // Width increased for better visibility
     backgroundColor: '#fff',
     borderRadius: 14,
     borderWidth: 1.5,
@@ -391,21 +384,20 @@ const s = StyleSheet.create({
     paddingVertical: 2,
     outlineStyle: 'none',
   },
-  langList: { maxHeight: 220, backgroundColor: '#fff' },
+  langList: { maxHeight: 280, backgroundColor: '#fff' }, // Increased height
   langItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     gap: 8,
   },
   langItemSelected: { backgroundColor: '#fff7ed' },
   langItemNative: { fontSize: 14, fontWeight: '700', color: '#1a1a1a', flex: 1 },
-  langItemLabel: { fontSize: 11, color: '#999' },
+  langItemLabel: { fontSize: 11, color: '#999', minWidth: 60 },
   langItemCheck: { fontSize: 14, color: '#f97316', fontWeight: '900' },
   noResult: { textAlign: 'center', padding: 16, color: '#bbb', fontSize: 13 },
 
-  // ── Signup ──
   signupBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -418,7 +410,6 @@ const s = StyleSheet.create({
   signupIcon: { fontSize: 12 },
   signupText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
-  // ── Brand Bar ──
   brandBar: {
     backgroundColor: '#f97316',
     flexDirection: 'row',

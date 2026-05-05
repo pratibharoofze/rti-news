@@ -8,17 +8,20 @@ import AppHeader from '../components/AppHeader';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
 
+// ─────────────────────────────────────────────
+// Static Data
+// ─────────────────────────────────────────────
 const addresses = [
   {
-    label: 'Address 1',
-    line1: 'Flat No. 1106 Lotus Residency',
-    line2: 'A Wing Ram Mandir Chowk SV Road',
+    label: 'Head Office',
+    line1: 'Flat No. 1106, Lotus Residency',
+    line2: 'A Wing, Ram Mandir Chowk, SV Road',
     line3: 'Mahatma Jyotiba Phule Nagar, Jogeshwari West',
     city: 'Mumbai - 400102',
-    state: 'Maharashtra',
+    state: 'Maharashtra, India',
   },
   {
-    label: 'Address 2',
+    label: 'Branch Office',
     line1: '',
     line2: '',
     line3: '',
@@ -29,107 +32,169 @@ const addresses = [
 
 const faqs = [
   {
-    q: 'How can I file an RTI application?',
-    a: 'You can file an RTI application online through the official RTI Online Portal (rtionline.gov.in) or submit a physical application to the concerned Public Information Officer (PIO). We also provide free RTI guides on our website.',
+    question: 'How can I file an RTI application?',
+    answer:
+      'You can file an RTI application online through the official RTI Online Portal (rtionline.gov.in) or submit a physical application to the concerned Public Information Officer (PIO). We also provide free RTI guides on our website.',
   },
   {
-    q: 'How much does it cost to file an RTI?',
-    a: 'The application fee for filing an RTI is ₹10 for central government departments. State government fees may vary. BPL cardholders are exempt from paying the fee.',
+    question: 'How much does it cost to file an RTI?',
+    answer:
+      'The application fee for filing an RTI is ₹10 for central government departments. State government fees may vary. BPL cardholders are exempt from paying the fee.',
   },
   {
-    q: 'How long does it take to get a response?',
-    a: 'Under the RTI Act, the Public Information Officer must respond within 30 days from the date of application. In case of matters related to life or liberty, the response must be provided within 48 hours.',
+    question: 'How long does it take to get a response?',
+    answer:
+      'Under the RTI Act, the Public Information Officer must respond within 30 days from the date of application. In matters related to life or liberty, the response must be provided within 48 hours.',
   },
   {
-    q: 'Can I get help with drafting an RTI application?',
-    a: 'Yes! Our team provides free guidance on drafting RTI applications. You can reach out to us via email or phone, and we\'ll help you frame your questions effectively.',
+    question: 'Can I get help drafting an RTI application?',
+    answer:
+      "Yes! Our team provides free guidance on drafting RTI applications. Reach out via email or phone and we'll help you frame your questions effectively.",
   },
 ];
 
-const subjects = ['General Inquiry', 'News Tip', 'RTI Assistance', 'Feedback', 'Partnership', 'Other'];
+const subjectOptions = ['General Inquiry', 'News Tip', 'RTI Assistance', 'Feedback', 'Partnership', 'Other'];
 
-const mapUrl =
+const contactInfoItems = [
+  {
+    icon: '📞',
+    accentColor: '#16a34a',
+    title: 'Phone Number',
+    primaryText: '(+91) 070206 67971',
+    secondaryText: 'Call us for inquiries',
+    action: () => Linking.openURL('tel:+917020667971'),
+    isLink: true,
+  },
+  {
+    icon: '✉️',
+    accentColor: '#3b82f6',
+    title: 'Email Address',
+    primaryText: 'info@rtinews.in',
+    secondaryText: "We'll respond within 24 hours",
+    action: () => Linking.openURL('mailto:info@rtinews.in'),
+    isLink: true,
+  },
+  {
+    icon: '🕐',
+    accentColor: '#a855f7',
+    title: 'Working Hours',
+    primaryText: 'Mon – Sat: 10:00 AM – 7:00 PM',
+    secondaryText: 'Closed on Sundays',
+    action: null,
+    isLink: false,
+  },
+];
+
+const MAP_EMBED_URL =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3769.6895!2d72.8344!3d19.1381!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7b63b5c5c5c5d%3A0x5c5c5c5c5c5c5c5c!2sJogeshwari%20West%2C%20Mumbai%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1700000000000';
 
-const cardShadow = Platform.select({
-  web: { boxShadow: '0px 1px 4px rgba(0,0,0,0.06)' },
+// ─────────────────────────────────────────────
+// Platform Shadow Helpers
+// ─────────────────────────────────────────────
+const cardElevation = Platform.select({
+  web: { boxShadow: '0px 2px 12px rgba(0,0,0,0.07)' },
   default: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
   },
 });
 
-const modalShadow = Platform.select({
-  web: { boxShadow: '0px 8px 24px rgba(0,0,0,0.15)' },
+const modalElevation = Platform.select({
+  web: { boxShadow: '0px 12px 32px rgba(0,0,0,0.18)' },
   default: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.18,
     shadowRadius: 24,
-    elevation: 12,
+    elevation: 14,
   },
 });
 
+// ─────────────────────────────────────────────
+// Map Embed Component
+// ─────────────────────────────────────────────
 function MapEmbed() {
   if (Platform.OS === 'web') {
     return (
       <iframe
-        src={mapUrl}
+        src={MAP_EMBED_URL}
         width="100%"
         height="100%"
-        style={{ border: 'none', borderRadius: 12, display: 'block' }}
+        style={{ border: 'none', borderRadius: 14, display: 'block' }}
         allowFullScreen
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
       />
     );
   }
-  const androidMapUrl = 'https://www.google.com/maps?q=Jogeshwari+West+Mumbai+Maharashtra&z=15&output=embed';
+  const mobileMapUrl =
+    'https://www.google.com/maps?q=Jogeshwari+West+Mumbai+Maharashtra&z=15&output=embed';
   return (
-    <View style={{ flex: 1, height: 220, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f3f4f6' }}>
+    <View style={s.mapEmbedWrapper}>
       <WebView
-        source={{ uri: androidMapUrl }}
-        style={{ flex: 1, backgroundColor: '#f3f4f6' }}
-        scrollEnabled={true}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        startInLoadingState={true}
+        source={{ uri: mobileMapUrl }}
+        style={s.mapWebView}
+        scrollEnabled
+        javaScriptEnabled
+        domStorageEnabled
+        startInLoadingState
         scalesPageToFit={false}
         originWhitelist={['*']}
-        onError={(syntheticEvent) => { console.warn('WebView error:', syntheticEvent.nativeEvent.description); }}
-        onLoadEnd={() => { console.log('WebView loaded successfully'); }}
+        onError={(e) => console.warn('Map WebView error:', e.nativeEvent.description)}
       />
     </View>
   );
 }
 
+// ─────────────────────────────────────────────
+// Subject Picker Component
+// ─────────────────────────────────────────────
 function SubjectPicker({ value, onChange }) {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <>
-      <TouchableOpacity style={s.pickerBtn} onPress={() => setOpen(true)} activeOpacity={0.8}>
-        <Text style={[s.pickerBtnText, !value && { color: '#9ca3af' }]}>
+      <TouchableOpacity
+        style={s.pickerTrigger}
+        onPress={() => setIsOpen(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={[s.pickerTriggerText, !value && s.pickerPlaceholderText]}>
           {value || 'Select a subject'}
         </Text>
-        <Text style={s.pickerArrow}>▾</Text>
+        <Text style={s.pickerChevron}>▾</Text>
       </TouchableOpacity>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
-          <View style={s.modalBox}>
-            <Text style={s.modalTitle}>Select a Subject</Text>
-            {subjects.map((sub) => (
-              <TouchableOpacity
-                key={sub}
-                style={[s.modalOption, value === sub && s.modalOptionActive]}
-                onPress={() => { onChange(sub); setOpen(false); }}
-              >
-                <Text style={[s.modalOptionText, value === sub && s.modalOptionTextActive]}>{sub}</Text>
-                {value === sub && <Text style={s.modalCheck}>✓</Text>}
-              </TouchableOpacity>
-            ))}
+
+      <Modal
+        visible={isOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsOpen(false)}
+      >
+        <TouchableOpacity
+          style={s.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setIsOpen(false)}
+        >
+          <View style={s.modalSheet}>
+            <Text style={s.modalSheetTitle}>Select a Subject</Text>
+            {subjectOptions.map((option) => {
+              const isSelected = value === option;
+              return (
+                <TouchableOpacity
+                  key={option}
+                  style={[s.modalOptionRow, isSelected && s.modalOptionRowSelected]}
+                  onPress={() => { onChange(option); setIsOpen(false); }}
+                >
+                  <Text style={[s.modalOptionLabel, isSelected && s.modalOptionLabelSelected]}>
+                    {option}
+                  </Text>
+                  {isSelected && <Text style={s.modalOptionCheckmark}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -137,177 +202,261 @@ function SubjectPicker({ value, onChange }) {
   );
 }
 
+// ─────────────────────────────────────────────
+// Divider with Label
+// ─────────────────────────────────────────────
+function SectionDivider({ label }) {
+  return (
+    <View style={s.dividerRow}>
+      <View style={s.dividerLine} />
+      <Text style={s.dividerLabel}>{label}</Text>
+      <View style={s.dividerLine} />
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Main Screen
+// ─────────────────────────────────────────────
 const isWeb = Platform.OS === 'web';
 
 export default function ContactScreen({ navigation }) {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', message: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [openFaq, setOpenFaq] = useState(null);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
-  const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const updateFormField = (key, value) =>
+    setFormData((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = () => {
-    if (!form.name || !form.email || !selectedSubject || !form.message) {
-      Alert.alert('Error', 'Please fill all required fields.');
+  const handleFormSubmit = () => {
+    if (!formData.name || !formData.email || !selectedSubject || !formData.message) {
+      Alert.alert('Incomplete Form', 'Please fill in all required fields.');
       return;
     }
-    Alert.alert('Success', 'Your message has been sent!');
-    setForm({ name: '', phone: '', email: '', message: '' });
+    Alert.alert('Message Sent!', 'Thank you for reaching out. We will get back to you shortly.');
+    setFormData({ name: '', phone: '', email: '', message: '' });
     setSelectedSubject('');
   };
 
-  // ✅ FIX: AppNavbar ScrollView ke BAHAR
   return (
-    <View style={{ flex: 1 }}>
-      {/* Web pe TOP navbar */}
+    <View style={s.screenRoot}>
       {isWeb && <AppNavbar navigation={navigation} activeScreen="Contact" />}
 
-      <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scrollArea} showsVerticalScrollIndicator={false}>
         <AppHeader navigation={navigation} />
 
-        {/* ── Hero ── */}
-        <View style={s.hero}>
-          <View style={s.heroCircle1} />
-          <View style={s.heroCircle2} />
-          <View style={s.heroBadge}>
-            <Text style={s.heroBadgeText}>📞 Get in Touch</Text>
+        {/* ── Hero Banner ── */}
+        <View style={s.heroBanner}>
+          <View style={s.heroGlowTopRight} />
+          <View style={s.heroGlowBottomLeft} />
+          <View style={s.heroPill}>
+            <Text style={s.heroPillText}>📞  Get in Touch</Text>
           </View>
-          <Text style={s.heroTitle}>Contact Us</Text>
-          <Text style={s.heroSub}>
-            We&apos;d love to hear from you. Reach out with your queries, feedback, or news tips.
+          <Text style={s.heroHeading}>Contact Us</Text>
+          <Text style={s.heroTagline}>
+            We'd love to hear from you. Reach out with your queries, feedback, or news tips.
           </Text>
+          {/* Stat strip */}
+          <View style={s.heroStatStrip}>
+            <View style={s.heroStatItem}>
+              <Text style={s.heroStatValue}>24h</Text>
+              <Text style={s.heroStatLabel}>Response Time</Text>
+            </View>
+            <View style={s.heroStatDivider} />
+            <View style={s.heroStatItem}>
+              <Text style={s.heroStatValue}>Free</Text>
+              <Text style={s.heroStatLabel}>RTI Guidance</Text>
+            </View>
+            <View style={s.heroStatDivider} />
+            <View style={s.heroStatItem}>
+              <Text style={s.heroStatValue}>6 Days</Text>
+              <Text style={s.heroStatLabel}>Available</Text>
+            </View>
+          </View>
         </View>
 
-        <View style={s.body}>
+        <View style={s.pageBody}>
 
+          {/* ── Address Cards ── */}
           {addresses.map((addr, idx) => {
-            const hasContent = addr.line1 || addr.line3 || addr.city || addr.state;
+            const hasContent = addr.line1 || addr.city || addr.state;
             return (
-              <View key={idx} style={s.infoCard}>
-                <View style={[s.infoIcon, { backgroundColor: '#f97316' }]}>
-                  <Text style={s.infoIconText}>📍</Text>
+              <View key={idx} style={s.contactInfoCard}>
+                <View style={[s.contactInfoIconBox, { backgroundColor: '#f97316' }]}>
+                  <Text style={s.contactInfoIconEmoji}>📍</Text>
                 </View>
-                <View style={s.infoContent}>
-                  <Text style={s.infoTitle}>{addr.label}</Text>
+                <View style={s.contactInfoTextBlock}>
+                  <Text style={s.contactInfoCardTitle}>{addr.label}</Text>
                   {hasContent ? (
                     <>
-                      {addr.line1 ? <Text style={s.infoText}>{addr.line1}</Text> : null}
-                      {addr.line2 ? <Text style={s.infoText}>{addr.line2}</Text> : null}
-                      {addr.line3 ? <Text style={s.infoText}>{addr.line3}</Text> : null}
-                      {addr.city  ? <Text style={[s.infoText, { fontWeight: '700', color: '#111827' }]}>{addr.city}</Text> : null}
-                      {addr.state ? <Text style={s.infoText}>{addr.state}</Text> : null}
+                      {addr.line1 ? <Text style={s.contactInfoLine}>{addr.line1}</Text> : null}
+                      {addr.line2 ? <Text style={s.contactInfoLine}>{addr.line2}</Text> : null}
+                      {addr.line3 ? <Text style={s.contactInfoLine}>{addr.line3}</Text> : null}
+                      {addr.city  ? <Text style={s.contactInfoCityText}>{addr.city}</Text> : null}
+                      {addr.state ? <Text style={s.contactInfoLine}>{addr.state}</Text> : null}
                     </>
                   ) : (
-                    <Text style={[s.infoText, { fontStyle: 'italic', color: '#d1d5db' }]}>Address not set</Text>
+                    <Text style={s.contactInfoEmptyText}>Address not configured yet.</Text>
                   )}
                 </View>
               </View>
             );
           })}
 
-          <TouchableOpacity style={s.infoCard} onPress={() => Linking.openURL('tel:+917020667971')}>
-            <View style={[s.infoIcon, { backgroundColor: '#16a34a' }]}>
-              <Text style={s.infoIconText}>📞</Text>
-            </View>
-            <View style={s.infoContent}>
-              <Text style={s.infoTitle}>Phone Number</Text>
-              <Text style={[s.infoText, { color: '#16a34a', fontWeight: '700' }]}>(+91) 070206 67971</Text>
-              <Text style={s.infoSubText}>Call us for inquiries</Text>
-            </View>
-          </TouchableOpacity>
+          {/* ── Phone / Email / Hours ── */}
+          {contactInfoItems.map((item) => {
+            const CardWrapper = item.isLink ? TouchableOpacity : View;
+            const wrapperProps = item.isLink ? { onPress: item.action, activeOpacity: 0.85 } : {};
+            return (
+              <CardWrapper key={item.title} style={s.contactInfoCard} {...wrapperProps}>
+                <View style={[s.contactInfoIconBox, { backgroundColor: item.accentColor }]}>
+                  <Text style={s.contactInfoIconEmoji}>{item.icon}</Text>
+                </View>
+                <View style={s.contactInfoTextBlock}>
+                  <Text style={s.contactInfoCardTitle}>{item.title}</Text>
+                  <Text style={[s.contactInfoPrimaryText, { color: item.accentColor }]}>
+                    {item.primaryText}
+                  </Text>
+                  <Text style={s.contactInfoSecondaryText}>{item.secondaryText}</Text>
+                </View>
+                {item.isLink && (
+                  <View style={[s.contactInfoArrowBadge, { backgroundColor: item.accentColor + '18' }]}>
+                    <Text style={[s.contactInfoArrow, { color: item.accentColor }]}>→</Text>
+                  </View>
+                )}
+              </CardWrapper>
+            );
+          })}
 
-          <TouchableOpacity style={s.infoCard} onPress={() => Linking.openURL('mailto:info@rtinews.in')}>
-            <View style={[s.infoIcon, { backgroundColor: '#3b82f6' }]}>
-              <Text style={s.infoIconText}>✉️</Text>
-            </View>
-            <View style={s.infoContent}>
-              <Text style={s.infoTitle}>Email Address</Text>
-              <Text style={[s.infoText, { color: '#3b82f6', fontWeight: '700' }]}>info@rtinews.in</Text>
-              <Text style={s.infoSubText}>We&apos;ll respond within 24 hours</Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={s.infoCard}>
-            <View style={[s.infoIcon, { backgroundColor: '#a855f7' }]}>
-              <Text style={s.infoIconText}>🕐</Text>
-            </View>
-            <View style={s.infoContent}>
-              <Text style={s.infoTitle}>Working Hours</Text>
-              <Text style={s.infoText}>Mon - Sat: 10:00 AM - 7:00 PM</Text>
-              <Text style={s.infoSubText}>Sunday Closed</Text>
-            </View>
-          </View>
-
-          {/* ── Map Card ── */}
+          {/* ── Map Section ── */}
           <View style={s.mapCard}>
-            <View style={s.mapHeader}>
-              <View style={s.sectionBar} />
-              <Text style={s.mapTitle}>📍  Our Location</Text>
+            <View style={s.mapCardHeader}>
+              <View style={s.mapCardAccentBar} />
+              <Text style={s.mapCardTitle}>Our Location</Text>
             </View>
-            <Text style={s.mapSubtitle}>Jogeshwari West, Mumbai - 400102</Text>
-            <View style={s.mapContainer}>
+            <Text style={s.mapCardSubtitle}>Jogeshwari West, Mumbai – 400102</Text>
+            <View style={s.mapFrame}>
               <MapEmbed />
             </View>
-            <TouchableOpacity style={s.directionBtn} onPress={() => Linking.openURL('https://maps.google.com/?q=Jogeshwari+West+Mumbai')}>
-              <Text style={s.directionBtnText}>🗺️  Get Directions</Text>
+            <TouchableOpacity
+              style={s.getDirectionsButton}
+              onPress={() => Linking.openURL('https://maps.google.com/?q=Jogeshwari+West+Mumbai')}
+              activeOpacity={0.88}
+            >
+              <Text style={s.getDirectionsButtonText}>🗺️  Get Directions</Text>
             </TouchableOpacity>
           </View>
 
           {/* ── Contact Form ── */}
           <View style={s.formCard}>
-            <View style={s.sectionLabelRow}>
-              <View style={s.sectionLabelLine} />
-              <Text style={s.sectionLabel}>SEND US A MESSAGE</Text>
-              <View style={s.sectionLabelLine} />
-            </View>
-            <Text style={s.sectionTitle}>Get in Touch</Text>
-            <Text style={s.sectionSub}>Have a question or want to share a news tip? Fill out the form below.</Text>
+            <SectionDivider label="SEND US A MESSAGE" />
+            <Text style={s.formCardHeading}>Get in Touch</Text>
+            <Text style={s.formCardSubheading}>
+              Have a question or a news tip? Fill out the form and we'll get back to you.
+            </Text>
 
-            <View style={s.formRow}>
-              <View style={s.formHalf}>
-                <Text style={s.label}>Full Name <Text style={s.required}>*</Text></Text>
-                <TextInput style={s.input} placeholder="Enter your full name" placeholderTextColor="#9ca3af" value={form.name} onChangeText={(t) => updateField('name', t)} />
+            {/* Name + Phone */}
+            <View style={s.formTwoColumnRow}>
+              <View style={s.formColumn}>
+                <Text style={s.formFieldLabel}>
+                  Full Name <Text style={s.formRequiredStar}>*</Text>
+                </Text>
+                <TextInput
+                  style={s.formTextInput}
+                  placeholder="Your full name"
+                  placeholderTextColor="#9ca3af"
+                  value={formData.name}
+                  onChangeText={(t) => updateFormField('name', t)}
+                />
               </View>
-              <View style={s.formHalf}>
-                <Text style={s.label}>Phone Number</Text>
-                <TextInput style={s.input} placeholder="Enter your phone number" placeholderTextColor="#9ca3af" keyboardType="phone-pad" value={form.phone} onChangeText={(t) => updateField('phone', t)} />
+              <View style={s.formColumn}>
+                <Text style={s.formFieldLabel}>Phone Number</Text>
+                <TextInput
+                  style={s.formTextInput}
+                  placeholder="Your phone number"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="phone-pad"
+                  value={formData.phone}
+                  onChangeText={(t) => updateFormField('phone', t)}
+                />
               </View>
             </View>
 
-            <Text style={s.label}>Email Address <Text style={s.required}>*</Text></Text>
-            <TextInput style={s.input} placeholder="Enter your email address" placeholderTextColor="#9ca3af" keyboardType="email-address" autoCapitalize="none" value={form.email} onChangeText={(t) => updateField('email', t)} />
+            {/* Email */}
+            <Text style={s.formFieldLabel}>
+              Email Address <Text style={s.formRequiredStar}>*</Text>
+            </Text>
+            <TextInput
+              style={s.formTextInput}
+              placeholder="your@email.com"
+              placeholderTextColor="#9ca3af"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={formData.email}
+              onChangeText={(t) => updateFormField('email', t)}
+            />
 
-            <Text style={s.label}>Subject <Text style={s.required}>*</Text></Text>
+            {/* Subject */}
+            <Text style={s.formFieldLabel}>
+              Subject <Text style={s.formRequiredStar}>*</Text>
+            </Text>
             <SubjectPicker value={selectedSubject} onChange={setSelectedSubject} />
 
-            <Text style={[s.label, { marginTop: 12 }]}>Message <Text style={s.required}>*</Text></Text>
-            <TextInput style={[s.input, s.textarea]} placeholder="Write your message here..." placeholderTextColor="#9ca3af" multiline numberOfLines={5} value={form.message} onChangeText={(t) => updateField('message', t)} />
+            {/* Message */}
+            <Text style={[s.formFieldLabel, s.formFieldLabelSpacingTop]}>
+              Message <Text style={s.formRequiredStar}>*</Text>
+            </Text>
+            <TextInput
+              style={[s.formTextInput, s.formTextArea]}
+              placeholder="Write your message here..."
+              placeholderTextColor="#9ca3af"
+              multiline
+              numberOfLines={5}
+              value={formData.message}
+              onChangeText={(t) => updateFormField('message', t)}
+            />
 
-            <TouchableOpacity style={s.submitBtn} onPress={handleSubmit}>
-              <Text style={s.submitBtnText}>✈️  Send Message</Text>
+            <TouchableOpacity
+              style={s.formSubmitButton}
+              onPress={handleFormSubmit}
+              activeOpacity={0.88}
+            >
+              <Text style={s.formSubmitButtonText}>✈️  Send Message</Text>
             </TouchableOpacity>
           </View>
 
           {/* ── FAQ ── */}
           <View style={s.faqCard}>
-            <View style={s.sectionLabelRow}>
-              <View style={s.sectionLabelLine} />
-              <Text style={s.sectionLabel}>COMMON QUESTIONS</Text>
-              <View style={s.sectionLabelLine} />
-            </View>
-            <Text style={s.sectionTitle}>Frequently Asked Questions</Text>
-            <View style={{ marginTop: 16 }}>
+            <SectionDivider label="COMMON QUESTIONS" />
+            <Text style={s.faqCardHeading}>Frequently Asked Questions</Text>
+
+            <View style={s.faqListContainer}>
               {faqs.map((faq, idx) => {
-                const isOpen = openFaq === idx;
+                const isExpanded = openFaqIndex === idx;
                 return (
-                  <TouchableOpacity key={idx} style={[s.faqItem, isOpen && s.faqItemOpen]} onPress={() => setOpenFaq(isOpen ? null : idx)} activeOpacity={0.85}>
-                    <View style={s.faqHeader}>
-                      <Text style={s.faqQ}><Text style={s.faqQLabel}>Q. </Text>{faq.q}</Text>
-                      <View style={[s.faqToggleBubble, isOpen && s.faqToggleBubbleActive]}>
-                        <Text style={[s.faqToggle, isOpen && s.faqToggleActive]}>{isOpen ? '−' : '+'}</Text>
+                  <TouchableOpacity
+                    key={idx}
+                    style={[s.faqAccordionItem, isExpanded && s.faqAccordionItemExpanded]}
+                    onPress={() => setOpenFaqIndex(isExpanded ? null : idx)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={s.faqAccordionHeader}>
+                      <Text style={s.faqQuestionText}>
+                        <Text style={s.faqQuestionPrefix}>Q.  </Text>
+                        {faq.question}
+                      </Text>
+                      <View style={[s.faqToggleButton, isExpanded && s.faqToggleButtonExpanded]}>
+                        <Text style={[s.faqToggleIcon, isExpanded && s.faqToggleIconExpanded]}>
+                          {isExpanded ? '−' : '+'}
+                        </Text>
                       </View>
                     </View>
-                    {isOpen && <Text style={s.faqA}><Text style={s.faqALabel}>A. </Text>{faq.a}</Text>}
+                    {isExpanded && (
+                      <Text style={s.faqAnswerText}>
+                        <Text style={s.faqAnswerPrefix}>A.  </Text>
+                        {faq.answer}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -319,78 +468,527 @@ export default function ContactScreen({ navigation }) {
         <AppFooter navigation={navigation} />
       </ScrollView>
 
-      {/* Mobile pe BOTTOM navbar — ScrollView ke BAHAR */}
       {!isWeb && <AppNavbar navigation={navigation} activeScreen="Contact" />}
     </View>
   );
 }
 
+// ─────────────────────────────────────────────
+// Styles
+// ─────────────────────────────────────────────
+const ORANGE = '#f97316';
+const ORANGE_LIGHT = '#fff7ed';
+const ORANGE_BORDER = '#fdba74';
+const DARK = '#111827';
+const MUTED = '#6b7280';
+const SUBTLE = '#9ca3af';
+const BORDER = '#e5e7eb';
+const SURFACE = '#ffffff';
+const PAGE_BG = '#f1f5f9';
+const INPUT_BG = '#f9fafb';
+
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
 
-  hero: { backgroundColor: '#f97316', padding: 28, alignItems: 'center', overflow: 'hidden', position: 'relative' },
-  heroCircle1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.1)' },
-  heroCircle2: { position: 'absolute', bottom: -50, left: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' },
-  heroBadge: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6, marginBottom: 12 },
-  heroBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  heroTitle: { color: '#fff', fontSize: 28, fontWeight: '900', marginBottom: 10, textAlign: 'center' },
-  heroSub: { color: '#fed7aa', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  // ── Root Layout ──
+  screenRoot: {
+    flex: 1,
+  },
+  scrollArea: {
+    flex: 1,
+    backgroundColor: PAGE_BG,
+  },
+  pageBody: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
 
-  body: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+  // ── Hero Banner ──
+  heroBanner: {
+    backgroundColor: ORANGE,
+    paddingHorizontal: 24,
+    paddingTop: 36,
+    paddingBottom: 28,
+    alignItems: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroGlowTopRight: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  heroGlowBottomLeft: {
+    position: 'absolute',
+    bottom: -60,
+    left: -30,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  heroPill: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  heroPillText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  heroHeading: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '900',
+    marginBottom: 10,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  heroTagline: {
+    color: '#fed7aa',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 300,
+    marginBottom: 24,
+  },
+  heroStatStrip: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    width: '100%',
+  },
+  heroStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroStatValue: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  heroStatLabel: {
+    color: '#fed7aa',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
 
-  infoCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
-  infoIcon: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  infoIconText: { fontSize: 20 },
-  infoContent: { flex: 1 },
-  infoTitle: { fontSize: 15, fontWeight: '800', color: '#111827', marginBottom: 6 },
-  infoText: { fontSize: 13, color: '#6b7280', lineHeight: 20 },
-  infoSubText: { fontSize: 11, color: '#9ca3af', marginTop: 4 },
+  // ── Contact Info Cards ──
+  contactInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 14,
+    backgroundColor: SURFACE,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...cardElevation,
+  },
+  contactInfoIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactInfoIconEmoji: {
+    fontSize: 22,
+  },
+  contactInfoTextBlock: {
+    flex: 1,
+  },
+  contactInfoCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: DARK,
+    marginBottom: 5,
+    letterSpacing: -0.2,
+  },
+  contactInfoLine: {
+    fontSize: 13,
+    color: MUTED,
+    lineHeight: 20,
+  },
+  contactInfoCityText: {
+    fontSize: 13,
+    color: DARK,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  contactInfoEmptyText: {
+    fontSize: 13,
+    color: '#d1d5db',
+    fontStyle: 'italic',
+  },
+  contactInfoPrimaryText: {
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  contactInfoSecondaryText: {
+    fontSize: 11,
+    color: SUBTLE,
+    marginTop: 3,
+  },
+  contactInfoArrowBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+  contactInfoArrow: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
 
-  mapCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
-  mapHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  sectionBar: { width: 4, height: 20, backgroundColor: '#f97316', borderRadius: 2, marginRight: 8 },
-  mapTitle: { fontSize: 16, fontWeight: '800', color: '#111827' },
-  mapSubtitle: { fontSize: 12, color: '#6b7280', marginBottom: 12, marginLeft: 12 },
-  mapContainer: { height: 220, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
-  directionBtn: { marginTop: 12, backgroundColor: '#f97316', borderRadius: 25, paddingVertical: 11, alignItems: 'center' },
-  directionBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  // ── Map Card ──
+  mapCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...cardElevation,
+  },
+  mapCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  mapCardAccentBar: {
+    width: 4,
+    height: 22,
+    backgroundColor: ORANGE,
+    borderRadius: 3,
+    marginRight: 10,
+  },
+  mapCardTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: DARK,
+    letterSpacing: -0.3,
+  },
+  mapCardSubtitle: {
+    fontSize: 12,
+    color: MUTED,
+    marginBottom: 14,
+    marginLeft: 14,
+  },
+  mapFrame: {
+    height: 230,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  mapEmbedWrapper: {
+    flex: 1,
+    height: 230,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#f3f4f6',
+  },
+  mapWebView: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  getDirectionsButton: {
+    marginTop: 14,
+    backgroundColor: ORANGE,
+    borderRadius: 28,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  getDirectionsButtonText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
 
-  formCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
-  sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  sectionLabelLine: { flex: 1, height: 1, backgroundColor: '#f97316', opacity: 0.4 },
-  sectionLabel: { color: '#f97316', fontWeight: '800', fontSize: 11, letterSpacing: 1.2, textAlign: 'center' },
-  sectionTitle: { color: '#111827', fontWeight: '900', fontSize: 22, textAlign: 'center', marginBottom: 6 },
-  sectionSub: { color: '#6b7280', fontSize: 12, textAlign: 'center', marginBottom: 20, lineHeight: 18 },
-  formRow: { flexDirection: 'row', gap: 12, marginBottom: 0 },
-  formHalf: { flex: 1 },
-  label: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6, marginTop: 4 },
-  required: { color: '#ef4444' },
-  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: '#111827', backgroundColor: '#f9fafb', marginBottom: 12 },
-  textarea: { height: 120, textAlignVertical: 'top' },
-  pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: '#f9fafb', marginBottom: 4 },
-  pickerBtnText: { fontSize: 13, color: '#111827', flex: 1 },
-  pickerArrow: { fontSize: 16, color: '#6b7280', marginLeft: 8 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalBox: { backgroundColor: '#fff', borderRadius: 16, padding: 8, width: '100%', maxWidth: 400, ...modalShadow },
-  modalTitle: { fontSize: 14, fontWeight: '800', color: '#111827', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', marginBottom: 4 },
-  modalOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 13, borderRadius: 10, marginHorizontal: 4 },
-  modalOptionActive: { backgroundColor: '#fff7ed' },
-  modalOptionText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  modalOptionTextActive: { color: '#f97316', fontWeight: '700' },
-  modalCheck: { color: '#f97316', fontWeight: '800', fontSize: 15 },
-  submitBtn: { backgroundColor: '#f97316', borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginTop: 12, alignSelf: 'center', paddingHorizontal: 40 },
-  submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  // ── Section Divider ──
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: ORANGE,
+    opacity: 0.35,
+  },
+  dividerLabel: {
+    color: ORANGE,
+    fontWeight: '800',
+    fontSize: 10,
+    letterSpacing: 1.4,
+  },
 
-  faqCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', ...cardShadow },
-  faqItem: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 16, marginBottom: 10 },
-  faqItemOpen: { borderColor: '#fdba74' },
-  faqHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
-  faqQ: { fontSize: 14, fontWeight: '600', color: '#111827', flex: 1, lineHeight: 20 },
-  faqQLabel: { color: '#f97316', fontWeight: '800' },
-  faqToggleBubble: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  faqToggleBubbleActive: { backgroundColor: '#fff7ed' },
-  faqToggle: { fontSize: 18, color: '#6b7280', fontWeight: '800', lineHeight: 22 },
-  faqToggleActive: { color: '#f97316' },
-  faqA: { fontSize: 13, color: '#6b7280', lineHeight: 20, marginTop: 12, paddingLeft: 16 },
-  faqALabel: { color: '#16a34a', fontWeight: '800' },
+  // ── Form Card ──
+  formCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...cardElevation,
+  },
+  formCardHeading: {
+    color: DARK,
+    fontWeight: '900',
+    fontSize: 22,
+    textAlign: 'center',
+    marginBottom: 6,
+    letterSpacing: -0.5,
+  },
+  formCardSubheading: {
+    color: MUTED,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  formTwoColumnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  formColumn: {
+    flex: 1,
+  },
+  formFieldLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 7,
+    marginTop: 6,
+  },
+  formFieldLabelSpacingTop: {
+    marginTop: 14,
+  },
+  formRequiredStar: {
+    color: '#ef4444',
+  },
+  formTextInput: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 13,
+    color: DARK,
+    backgroundColor: INPUT_BG,
+    marginBottom: 12,
+  },
+  formTextArea: {
+    height: 130,
+    textAlignVertical: 'top',
+  },
+  formSubmitButton: {
+    backgroundColor: ORANGE,
+    borderRadius: 28,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 14,
+    alignSelf: 'center',
+    paddingHorizontal: 48,
+  },
+  formSubmitButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+
+  // ── Subject Picker ──
+  pickerTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    backgroundColor: INPUT_BG,
+    marginBottom: 4,
+  },
+  pickerTriggerText: {
+    fontSize: 13,
+    color: DARK,
+    flex: 1,
+  },
+  pickerPlaceholderText: {
+    color: SUBTLE,
+  },
+  pickerChevron: {
+    fontSize: 16,
+    color: MUTED,
+    marginLeft: 8,
+  },
+
+  // ── Subject Picker Modal ──
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.48)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalSheet: {
+    backgroundColor: SURFACE,
+    borderRadius: 18,
+    padding: 8,
+    width: '100%',
+    maxWidth: 400,
+    ...modalElevation,
+  },
+  modalSheetTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: DARK,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    marginBottom: 4,
+    letterSpacing: -0.2,
+  },
+  modalOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  },
+  modalOptionRowSelected: {
+    backgroundColor: ORANGE_LIGHT,
+  },
+  modalOptionLabel: {
+    fontSize: 13,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  modalOptionLabelSelected: {
+    color: ORANGE,
+    fontWeight: '700',
+  },
+  modalOptionCheckmark: {
+    color: ORANGE,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+
+  // ── FAQ Card ──
+  faqCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...cardElevation,
+  },
+  faqCardHeading: {
+    color: DARK,
+    fontWeight: '900',
+    fontSize: 22,
+    textAlign: 'center',
+    marginBottom: 18,
+    letterSpacing: -0.5,
+  },
+  faqListContainer: {
+    gap: 10,
+  },
+  faqAccordionItem: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 14,
+    padding: 16,
+    backgroundColor: '#fafafa',
+  },
+  faqAccordionItemExpanded: {
+    borderColor: ORANGE_BORDER,
+    backgroundColor: ORANGE_LIGHT,
+  },
+  faqAccordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  faqQuestionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: DARK,
+    flex: 1,
+    lineHeight: 21,
+  },
+  faqQuestionPrefix: {
+    color: ORANGE,
+    fontWeight: '800',
+  },
+  faqToggleButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  faqToggleButtonExpanded: {
+    backgroundColor: ORANGE,
+  },
+  faqToggleIcon: {
+    fontSize: 18,
+    color: MUTED,
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  faqToggleIconExpanded: {
+    color: '#fff',
+  },
+  faqAnswerText: {
+    fontSize: 13,
+    color: '#4b5563',
+    lineHeight: 21,
+    marginTop: 12,
+    paddingLeft: 4,
+  },
+  faqAnswerPrefix: {
+    color: '#16a34a',
+    fontWeight: '800',
+  },
 });

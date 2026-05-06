@@ -1,6 +1,6 @@
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   Modal,
   ScrollView,
@@ -217,7 +217,9 @@ const SUBSCRIPTION_PLANS = [
 
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export default function DashboardScreen({ navigation, route }) {
-  const { showPopup } = useToast();
+  const { showPopup, showToast } = useToast();
+  const handledRegistrationToastRef = useRef(false);
+  const handledSubscriptionModalRef = useRef(false);
   const [sidebarVisible, setSidebarVisible]   = useState(false);
   const [activeSidebarItem, setActiveSidebarItem] = useState('Dashboard');
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -235,6 +237,9 @@ export default function DashboardScreen({ navigation, route }) {
   // Filters
   const [stateFilter, setStateFilter]               = useState('All States');
   const [subscriptionFilter, setSubscriptionFilter] = useState('All Plans');
+
+  const registrationJustCompleted = Boolean(route?.params?.registrationJustCompleted);
+  const fromRegistration = Boolean(route?.params?.newUser);
 
   // ── Load data ──────────────────────────────────────────────────────────────
   useFocusEffect(
@@ -259,14 +264,19 @@ export default function DashboardScreen({ navigation, route }) {
         setSelectedSeatId((prev) => prev || seatId);
         setLoading(false);
 
+        if (registrationJustCompleted && !handledRegistrationToastRef.current) {
+          handledRegistrationToastRef.current = true;
+          showToast('Registration successful!', 'success');
+        }
+
         // Show subscription modal when navigating from registration (first time login)
-        const fromRegistration = route.params?.newUser;
-        if (fromRegistration) {
+        if (fromRegistration && !handledSubscriptionModalRef.current) {
+          handledSubscriptionModalRef.current = true;
           setTimeout(() => setShowSubscriptionModal(true), 1000);
         }
       })();
       return () => { mounted = false; };
-    }, [navigation, route.params])
+    }, [fromRegistration, navigation, registrationJustCompleted, showToast])
   );
 
   const handleLogout = async () => {
@@ -363,11 +373,15 @@ export default function DashboardScreen({ navigation, route }) {
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
               <RankBadge rank={rank} />
               {currentUser?.subscription_type ? (
-                <View style={dashStyles.subTypeBadge}>
+                <TouchableOpacity
+                  style={dashStyles.subTypeBadge}
+                  onPress={() => navigation.navigate('Subscription Plans')}
+                  activeOpacity={0.85}
+                >
                   <Text style={dashStyles.subTypeBadgeText}>
                     {currentUser.subscription_type.toUpperCase()}
                   </Text>
-                </View>
+                </TouchableOpacity>
               ) : null}
             </View>
           </View>
@@ -524,10 +538,15 @@ export default function DashboardScreen({ navigation, route }) {
                   key={plan.plan_id}
                   style={[
                     modalStyles.planCard,
-                    { borderColor: plan.color + '44' },
-                    plan.popular && { borderWidth: 2, borderColor: plan.color },
+                    {
+                      borderWidth: (pendingPlan?.plan_id === plan.plan_id || plan.popular) ? 2 : 1,
+                      borderColor: pendingPlan?.plan_id === plan.plan_id ? plan.color : (plan.color + '44'),
+                      backgroundColor: pendingPlan?.plan_id === plan.plan_id ? (plan.color + '0F') : '#f8fafc',
+                    },
+                    pendingPlan?.plan_id === plan.plan_id && modalStyles.planCardSelected,
                   ]}
                   onPress={() => {
+                    setPendingPlan(plan);
                     const stateName = seatSummary?.state || currentUser?.state || '';
                     if (!stateName) {
                       showPopup('Please select your state first.', 'error', {
@@ -539,7 +558,6 @@ export default function DashboardScreen({ navigation, route }) {
                     }
 
                     const existingSeatId = seatSummary?.current_seat?.seat_id || '';
-                    setPendingPlan(plan);
 
                     if (existingSeatId) {
                       setSelectedSeatId(existingSeatId);
@@ -577,7 +595,7 @@ export default function DashboardScreen({ navigation, route }) {
 
             <TouchableOpacity
               style={modalStyles.closeBtn}
-              onPress={() => setShowSubscriptionModal(false)}
+              onPress={() => { setShowSubscriptionModal(false); setPendingPlan(null); }}
               activeOpacity={0.8}
             >
               <Text style={modalStyles.closeBtnText}>Maybe Later</Text>
@@ -831,6 +849,9 @@ const modalStyles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
+  },
+  planCardSelected: {
+    transform: [{ scale: 1.01 }],
   },
   popularBadge: {
     alignSelf: 'flex-start',

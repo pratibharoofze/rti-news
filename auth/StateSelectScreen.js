@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,20 +7,15 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  StatusBar,
   Modal,
   FlatList,
   StyleSheet,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; 
-import { useToast } from '../components/ui/ToastProvider'; 
+import { Ionicons } from '@expo/vector-icons';
+import { useToast } from '../components/ui/ToastProvider';
 import { INDIAN_STATES } from '../pages/locationData';
-import styles from '../styles/RegisterStyles'; // Reuse styles 
+import styles from '../styles/RegisterStyles';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-// INDIAN_STATES is sourced from `pages/locationData.js` (LGD compiled data)
-
-// ── Dropdown Modal ────────────────────────────────────────────────────────────
 function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
   const [search, setSearch] = useState('');
   const filtered = items.filter(i => i.toLowerCase().includes(search.toLowerCase()));
@@ -92,7 +87,15 @@ export default function StateSelectScreen({ navigation, route }) {
   const [state, setState] = useState('');
   const [stateModal, setStateModal] = useState(false);
   const fromPremium = route?.params?.fromPremium;
+  const needsCreateUser = route?.params?.needsCreateUser;
   const autoOpen = route?.params?.autoOpen;
+  const preselectedState = route?.params?.preselectedState;
+  const allowLeaveRef = useRef(false);
+
+  useEffect(() => {
+    if (!preselectedState) return;
+    setState(String(preselectedState));
+  }, [preselectedState]);
 
   useEffect(() => {
     if (!autoOpen) return;
@@ -102,35 +105,33 @@ export default function StateSelectScreen({ navigation, route }) {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      // Only prevent going back, not forward navigation
+      if (allowLeaveRef.current) return;
       const targetRoute = e.data.action.payload?.name;
-      // Allow navigation to DistrictSelect
-      if (targetRoute === 'DistrictSelect') {
-        return;
-      }
-      // Prevent going back to Login or Register
+      if (targetRoute === 'DistrictSelect') return;
       e.preventDefault();
     });
     return unsubscribe;
   }, [navigation]);
 
+  // ✅ FIX: goBack() — Register ka existing instance reuse hoga, form reset nahi hoga
+  const handleClose = () => {
+    allowLeaveRef.current = true;
+    navigation.goBack();
+  };
+
   const handleNext = async () => {
-    console.log('handleNext called, state:', state);
     if (!state) {
       showPopup('Please select your state to continue.', 'error');
       return;
     }
     try {
-      console.log('Navigating to DistrictSelect with state:', state);
-      // Navigate to DistrictSelect, passing state
-      navigation.replace('DistrictSelect', { selectedState: state, fromPremium });
+      navigation.replace('DistrictSelect', { selectedState: state, fromPremium, needsCreateUser });
     } catch (error) {
       console.error('Navigation error:', error);
     }
   };
 
   const handleStateSelect = (selectedState) => {
-    console.log('State selected:', selectedState);
     setState(selectedState);
     setTimeout(() => {
       showPopup(`State selected: ${selectedState}`, 'success');
@@ -153,6 +154,18 @@ export default function StateSelectScreen({ navigation, route }) {
           bounces={false}
         >
           <View style={styles.formContainer}>
+            {/* ✅ Cross button — goBack se Register form preserve hoga */}
+            <TouchableOpacity
+              style={[styles.closeButton, { width: 'auto', paddingHorizontal: 10 }]}
+              onPress={handleClose}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="arrow-back-outline" size={18} color="#94a3b8" />
+                <Text style={{ color: '#94a3b8', fontWeight: '800', fontSize: 13 }}>Back</Text>
+              </View>
+            </TouchableOpacity>
+
             <View style={styles.topAccent} />
 
             <View style={styles.logoCircle}>
@@ -194,14 +207,13 @@ export default function StateSelectScreen({ navigation, route }) {
           </View>
         </ScrollView>
 
-        {/* ── State Dropdown Modal ── */}
         <DropdownModal
           visible={stateModal}
           title="Select State"
           items={INDIAN_STATES}
           selected={state}
           onSelect={handleStateSelect}
-          onClose={() => { setStateModal(false); console.log('Modal closed, current state:', state); }}
+          onClose={() => setStateModal(false)}
         />
       </View>
     </KeyboardAvoidingView>

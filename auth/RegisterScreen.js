@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Animated,
   FlatList,
@@ -18,8 +18,24 @@ import styles from '../styles/RegisterStyles';
 const CERTIFICATE_LOGO = require('../assets/images/certificate_logo.jpg');
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-// ✅ FIX: Web pe html, body, #root ka background dark karo
-// Taaki white space visible na ho
+function isValidEmailAddress(value) {
+  const emailValue = String(value || '').trim().toLowerCase();
+  if (!emailValue) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(emailValue);
+}
+
+function getPasswordChecks(value) {
+  const passwordValue = String(value || '');
+  return {
+    length: passwordValue.length >= 8,
+    lower:  /[a-z]/.test(passwordValue),
+    upper:  /[A-Z]/.test(passwordValue),
+    number: /\d/.test(passwordValue),
+    special: /[^A-Za-z0-9]/.test(passwordValue),
+    noSpace: !/\s/.test(passwordValue),
+  };
+}
+
 if (Platform.OS === 'web') {
   const style = document.createElement('style');
   style.textContent = `
@@ -34,7 +50,6 @@ if (Platform.OS === 'web') {
   document.head.appendChild(style);
 }
 
-// ── Local Toast ───────────────────────────────────────────────────────────────
 function Toast({ toast, opacity, translateY }) {
   if (!toast) return null;
   const config = {
@@ -72,7 +87,6 @@ const toastStyles = StyleSheet.create({
   message: { fontSize: 14, fontWeight: '500', lineHeight: 20 },
 });
 
-// ── Dropdown Modal ────────────────────────────────────────────────────────────
 export function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
   const [search, setSearch] = useState('');
   const filtered = items.filter(i => i.toLowerCase().includes(search.toLowerCase()));
@@ -178,7 +192,6 @@ const dropStyles = StyleSheet.create({
   },
 });
 
-// ── Main Screen ───────────────────────────────────────────────────────────────
 export default function RegisterScreen({ navigation }) {
   const [name, setName]               = useState('');
   const [mobile, setMobile]           = useState('');
@@ -188,11 +201,35 @@ export default function RegisterScreen({ navigation }) {
   const [confirm, setConfirm]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm]   = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
 
   const [toast, setToast]       = useState(null);
   const opacity    = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(20)).current;
   const timerRef   = useRef(null);
+
+  const normalizedEmail = useMemo(() => String(email || '').trim().toLowerCase(), [email]);
+  const emailOk = useMemo(() => isValidEmailAddress(normalizedEmail), [normalizedEmail]);
+
+  const passwordChecks = useMemo(() => getPasswordChecks(password), [password]);
+  const passwordStrong = useMemo(
+    () =>
+      passwordChecks.length
+      && passwordChecks.lower
+      && passwordChecks.upper
+      && passwordChecks.number
+      && passwordChecks.special
+      && passwordChecks.noSpace,
+    [passwordChecks]
+  );
+
+  const formOk = useMemo(() => {
+    const nameOk = Boolean(String(name || '').trim());
+    const mobileOk = Boolean(String(mobile || '').trim()) && String(mobile || '').trim().length === 10;
+    const confirmOk = password && confirm && password === confirm;
+    return nameOk && mobileOk && emailOk && passwordStrong && confirmOk;
+  }, [name, mobile, emailOk, passwordStrong, password, confirm]);
 
   const showToast = (message, type = 'success') => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -218,41 +255,60 @@ export default function RegisterScreen({ navigation }) {
     if (!mobile.trim() || mobile.length < 10) {
       showToast('Please enter a valid 10-digit mobile number', 'error'); return;
     }
-    if (!email.trim()) {
+    if (!normalizedEmail) {
+      setEmailTouched(true);
       showToast('Please enter your email address', 'error'); return;
     }
-    if (!password || password.length < 6) {
-      showToast('Password must be at least 6 characters', 'error'); return;
+    if (!emailOk) {
+      setEmailTouched(true);
+      showToast('Please enter a valid email address (e.g. you@example.com)', 'error'); return;
+    }
+    if (!passwordStrong) {
+      setPasswordTouched(true);
+      showToast('Use a strong password (8+ chars with Aa, 1 number, 1 symbol)', 'error'); return;
     }
     if (password !== confirm) {
       showToast('Passwords do not match', 'error'); return;
     }
 
-    const existing = await UserStore.getUser(email);
+    const existing = await UserStore.getUser(normalizedEmail);
     if (existing) {
-      showToast('This email is already registered!', 'error'); return;
+      if (!existing.location_complete) {
+        await UserStore.setCurrentUser(existing.email);
+        showToast('Account found. Continue location setup.', 'success');
+        navigation.navigate('StateSelect', {
+          fromPremium: false,
+          needsCreateUser: false,
+          preselectedState: existing.state || undefined,
+          autoOpen: true,
+        });
+        return;
+      }
+
+      showToast('This email is already registered! Please sign in.', 'error');
+      navigation.navigate('Login');
+      return;
     }
 
-    const result = await UserStore.saveUser({
+    const ok = await UserStore.setPendingRegistration({
       name: name.trim(),
       mobile: mobile.trim(),
-      email: email.trim(),
+      email: normalizedEmail,
       referral_code_used: referralCode.trim() || null,
       password,
     });
 
-    if (result && !result.ok) {
-      showToast(result.message || 'Registration failed', 'error'); return;
+    if (!ok) {
+      showToast('Registration failed. Please try again.', 'error');
+      return;
     }
 
-    await UserStore.setCurrentUser(email.trim().toLowerCase());
-
-    showToast(`Welcome, ${name}! Account created successfully! 🚀`, 'success');
-    setTimeout(() => navigation.replace('StateSelect'), 2600);
+    // ✅ FIX: replace ki jagah navigate — Register stack mein rehta hai
+    navigation.navigate('StateSelect', { fromPremium: false, needsCreateUser: true });
   };
 
   const handleClose = () => {
-    navigation.navigate('Home'); // Navigate to Home screen
+    navigation.navigate('Home');
   };
 
   return (
@@ -272,9 +328,8 @@ export default function RegisterScreen({ navigation }) {
           bounces={false}
         >
           <View style={styles.formContainer}>
-            {/* Close Button - X icon */}
-            <TouchableOpacity 
-              style={styles.closeButton} 
+            <TouchableOpacity
+              style={styles.closeButton}
               onPress={handleClose}
               activeOpacity={0.7}
             >
@@ -331,7 +386,7 @@ export default function RegisterScreen({ navigation }) {
             {/* ── Email ── */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email Address <Text style={styles.required}>*</Text></Text>
-              <View style={styles.inputWrap}>
+              <View style={[styles.inputWrap, emailTouched && !emailOk && styles.inputWrapError]}>
                 <Ionicons name="mail-outline" size={18} color="#a78bfa" />
                 <TextInput
                   style={styles.input}
@@ -339,10 +394,14 @@ export default function RegisterScreen({ navigation }) {
                   placeholderTextColor="#64748b"
                   value={email}
                   onChangeText={setEmail}
+                  onBlur={() => setEmailTouched(true)}
                   autoCapitalize="none"
                   keyboardType="email-address"
                 />
               </View>
+              {emailTouched && !emailOk && normalizedEmail.length > 0 ? (
+                <Text style={styles.errorText}>Enter a valid email, e.g. you@example.com</Text>
+              ) : null}
             </View>
 
             {/* ── Referral Code ── */}
@@ -369,14 +428,15 @@ export default function RegisterScreen({ navigation }) {
             {/* ── Password ── */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password <Text style={styles.required}>*</Text></Text>
-              <View style={styles.inputWrap}>
+              <View style={[styles.inputWrap, passwordTouched && !passwordStrong && styles.inputWrapError]}>
                 <Ionicons name="lock-closed-outline" size={18} color="#a78bfa" />
                 <TextInput
                   style={styles.input}
-                  placeholder="Min. 6 characters"
+                  placeholder="Use a strong password"
                   placeholderTextColor="#64748b"
                   value={password}
                   onChangeText={setPassword}
+                  onBlur={() => setPasswordTouched(true)}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
@@ -384,12 +444,46 @@ export default function RegisterScreen({ navigation }) {
                   <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#a78bfa" />
                 </TouchableOpacity>
               </View>
+
+              {passwordStrong ? null : (
+                (passwordTouched || password.length > 0) ? (
+                  <View style={styles.passwordHintsBox}>
+                    <Text style={styles.helperTitle}>Password must include:</Text>
+                    <View style={styles.hintRow}>
+                      <Ionicons name={passwordChecks.length ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.length ? '#22c55e' : '#64748b'} />
+                      <Text style={[styles.helperText, passwordChecks.length && styles.helperTextOk]}>8+ characters</Text>
+                    </View>
+                    <View style={styles.hintRow}>
+                      <Ionicons name={passwordChecks.upper ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.upper ? '#22c55e' : '#64748b'} />
+                      <Text style={[styles.helperText, passwordChecks.upper && styles.helperTextOk]}>1 uppercase (A-Z)</Text>
+                    </View>
+                    <View style={styles.hintRow}>
+                      <Ionicons name={passwordChecks.lower ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.lower ? '#22c55e' : '#64748b'} />
+                      <Text style={[styles.helperText, passwordChecks.lower && styles.helperTextOk]}>1 lowercase (a-z)</Text>
+                    </View>
+                    <View style={styles.hintRow}>
+                      <Ionicons name={passwordChecks.number ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.number ? '#22c55e' : '#64748b'} />
+                      <Text style={[styles.helperText, passwordChecks.number && styles.helperTextOk]}>1 number (0-9)</Text>
+                    </View>
+                    <View style={styles.hintRow}>
+                      <Ionicons name={passwordChecks.special ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.special ? '#22c55e' : '#64748b'} />
+                      <Text style={[styles.helperText, passwordChecks.special && styles.helperTextOk]}>1 symbol (!@#$...)</Text>
+                    </View>
+                    <View style={styles.hintRow}>
+                      <Ionicons name={passwordChecks.noSpace ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.noSpace ? '#22c55e' : '#64748b'} />
+                      <Text style={[styles.helperText, passwordChecks.noSpace && styles.helperTextOk]}>No spaces</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.helperText}>Tip: Use something like `Rti@2026News`</Text>
+                )
+              )}
             </View>
 
             {/* ── Confirm Password ── */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Confirm Password <Text style={styles.required}>*</Text></Text>
-              <View style={styles.inputWrap}>
+              <View style={[styles.inputWrap, confirm.length > 0 && password !== confirm && styles.inputWrapError]}>
                 <Ionicons name="shield-checkmark-outline" size={18} color="#a78bfa" />
                 <TextInput
                   style={styles.input}
@@ -404,10 +498,16 @@ export default function RegisterScreen({ navigation }) {
                   <Ionicons name={showConfirm ? 'eye-outline' : 'eye-off-outline'} size={20} color="#a78bfa" />
                 </TouchableOpacity>
               </View>
+              {confirm.length > 0 && password !== confirm ? (
+                <Text style={styles.errorText}>Passwords do not match</Text>
+              ) : null}
             </View>
 
             {/* ── Submit ── */}
-            <TouchableOpacity style={styles.submitBtn} onPress={handleRegister}>
+            <TouchableOpacity
+              style={[styles.submitBtn, !formOk && styles.submitBtnDisabled]}
+              onPress={handleRegister}
+            >
               <Text style={styles.submitBtnText}>Create Account</Text>
               <Ionicons name="arrow-forward" size={18} color="#ffffff" />
             </TouchableOpacity>

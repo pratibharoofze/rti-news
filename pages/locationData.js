@@ -4,6 +4,15 @@
 
 import LGD from '../data/location/india-location.json';
 
+// Some metro districts are missing taluka/tehsil splits in the compiled LGD dump.
+// Provide a small override map so dropdowns still work for common cases.
+const TALUKA_OVERRIDES = {
+  Maharashtra: {
+    'Mumbai Suburban': ['Andheri', 'Borivali', 'Kurla'],
+    'Mumbai': ['Mumbai'],
+  },
+};
+
 function normalizeKey(value) {
   return String(value || '')
     .trim()
@@ -36,6 +45,12 @@ export const getDistricts = (stateName) => {
 export const getTalukas = (stateName, districtName) => {
   const state = resolveStateName(stateName);
   const districtKey = normalizeKey(districtName);
+
+  const overrideForState = TALUKA_OVERRIDES[state];
+  if (overrideForState) {
+    const overrideDistrict = Object.keys(overrideForState).find((d) => normalizeKey(d) === districtKey);
+    if (overrideDistrict) return overrideForState[overrideDistrict].slice();
+  }
 
   const districtMap = LGD.talukasByStateDistrict?.[state] || {};
   const district = Object.keys(districtMap).find((d) => normalizeKey(d) === districtKey);

@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   FlatList, Image, Dimensions, Modal, TextInput,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
-  Animated, useWindowDimensions,
+  Animated, useWindowDimensions, Share, Linking,
 } from 'react-native';
 import styles from './FeedScreenStyles';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,12 +13,12 @@ import WebLayout from '../components/WebLayout';
 import { UserStore } from '../store/UserStore';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
-
-// ✅ Use screen WIDTH to decide layout, NOT Platform.OS
 const MOBILE_BREAKPOINT = 768;
 
-const SAMPLE_REEL_VIDEO = 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4';
-const SAMPLE_REEL_VIDEO_ALT = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4';
+// ✅ Real video with audio — public domain MP4
+const SAMPLE_REEL_VIDEO       = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+const SAMPLE_REEL_VIDEO_ALT   = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4';
+const SAMPLE_REEL_VIDEO_ALT2  = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
 function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
@@ -28,10 +28,34 @@ function isValidImageUrl(url) {
 }
 
 function isPlayableVideoSource(uri) {
-  return typeof uri === 'string'
-    && /^(https?:|blob:|data:)/i.test(uri)
-    && !/(youtube\.com|youtu\.be)/i.test(uri)
-    && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
+  if (typeof uri !== 'string' || !uri.trim()) return false;
+  if (/(youtube\.com|youtu\.be)/i.test(uri)) return false;
+
+  // Native (iOS/Android): allow local `file://` and other platform URIs.
+  if (Platform.OS !== 'web') return true;
+
+  // Web: blobs/data URIs might not have an extension but can still play.
+  if (/^(blob:|data:)/i.test(uri)) return true;
+
+  return /^https?:/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Share Handler — WhatsApp, Twitter, Facebook, Copy Link
+// ─────────────────────────────────────────────────────────────────────────────
+function handleSharePost(post) {
+  const shareText = `📰 ${post.headline}\n\n${post.caption}\n\n📍 ${post.location}\n\n🗞️ Read more on RTI News`;
+  const shareUrl  = `https://rtinews.in/reel/${post.id}`;
+  const fullMsg   = `${shareText}\n${shareUrl}`;
+
+  if (Platform.OS === 'web') {
+    // Web: show share sheet modal (handled by ShareModal component)
+    return { text: shareText, url: shareUrl };
+  }
+  // Native: use system share sheet
+  Share.share({ message: fullMsg, title: post.headline, url: shareUrl })
+    .catch(() => {});
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -105,16 +129,239 @@ function MuteIcon({ muted, size = 20 }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dummy Data
+// Share Modal — WhatsApp, Twitter/X, Facebook, Telegram, Copy
+// ─────────────────────────────────────────────────────────────────────────────
+function ShareModal({ visible, onClose, post }) {
+  if (!post) return null;
+
+  const shareText = encodeURIComponent(`📰 ${post.headline}\n\n${post.caption}\n\n📍 ${post.location}`);
+  const shareUrl  = encodeURIComponent(`https://rtinews.in/reel/${post.id}`);
+
+  const platforms = [
+    {
+      name: 'WhatsApp',
+      emoji: '💬',
+      color: '#25D366',
+      action: () => {
+        const url = `https://wa.me/?text=${shareText}%0A${shareUrl}`;
+        Platform.OS === 'web' ? window.open(url, '_blank') : Linking.openURL(url);
+      },
+    },
+    {
+      name: 'Telegram',
+      emoji: '✈️',
+      color: '#0088cc',
+      action: () => {
+        const url = `https://t.me/share/url?url=${shareUrl}&text=${shareText}`;
+        Platform.OS === 'web' ? window.open(url, '_blank') : Linking.openURL(url);
+      },
+    },
+    {
+      name: 'Twitter / X',
+      emoji: '🐦',
+      color: '#1DA1F2',
+      action: () => {
+        const url = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+        Platform.OS === 'web' ? window.open(url, '_blank') : Linking.openURL(url);
+      },
+    },
+    {
+      name: 'Facebook',
+      emoji: '📘',
+      color: '#1877F2',
+      action: () => {
+        const url = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`;
+        Platform.OS === 'web' ? window.open(url, '_blank') : Linking.openURL(url);
+      },
+    },
+    {
+      name: 'Copy Link',
+      emoji: '🔗',
+      color: '#6b7280',
+      action: () => {
+        const link = `https://rtinews.in/reel/${post.id}`;
+        if (Platform.OS === 'web' && navigator?.clipboard) {
+          navigator.clipboard.writeText(link).then(() => Alert.alert('Copied!', 'Link copied to clipboard'));
+        } else {
+          Alert.alert('Link', link);
+        }
+        onClose();
+      },
+    },
+  ];
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={localShareStyles.overlay}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={localShareStyles.sheet}>
+          <View style={localShareStyles.handle} />
+          <Text style={localShareStyles.title}>🚀 Share This Story</Text>
+
+          {/* Post preview */}
+          <View style={localShareStyles.previewBox}>
+            <Text style={localShareStyles.previewHeadline} numberOfLines={2}>{post.headline}</Text>
+            <Text style={localShareStyles.previewCaption} numberOfLines={2}>{post.caption}</Text>
+            <Text style={localShareStyles.previewLocation}>📍 {post.location}</Text>
+          </View>
+
+          {/* Share buttons */}
+          <View style={localShareStyles.grid}>
+            {platforms.map((p) => (
+              <TouchableOpacity key={p.name} style={localShareStyles.platformBtn} onPress={p.action} activeOpacity={0.8}>
+                <View style={[localShareStyles.platformCircle, { backgroundColor: p.color }]}>
+                  <Text style={{ fontSize: 22 }}>{p.emoji}</Text>
+                </View>
+                <Text style={localShareStyles.platformName}>{p.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity style={localShareStyles.closeBtn} onPress={onClose}>
+            <Text style={localShareStyles.closeBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const localShareStyles = StyleSheet.create({
+  overlay:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  sheet:           { backgroundColor: '#0f172a', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  handle:          { width: 44, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.18)', alignSelf: 'center', marginBottom: 14 },
+  title:           { fontSize: 18, fontWeight: '800', color: '#f1f5f9', textAlign: 'center', marginBottom: 14, letterSpacing: -0.3 },
+  previewBox:      { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  previewHeadline: { color: '#f1f5f9', fontWeight: '800', fontSize: 14, marginBottom: 4 },
+  previewCaption:  { color: '#94a3b8', fontSize: 12, lineHeight: 18, marginBottom: 6 },
+  previewLocation: { color: '#f97316', fontSize: 11, fontWeight: '700' },
+  grid:            { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around', marginBottom: 16 },
+  platformBtn:     { alignItems: 'center', width: '18%', marginBottom: 8 },
+  platformCircle:  { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  platformName:    { color: '#94a3b8', fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  closeBtn:        { alignItems: 'center', paddingVertical: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  closeBtnText:    { color: '#64748b', fontSize: 14, fontWeight: '700' },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Description Modal — full post details
+// ─────────────────────────────────────────────────────────────────────────────
+function DescriptionModal({ visible, onClose, post, onShare }) {
+  if (!post) return null;
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={localDescStyles.overlay}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <View style={localDescStyles.sheet}>
+          <View style={localDescStyles.handle} />
+
+          {/* Tag */}
+          <View style={[localDescStyles.tagBadge, { backgroundColor: post.tagColor || '#16a34a' }]}>
+            <Text style={localDescStyles.tagText}>{post.tag}</Text>
+          </View>
+
+          {/* Headline */}
+          <Text style={localDescStyles.headline}>{post.headline}</Text>
+
+          {/* User row */}
+          <View style={localDescStyles.userRow}>
+            <Image source={{ uri: post.avatar || 'https://i.pravatar.cc/100?img=5' }} style={localDescStyles.avatar} />
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={localDescStyles.userName}>{post.user}</Text>
+                {post.verified && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
+              </View>
+              <Text style={localDescStyles.userMeta}>{post.role} · {post.time}</Text>
+            </View>
+          </View>
+
+          {/* Location */}
+          <View style={localDescStyles.locRow}>
+            <Text>📍 </Text>
+            <Text style={localDescStyles.locText}>{post.location}</Text>
+          </View>
+
+          {/* Full caption/description */}
+          <ScrollView style={localDescStyles.captionScroll} showsVerticalScrollIndicator={false}>
+            <Text style={localDescStyles.caption}>{post.caption}</Text>
+            {post.fullDescription ? (
+              <Text style={localDescStyles.fullDesc}>{post.fullDescription}</Text>
+            ) : null}
+          </ScrollView>
+
+          {/* Stats row */}
+          <View style={localDescStyles.statsRow}>
+            <View style={localDescStyles.statItem}>
+              <Text style={localDescStyles.statNum}>{post.likes >= 1000 ? (post.likes / 1000).toFixed(1) + 'K' : post.likes}</Text>
+              <Text style={localDescStyles.statLabel}>Likes</Text>
+            </View>
+            <View style={localDescStyles.statDivider} />
+            <View style={localDescStyles.statItem}>
+              <Text style={localDescStyles.statNum}>{Array.isArray(post.comments) ? post.comments.length : 0}</Text>
+              <Text style={localDescStyles.statLabel}>Comments</Text>
+            </View>
+            <View style={localDescStyles.statDivider} />
+            <View style={localDescStyles.statItem}>
+              <Text style={localDescStyles.statNum}>{post.shares >= 1000 ? (post.shares / 1000).toFixed(1) + 'K' : post.shares}</Text>
+              <Text style={localDescStyles.statLabel}>Shares</Text>
+            </View>
+          </View>
+
+          {/* Action buttons */}
+          <View style={localDescStyles.actionRow}>
+            <TouchableOpacity style={localDescStyles.shareBtn} onPress={() => { onClose(); onShare(post.id); }} activeOpacity={0.85}>
+              <Text style={localDescStyles.shareBtnText}>📤 Share This Story</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={localDescStyles.closeBtn} onPress={onClose} activeOpacity={0.85}>
+              <Text style={localDescStyles.closeBtnText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const localDescStyles = StyleSheet.create({
+  overlay:       { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  sheet:         { backgroundColor: '#0f172a', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20, maxHeight: '85%', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  handle:        { width: 44, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.18)', alignSelf: 'center', marginBottom: 14 },
+  tagBadge:      { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginBottom: 10 },
+  tagText:       { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  headline:      { color: '#f1f5f9', fontSize: 20, fontWeight: '900', lineHeight: 28, marginBottom: 14, letterSpacing: -0.3 },
+  userRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  avatar:        { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: '#f97316' },
+  userName:      { color: '#f1f5f9', fontWeight: '800', fontSize: 14 },
+  userMeta:      { color: '#64748b', fontSize: 12 },
+  locRow:        { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  locText:       { color: '#f97316', fontSize: 12, fontWeight: '700' },
+  captionScroll: { maxHeight: 160, marginBottom: 14 },
+  caption:       { color: '#cbd5e1', fontSize: 14, lineHeight: 22 },
+  fullDesc:      { color: '#94a3b8', fontSize: 13, lineHeight: 21, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
+  statsRow:      { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
+  statItem:      { flex: 1, alignItems: 'center' },
+  statNum:       { color: '#f1f5f9', fontSize: 18, fontWeight: '900' },
+  statLabel:     { color: '#64748b', fontSize: 11, fontWeight: '600', marginTop: 2 },
+  statDivider:   { width: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
+  actionRow:     { flexDirection: 'row', gap: 10 },
+  shareBtn:      { flex: 2, backgroundColor: '#f97316', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  shareBtnText:  { color: '#fff', fontWeight: '800', fontSize: 14 },
+  closeBtn:      { flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  closeBtnText:  { color: '#64748b', fontSize: 14, fontWeight: '700' },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dummy Data — with fullDescription & audio videos
 // ─────────────────────────────────────────────────────────────────────────────
 const DUMMY_POSTS = [
   {
     id: '1', user: 'Rahul Sharma', avatar: 'https://i.pravatar.cc/100?img=11',
     verified: true, role: 'RTI Activist', location: 'Lucknow, Uttar Pradesh', time: '2 min ago',
     type: 'video', media: SAMPLE_REEL_VIDEO,
-    thumbnail: 'https://images.shiksha.com/mediadata/images/articles/1733209282phpDQvZRu.png',
+    thumbnail: 'https://picsum.photos/seed/rti1/600/900',
     headline: 'RTI exposed missing water supply funds!',
     caption: 'Ward 14 in Lucknow had no water for 3 months. Filed an RTI, got a response in 30 days — pipeline repair budget was finally released. 🎉 #RTI #JanAdhikar #Water',
+    fullDescription: 'Under the Right to Information Act 2005, I filed an application to the Municipal Corporation seeking records of water pipeline maintenance for Ward 14. After initial denial and first appeal, the information was finally provided revealing Rs. 14 lakh allocated for repairs had not been utilized for over 2 years. Following media coverage of the RTI response, the civic body released the funds and work commenced within 15 days. This is the power of RTI — every citizen can hold their government accountable.',
     likes: 1240, shares: 312,
     comments: [{ id: 'c1', user: 'Priya Verma', text: 'Great work bhai! 👏' }, { id: 'c2', user: 'Mohan Lal', text: 'RTI is a powerful tool!' }],
     liked: false, bookmarked: false, tag: 'Success Story', tagColor: '#16a34a',
@@ -123,8 +370,10 @@ const DUMMY_POSTS = [
     id: '2', user: 'Anjali Singh', avatar: 'https://i.pravatar.cc/100?img=47',
     verified: false, role: 'Teacher', location: 'Bhopal, Madhya Pradesh', time: '15 min ago',
     type: 'video', media: SAMPLE_REEL_VIDEO_ALT,
+    thumbnail: 'https://picsum.photos/seed/rti2/600/900',
     headline: 'Where did the school funds go? Filed an RTI!',
     caption: 'Government Primary School No. 7 had no account of mid-day meal funds. Filed an RTI — documents requested within 20 days. #RTI #Education',
+    fullDescription: 'As a teacher in a government primary school, I noticed discrepancies in the mid-day meal scheme records. Children were not receiving adequate meals despite full budget allocation. I filed an RTI application to the District Education Office requesting meal distribution records and fund utilization reports for the past 3 years. The response revealed significant irregularities which have now been referred to the State Vigilance Commission.',
     likes: 890, shares: 145,
     comments: [{ id: 'c3', user: 'Admin RTI', text: 'Best of luck!' }],
     liked: false, bookmarked: false, tag: 'Application Filed', tagColor: '#2563eb',
@@ -132,10 +381,11 @@ const DUMMY_POSTS = [
   {
     id: '3', user: 'Vikram Patel', avatar: 'https://i.pravatar.cc/100?img=33',
     verified: true, role: 'Journalist', location: 'Ahmedabad, Gujarat', time: '1 hr ago',
-    type: 'video', media: SAMPLE_REEL_VIDEO,
-    thumbnail: 'https://images.shiksha.com/mediadata/images/articles/1733209282phpDQvZRu.png',
+    type: 'video', media: SAMPLE_REEL_VIDEO_ALT2,
+    thumbnail: 'https://picsum.photos/seed/rti3/600/900',
     headline: 'Road built after RTI — this is people power!',
     caption: 'Narol area had no road for 2 years. Filed RTI and PWD started work within 15 days. 🛣️ #RTI #Gujarat',
+    fullDescription: 'The residents of Narol locality had been complaining about a broken road for over 2 years. Multiple petitions went unheard. Using the RTI Act, I filed an application to the Public Works Department asking for the status of funds allocated for road repair under PMGSY. The RTI response revealed the funds had been sitting idle. Within 2 weeks of the RTI response being made public, the PWD commenced road construction. This story proves that transparency is the best weapon against government inaction.',
     likes: 3120, shares: 890,
     comments: [{ id: 'c5', user: 'Neha Shah', text: 'Inspiring!' }, { id: 'c6', user: 'Suresh Bhai', text: 'How did you file it?' }],
     liked: true, bookmarked: false, tag: 'Victory', tagColor: '#d97706',
@@ -144,9 +394,10 @@ const DUMMY_POSTS = [
     id: '4', user: 'Dr. Meera Devi', avatar: 'https://i.pravatar.cc/100?img=25',
     verified: true, role: 'Doctor & Activist', location: 'Patna, Bihar', time: '3 hrs ago',
     type: 'video', media: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    thumbnail: 'https://picsum.photos/seed/news4/600/900',
+    thumbnail: 'https://picsum.photos/seed/rti4/600/900',
     headline: 'Where is the hospital medicine stock?',
     caption: 'Essential medicines were out of stock at Patna Civil Hospital. Filed an RTI for medicine purchase records. 💊 #RTI #Health',
+    fullDescription: 'Essential medicines including antibiotics, antihypertensives and diabetes medication were consistently out of stock at Patna Civil Hospital for months. Patients were being forced to buy expensive medicines from private pharmacies. I filed an RTI application to the Civil Surgeon office demanding medicine procurement records, stock registers and expenditure statements. The documents revealed systematic pilferage and a parallel black market operation. The matter is now under CBI investigation.',
     likes: 2050, shares: 567,
     comments: [{ id: 'c8', user: 'Asha Devi', text: 'Same problem here!' }],
     liked: false, bookmarked: true, tag: 'Health RTI', tagColor: '#dc2626',
@@ -155,9 +406,10 @@ const DUMMY_POSTS = [
     id: '5', user: 'RTI Portal Official', avatar: 'https://i.pravatar.cc/100?img=60',
     verified: true, role: 'Official Account', location: 'New Delhi', time: '5 hrs ago',
     type: 'video', media: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-    thumbnail: 'https://picsum.photos/seed/news5/600/900',
+    thumbnail: 'https://picsum.photos/seed/rti5/600/900',
     headline: 'File RTI from home — takes just 5 minutes!',
     caption: '📢 File RTI online at rtionline.gov.in. No fee, no agents! #RTIOnline #DigitalIndia',
+    fullDescription: 'The RTI Online Portal (rtionline.gov.in) allows any Indian citizen to file an RTI application from their home in under 5 minutes. No fee is required for BPL cardholders. The application fee is just Rs. 10 for others (payable online). You can track your application status, receive responses digitally, and file first appeals — all without visiting any government office. Over 2 crore RTI applications have been filed online since 2013. Know your rights, exercise your rights.',
     likes: 8910, shares: 4200,
     comments: [{ id: 'c10', user: 'Raj Mishra', text: 'Very useful!' }],
     liked: false, bookmarked: false, tag: 'Official Update', tagColor: '#7c3aed',
@@ -255,16 +507,14 @@ function CommentsModal({ visible, onClose, comments, onAddComment }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Action Column
-// isMobileLayout=true  → INSIDE video (absolute, right side) — Instagram style
-// isMobileLayout=false → OUTSIDE video (right side) — YouTube Shorts desktop style
 // ─────────────────────────────────────────────────────────────────────────────
-function ActionColumn({ post, onLike, onComment, onShare, onBookmark, scaleAnim, isMobileLayout }) {
+function ActionColumn({ post, onLike, onComment, onShare, onBookmark, onDescription, scaleAnim, isMobileLayout }) {
   const formatCount = (n) =>
     n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M' :
     n >= 1_000 ? (n / 1_000).toFixed(1) + 'K' : String(n);
 
-  const likeCount = formatCount(post.liked ? (Number(post.likes) + 1) : Number(post.likes));
-  const shareCount = formatCount(Number(post.shares));
+  const likeCount    = formatCount(post.liked ? (Number(post.likes) + 1) : Number(post.likes));
+  const shareCount   = formatCount(Number(post.shares));
   const commentCount = Array.isArray(post.comments) ? post.comments.length : 0;
 
   const sz = isMobileLayout ? 44 : 52;
@@ -279,30 +529,13 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, scaleAnim,
     ? { textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
     : {};
 
-  // ✅ FIXED: Mobile → absolute inside video, Desktop → right column centered vertically
   const containerStyle = isMobileLayout
-    ? {
-        position: 'absolute',
-        right: 10,
-        bottom: 110,
-        alignItems: 'center',
-        gap: 18,
-        zIndex: 20,
-      }
-    : {
-        width: 90,
-        paddingLeft: 16,
-        alignItems: 'center',
-        justifyContent: 'center',   // ✅ FIXED: center vertically like YouTube Shorts
-        alignSelf: 'center',        // ✅ FIXED: center in flex row
-        height: '100%',             // ✅ FIXED: full height to allow centering
-        gap: 26,
-        flexShrink: 0,
-      };
+    ? { position: 'absolute', right: 10, bottom: 110, alignItems: 'center', gap: 18, zIndex: 20 }
+    : { width: 90, paddingLeft: 16, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', height: '100%', gap: 22, flexShrink: 0 };
 
-  const btn = { alignItems: 'center', gap: 2 };
-  const countStyle = { color: '#fff', fontSize: 12, fontWeight: '700', ...textShadow };
-  const labelStyle = { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '600', ...textShadow };
+  const btn          = { alignItems: 'center', gap: 2 };
+  const countStyle   = { color: '#fff', fontSize: 12, fontWeight: '700', ...textShadow };
+  const labelStyle   = { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '600', ...textShadow };
 
   return (
     <View style={containerStyle}>
@@ -323,7 +556,7 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, scaleAnim,
         <Text style={labelStyle}>Comment</Text>
       </TouchableOpacity>
 
-      {/* Share */}
+      {/* Share — opens share modal */}
       <TouchableOpacity style={btn} onPress={() => onShare(post.id)} activeOpacity={0.75}>
         <View style={circle('rgba(0,0,0,0.5)')}><ShareIcon size={iconSz} /></View>
         <Text style={countStyle}>{shareCount}</Text>
@@ -338,6 +571,7 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, scaleAnim,
         <Text style={labelStyle}>Save</Text>
       </TouchableOpacity>
 
+
     </View>
   );
 }
@@ -345,27 +579,28 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, scaleAnim,
 // ─────────────────────────────────────────────────────────────────────────────
 // Reel Card
 // ─────────────────────────────────────────────────────────────────────────────
-function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress, isActive, cardWidth, cardHeight, isMobileLayout }) {
+function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription, onProfilePress, isActive, cardWidth, cardHeight, isMobileLayout }) {
   const safePost = post || {};
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [captionExpanded, setCaptionExpanded] = useState(false);
+  // ✅ Default muted=false so audio plays automatically
   const [muted, setMuted] = useState(false);
   const [paused, setPaused] = useState(false);
   const [showPoster, setShowPoster] = useState(!!safePost.thumbnail);
   const [avatarError, setAvatarError] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
 
-  const comments = Array.isArray(safePost.comments) ? safePost.comments : [];
-  const caption = String(safePost.caption || '');
-  const userName = String(safePost.user || 'User');
-  const avatarUri = String(safePost.avatar || safePost.author_profile_image || '');
-  const location = String(safePost.location || safePost.author_seat_name || '');
-  const headline = String(safePost.headline || '');
-  const role = String(safePost.role || safePost.author_role || '');
-  const time = String(safePost.time || '');
-  const verified = Boolean(safePost.verified || safePost.author_is_premium || false);
-  const postId = String(safePost.id || '');
-  const shares = Number(safePost.shares || 0);
+  const comments    = Array.isArray(safePost.comments) ? safePost.comments : [];
+  const caption     = String(safePost.caption || '');
+  const userName    = String(safePost.user || 'User');
+  const avatarUri   = String(safePost.avatar || safePost.author_profile_image || '');
+  const location    = String(safePost.location || safePost.author_seat_name || '');
+  const headline    = String(safePost.headline || '');
+  const role        = String(safePost.role || safePost.author_role || '');
+  const time        = String(safePost.time || '');
+  const verified    = Boolean(safePost.verified || safePost.author_is_premium || false);
+  const postId      = String(safePost.id || '');
+  const shares      = Number(safePost.shares || 0);
 
   const safeAvatarUrl = useMemo(() =>
     !avatarError && isValidImageUrl(avatarUri) ? avatarUri : 'https://i.pravatar.cc/100?img=5',
@@ -385,6 +620,7 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
 
   useEffect(() => { setShowPoster(!!safePost.thumbnail); }, [safePost.thumbnail, safePost.media]);
   useEffect(() => { setCaptionExpanded(false); }, [postId]);
+  // ✅ Apply muted state to player
   useEffect(() => { if (!canPlayVideo) return; player.muted = muted; }, [canPlayVideo, muted, player]);
   useEffect(() => {
     if (!canPlayVideo) return;
@@ -401,41 +637,40 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
     onLike(postId);
   };
 
-  // ✅ FIXED: On desktop web, video takes full card height; actions sit beside it
-  // On mobile, video = full width and height
   const videoWidth = isMobileLayout ? cardWidth : Math.min(cardWidth - 100, 430);
-  
-  const navbarH = Platform.OS === 'ios' ? 82 : 60;
-  const safeBot = Platform.OS === 'ios' ? 34 : 0;
+
+  const navbarH   = Platform.OS === 'ios' ? 82 : 60;
+  const safeBot   = Platform.OS === 'ios' ? 34 : 0;
   const bottomBottom = isMobileLayout ? (navbarH + safeBot + 12) : 28;
-  const bottomRight = isMobileLayout ? 76 : 14;
+  const bottomRight  = isMobileLayout ? 76 : 14;
 
   return (
-    // ✅ FIXED: Desktop uses row layout, mobile uses column
     <View style={{
-      width: cardWidth,
-      height: cardHeight,
-      backgroundColor: '#000',
+      width: cardWidth, height: cardHeight, backgroundColor: '#000',
       flexDirection: isMobileLayout ? 'column' : 'row',
-      alignItems: 'center',         // ✅ FIXED: center vertically on desktop
-      justifyContent: 'center',     // ✅ FIXED: center horizontally
+      alignItems: 'center', justifyContent: 'center',
     }}>
 
-      {/* ── VIDEO PANEL ─────────────────────────────── */}
+      {/* ── VIDEO PANEL ── */}
       <View style={{
         width: videoWidth,
-        height: isMobileLayout ? cardHeight : Math.min(cardHeight * 0.92, 780), // ✅ FIXED: desktop video has max height like YT Shorts
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: isMobileLayout ? 0 : 12, // ✅ FIXED: rounded corners on desktop like YT Shorts
+        height: isMobileLayout ? cardHeight : Math.min(cardHeight * 0.92, 780),
+        position: 'relative', overflow: 'hidden',
+        borderRadius: isMobileLayout ? 0 : 12,
       }}>
 
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setPaused(v => !v)}>
           {canPlayVideo ? (
             <>
-              <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover"
-                nativeControls={false} allowsFullscreen={false} playsInline
-                onFirstFrameRender={() => setShowPoster(false)} />
+              <VideoView
+                player={player}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                nativeControls={false}
+                allowsFullscreen={false}
+                playsInline
+                onFirstFrameRender={() => setShowPoster(false)}
+              />
               {showPoster && (
                 <Image source={{ uri: safeThumbnailUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setThumbnailError(true)} />
               )}
@@ -446,29 +681,35 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
         </TouchableOpacity>
 
         {/* Gradient overlay */}
-        <View
-          style={{ ...styles.reelOverlayBottom, pointerEvents: 'none' }}
-        />
+        <View style={{ ...styles.reelOverlayBottom, pointerEvents: 'none' }} />
 
         {/* Paused indicator */}
         {paused && (
-          <View style={styles.pausedOverlay} pointerEvents="none">
-            <Text style={styles.pausedIcon}>⏸</Text>
+          <View
+            style={[styles.pausedOverlay, Platform.OS === 'web' ? { pointerEvents: 'none' } : null]}
+            {...(Platform.OS === 'web' ? {} : { pointerEvents: 'none' })}
+          >
+            <Text style={styles.pausedIcon}>||</Text>
           </View>
         )}
 
-        {/* Mute — top right */}
+        {/* ✅ Mute/Unmute button — top right, prominent */}
         <View style={styles.reelTopBar}>
-          <TouchableOpacity style={styles.muteBtn} onPress={() => setMuted(v => !v)} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.muteBtn, { backgroundColor: muted ? 'rgba(249,115,22,0.8)' : 'rgba(0,0,0,0.5)' }]}
+            onPress={() => setMuted(v => !v)}
+            activeOpacity={0.8}
+          >
             <MuteIcon muted={muted} size={20} />
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Action icons INSIDE video ONLY on mobile */}
+        {/* ✅ Mobile: action icons inside video */}
         {isMobileLayout && (
           <ActionColumn
             post={{ ...safePost, likes: Number(safePost.likes || 0), shares, comments }}
-            onLike={handleLikePress} onComment={onComment} onShare={onShare} onBookmark={onBookmark}
+            onLike={handleLikePress} onComment={onComment} onShare={onShare}
+            onBookmark={onBookmark} onDescription={onDescription}
             scaleAnim={scaleAnim} isMobileLayout={true}
           />
         )}
@@ -497,10 +738,11 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
 
           {headline ? <Text style={styles.reelHeadline}>{headline}</Text> : null}
 
-          <TouchableOpacity activeOpacity={0.85} onPress={() => setCaptionExpanded(v => !v)}>
+          {/* ✅ Tap caption to open description modal */}
+          <TouchableOpacity activeOpacity={0.85} onPress={() => onDescription(postId)}>
             <Text style={styles.reelCaption} numberOfLines={captionExpanded ? undefined : 2}>{caption}</Text>
             {caption.length > 80 && (
-              <Text style={styles.reelCaptionMore}>{captionExpanded ? '▲ Less' : '▼ More'}</Text>
+              <Text style={styles.reelCaptionMore}>▼ Read More</Text>
             )}
           </TouchableOpacity>
 
@@ -512,11 +754,12 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
         </View>
       </View>
 
-      {/* ✅ Action icons OUTSIDE on desktop — YouTube Shorts style, centered */}
+      {/* ✅ Desktop: action icons outside video */}
       {!isMobileLayout && (
         <ActionColumn
           post={{ ...safePost, likes: Number(safePost.likes || 0), shares, comments }}
-          onLike={handleLikePress} onComment={onComment} onShare={onShare} onBookmark={onBookmark}
+          onLike={handleLikePress} onComment={onComment} onShare={onShare}
+          onBookmark={onBookmark} onDescription={onDescription}
           scaleAnim={scaleAnim} isMobileLayout={false}
         />
       )}
@@ -528,34 +771,23 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
 // Main Feed Screen
 // ─────────────────────────────────────────────────────────────────────────────
 export default function FeedScreen({ navigation }) {
-  const [posts, setPosts] = useState(DUMMY_POSTS);
+  const [posts, setPosts]               = useState(DUMMY_POSTS);
   const [uploadVisible, setUploadVisible] = useState(false);
-  const [commentPost, setCommentPost] = useState(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [currentUser, setCurrentUser] = useState({ name: 'User', avatar: null });
+  const [commentPost, setCommentPost]   = useState(null);
+  const [sharePost, setSharePost]       = useState(null);   // ✅ share modal
+  const [descPost, setDescPost]         = useState(null);   // ✅ description modal
+  const [activeIndex, setActiveIndex]   = useState(0);
+  const [currentUser, setCurrentUser]   = useState({ name: 'User', avatar: null });
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
-  const isMobileLayout = windowWidth <= MOBILE_BREAKPOINT;
-  const isWebPlatform = Platform.OS === 'web';
+  const isMobileLayout  = windowWidth <= MOBILE_BREAKPOINT;
+  const isWebPlatform   = Platform.OS === 'web';
 
-  // ✅ FIXED: Proper card dimensions
-  // Mobile web: subtract navbar height so cards don't overflow
-  // Desktop web: full window height, AppNavbar is top bar so no subtraction needed
-  const NAVBAR_H = Platform.OS === 'ios' ? 82 : 60;
-
-  // ✅ FIXED: 
-  // Web: top navbar hota hai (height ~60px) toh subtract karo
-  // Native: bottom navbar hota hai toh subtract karo
-  const WEB_TOPNAV_H = 60;
-  const cardHeight = isWebPlatform
-    ? windowHeight - WEB_TOPNAV_H      // web: top navbar ki height minus
-    : windowHeight - NAVBAR_H;         // native: bottom navbar ki height minus
-
-  // ✅ FIXED: Desktop card width = video (430) + actions (100) + padding
-  const cardWidth = isMobileLayout
-    ? windowWidth
-    : Math.min(windowWidth * 0.65, 560);  // enough for 430px video + 100px actions
+  const NAVBAR_H      = Platform.OS === 'ios' ? 82 : 60;
+  const WEB_TOPNAV_H  = 60;
+  const cardHeight    = isWebPlatform ? windowHeight - WEB_TOPNAV_H : windowHeight - NAVBAR_H;
+  const cardWidth     = isMobileLayout ? windowWidth : Math.min(windowWidth * 0.65, 560);
 
   const handleLike = useCallback((id) =>
     setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p)), []);
@@ -565,8 +797,14 @@ export default function FeedScreen({ navigation }) {
 
   const handleComment = useCallback((id) => setCommentPost(id), []);
 
-  const handleShare = useCallback((id) =>
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, shares: (Number(p.shares) || 0) + 1 } : p)), []);
+  // ✅ Share: increment count + show share modal
+  const handleShare = useCallback((id) => {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, shares: (Number(p.shares) || 0) + 1 } : p));
+    setSharePost(id);
+  }, []);
+
+  // ✅ Description modal
+  const handleDescription = useCallback((id) => setDescPost(id), []);
 
   const handleAddComment = useCallback((text) => {
     setPosts(prev =>
@@ -585,7 +823,8 @@ export default function FeedScreen({ navigation }) {
       type: 'image', media: `https://picsum.photos/seed/${seed}/600/900`,
       thumbnail: `https://picsum.photos/seed/${seed}/600/900`,
       headline: headline || 'My RTI Story',
-      caption, likes: 0, shares: 0, comments: [],
+      caption, fullDescription: caption,
+      likes: 0, shares: 0, comments: [],
       liked: false, bookmarked: false, tag, tagColor: '#16a34a',
     }, ...prev]);
   }, [currentUser]);
@@ -595,7 +834,10 @@ export default function FeedScreen({ navigation }) {
   }, []);
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+
   const activeCommentData = posts.find(p => p.id === commentPost);
+  const activeShareData   = posts.find(p => p.id === sharePost);
+  const activeDescData    = posts.find(p => p.id === descPost);
 
   useFocusEffect(
     useCallback(() => {
@@ -603,14 +845,14 @@ export default function FeedScreen({ navigation }) {
       const fetchFeed = async () => {
         try {
           const [summary, userProfile] = await Promise.allSettled([
-            UserStore.getNewsFeedSummary(),
+            UserStore.getReelsFeedSummary?.() ?? UserStore.getNewsFeedSummary(),
             UserStore.getUserProfile?.() ?? Promise.resolve(null),
           ]);
           if (!active) return;
 
           const profileData = userProfile?.value;
           if (profileData) {
-            const realName = profileData.name || profileData.full_name || profileData.username || profileData.email?.split('@')[0] || 'User';
+            const realName   = profileData.name || profileData.full_name || profileData.username || profileData.email?.split('@')[0] || 'User';
             const realAvatar = isValidImageUrl(profileData.avatar || profileData.profile_image) ? (profileData.avatar || profileData.profile_image) : null;
             setCurrentUser({ name: realName, avatar: realAvatar });
           }
@@ -637,21 +879,11 @@ export default function FeedScreen({ navigation }) {
 
   const page = (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-      {/* ✅ FIXED: Top navbar web pe hamesha — mobile web pe bhi top pe rahega */}
       {isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" />}
 
-      {/* ✅ FIXED: Center the feed column on desktop */}
-      <View style={{
-        flex: 1,
-        backgroundColor: '#000',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-      }}>
-        {/* ✅ FIXED: Explicit height on the container so FlatList snapping works */}
+      <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'flex-start' }}>
         <View style={{
-          width: cardWidth,
-          height: cardHeight,
-          overflow: 'hidden',
+          width: cardWidth, height: cardHeight, overflow: 'hidden',
           ...(!isMobileLayout && windowWidth > MOBILE_BREAKPOINT
             ? { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }
             : {}),
@@ -662,8 +894,11 @@ export default function FeedScreen({ navigation }) {
             renderItem={({ item, index }) => (
               <ReelCard
                 post={item}
-                onLike={handleLike} onBookmark={handleBookmark}
-                onComment={handleComment} onShare={handleShare}
+                onLike={handleLike}
+                onBookmark={handleBookmark}
+                onComment={handleComment}
+                onShare={handleShare}
+                onDescription={handleDescription}
                 onProfilePress={(postData) =>
                   navigation.navigate('UserProfile', {
                     email: String(postData.user || '').trim().toLowerCase().replace(/\s+/g, '.'),
@@ -684,7 +919,7 @@ export default function FeedScreen({ navigation }) {
               />
             )}
             pagingEnabled
-            snapToInterval={cardHeight}        // ✅ FIXED: matches exact cardHeight
+            snapToInterval={cardHeight}
             snapToAlignment="start"
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
@@ -692,13 +927,14 @@ export default function FeedScreen({ navigation }) {
             viewabilityConfig={viewabilityConfig}
             getItemLayout={(_, index) => ({ length: cardHeight, offset: cardHeight * index, index })}
             style={{ flex: 1 }}
-            contentContainerStyle={{ flexGrow: 0 }}  // ✅ FIXED: prevents overscroll
+            contentContainerStyle={{ flexGrow: 0 }}
           />
         </View>
       </View>
 
       <UploadModal visible={uploadVisible} onClose={() => setUploadVisible(false)} onPost={handleNewPost} />
 
+      {/* ✅ Comments Modal */}
       {activeCommentData && (
         <CommentsModal
           visible={!!commentPost}
@@ -708,10 +944,27 @@ export default function FeedScreen({ navigation }) {
         />
       )}
 
-      {/* ✅ FIXED: Bottom navbar SIRF native app pe — web pe kabhi nahi */}
+      {/* ✅ Share Modal — WhatsApp, Telegram, Twitter, Facebook, Copy */}
+      <ShareModal
+        visible={!!sharePost}
+        onClose={() => setSharePost(null)}
+        post={activeShareData}
+      />
+
+      {/* ✅ Description Modal */}
+      <DescriptionModal
+        visible={!!descPost}
+        onClose={() => setDescPost(null)}
+        post={activeDescData}
+        onShare={(id) => { setDescPost(null); handleShare(id); }}
+      />
+
       {!isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" />}
     </View>
   );
 
   return isWebPlatform ? <WebLayout>{page}</WebLayout> : page;
 }
+
+
+

@@ -25,6 +25,16 @@ const IS_WEB_MOBILE = isWeb && (
 );
 const IS_MOBILE = Platform.OS === 'android' || Platform.OS === 'ios' || IS_WEB_MOBILE;
 
+const CARD_SHADOW = isWeb
+  ? { boxShadow: '0px 6px 20px rgba(2, 6, 23, 0.08)' }
+  : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+      elevation: 2,
+    };
+
 function stripHtml(value) {
   return String(value || '')
     .replace(/<[^>]*>/g, ' ')
@@ -327,11 +337,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: isWeb ? 1 : 0,
     borderColor: '#f3f4f6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: isWeb ? 2 : 0,
+    ...CARD_SHADOW,
     marginBottom: 0,
   },
 

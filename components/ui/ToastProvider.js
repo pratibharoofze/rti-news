@@ -58,7 +58,7 @@ export function ToastProvider({ children }) {
           <Pressable style={styles.popupBackdrop} onPress={hidePopup} />
           <View
             style={[styles.popupContainer, Platform.OS === 'web' ? styles.pointerEventsBoxNone : null]}
-            pointerEvents={Platform.OS === 'web' ? undefined : 'box-none'}
+            {...(Platform.OS === 'web' ? {} : { pointerEvents: 'box-none' })}
           >
             <View style={[styles.popupCard, styles[popup.type] || styles.info]}>
               <Text style={styles.popupTitle}>
@@ -136,7 +136,9 @@ const styles = StyleSheet.create({
     padding: 18,
   },
   pointerEventsBoxNone: {
-    pointerEvents: 'box-none',
+    // react-native-web: View prop `pointerEvents` is deprecated, so use style.pointerEvents
+    // `box-none` doesn't map cleanly to CSS; emulate by disabling container hit testing.
+    pointerEvents: 'none',
   },
   popupCard: {
     width: '100%',
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     elevation: 12,
     ...Platform.select({
-      web: { boxShadow: '0px 14px 28px rgba(2, 6, 23, 0.28)' },
+      web: { boxShadow: '0px 14px 28px rgba(2, 6, 23, 0.28)', pointerEvents: 'auto' },
       ios: {
         shadowColor: '#020617',
         shadowOffset: { width: 0, height: 14 },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -85,12 +85,23 @@ const dropStyles = StyleSheet.create({
 });
 
 export default function DistrictSelectScreen({ navigation, route }) {
-  const { selectedState, fromPremium } = route.params || {};
-  const [district, setDistrict] = useState('');
+  const { selectedState, fromPremium, needsCreateUser } = route.params || {};
+  const preselectedDistrict = route?.params?.preselectedDistrict;
+  const [district, setDistrict] = useState(preselectedDistrict ? String(preselectedDistrict) : '');
   const [districtModal, setDistrictModal] = useState(false);
+  const [districtTouched, setDistrictTouched] = useState(false);
+  const allowLeaveRef = useRef(false);
+
+  useEffect(() => {
+    if (!preselectedDistrict) return;
+    setDistrict(String(preselectedDistrict));
+  }, [preselectedDistrict]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (allowLeaveRef.current) {
+        return;
+      }
       // Only prevent going back, not forward navigation
       const targetRoute = e.data.action.payload?.name;
       // Allow navigation to TalukaSelect
@@ -106,12 +117,14 @@ export default function DistrictSelectScreen({ navigation, route }) {
   const districtList = selectedState ? getDistricts(selectedState) : [];
 
   const handleNext = async () => {
-    if (!district.trim()) {
-      alert('Please select or enter your district');
-      return;
-    }
+    if (!district.trim()) { setDistrictTouched(true); return; }
     // Navigate to TalukaSelect, passing state and district
-    navigation.replace('TalukaSelect', { selectedState, selectedDistrict: district.trim(), fromPremium });
+    navigation.replace('TalukaSelect', { selectedState, selectedDistrict: district.trim(), fromPremium, needsCreateUser });
+  };
+
+  const handleClose = () => {
+    allowLeaveRef.current = true;
+    navigation.replace('StateSelect', { fromPremium, needsCreateUser, preselectedState: selectedState, autoOpen: true });
   };
 
   return (
@@ -130,6 +143,16 @@ export default function DistrictSelectScreen({ navigation, route }) {
           bounces={false}
         >
           <View style={styles.formContainer}>
+            <TouchableOpacity
+              style={[styles.closeButton, { width: 'auto', paddingHorizontal: 10 }]}
+              onPress={handleClose}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="arrow-back-outline" size={18} color="#94a3b8" />
+                <Text style={{ color: '#94a3b8', fontWeight: '800', fontSize: 13 }}>Back</Text>
+              </View>
+            </TouchableOpacity>
             <View style={styles.topAccent} />
 
             <View style={styles.logoCircle}>
@@ -151,7 +174,7 @@ export default function DistrictSelectScreen({ navigation, route }) {
               <Text style={styles.inputLabel}>District <Text style={styles.required}>*</Text></Text>
               {districtList.length > 0 ? (
                 <TouchableOpacity
-                  style={styles.inputWrap}
+                  style={[styles.inputWrap, districtTouched && !district.trim() && styles.inputWrapError]}
                   onPress={() => setDistrictModal(true)}
                   activeOpacity={0.8}
                 >
@@ -162,17 +185,21 @@ export default function DistrictSelectScreen({ navigation, route }) {
                   <Ionicons name="chevron-down-outline" size={18} color="#a78bfa" />
                 </TouchableOpacity>
               ) : (
-                <View style={styles.inputWrap}>
+                <View style={[styles.inputWrap, districtTouched && !district.trim() && styles.inputWrapError]}>
                   <Ionicons name="business-outline" size={18} color="#a78bfa" />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your district"
                     placeholderTextColor="#64748b"
                     value={district}
-                    onChangeText={setDistrict}
+                    onChangeText={(t) => { setDistrict(t); if (!districtTouched) setDistrictTouched(true); }}
+                    onBlur={() => setDistrictTouched(true)}
                   />
                 </View>
               )}
+              {districtTouched && !district.trim() ? (
+                <Text style={styles.errorText}>Please select or enter your district</Text>
+              ) : null}
             </View>
 
             {/* ── Next Button ── */}
@@ -190,7 +217,7 @@ export default function DistrictSelectScreen({ navigation, route }) {
             title="Select District"
             items={districtList}
             selected={district}
-            onSelect={setDistrict}
+            onSelect={(next) => { setDistrict(next); setDistrictTouched(true); }}
             onClose={() => setDistrictModal(false)}
           />
         )}

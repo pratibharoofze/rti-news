@@ -4,6 +4,7 @@ import {
   Text, 
   View, 
   TouchableOpacity, 
+  Modal,
 } from 'react-native'; 
 import { Feather } from '@expo/vector-icons'; 
 import { useFocusEffect } from '@react-navigation/native'; 
@@ -49,6 +50,107 @@ function RoleBadge({ role = 'free', label }) {
   ); 
 } 
  
+function SeatSelectModal({
+  visible,
+  stateName,
+  seats,
+  selectedSeatId,
+  onClose,
+  onSelectSeatId,
+}) {
+  const seatsToShow = Array.isArray(seats) ? seats : [];
+  const isLoadingSeats = seatsToShow.length === 0;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} activeOpacity={1} onPress={onClose} />
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#ffffff',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          padding: 16,
+          paddingBottom: 18,
+          maxHeight: '78%',
+        }}
+      >
+        <View style={{ width: 40, height: 4, backgroundColor: '#e2e8f0', borderRadius: 99, alignSelf: 'center', marginBottom: 12 }} />
+
+        <Text style={{ fontSize: 14, fontWeight: '900', color: '#0f172a' }}>
+          Select Seat
+        </Text>
+        <Text style={{ marginTop: 4, fontSize: 12, color: '#64748b', fontWeight: '700' }}>
+          State: {stateName || '-'}
+        </Text>
+
+        <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 12 }}>
+          {isLoadingSeats ? (
+            <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '700', paddingVertical: 10 }}>
+              Loading seats…
+            </Text>
+          ) : null}
+
+          <View style={{ gap: 8, paddingBottom: 18 }}>
+            {seatsToShow.map((seat) => {
+              const isTaken = seat.status === 'taken';
+              const isDisabled = seat.status === 'disabled';
+              const isSelected = selectedSeatId === seat.id;
+              const disabled = isTaken || isDisabled;
+
+              const borderColor = isSelected ? '#1d4ed8' : disabled ? '#e2e8f0' : '#cbd5e1';
+              const backgroundColor = isSelected ? '#eff6ff' : disabled ? '#f8fafc' : '#ffffff';
+              const statusText =
+                seat.status === 'mine' ? 'Yours'
+                : isTaken ? 'Taken'
+                : isDisabled ? 'Select state first'
+                : 'Available';
+              const statusColor = disabled ? '#64748b' : '#1d4ed8';
+
+              return (
+                <TouchableOpacity
+                  key={seat.id}
+                  activeOpacity={0.85}
+                  disabled={disabled}
+                  onPress={() => onSelectSeatId(seat.id)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor,
+                    backgroundColor,
+                    borderRadius: 14,
+                    padding: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '900', color: disabled ? '#64748b' : '#0f172a' }}>
+                      {seat.name}
+                    </Text>
+                    <Text style={{ marginTop: 4, fontSize: 12, color: statusColor, fontWeight: '800' }}>
+                      {statusText}
+                    </Text>
+                  </View>
+
+                  {isSelected ? (
+                    <View style={{ backgroundColor: '#1d4ed8', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900' }}>Selected</Text>
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 export default function SubscriptionPlansScreen({ navigation, route }) { 
   const { showToast, showPopup } = useToast(); 
   const [sidebarVisible, setSidebarVisible]   = useState(false); 
@@ -56,6 +158,7 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
   const [seatSummary, setSeatSummary]         = useState(null); 
   const [selectedSeatId, setSelectedSeatId]   = useState(''); 
   const [pendingPlan, setPendingPlan]         = useState(null);
+  const [seatModalOpen, setSeatModalOpen]     = useState(false);
  
   const [subscriptionData, setSubscriptionData] = useState({ 
     currentUser:      null, 
@@ -152,14 +255,13 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
     }
 
     setPendingPlan(plan);
-    // Seat selection is only allowed on Dashboard flow
-    if (!activeSeatId && !selectedSeatId) {
-      showPopup('Seat selection is available on Dashboard only. Please select a seat there.', 'info', {
-        primaryLabel: 'Go to Dashboard',
-        secondaryLabel: 'Cancel',
-        onPrimaryPress: () => navigation.navigate('Dashboard'),
-      });
+    if (activeSeatId) {
+      navigateToPayment(plan, stateName, activeSeatId);
+      setPendingPlan(null);
+      return;
     }
+    // If no seat picked yet, open seat selector; selecting a seat will start subscription.
+    setSeatModalOpen(true);
   };
  
   return (
@@ -273,9 +375,19 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
                   </Text> 
                 </View> 
               ) : ( 
-                <Text style={{ marginTop: 10, fontSize: 12, color: '#64748b' }}> 
-                  Apni state ke liye ek seat select karein. Payment success ke baad woh seat dusre users ke liye available nahi rahegi. 
-                </Text> 
+                <>
+                  <Text style={{ marginTop: 10, fontSize: 12, color: '#64748b' }}> 
+                    Apni state ke liye ek seat select karein. Payment success ke baad woh seat dusre users ke liye available nahi rahegi. 
+                  </Text>
+                  <TouchableOpacity
+                    style={[SubscriptionPlansStyles.buyBtn, { marginTop: 12, backgroundColor: '#0f172a' }]}
+                    onPress={() => setSeatModalOpen(true)}
+                    activeOpacity={0.85}
+                  >
+                    <Feather name="user-check" size={14} color="#fff" />
+                    <Text style={SubscriptionPlansStyles.buyBtnText}>Select Seat</Text>
+                  </TouchableOpacity>
+                </>
               )} 
             </> 
           )} 
@@ -294,8 +406,7 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
               const isActive = subscriptionData.activePlan?.plan_id === plan.plan_id; 
               const planRole = UserStore.getRoleFromPlanId(plan.plan_id); 
               const isPending = pendingPlan?.plan_id === plan.plan_id;
-              const showBuyCta = !isActive && isPending && canBuy;
-              const cardDisabled = isActive || showBuyCta;
+              const cardDisabled = isActive;
  
               return ( 
                 <TouchableOpacity
@@ -309,6 +420,7 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
                   style={[ 
                     SubscriptionPlansStyles.planCard, 
                     isActive && SubscriptionPlansStyles.planCardActive, 
+                    isPending && !isActive && { borderWidth: 2, borderColor: '#0f172a' },
                   ]} 
                 > 
                   {/* Plan Top Row */}
@@ -379,30 +491,9 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
                     </Text> 
                   </View> 
 
-                  {!isActive && isPending && effectiveSeatId ? (
-                    <Text style={{ marginTop: 6, fontSize: 12, color: '#0f172a', fontWeight: '900' }}>
-                      Seat selected: {seatSummary?.current_seat?.seat_name || seatSummary?.seats?.find((s) => s.id === effectiveSeatId)?.name || effectiveSeatId}
-                    </Text>
-                  ) : null}
-
-                  {showBuyCta ? (
-                    <TouchableOpacity
-                      style={[SubscriptionPlansStyles.buyBtn, { marginTop: 10 }]}
-                      onPress={() => {
-                        if (!pendingPlan || !stateName || !effectiveSeatId) return;
-                        const planToBuy = pendingPlan;
-                        setPendingPlan(null);
-                        navigateToPayment(planToBuy, stateName, effectiveSeatId);
-                      }}
-                    >
-                      <Feather name="credit-card" size={14} color="#fff" />
-                      <Text style={SubscriptionPlansStyles.buyBtnText}>
-                        Buy Plan
-                      </Text>
-                    </TouchableOpacity>
-                  ) : !isActive ? (
+                  {!isActive ? (
                     <Text style={{ marginTop: 6, fontSize: 12, color: '#1d4ed8', fontWeight: '900' }}>
-                      Tap to select seat
+                      Tap to select seat and continue
                     </Text>
                   ) : null}
                 </TouchableOpacity> 
@@ -422,6 +513,22 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
         visible={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
         activeItem={moduleName}
+      />
+
+      <SeatSelectModal
+        visible={seatModalOpen}
+        stateName={stateName}
+        seats={seatSummary?.seats || []}
+        selectedSeatId={effectiveSeatId}
+        onClose={() => setSeatModalOpen(false)}
+        onSelectSeatId={(seatId) => {
+          setSelectedSeatId(seatId);
+          const plan = pendingPlan;
+          if (!plan || !stateName || !seatId) return;
+          setSeatModalOpen(false);
+          setPendingPlan(null);
+          navigateToPayment(plan, stateName, seatId);
+        }}
       />
     </View>
   );

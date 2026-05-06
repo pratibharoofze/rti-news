@@ -184,6 +184,45 @@ const RegisterStyles = StyleSheet.create({
   },
 
   // ── Subscription Cards ──
+  inputWrapError: {
+    borderColor: 'rgba(248,113,113,0.75)',
+  },
+  errorText: {
+    marginTop: 6,
+    color: '#f87171',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  passwordHintsBox: {
+    marginTop: 8,
+    backgroundColor: 'rgba(2,6,23,0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.12)',
+    borderRadius: 14,
+    padding: 12,
+  },
+  helperTitle: {
+    color: '#ddd6fe',
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 8,
+    letterSpacing: 0.2,
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  helperText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  helperTextOk: {
+    color: '#22c55e',
+  },
+
   subRow: {
     flexDirection: 'row',
     gap: 8,
@@ -228,6 +267,9 @@ const RegisterStyles = StyleSheet.create({
     gap: 10,
     marginTop: 6,
     elevation: 8,
+  },
+  submitBtnDisabled: {
+    opacity: 0.55,
   },
   submitBtnText: {
     color: '#fff',

@@ -11,6 +11,7 @@ const USERS_KEY        = 'users';
 const OTP_KEY          = 'mock_reset_otps';
 const CURRENT_USER_KEY = 'current_user_email';
 const STATE_SEATS_KEY  = 'state_seat_allocations_v1';
+const PENDING_REG_KEY  = 'pending_registration_v1';
 
 const STATE_SEAT_ROLES = [
   { id: 'chief_editor_published',     name: 'Chief Editor / Published' },
@@ -307,6 +308,119 @@ const normalizeNewsFeed = (items = []) => {
   }));
 };
 
+const stripHtmlToText = (value = '') =>
+  String(value || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const getRelativeTimeLabel = (dateLike) => {
+  const d = new Date(dateLike || 0);
+  const t = d.getTime();
+  if (!Number.isFinite(t) || t <= 0) return '';
+  const diffMs = Date.now() - t;
+  if (!Number.isFinite(diffMs) || diffMs < 0) return '';
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 10) return 'Just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hr${hr === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hr / 24);
+  if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+  return d.toLocaleDateString('en-IN');
+};
+
+const REEL_TAG_COLORS = {
+  Crime:    '#ef4444',
+  Murder:   '#ef4444',
+  Accident: '#f97316',
+  Politics: '#3b82f6',
+  Other:    '#14b8a6',
+  General:  '#16a34a',
+};
+
+const getReelVideoUri = (item = {}) => {
+  if (typeof item.video === 'string' && item.video.trim()) return item.video.trim();
+  if (item.video && typeof item.video.uri === 'string' && item.video.uri.trim()) return item.video.uri.trim();
+  if (typeof item.media === 'string' && item.media.trim() && String(item.mediaType || '').toLowerCase() === 'video') {
+    return item.media.trim();
+  }
+  return null;
+};
+
+const getReelThumbnailUri = (item = {}) => {
+  if (typeof item.thumbnail === 'string' && item.thumbnail.trim()) return item.thumbnail.trim();
+  if (typeof item.image === 'string' && item.image.trim()) return item.image.trim();
+  if (Array.isArray(item.images) && item.images.length) {
+    const first = item.images.find((u) => typeof u === 'string' && u.trim());
+    if (first) return first.trim();
+  }
+  return null;
+};
+
+const toReelPostFromNewsItem = (item = {}, currentEmail = '') => {
+  const videoUri = getReelVideoUri(item);
+  const hasVideo = Boolean(videoUri);
+  const statusLower = String(item.status || 'approved').toLowerCase();
+  const isPending = statusLower && statusLower !== 'approved';
+  const createdByEmail = String(item.createdBy || item.created_by || '').trim().toLowerCase();
+  const isOwner = currentEmail && createdByEmail && currentEmail === createdByEmail;
+
+  const tagBase = String(item.report_type || item.category || item.state || 'General');
+  const tag = isPending ? (isOwner ? 'Pending Review' : tagBase) : tagBase;
+  const tagColor = isPending ? '#f97316' : (REEL_TAG_COLORS[tagBase] || '#16a34a');
+
+  const headline = stripHtmlToText(item.title || item.headline || 'News Update');
+  const caption = stripHtmlToText(item.subtitle || item.caption || item.excerpt || item.description || '');
+  const fullDescription = stripHtmlToText(item.description || item.fullDescription || caption);
+
+  const locationParts = [item.taluka, item.district, item.state].filter(Boolean).map((v) => String(v).trim()).filter(Boolean);
+  const location = String(item.author_seat_name || item.authorSeatName || locationParts.join(', ') || 'India');
+
+  const likes = Number(item.likes || 0);
+  const shares = Number(item.shares || 0);
+
+  const likedBy = Array.isArray(item.liked_by) ? item.liked_by : [];
+  const liked = Boolean(currentEmail && likedBy.includes(currentEmail));
+
+  const commentsList = Array.isArray(item.comments_list) ? item.comments_list : [];
+  const comments = commentsList
+    .map((c, idx) => ({
+      id: String(c.id || `cmt-${idx + 1}`),
+      user: String(c.author || c.author_name || 'User'),
+      text: String(c.text || '').trim(),
+    }))
+    .filter((c) => c.text);
+
+  return {
+    id: String(item.id || `reel-${Date.now()}`),
+    user: String(item.author_name || item.createdByName || item.createdBy || 'User'),
+    avatar: String(item.author_profile_image || item.authorProfileImage || item.createdByProfileImage || item.profile_image || ''),
+    verified: Boolean(item.author_is_premium || item.author_is_subscriber || false),
+    role: String(item.author_role_label || item.authorRoleLabel || item.author_role || item.authorRole || ''),
+    location,
+    time: String(item.time || getRelativeTimeLabel(item.createdAt || item.date || '')),
+    type: hasVideo ? 'video' : (Array.isArray(item.images) && item.images.length ? 'image' : 'image'),
+    media: hasVideo ? videoUri : (getReelThumbnailUri(item) || ''),
+    thumbnail: getReelThumbnailUri(item),
+    headline,
+    caption,
+    fullDescription,
+    likes: Number.isFinite(likes) ? likes : 0,
+    shares: Number.isFinite(shares) ? shares : 0,
+    comments,
+    liked,
+    bookmarked: Boolean(item.bookmarked),
+    tag,
+    tagColor,
+    status: item.status || 'approved',
+    createdAt: item.createdAt || item.date || null,
+    createdBy: createdByEmail,
+  };
+};
+
 const getNewsSortValue = (item = {}) => {
   const createdAtValue = new Date(item.createdAt || item.date || 0).getTime();
   const idValue = Number(String(item.id || '').replace(/\D/g, '')) || 0;
@@ -487,9 +601,9 @@ const normalizePaymentHistory = (items = []) => {
   }));
 };
 
-const isPremiumPlan = (plan = {}) => {
-  const planId   = String(plan.plan_id   || '').toLowerCase();
-  const planName = String(plan.plan_name || '').toLowerCase();
+const isPremiumPlan = (plan) => {
+  const planId   = String(plan?.plan_id   || '').toLowerCase();
+  const planName = String(plan?.plan_name || '').toLowerCase();
   return planId === 'plan-premium' || planName.includes('premium');
 };
 
@@ -833,6 +947,48 @@ export const UserStore = {
   clearCurrentUser: async () => {
     try { await AsyncStorage.removeItem(CURRENT_USER_KEY); return true; }
     catch { return false; }
+  },
+
+  setPendingRegistration: async (data = {}) => {
+    try {
+      const payload = {
+        name: String(data.name || '').trim(),
+        mobile: String(data.mobile || '').trim(),
+        email: String(data.email || '').trim().toLowerCase(),
+        password: String(data.password || ''),
+        referral_code_used: data.referral_code_used ? String(data.referral_code_used).trim() : '',
+        created_at: new Date().toISOString(),
+      };
+      if (!payload.email) return false;
+      await AsyncStorage.setItem(PENDING_REG_KEY, JSON.stringify(payload));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  getPendingRegistration: async () => {
+    try {
+      const raw = await AsyncStorage.getItem(PENDING_REG_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.email) return null;
+      return {
+        ...parsed,
+        email: String(parsed.email).trim().toLowerCase(),
+      };
+    } catch {
+      return null;
+    }
+  },
+
+  clearPendingRegistration: async () => {
+    try {
+      await AsyncStorage.removeItem(PENDING_REG_KEY);
+      return true;
+    } catch {
+      return false;
+    }
   },
 
   getReferralSummary: async () => {
@@ -1203,6 +1359,59 @@ export const UserStore = {
         totalViews: mergedItems.reduce((s, i) => s + i.views, 0),
         totalShares: mergedItems.reduce((s, i) => s + i.shares, 0),
       };
+    } catch {
+      return null;
+    }
+  },
+
+  getReelsFeedSummary: async () => {
+    try {
+      const currentUser = await UserStore.getCurrentUser();
+      const allUsers = await UserStore.getAllUsers();
+      const currentEmail = String(currentUser?.email || '').trim().toLowerCase();
+
+      const injected = allUsers.flatMap((user) => {
+        const userEmail = String(user?.email || '').trim().toLowerCase();
+        const injectAuthor = (item) => ({
+          ...item,
+          createdBy: item.createdBy || item.created_by || userEmail,
+          author_name: item.author_name || item.createdByName || user.name || '',
+          author_profile_image:
+            item.author_profile_image ||
+            item.authorProfileImage ||
+            item.createdByProfileImage ||
+            item.profile_image ||
+            user.profile_image ||
+            '',
+          author_is_premium: Boolean(item.author_is_premium || hasPremiumAccess(user)),
+          author_is_subscriber: Boolean(item.author_is_subscriber || hasActiveSubscription(user)),
+          author_role: item.author_role || item.authorRole || user.role || '',
+          author_role_label: item.author_role_label || item.authorRoleLabel || user.role_label || '',
+          author_seat_id: String(item.author_seat_id || item.authorSeatId || user.state_seat?.seat_id || '').trim(),
+          author_seat_name: String(item.author_seat_name || item.authorSeatName || user.state_seat?.seat_name || '').trim(),
+        });
+
+        const rawItems = [
+          ...(Array.isArray(user.news) ? user.news : []),
+          ...(Array.isArray(user.news_feed) ? user.news_feed : []),
+        ].map(injectAuthor);
+
+        return rawItems;
+      });
+
+      const reels = injected
+        .filter((item) => {
+          const hasVideo = Boolean(getReelVideoUri(item));
+          if (!hasVideo) return false;
+          const statusLower = String(item.status || 'approved').toLowerCase();
+          if (statusLower === 'approved') return true;
+          const createdByEmail = String(item.createdBy || item.created_by || '').trim().toLowerCase();
+          return Boolean(currentEmail && createdByEmail && currentEmail === createdByEmail);
+        })
+        .map((item) => toReelPostFromNewsItem(item, currentEmail))
+        .sort((a, b) => getNewsSortValue(b) - getNewsSortValue(a));
+
+      return { currentUser, items: reels };
     } catch {
       return null;
     }

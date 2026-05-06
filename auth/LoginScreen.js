@@ -19,17 +19,21 @@ const CERTIFICATE_LOGO = require('../assets/images/certificate_logo.jpg');
 // ✅ FIX: Web pe html, body, #root ka background dark karo
 // Taaki white space visible na ho
 if (Platform.OS === 'web') {
-  const style = document.createElement('style');
-  style.textContent = `
-    html, body, #root {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background-color: #0a1628;
-      overflow: hidden;
+  try {
+    if (typeof document !== 'undefined') {
+      const style = document.createElement('style');
+      style.textContent = `
+        html, body, #root {
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          background-color: #0a1628;
+          overflow: hidden;
+        }
+      `;
+      document.head.appendChild(style);
     }
-  `;
-  document.head.appendChild(style);
+  } catch {}
 }
 
 export default function LoginScreen({ navigation }) {
@@ -46,11 +50,16 @@ export default function LoginScreen({ navigation }) {
     const newErrors = { email: '', password: '', general: '' };
     let valid = true;
     if (!email.trim()) {
-      newErrors.email = 'Email address is required.';
+      newErrors.email = 'Email or mobile number is required.';
       valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Enter a valid email address.';
-      valid = false;
+    } else {
+      const identity = email.trim();
+      const isEmail = /\S+@\S+\.\S+/.test(identity);
+      const isMobile = /^\d{10}$/.test(identity.replace(/\s+/g, ''));
+      if (!isEmail && !isMobile) {
+        newErrors.email = 'Enter a valid email or 10-digit mobile number.';
+        valid = false;
+      }
     }
     if (!password) {
       newErrors.password = 'Password is required.';
@@ -64,22 +73,56 @@ export default function LoginScreen({ navigation }) {
     clearErrors();
     if (!validate()) return;
     setLoading(true);
-    const user = await UserStore.getUser(email.trim().toLowerCase());
-    setLoading(false);
-    if (!user) {
-      setErrors((prev) => ({ ...prev, email: 'Email not registered. Please sign up first.' }));
-      return;
-    }
-    if (user.password !== password) {
-      setErrors((prev) => ({ ...prev, password: 'Incorrect password. Please try again.' }));
-      return;
-    }
-    await UserStore.setCurrentUser(user.email);
-    const hasPremium = UserStore.hasPremiumAccess(user);
-    if (hasPremium && !user.location_complete) {
-      navigation.replace('StateSelect', { fromPremium: true });
-    } else {
-      navigation.replace('Dashboard', { userName: user.name });
+    try {
+      const safeReplace = (routeName, params) => {
+        if (navigation && typeof navigation.replace === 'function') {
+          navigation.replace(routeName, params);
+          return;
+        }
+        if (navigation && typeof navigation.navigate === 'function') {
+          navigation.navigate(routeName, params);
+        }
+      };
+
+      const identityRaw = email.trim();
+      const isEmail = /\S+@\S+\.\S+/.test(identityRaw);
+      const mobileNormalized = identityRaw.replace(/\s+/g, '');
+
+      let user = null;
+      if (isEmail) {
+        user = await UserStore.getUser(identityRaw.toLowerCase());
+      } else if (/^\d{10}$/.test(mobileNormalized)) {
+        const all = await UserStore.getAllUsers();
+        user = (all || []).find((u) => String(u.mobile || '').trim() === mobileNormalized) || null;
+      }
+
+      setLoading(false);
+
+      if (!user) {
+        setErrors((prev) => ({ ...prev, email: 'Account not found. Please sign up first.' }));
+        return;
+      }
+      if (String(user.password || '') !== String(password || '')) {
+        setErrors((prev) => ({ ...prev, password: 'Incorrect password. Please try again.' }));
+        return;
+      }
+      await UserStore.setCurrentUser(user.email);
+      const hasPremium = UserStore.hasPremiumAccess(user);
+      if (hasPremium && !user.location_complete) {
+        safeReplace('StateSelect', { fromPremium: true });
+      } else {
+        safeReplace('Dashboard', { userName: user.name });
+      }
+    } catch (_err) {
+      // Keep a console trace for debugging (especially on web) but show a generic message in UI.
+      // eslint-disable-next-line no-console
+      console.warn('Login error:', _err);
+      setLoading(false);
+      const msg = _err?.message ? String(_err.message) : '';
+      setErrors((prev) => ({
+        ...prev,
+        general: msg ? `Login failed: ${msg}` : 'Login failed. Please try again.',
+      }));
     }
   };
 
@@ -141,16 +184,16 @@ export default function LoginScreen({ navigation }) {
 
             {/* Email */}
             <View style={LoginStyles.inputGroup}>
-              <Text style={LoginStyles.inputLabel}>Email address</Text>
+              <Text style={LoginStyles.inputLabel}>Email / Mobile</Text>
               <View style={[LoginStyles.inputWrap, errors.email ? LoginStyles.inputWrapError : null]}>
                 <Ionicons name="mail-outline" size={18} color={errors.email ? '#f87171' : '#38bdf8'} />
                 <TextInput
                   style={LoginStyles.input}
-                  placeholder="you@example.com"
+                  placeholder="you@example.com or 10-digit mobile"
                   placeholderTextColor="#64748b"
                   value={email}
                   onChangeText={(v) => { setEmail(v); if (errors.email) setErrors((p) => ({ ...p, email: '' })); }}
-                  keyboardType="email-address"
+                  keyboardType="default"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />

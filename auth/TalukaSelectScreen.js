@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -85,12 +85,17 @@ const dropStyles = StyleSheet.create({
 });
 
 export default function TalukaSelectScreen({ navigation, route }) {
-  const { selectedState, selectedDistrict, fromPremium } = route.params || {};
+  const { selectedState, selectedDistrict, fromPremium, needsCreateUser } = route.params || {};
   const [taluka, setTaluka] = useState('');
   const [talukaModal, setTalukaModal] = useState(false);
+  const allowLeaveRef = useRef(false);
+  const registrationJustCompleted = !fromPremium;
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (allowLeaveRef.current) {
+        return;
+      }
       // Only prevent going back, not forward navigation
       const targetRoute = e.data.action.payload?.name;
       // Allow navigation to Dashboard
@@ -103,29 +108,124 @@ export default function TalukaSelectScreen({ navigation, route }) {
     return unsubscribe;
   }, [navigation]);
 
+  const handleClose = () => {
+    allowLeaveRef.current = true;
+    navigation.replace('DistrictSelect', { selectedState, fromPremium, needsCreateUser, preselectedDistrict: selectedDistrict });
+  };
+
   const talukaList = selectedDistrict ? getTalukas(selectedState, selectedDistrict) : []; 
 
   const handleComplete = async () => { 
     if (!taluka.trim()) { alert('Please select or enter your taluka'); return; } 
+    const talukaValue = taluka.trim();
+
+    if (needsCreateUser) {
+      const pending = await UserStore.getPendingRegistration();
+      if (!pending?.email) {
+        alert('Registration data not found. Please register again.');
+        navigation.replace('Register');
+        return;
+      }
+
+      const created = await UserStore.saveUser({
+        name: pending.name,
+        mobile: pending.mobile,
+        email: pending.email,
+        referral_code_used: pending.referral_code_used ? pending.referral_code_used : null,
+        password: pending.password,
+        state: selectedState,
+        district: selectedDistrict,
+        taluka: talukaValue,
+      });
+
+      if (created && !created.ok) {
+        alert(created.message || 'Registration failed. Please try again.');
+        return;
+      }
+
+      await UserStore.setCurrentUser(pending.email);
+      await UserStore.completeLocationSetup(pending.email, selectedState, selectedDistrict, talukaValue);
+      await UserStore.clearPendingRegistration();
+
+      navigation.replace('Dashboard', {
+        userName: pending.name || 'User',
+        newUser: registrationJustCompleted,
+        registrationJustCompleted,
+      });
+      return;
+    }
+
     const user = await UserStore.getCurrentUser(); 
     if (!user) {
       navigation.replace('Login');
       return;
     }
-    // Complete location setup
-    const result = await UserStore.completeLocationSetup(user.email, selectedState, selectedDistrict, taluka);
+
+    // Complete location setup for existing user
+    const result = await UserStore.completeLocationSetup(user.email, selectedState, selectedDistrict, talukaValue);
     if (!result) {
       alert('Failed to save location. Please try again.');
       return;
     }
+
     // Navigate to Dashboard with newUser flag to show subscription modal
-    navigation.replace('Dashboard', { userName: user.name, newUser: !fromPremium });
+    navigation.replace('Dashboard', {
+      userName: user.name,
+      newUser: registrationJustCompleted,
+      registrationJustCompleted,
+    });
   };
 
   const handleSkip = async () => {
-    // Skip taluka if no talukas available
+    // Skip taluka if no talukas available (still mark location as complete)
+    if (needsCreateUser) {
+      const pending = await UserStore.getPendingRegistration();
+      if (!pending?.email) {
+        alert('Registration data not found. Please register again.');
+        navigation.replace('Register');
+        return;
+      }
+
+      const created = await UserStore.saveUser({
+        name: pending.name,
+        mobile: pending.mobile,
+        email: pending.email,
+        referral_code_used: pending.referral_code_used ? pending.referral_code_used : null,
+        password: pending.password,
+        state: selectedState,
+        district: selectedDistrict,
+        taluka: '',
+      });
+
+      if (created && !created.ok) {
+        alert(created.message || 'Registration failed. Please try again.');
+        return;
+      }
+
+      await UserStore.setCurrentUser(pending.email);
+      await UserStore.completeLocationSetup(pending.email, selectedState, selectedDistrict, '');
+      await UserStore.clearPendingRegistration();
+
+      navigation.replace('Dashboard', {
+        userName: pending.name || 'User',
+        newUser: registrationJustCompleted,
+        registrationJustCompleted,
+      });
+      return;
+    }
+
     const user = await UserStore.getCurrentUser();
-    navigation.replace('Dashboard', { userName: user?.name || 'User', newUser: !fromPremium });
+    if (!user) {
+      navigation.replace('Login');
+      return;
+    }
+
+    await UserStore.completeLocationSetup(user.email, selectedState, selectedDistrict, '');
+    navigation.replace('Dashboard', {
+      userName: user?.name || 'User',
+      newUser: registrationJustCompleted,
+      registrationJustCompleted,
+    });
   };
 
   return (
@@ -144,6 +244,16 @@ export default function TalukaSelectScreen({ navigation, route }) {
           bounces={false}
         >
           <View style={styles.formContainer}>
+            <TouchableOpacity
+              style={[styles.closeButton, { width: 'auto', paddingHorizontal: 10 }]}
+              onPress={handleClose}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="arrow-back-outline" size={18} color="#94a3b8" />
+                <Text style={{ color: '#94a3b8', fontWeight: '800', fontSize: 13 }}>Back</Text>
+              </View>
+            </TouchableOpacity>
             <View style={styles.topAccent} />
 
             <View style={styles.logoCircle}>

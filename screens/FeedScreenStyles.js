@@ -2,8 +2,6 @@ import { StyleSheet, Platform, Dimensions } from 'react-native';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const isWeb = Platform.OS === 'web';
-
 const styles = StyleSheet.create({
 
   // ── Reel Card ─────────────────────────────────────────────────────────────
@@ -13,18 +11,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // Bottom gradient overlay
+  // ✅ FIXED: Bottom gradient overlay — covers full bottom area
   reelOverlayBottom: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 300,
+    height: 320,
     pointerEvents: 'none',
     ...Platform.select({
       web: {
         backgroundImage:
-          'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 55%, transparent 100%)',
+          'linear-gradient(to top, rgba(0,0,0,0.90) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)',
         pointerEvents: 'none',
       },
       default: {},
@@ -74,89 +72,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // ── RIGHT action column — ALWAYS inside the video (absolute) ──────────────
-  reelActions: {
-    position: 'absolute',
-    right: 10,
-    bottom: Platform.OS === 'ios' ? 120 : 100, // above navbar
-    alignItems: 'center',
-    gap: 20,
-    zIndex: 10,
-  },
-
-  // ── WEB ONLY: action sidebar to the right of video ─────────────────────────
-  webReelWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    width: '100%',
-    height: '100%',
-  },
-
-  webVideoContainer: {
-    flex: 1,
-    height: '100%',
-    position: 'relative',
-    maxWidth: 430,
-    borderRadius: 12,
-    overflow: 'hidden',
-    ...Platform.select({
-      web: { borderRadius: 12 },
-      default: {},
-    }),
-  },
-
-  // Web action column — sits to the RIGHT of the video
-  webActionsColumn: {
-    width: 72,
-    paddingLeft: 16,
-    paddingBottom: 60,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 24,
-  },
-
   // ── Action button (icon + count) ───────────────────────────────────────────
   reelActionBtn: {
     alignItems: 'center',
     gap: 4,
-  },
-
-  // Circular icon button
-  actionIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 0,
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        transition: 'background-color 0.15s ease',
-      },
-      default: {},
-    }),
-  },
-  actionIconCircleActive: {
-    backgroundColor: 'rgba(249,115,22,0.2)',
-  },
-  actionIconCircleLiked: {
-    backgroundColor: 'rgba(255,59,92,0.18)',
-  },
-
-  actionIconText: {
-    fontSize: 22,
-    color: '#fff',
-    lineHeight: 26,
-    textAlign: 'center',
-  },
-  actionIconTextLiked: {
-    color: '#ff3b5c',
-  },
-  actionIconTextSaved: {
-    color: '#f97316',
   },
 
   actionCountText: {
@@ -182,48 +101,12 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  // ── Avatar in action column ────────────────────────────────────────────────
-  reelAvatarWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: '#fff',
-    overflow: 'visible',
-    position: 'relative',
-    marginBottom: 2,
-  },
-  reelAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: -3,
-    right: -3,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#3b82f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#000',
-  },
-  verifiedBadgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '900',
-  },
-
   igIcon: {
     fontSize: 28,
     color: '#fff',
     ...Platform.select({
       web: {
         textShadow: '0px 1px 3px rgba(0,0,0,0.6)',
-        lineHeight: '34px',
       },
       default: {
         textShadowColor: 'rgba(0,0,0,0.6)',
@@ -246,7 +129,7 @@ const styles = StyleSheet.create({
   reelBottom: {
     position: 'absolute',
     left: 14,
-    right: 80, // leave space for action icons on right
+    // right is set dynamically in ReelCard based on isMobileLayout
     zIndex: 5,
   },
 
@@ -448,10 +331,6 @@ const styles = StyleSheet.create({
   postBtnText: { fontSize: 14, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
 
   // ── Comments List ──────────────────────────────────────────────────────────
-  commentsList: {
-    maxHeight: SCREEN_HEIGHT * 0.42,
-    marginBottom: 10,
-  },
   noComments: {
     textAlign: 'center',
     color: '#475569',

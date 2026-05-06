@@ -14,9 +14,8 @@ import { UserStore } from '../store/UserStore';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-// ✅ KEY: Use screen WIDTH to decide layout, NOT Platform.OS
-// This way browser DevTools mobile simulation works correctly
-const MOBILE_BREAKPOINT = 500;
+// ✅ Use screen WIDTH to decide layout, NOT Platform.OS
+const MOBILE_BREAKPOINT = 768;
 
 const SAMPLE_REEL_VIDEO = 'https://samplelib.com/lib/preview/mp4/sample-10s.mp4';
 const SAMPLE_REEL_VIDEO_ALT = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4';
@@ -257,7 +256,7 @@ function CommentsModal({ visible, onClose, comments, onAddComment }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Action Column
 // isMobileLayout=true  → INSIDE video (absolute, right side) — Instagram style
-// isMobileLayout=false → OUTSIDE video (right column) — YouTube Shorts desktop
+// isMobileLayout=false → OUTSIDE video (right side) — YouTube Shorts desktop style
 // ─────────────────────────────────────────────────────────────────────────────
 function ActionColumn({ post, onLike, onComment, onShare, onBookmark, scaleAnim, isMobileLayout }) {
   const formatCount = (n) =>
@@ -280,11 +279,12 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, scaleAnim,
     ? { textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
     : {};
 
+  // ✅ FIXED: Mobile → absolute inside video, Desktop → right column centered vertically
   const containerStyle = isMobileLayout
     ? {
         position: 'absolute',
         right: 10,
-        bottom: 110,      // above the bottom navbar
+        bottom: 110,
         alignItems: 'center',
         gap: 18,
         zIndex: 20,
@@ -292,10 +292,11 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, scaleAnim,
     : {
         width: 90,
         paddingLeft: 16,
-        paddingBottom: 80,
         alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: 22,
+        justifyContent: 'center',   // ✅ FIXED: center vertically like YouTube Shorts
+        alignSelf: 'center',        // ✅ FIXED: center in flex row
+        height: '100%',             // ✅ FIXED: full height to allow centering
+        gap: 26,
         flexShrink: 0,
       };
 
@@ -400,26 +401,34 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
     onLike(postId);
   };
 
+  // ✅ FIXED: On desktop web, video takes full card height; actions sit beside it
+  // On mobile, video = full width and height
+  const videoWidth = isMobileLayout ? cardWidth : Math.min(cardWidth - 100, 430);
+  
   const navbarH = Platform.OS === 'ios' ? 82 : 60;
   const safeBot = Platform.OS === 'ios' ? 34 : 0;
-
-  // On mobile: video = full card width. On desktop: video = card minus action column
-  const videoWidth = isMobileLayout ? cardWidth : Math.min(cardWidth - 100, 430);
   const bottomBottom = isMobileLayout ? (navbarH + safeBot + 12) : 28;
-  const bottomRight = isMobileLayout ? 76 : 14; // leave room for action icons on mobile
+  const bottomRight = isMobileLayout ? 76 : 14;
 
   return (
+    // ✅ FIXED: Desktop uses row layout, mobile uses column
     <View style={{
       width: cardWidth,
       height: cardHeight,
       backgroundColor: '#000',
       flexDirection: isMobileLayout ? 'column' : 'row',
-      alignItems: isMobileLayout ? 'stretch' : 'flex-end',
-      justifyContent: isMobileLayout ? 'flex-start' : 'center',
+      alignItems: 'center',         // ✅ FIXED: center vertically on desktop
+      justifyContent: 'center',     // ✅ FIXED: center horizontally
     }}>
 
       {/* ── VIDEO PANEL ─────────────────────────────── */}
-      <View style={{ width: videoWidth, height: cardHeight, position: 'relative', overflow: 'hidden' }}>
+      <View style={{
+        width: videoWidth,
+        height: isMobileLayout ? cardHeight : Math.min(cardHeight * 0.92, 780), // ✅ FIXED: desktop video has max height like YT Shorts
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: isMobileLayout ? 0 : 12, // ✅ FIXED: rounded corners on desktop like YT Shorts
+      }}>
 
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setPaused(v => !v)}>
           {canPlayVideo ? (
@@ -436,12 +445,12 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
           )}
         </TouchableOpacity>
 
-        {/* Gradient */}
-       <View 
-  style={{ ...styles.reelOverlayBottom, pointerEvents: 'none' }} 
-/>
+        {/* Gradient overlay */}
+        <View
+          style={{ ...styles.reelOverlayBottom, pointerEvents: 'none' }}
+        />
 
-        {/* Paused */}
+        {/* Paused indicator */}
         {paused && (
           <View style={styles.pausedOverlay} pointerEvents="none">
             <Text style={styles.pausedIcon}>⏸</Text>
@@ -455,7 +464,7 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Action icons INSIDE video on mobile */}
+        {/* ✅ Action icons INSIDE video ONLY on mobile */}
         {isMobileLayout && (
           <ActionColumn
             post={{ ...safePost, likes: Number(safePost.likes || 0), shares, comments }}
@@ -464,7 +473,7 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
           />
         )}
 
-        {/* Bottom info */}
+        {/* Bottom info overlay */}
         <View style={[styles.reelBottom, { bottom: bottomBottom, right: bottomRight }]}>
           <View style={[styles.reelTagBadge, { backgroundColor: String(safePost.tagColor || '#16a34a') }]}>
             <Text style={styles.reelTagText}>{String(safePost.tag || '')}</Text>
@@ -503,7 +512,7 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onProfilePress
         </View>
       </View>
 
-      {/* ✅ Action icons OUTSIDE on desktop */}
+      {/* ✅ Action icons OUTSIDE on desktop — YouTube Shorts style, centered */}
       {!isMobileLayout && (
         <ActionColumn
           post={{ ...safePost, likes: Number(safePost.likes || 0), shares, comments }}
@@ -527,13 +536,26 @@ export default function FeedScreen({ navigation }) {
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
-  // ✅ Layout is based on WIDTH, not platform
-  // This makes browser DevTools mobile simulation work correctly
   const isMobileLayout = windowWidth <= MOBILE_BREAKPOINT;
   const isWebPlatform = Platform.OS === 'web';
 
-  const cardWidth = isMobileLayout ? windowWidth : Math.min(windowWidth, 530);
-  const cardHeight = windowHeight;
+  // ✅ FIXED: Proper card dimensions
+  // Mobile web: subtract navbar height so cards don't overflow
+  // Desktop web: full window height, AppNavbar is top bar so no subtraction needed
+  const NAVBAR_H = Platform.OS === 'ios' ? 82 : 60;
+
+  // ✅ FIXED: 
+  // Web: top navbar hota hai (height ~60px) toh subtract karo
+  // Native: bottom navbar hota hai toh subtract karo
+  const WEB_TOPNAV_H = 60;
+  const cardHeight = isWebPlatform
+    ? windowHeight - WEB_TOPNAV_H      // web: top navbar ki height minus
+    : windowHeight - NAVBAR_H;         // native: bottom navbar ki height minus
+
+  // ✅ FIXED: Desktop card width = video (430) + actions (100) + padding
+  const cardWidth = isMobileLayout
+    ? windowWidth
+    : Math.min(windowWidth * 0.65, 560);  // enough for 430px video + 100px actions
 
   const handleLike = useCallback((id) =>
     setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p)), []);
@@ -615,13 +637,22 @@ export default function FeedScreen({ navigation }) {
 
   const page = (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-      {/* Top navbar only on desktop web */}
-      {isWebPlatform && !isMobileLayout && <AppNavbar navigation={navigation} activeScreen="Feed" />}
+      {/* ✅ FIXED: Top navbar web pe hamesha — mobile web pe bhi top pe rahega */}
+      {isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" />}
 
-      <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center' }}>
+      {/* ✅ FIXED: Center the feed column on desktop */}
+      <View style={{
+        flex: 1,
+        backgroundColor: '#000',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+      }}>
+        {/* ✅ FIXED: Explicit height on the container so FlatList snapping works */}
         <View style={{
-          width: cardWidth, flex: 1, overflow: 'hidden',
-          ...(!isMobileLayout && windowWidth > 530
+          width: cardWidth,
+          height: cardHeight,
+          overflow: 'hidden',
+          ...(!isMobileLayout && windowWidth > MOBILE_BREAKPOINT
             ? { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }
             : {}),
         }}>
@@ -653,7 +684,7 @@ export default function FeedScreen({ navigation }) {
               />
             )}
             pagingEnabled
-            snapToInterval={cardHeight}
+            snapToInterval={cardHeight}        // ✅ FIXED: matches exact cardHeight
             snapToAlignment="start"
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
@@ -661,6 +692,7 @@ export default function FeedScreen({ navigation }) {
             viewabilityConfig={viewabilityConfig}
             getItemLayout={(_, index) => ({ length: cardHeight, offset: cardHeight * index, index })}
             style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 0 }}  // ✅ FIXED: prevents overscroll
           />
         </View>
       </View>
@@ -676,8 +708,8 @@ export default function FeedScreen({ navigation }) {
         />
       )}
 
-      {/* Bottom navbar: on mobile always, on desktop web only if mobile layout */}
-      {(!isWebPlatform || isMobileLayout) && <AppNavbar navigation={navigation} activeScreen="Feed" />}
+      {/* ✅ FIXED: Bottom navbar SIRF native app pe — web pe kabhi nahi */}
+      {!isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" />}
     </View>
   );
 

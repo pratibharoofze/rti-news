@@ -59,6 +59,46 @@ async function patchFile(filePath, basePath) {
     next = next.replaceAll("src='/", "src='./");
   }
 
+  // Fix viewport to prevent zooming on mobile (and stop iOS "input focus" auto-zoom).
+  if (path.basename(filePath).toLowerCase() === 'index.html') {
+    const desiredViewport = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+    const viewportMetaRe = /<meta\s+[^>]*name=(["'])viewport\1[^>]*>/i;
+    const contentAttrRe = /content=(["'])(.*?)\1/i;
+
+    if (viewportMetaRe.test(next)) {
+      next = next.replace(viewportMetaRe, (tag) => {
+        if (contentAttrRe.test(tag)) {
+          return tag.replace(contentAttrRe, `content="${desiredViewport}"`);
+        }
+        return tag.replace(/\s*\/?>$/, (end) => ` content="${desiredViewport}"${end}`);
+      });
+    } else {
+      // Insert a viewport meta tag right after <meta charset="..."> when missing.
+      const charsetRe = /<meta\s+charset=(["']).*?\1\s*\/?>/i;
+      if (charsetRe.test(next)) {
+        next = next.replace(charsetRe, (tag) => `${tag}\n    <meta name="viewport" content="${desiredViewport}" />`);
+      } else {
+        next = next.replace(/<head(\s[^>]*)?>/i, (tag) => `${tag}\n    <meta name="viewport" content="${desiredViewport}" />`);
+      }
+    }
+
+    // Prevent mobile browsers from auto-inflating text (can look like "zoom").
+    if (!/-webkit-text-size-adjust\s*:/i.test(next)) {
+      const inject =
+        '\n    <style id="mobile-text-size-adjust">' +
+        'html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}' +
+        // iOS Safari auto-zooms on focus when inputs have computed font-size < 16px.
+        // Force a minimum font-size for form controls to avoid that behavior.
+        'input,textarea,select,button{font-size:16px !important;}' +
+        '</style>\n';
+      if (/<\/head>/i.test(next)) {
+        next = next.replace(/<\/head>/i, `${inject}</head>`);
+      } else if (/<head(\s[^>]*)?>/i.test(next)) {
+        next = next.replace(/<head(\s[^>]*)?>/i, (tag) => `${tag}${inject}`);
+      }
+    }
+  }
+
   if (next === original) return false;
   await fs.promises.writeFile(filePath, next, 'utf8');
   return true;

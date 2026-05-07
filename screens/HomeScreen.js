@@ -1,693 +1,240 @@
-import React, { useMemo, useState, useCallback, useRef } from 'react';
-import {
-  View, Text, ScrollView, Image, TextInput,
-  TouchableOpacity, StyleSheet,
-  Platform, useWindowDimensions,
-} from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-
-import AppHeader from '../components/AppHeader';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
 import WebLayout from '../components/WebLayout';
 import { UserStore } from '../store/UserStore';
+import { useLanguage } from '../contexts/LanguageContext';
+import { getSiteCopy } from '../constants/siteCopy';
+import { IS_WEB, DEMO_STORIES, FEATURED_STATE_OPTIONS } from '../constants/homeData';
+import {
+  normalizeStoryItem, dedupeStories, storyMatchesMenu,
+  buildHomeStateFromParams, buildPanelContent, buildStateDistrictList, ensureStoryCount,
+} from '../utils/storyHelpers';
+import NewsFeedCard from '../components/NewsFeedCard';
+import NewsMenuSidebar from '../components/NewsMenuSidebar';
+import StateDirectorySection from '../components/StateDirectorySection';
+import RightUtilityPanel from '../components/RightUtilityPanel';
 
-const isWeb = Platform.OS === 'web';
-const DEFAULT_AVATAR = require('../assets/images/icon.png');
+const DESKTOP_STICKY_TOP_OFFSET = 0;
 
-const categoryColorMap = {
-  orange: '#f97316', blue: '#3b82f6', green: '#16a34a',
-  purple: '#a855f7', red: '#ef4444', teal: '#14b8a6',
-};
-
-const colorMap = {
-  red:    { bg: '#fee2e2', text: '#b91c1c' },
-  blue:   { bg: '#dbeafe', text: '#1d4ed8' },
-  green:  { bg: '#dcfce7', text: '#15803d' },
-  orange: { bg: '#ffedd5', text: '#c2410c' },
-  purple: { bg: '#f3e8ff', text: '#7e22ce' },
-  teal:   { bg: '#ccfbf1', text: '#0f766e' },
-};
-
-const reportTypeColorMap = {
-  Crime: 'red',
-  Murder: 'red',
-  Accident: 'orange',
-  Politics: 'blue',
-  Other: 'teal',
-};
-
-function stripHtml(value) {
-  return String(value || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function hashToSeed(input) {
-  const str = String(input || '');
-  let hash = 0;
-  for (let i = 0; i < str.length; i += 1) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash) % 1000;
-}
-
-// ✅ FIX: Function to validate image URLs and filter out blob: URLs
-function isValidImageUrl(url) {
-  if (!url || typeof url !== 'string') return false;
-  // Filter out blob: URLs, localhost URLs, and file URLs
-  if (url.startsWith('blob:')) return false;
-  if (url.startsWith('http://localhost')) return false;
-  if (url.startsWith('file://')) return false;
-  // Also filter out empty or invalid URLs
-  if (url === '' || url === 'null' || url === 'undefined') return false;
-  return true;
-}
-
-// ✅ FIX: Function to get a valid image URL with fallback
-function getValidImageUrl(item, title, id) {
-  // Check images array first
-  if (Array.isArray(item?.images) && item.images.length > 0) {
-    const validImage = item.images.find(img => isValidImageUrl(img));
-    if (validImage) return validImage;
-  }
-  
-  // Check single image field
-  if (item?.image && isValidImageUrl(item?.image)) {
-    return item.image;
-  }
-  
-  // Return fallback placeholder
-  return `https://picsum.photos/400/300?random=${hashToSeed(id || title)}`;
-}
-
-function toLatestNewsCardShape(item) {
-  const title = item?.title || 'Untitled';
-  const category = item?.report_type || item?.category || 'News';
-  const categoryColor =
-    reportTypeColorMap[item?.report_type] ||
-    reportTypeColorMap[category] ||
-    item?.categoryColor ||
-    'orange';
-
-  const mediaType =
-    item?.mediaType ||
-    (item?.video ? 'Video' : null) ||
-    (Array.isArray(item?.images) && item.images.length > 0 ? 'Image' : null) ||
-    (item?.file ? 'File' : null) ||
-    'None';
-
-  // ✅ FIX: Use the new validation function
-  const image = getValidImageUrl(item, title, item?.id);
-
-  const description =
-    stripHtml(item?.description) ||
-    String(item?.excerpt || '').trim() ||
-    String(item?.subtitle || '').trim() ||
-    '';
-
-  const excerpt =
-    String(item?.excerpt || '').trim() ||
-    String(item?.subtitle || '').trim() ||
-    description ||
-    '';
-
-  const author = item?.author_name || item?.author || '';
-  const date = item?.date || (item?.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN') : '');
-
-  return {
-    id: item?.id || `news-${hashToSeed(title)}`,
-    createdBy: String(item?.createdBy || item?.created_by || '').trim().toLowerCase(),
-    author_name: item?.author_name || item?.author || '',
-    author_profile_image: item?.author_profile_image || item?.authorProfileImage || item?.profile_image || '',
-    author_seat_name: item?.author_seat_name || item?.authorSeatName || '',
-    author_role_label: item?.author_role_label || item?.authorRoleLabel || '',
-    author_is_premium: Boolean(item?.author_is_premium || item?.isPremium || item?.author_is_subscriber || item?.is_premium),
-    title,
-    category,
-    categoryColor,
-    mediaType,
-    video: item?.video || null,
-    image,
-    date,
-    author,
-    excerpt,
-    description,
-    subtitle: stripHtml(item?.subtitle) || '',
-    // ✅ FIX: Filter images array to remove invalid URLs
-    images: Array.isArray(item?.images) ? item.images.filter(isValidImageUrl) : [],
-    file: item?.file || null,
-    state: item?.state || '',
-    district: item?.district || '',
-    taluka: item?.taluka || '',
-    views: Number(item?.views || 0),
-    shares: Number(item?.shares || 0),
-    likes: Number(item?.likes || 0),
-    comments: Number(item?.comments || 0),
-  };
-}
-
-function useIsMobile() {
+export default function HomeScreen({ navigation, route }) {
+  const { language } = useLanguage();
+  const copy = useMemo(() => getSiteCopy(language), [language]);
+  const commonCopy = copy.common;
+  const homeCopy = copy.home;
   const { width } = useWindowDimensions();
-  if (Platform.OS !== 'web') return true;
-  return width < 768;
-}
+  const isDesktopRailLayout = IS_WEB && width >= 1180;
+  const isCompactLayout = !isDesktopRailLayout;
+  const isMobileLayout = !IS_WEB || width < 768;
 
-function SectionHeader({ title, icon, isMobile }) {
-  return (
-    <View style={sh.header}>
-      <View style={sh.left}>
-        <View style={sh.bar} />
-        {icon ? <Text style={sh.icon}>{icon}</Text> : null}
-        <Text style={[sh.title, isMobile && sh.titleMobile]}>{title}</Text>
-      </View>
-    </View>
-  );
-}
+  const routeInitialView = route?.params?.initialView;
+  const routeInitialMenuKey = route?.params?.initialMenuKey;
+  const routeInitialStateName = route?.params?.initialStateName;
 
-const sh = StyleSheet.create({
-  header: { marginBottom: 14 },
-  left:   { flexDirection: 'row', alignItems: 'center' },
-  bar:    { width: 4, height: 20, backgroundColor: '#f97316', marginRight: 8, borderRadius: 2 },
-  icon:   { marginRight: 6, fontSize: 16 },
-  title:  { fontWeight: '800', fontSize: 16, letterSpacing: 0.5, color: '#111827' },
-  titleMobile: { fontSize: 14 },
-});
-
-function TopStoryCard({ article, isMobile, isLast, onPress }) {
-  const { title, category, categoryColor = 'orange', image, date, author, excerpt } = article;
-  const badge = colorMap[categoryColor] || colorMap.orange;
-  
-  // ✅ FIX: Add safety for image URL
-  const safeImage = isValidImageUrl(image) ? image : `https://picsum.photos/400/300?random=${hashToSeed(article?.id || title)}`;
-  
-  return (
-    <TouchableOpacity
-      style={[
-        ts.card,
-        isMobile
-          ? [ts.cardMobile, !isLast && ts.cardMobileGap]
-          : [ts.cardWeb, !isLast && ts.cardWebGap],
-      ]}
-      activeOpacity={0.85}
-      onPress={onPress}
-    >
-      <View style={[ts.imageContainer, isMobile && ts.imageContainerMobile]}>
-        <Image 
-          source={{ uri: safeImage }} 
-          style={ts.image} 
-          resizeMode="cover"
-          onError={(e) => {
-            // Silent fail - image will show nothing or you can set a fallback
-            console.warn('Image failed to load in TopStoryCard');
-          }}
-        />
-        <View style={[ts.badge, { backgroundColor: badge.bg }]}>
-          <Text style={[ts.badgeText, { color: badge.text }]}>{category}</Text>
-        </View>
-      </View>
-      <View style={ts.content}>
-        <Text style={[ts.title, isMobile && ts.titleMobile]} numberOfLines={3}>{title}</Text>
-        {excerpt ? <Text style={[ts.excerpt, isMobile && ts.excerptMobile]} numberOfLines={2}>{excerpt}</Text> : null}
-        <View style={ts.meta}>
-          <Text style={[ts.date, isMobile && ts.dateMobile]}>{date}</Text>
-          {author ? (
-            <View style={ts.authorInline}>
-              <Text style={[ts.dot, isMobile && ts.dateMobile]}>{' | '}</Text>
-              <Text style={[ts.author, isMobile && ts.dateMobile]}>{author}</Text>
-            </View>
-          ) : null}
-          <View style={{ flex: 1 }} />
-          <Text style={[ts.readMore, isMobile && ts.dateMobile]}>{'Read more →'}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-const ts = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
-    elevation: 2,
-    ...Platform.select({
-      web: { boxShadow: '0px 2px 6px rgba(0,0,0,0.06)' },
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 },
-      default: {},
-    }),
-  },
-  cardWeb:        { flex: 1 },
-  cardWebGap:     { marginRight: 16 },
-  cardMobile:     { width: '100%' },
-  cardMobileGap:  { marginBottom: 10 },
-  imageContainer:       { height: 200, position: 'relative' },
-  imageContainerMobile: { height: 140 },
-  image:      { width: '100%', height: '100%' },
-  badge:      { position: 'absolute', top: 10, left: 10, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeText:  { fontSize: 11, fontWeight: '700' },
-  content:    { padding: 12 },
-  title:      { fontSize: 15, fontWeight: '700', color: '#111827', lineHeight: 22, marginBottom: 4 },
-  titleMobile:{ fontSize: 13, lineHeight: 18 },
-  excerpt:    { fontSize: 13, color: '#6b7280', lineHeight: 18, marginBottom: 6 },
-  excerptMobile: { fontSize: 12, lineHeight: 16 },
-  meta:       { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
-  date:       { fontSize: 12, color: '#9ca3af' },
-  dateMobile: { fontSize: 11 },
-  dot:        { fontSize: 12, color: '#d1d5db' },
-  authorInline: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '62%' },
-  authorAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#e5e7eb' },
-  author:     { fontSize: 12, color: '#f97316', fontWeight: '600' },
-  readMore:   { fontSize: 12, color: '#f97316', fontWeight: '700' },
-});
-
-function LatestNewsCard({ article, isMobile, isLast, colIndex = 0, isLastRow = false, onPress, onAuthorPress }) {
-  const {
-    title, category, categoryColor = 'orange', image, date, author,
-    author_profile_image, author_seat_name, author_is_premium,
-    excerpt, mediaType, video,
-    views = 0, likes = 0, comments = 0, shares = 0,
-  } = article;
-
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(likes);
-  const [commentCount, setCommentCount] = useState(comments);
-  const [shareCount, setShareCount] = useState(shares);
-  const [viewCount, setViewCount] = useState(views);
-  const [imageError, setImageError] = useState(false);
-
-  const badge = colorMap[categoryColor] || colorMap.orange;
-  const hasVideo = mediaType === 'Video' && typeof video === 'string' && video.length > 0;
-  const avatarPressRef = useRef(false);
-  const showAuthor = Boolean((author || '').trim() || (author_profile_image || '').trim());
-
-  // ✅ FIX: Safe image URL with fallback
-  const safeImageUrl = useMemo(() => {
-    if (!imageError && isValidImageUrl(image)) {
-      return image;
-    }
-    return `https://picsum.photos/400/300?random=${hashToSeed(article?.id || title)}`;
-  }, [image, imageError, article?.id, title]);
-
-  const handleLike = useCallback(() => {
-    setIsLiked(!isLiked);
-    setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
-  }, [isLiked, likeCount]);
-
-  const handleComment = useCallback(() => { setCommentCount(commentCount + 1); }, [commentCount]);
-  const handleShare = useCallback(() => { setShareCount(shareCount + 1); }, [shareCount]);
-  const handleView = useCallback(() => { setViewCount(viewCount + 1); }, [viewCount]);
-
-  const handleCardPress = () => {
-    if (avatarPressRef.current) { avatarPressRef.current = false; return; }
-    onPress?.();
-  };
-
-  const handleImageError = useCallback(() => {
-    setImageError(true);
-  }, []);
-
-  const webCardStyle = [
-    ln.cardWeb,
-    colIndex < 2 && ln.cardWebMarginRight,
-    !isLastRow && ln.cardWebMarginBottom,
-  ];
-
-  return (
-    <TouchableOpacity
-      style={[ln.card, isMobile ? [ln.cardMobile, !isLast && ln.cardMobileGap] : webCardStyle]}
-      activeOpacity={0.85}
-      onPress={handleCardPress}
-    >
-      {showAuthor ? (
-        <View style={[ln.authorHeader, isMobile && ln.authorHeaderMobile]}>
-          <TouchableOpacity
-            style={ln.authorHeaderContent}
-            onPressIn={() => { avatarPressRef.current = true; }}
-            onPress={() => { onAuthorPress?.(article); setTimeout(() => { avatarPressRef.current = false; }, 0); }}
-            activeOpacity={0.85}
-          >
-            <Image
-              source={author_profile_image && isValidImageUrl(author_profile_image) ? { uri: author_profile_image } : DEFAULT_AVATAR}
-              style={[ln.authorHeaderAvatar, isMobile && ln.authorHeaderAvatarMobile]}
-            />
-            <View style={ln.authorHeaderText}>
-              <View style={ln.authorNameRow}>
-                <Text style={[ln.authorHeaderName, isMobile && ln.authorHeaderNameMobile]} numberOfLines={1}>
-                  {author || 'User'}
-                </Text>
-                {author_is_premium ? (
-                  <Ionicons name="checkmark-circle-sharp" size={isMobile ? 16 : 18} color="#3b82f6" style={ln.blueTick} />
-                ) : null}
-              </View>
-              {author_seat_name ? (
-                <Text style={[ln.authorSeatName, isMobile && ln.authorSeatNameMobile]} numberOfLines={1}>
-                  {author_seat_name}
-                </Text>
-              ) : null}
-            </View>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
-      <View style={ln.content}>
-        <Text
-          style={[ln.title, { color: categoryColorMap[categoryColor] || '#111827' }, isMobile && ln.titleMobile]}
-          numberOfLines={2}
-        >{title}</Text>
-        {excerpt ? <Text style={[ln.excerpt, isMobile && ln.excerptMobile]} numberOfLines={2}>{excerpt}</Text> : null}
-        <View style={ln.meta}>
-          <Text style={[ln.date, isMobile && ln.dateMobile]}>{date}</Text>
-          <View style={{ flex: 1 }} />
-          <Text style={[ln.readMore, isMobile && ln.dateMobile]}>{'Read more →'}</Text>
-        </View>
-      </View>
-
-      <View style={[ln.imageContainer, isMobile && ln.imageContainerMobile]}>
-        {hasVideo ? (
-          <>
-            <Image 
-              source={{ uri: safeImageUrl }} 
-              style={ln.image} 
-              resizeMode="cover"
-              onError={handleImageError}
-            />
-            <View style={ln.videoOverlay}>
-              <Ionicons name="play-circle" size={44} color="#ffffff" />
-            </View>
-          </>
-        ) : (
-          <Image 
-            source={{ uri: safeImageUrl }} 
-            style={ln.image} 
-            resizeMode="cover"
-            onError={handleImageError}
-          />
-        )}
-        <View style={[ln.badge, { backgroundColor: badge.bg }]}>
-          <Text style={[ln.badgeText, { color: badge.text }]}>{category}</Text>
-        </View>
-      </View>
-
-      <View style={[ln.actionBar, isMobile && ln.actionBarMobile]}>
-        <TouchableOpacity style={ln.actionButton} onPress={handleView} activeOpacity={0.7}>
-          <Ionicons name="eye-outline" size={isMobile ? 16 : 18} color="#6b7280" />
-          <Text style={[ln.actionLabel, isMobile && ln.actionLabelMobile]}>{viewCount}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={ln.actionButton} onPress={handleLike} activeOpacity={0.7}>
-          <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={isMobile ? 16 : 18} color={isLiked ? '#ef4444' : '#6b7280'} />
-          <Text style={[ln.actionLabel, isMobile && ln.actionLabelMobile, isLiked && ln.actionLabelLiked]}>{likeCount}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={ln.actionButton} onPress={handleComment} activeOpacity={0.7}>
-          <Ionicons name="chatbubble-outline" size={isMobile ? 16 : 18} color="#6b7280" />
-          <Text style={[ln.actionLabel, isMobile && ln.actionLabelMobile]}>{commentCount}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={ln.actionButton} onPress={handleShare} activeOpacity={0.7}>
-          <Ionicons name="share-social-outline" size={isMobile ? 16 : 18} color="#6b7280" />
-          <Text style={[ln.actionLabel, isMobile && ln.actionLabelMobile]}>{shareCount}</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-const ln = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden',
-    borderWidth: 1, borderColor: '#f3f4f6', elevation: 2,
-    ...Platform.select({
-      web: { boxShadow: '0px 2px 6px rgba(0,0,0,0.06)' },
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 },
-      default: {},
-    }),
-  },
-  cardWeb: { width: '33.33%' },
-  cardWebMarginRight: { paddingRight: 16 },
-  cardWebMarginBottom: { marginBottom: 24 },
-  cardMobile: { width: '100%' },
-  cardMobileGap: { marginBottom: 10 },
-  authorHeader: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  authorHeaderMobile: { padding: 10 },
-  authorHeaderContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  authorHeaderAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e5e7eb', marginRight: 10 },
-  authorHeaderAvatarMobile: { width: 36, height: 36, borderRadius: 18 },
-  authorHeaderText: { flex: 1 },
-  authorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  authorHeaderName: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  authorHeaderNameMobile: { fontSize: 13 },
-  authorSeatName: { fontSize: 12, color: '#6b7280', marginTop: 2 },
-  authorSeatNameMobile: { fontSize: 11 },
-  blueTick: { marginLeft: 2 },
-  imageContainer: { height: 180, position: 'relative' },
-  imageContainerMobile: { height: 120 },
-  image: { width: '100%', height: '100%' },
-  videoOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.18)' },
-  badge: { position: 'absolute', top: 10, left: 10, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
-  content: { padding: 12 },
-  title: { fontSize: 15, fontWeight: '700', lineHeight: 22, marginBottom: 4 },
-  titleMobile: { fontSize: 13, lineHeight: 18 },
-  excerpt: { fontSize: 13, color: '#6b7280', lineHeight: 18, marginBottom: 6 },
-  excerptMobile: { fontSize: 12, lineHeight: 16 },
-  meta: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
-  date: { fontSize: 12, color: '#9ca3af' },
-  dateMobile: { fontSize: 11 },
-  dot: { fontSize: 12, color: '#d1d5db' },
-  author: { fontSize: 12, color: '#f97316', fontWeight: '600' },
-  authorInline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  authorAvatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#e5e7eb' },
-  readMore: { fontSize: 12, color: '#f97316', fontWeight: '700' },
-  actionBar: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingVertical: 8, paddingHorizontal: 8 },
-  actionBarMobile: { paddingVertical: 6, paddingHorizontal: 6 },
-  actionButton: { flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1, paddingVertical: 4 },
-  actionLabel: { fontSize: 12, color: '#6b7280', fontWeight: '500' },
-  actionLabelMobile: { fontSize: 11 },
-  actionLabelLiked: { color: '#ef4444', fontWeight: '600' },
-});
-
-function KnowYourRightsCard({ isMobile }) {
-  return (
-    <View style={[kyr.card, isMobile && kyr.cardMobile]}>
-      <Text style={[kyr.title, isMobile && kyr.titleMobile]}>{'Know Your Rights'}</Text>
-      <Text style={[kyr.desc, isMobile && kyr.descMobile]}>
-        {'File an RTI and get a reply from any government office within 30 days.'}
-      </Text>
-      <TouchableOpacity style={kyr.btn} activeOpacity={0.85}>
-        <Text style={[kyr.btnText, isMobile && kyr.btnTextMobile]}>{'Learn about RTI →'}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-const kyr = StyleSheet.create({
-  card: { backgroundColor: '#f97316', borderRadius: 12, padding: 20 },
-  cardMobile: { padding: 14 },
-  title: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
-  titleMobile: { fontSize: 14 },
-  desc: { fontSize: 13, color: '#fff', lineHeight: 20, marginBottom: 16, opacity: 0.9 },
-  descMobile: { fontSize: 12, lineHeight: 18, marginBottom: 12 },
-  btn: { backgroundColor: '#fff', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start' },
-  btnText: { color: '#f97316', fontWeight: '700', fontSize: 13 },
-  btnTextMobile: { fontSize: 11 },
-});
-
-// ─── Home Screen ──────────────────────────────────────────────────────────────
-
-export default function HomeScreen() {
-  const navigation = useNavigation();
-  const isMobile = useIsMobile();
+  const initialHomeState = buildHomeStateFromParams(route?.params);
+  const [viewMode, setViewMode] = useState(initialHomeState.nextViewMode);
+  const [selectedMenuKey, setSelectedMenuKey] = useState(initialHomeState.nextMenuKey);
+  const [selectedStateName, setSelectedStateName] = useState(initialHomeState.nextStateName);
+  const [selectedDistrictName, setSelectedDistrictName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [latestNews, setLatestNews] = useState([]);
+  const [liveStories, setLiveStories] = useState([]);
 
-  const openDetails = useCallback((article) => {
-    if (!article) return;
-    navigation?.navigate?.('NewsDetails', { article });
-  }, [navigation]);
+  useEffect(() => {
+    const nextHomeState = buildHomeStateFromParams({ initialView: routeInitialView, initialMenuKey: routeInitialMenuKey, initialStateName: routeInitialStateName });
+    setViewMode(nextHomeState.nextViewMode);
+    setSelectedMenuKey(nextHomeState.nextMenuKey);
+    setSelectedStateName(nextHomeState.nextStateName);
+    setSelectedDistrictName('');
+    setSearchQuery('');
+  }, [routeInitialView, routeInitialMenuKey, routeInitialStateName]);
 
-  const openAuthorProfile = useCallback((article) => {
-    if (!article) return;
-    const authorEmail = String(article.createdBy || '').trim().toLowerCase();
-    const fallbackAuthor = {
-      name: article.author_name || article.author || '',
-      author_profile_image: article.author_profile_image || '',
-      author_seat_name: article.author_seat_name || '',
-      author_role_label: article.author_role_label || '',
-      author_is_premium: Boolean(article.author_is_premium),
-      author_is_subscriber: Boolean(article.author_is_subscriber),
-    };
-    if (!authorEmail && !fallbackAuthor.name && !fallbackAuthor.author_profile_image) return;
-    navigation?.navigate?.('UserProfile', { email: authorEmail, author: fallbackAuthor });
-  }, [navigation]);
-
-  const loadLatestNews = useCallback(async () => {
+  const loadNewsStories = useCallback(async () => {
     try {
       const summary = await UserStore.getNewsFeedSummary();
-      const allNews = (summary?.items || []).map(toLatestNewsCardShape).filter((item) => item?.title);
-      setLatestNews(allNews);
-    } catch { setLatestNews([]); }
+      const fetchedStories = Array.isArray(summary?.items)
+        ? summary.items.map((item, index) => normalizeStoryItem(item, index)).filter(Boolean)
+        : [];
+      setLiveStories(fetchedStories);
+    } catch { setLiveStories([]); }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      (async () => { if (!active) return; await loadLatestNews(); })();
-      return () => { active = false; };
-    }, [loadLatestNews])
+  useFocusEffect(useCallback(() => { loadNewsStories(); }, [loadNewsStories]));
+
+  const allStories = useMemo(() => {
+    const manualStories = DEMO_STORIES.map((item, index) => normalizeStoryItem(item, index)).filter(Boolean);
+    return dedupeStories([...liveStories, ...manualStories]);
+  }, [liveStories]);
+
+  const visibleStories = useMemo(() => {
+    if (viewMode === 'states') return [];
+    let scopedStories = allStories.filter((story) => storyMatchesMenu(story, selectedMenuKey));
+    if (selectedStateName) {
+      scopedStories = scopedStories.filter((story) => String(story.state || '').toLowerCase() === selectedStateName.toLowerCase());
+    }
+    const q = String(searchQuery || '').trim().toLowerCase();
+    if (q) {
+      scopedStories = scopedStories.filter((story) =>
+        [story.title, story.excerpt, story.description, story.category, story.state, story.district, story.author_name].join(' ').toLowerCase().includes(q)
+      );
+    }
+    return ensureStoryCount(scopedStories, { selectedMenuKey, selectedStateName });
+  }, [allStories, searchQuery, selectedMenuKey, selectedStateName, viewMode]);
+
+  const stateDistrictOptions = useMemo(() => buildStateDistrictList(allStories, selectedStateName), [allStories, selectedStateName]);
+
+  const panelContent = useMemo(() => buildPanelContent({ viewMode, selectedMenuKey, selectedStateName, districtCount: stateDistrictOptions.length, commonCopy, homeCopy }),
+    [commonCopy, homeCopy, selectedMenuKey, selectedStateName, stateDistrictOptions.length, viewMode]);
+
+  const utilityLocationOptions = useMemo(() => {
+    if (selectedStateName) return stateDistrictOptions;
+    if (viewMode === 'states' || selectedMenuKey === 'states') return FEATURED_STATE_OPTIONS;
+    return [];
+  }, [selectedMenuKey, selectedStateName, stateDistrictOptions, viewMode]);
+
+  const handleMenuSelection = useCallback((menuKey) => {
+    setSearchQuery(''); setSelectedDistrictName('');
+    if (menuKey === 'states') { setViewMode('states'); setSelectedMenuKey('states'); setSelectedStateName(''); return; }
+    setViewMode('feed'); setSelectedMenuKey(menuKey); setSelectedStateName('');
+  }, []);
+
+  const handleStateSelection = useCallback((stateName) => {
+    setSearchQuery(''); setViewMode('feed');
+    setSelectedMenuKey((k) => (k === 'states' ? 'latest' : k));
+    setSelectedStateName(stateName); setSelectedDistrictName('');
+  }, []);
+
+  const handleDistrictSelection = useCallback((districtName) => { setSelectedDistrictName(districtName); }, []);
+
+  const handleOpenDetails = useCallback((story) => {
+    if (!story) return;
+    navigation?.navigate?.('NewsDetails', { article: story });
+  }, [navigation]);
+
+  const handleOpenLocation = useCallback((stateName) => {
+    if (!stateName) return;
+    setSearchQuery(''); setViewMode('feed'); setSelectedMenuKey('latest'); setSelectedStateName(stateName); setSelectedDistrictName('');
+  }, []);
+
+  const handleOpenCategory = useCallback((story) => {
+    const menuTag = (story?.menuTags || []).find((tag) => tag !== 'latest');
+    if (!menuTag) return;
+    setSearchQuery(''); setViewMode('feed'); setSelectedStateName(''); setSelectedDistrictName(''); setSelectedMenuKey(menuTag);
+  }, []);
+
+  const handleOpenAuthorProfile = useCallback((story) => {
+    if (!story) return;
+    const fallbackAuthor = { name: story.author_name || '', author_profile_image: story.author_profile_image || '', author_seat_name: story.author_seat_name || '', author_role_label: story.author_role_label || '', author_is_premium: Boolean(story.author_is_premium) };
+    if (!story.createdBy && !fallbackAuthor.name) return;
+    navigation?.navigate?.('UserProfile', { email: story.createdBy || '', author: fallbackAuthor });
+  }, [navigation]);
+
+  const renderSearchField = viewMode === 'states' ? null : (
+    <View style={[styles.sectionSearchRow, isCompactLayout && styles.sectionSearchRowCompact]}>
+      <View style={styles.sectionSearchField}>
+        <Ionicons name="search-outline" size={18} color="#94a3b8" />
+        <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder={homeCopy.searchFeedPlaceholder} placeholderTextColor="#94a3b8" style={styles.sectionSearchInput} />
+      </View>
+      {(selectedStateName || selectedMenuKey !== 'latest') ? (
+        <TouchableOpacity style={styles.sectionResetButton} onPress={() => { setViewMode('feed'); setSelectedMenuKey('latest'); setSelectedStateName(''); setSelectedDistrictName(''); setSearchQuery(''); }} activeOpacity={0.84}>
+          <Ionicons name="refresh-outline" size={16} color="#f97316" />
+          <Text style={styles.sectionResetButtonText}>{homeCopy.resetFeed}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
   );
 
-  const displayedNews = useMemo(() => {
-    const q = String(searchQuery || '').trim().toLowerCase();
-    let filtered = latestNews;
-    if (q) {
-      filtered = latestNews.filter((item) => {
-        const haystack = `${item.title} ${item.category} ${item.excerpt} ${item.author}`.toLowerCase();
-        return haystack.includes(q);
-      });
-    }
-    const grouped = {};
-    filtered.forEach((item) => {
-      const state = item?.state || 'Other';
-      if (!grouped[state]) grouped[state] = [];
-      grouped[state].push(item);
-    });
-    return grouped;
-  }, [latestNews, searchQuery]);
+  const utilityPanel = (
+    <RightUtilityPanel
+      navigation={navigation} panelContent={panelContent}
+      selectedStateName={selectedStateName} selectedDistrictName={selectedDistrictName}
+      locationOptions={utilityLocationOptions}
+      onSelectState={handleStateSelection} onSelectDistrict={handleDistrictSelection}
+      isCompactLayout={isCompactLayout} commonCopy={commonCopy} homeCopy={homeCopy}
+    />
+  );
+
+  const shouldShowRightRail = viewMode !== 'states';
 
   const pageContent = (
     <>
-      <View style={[s.searchContainer, isMobile && s.searchContainerMobile]}>
-        <View style={s.searchBox}>
-          <TextInput
-            style={[s.searchInput, isMobile && s.searchInputMobile]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search your news..."
-          />
-        </View>
-      </View>
-
-      <View style={[s.body, isMobile && s.bodyMobile]}>
-        <View style={[s.section, isMobile && s.sectionMobile]}>
-          <SectionHeader title="All News" isMobile={isMobile} />
-
-          {Object.keys(displayedNews).length > 0 ? (
-            Object.keys(displayedNews).sort().map((state) => (
-              <View key={state} style={s.stateSection}>
-                <View style={[s.stateHeader, isMobile && s.stateHeaderMobile]}>
-                  <Ionicons name="location" size={isMobile ? 16 : 18} color="#f97316" style={{ marginRight: 6 }} />
-                  <Text style={[s.stateTitle, isMobile && s.stateTitleMobile]}>{state}</Text>
-                  <Text style={[s.stateCount, isMobile && s.stateCountMobile]}>
-                    {String(displayedNews[state].length)}
-                  </Text>
-                </View>
-                <View style={isMobile ? s.colStack : s.threeColGridWrap}>
-                  {displayedNews[state].map((a, i) => (
-                    <LatestNewsCard
-                      key={a.id}
-                      article={a}
-                      isMobile={isMobile}
-                      isLast={i === displayedNews[state].length - 1}
-                      colIndex={i % 3}
-                      isLastRow={i >= displayedNews[state].length - 3}
-                      onPress={() => openDetails(a)}
-                      onAuthorPress={openAuthorProfile}
-                    />
-                  ))}
-                </View>
+      <View style={styles.pageBodyShell}>
+        <View style={[styles.pageBodyInner, isCompactLayout && styles.pageBodyInnerCompact]}>
+          <View style={[styles.sidebarStickyWrapper, isCompactLayout && styles.sidebarStickyWrapperCompact]}>
+            <NewsMenuSidebar activeMenuKey={selectedMenuKey} onSelectMenu={handleMenuSelection} isCompactLayout={isCompactLayout} commonCopy={commonCopy} />
+          </View>
+          <View style={[styles.workspaceShell, isCompactLayout && styles.workspaceShellCompact]}>
+            {isCompactLayout && shouldShowRightRail ? (
+              <View style={[styles.utilityStickyWrapper, styles.utilityStickyWrapperCompact]}>{utilityPanel}</View>
+            ) : null}
+            <View style={[styles.feedColumnShell, isCompactLayout && styles.feedColumnShellCompact]}>
+              <View style={[styles.feedColumn, viewMode === 'states' && styles.feedColumnStatesView]}>
+                {viewMode === 'states' ? (
+                  <StateDirectorySection stateSearchQuery={searchQuery} onSearchChange={setSearchQuery} onSelectState={handleStateSelection} isCompactLayout={isCompactLayout} homeCopy={homeCopy} />
+                ) : (
+                  <>
+                    {renderSearchField}
+                    <View style={styles.storyCardsStack}>
+                      {visibleStories.map((story) => (
+                        <NewsFeedCard key={story.id} story={story} isCompactLayout={isMobileLayout}
+                          onOpenDetails={handleOpenDetails} onOpenLocation={handleOpenLocation}
+                          onOpenCategory={handleOpenCategory} onOpenAuthorProfile={handleOpenAuthorProfile}
+                          commonCopy={commonCopy}
+                        />
+                      ))}
+                    </View>
+                  </>
+                )}
               </View>
-            ))
-          ) : (
-            <View style={s.emptyBox}>
-              <Text style={s.emptyText}>{'No news available right now.'}</Text>
             </View>
-          )}
+            {!isCompactLayout && shouldShowRightRail ? (
+              <View style={styles.utilityStickyWrapper}>{utilityPanel}</View>
+            ) : null}
+          </View>
         </View>
       </View>
-
       <AppFooter navigation={navigation} />
     </>
   );
 
   const page = (
-    <View style={s.pageContainer}>
-      {isWeb && <AppNavbar navigation={navigation} activeScreen="Home" />}
-
-      <ScrollView
-        style={s.scrollArea}
-        contentContainerStyle={s.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <AppHeader navigation={navigation} compact={!isWeb} />
+    <View style={styles.screenShell}>
+      {IS_WEB ? <AppNavbar navigation={navigation} activeScreen="Home" /> : null}
+      <ScrollView style={styles.pageScrollView} contentContainerStyle={[styles.pageScrollContent, !IS_WEB && styles.pageScrollContentWithMobileNav]} showsVerticalScrollIndicator={false}>
         {pageContent}
       </ScrollView>
-
-      {!isWeb && <AppNavbar navigation={navigation} activeScreen="Home" />}
+      {!IS_WEB ? <AppNavbar navigation={navigation} activeScreen="Home" /> : null}
     </View>
   );
 
-  return isWeb ? <WebLayout>{page}</WebLayout> : page;
+  return IS_WEB ? <WebLayout>{page}</WebLayout> : page;
 }
 
-const s = StyleSheet.create({
-  pageContainer: {
-    flex: 1,
-    flexDirection: 'column',
-    backgroundColor: '#f9fafb',
-  },
-  scrollArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 16,
-  },
-
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-
-  searchContainer:       { paddingHorizontal: 24, paddingVertical: 12 },
-  searchContainerMobile: { paddingHorizontal: 12, paddingVertical: 8 },
-  searchBox:   { flexDirection: 'row', backgroundColor: '#eee', padding: 10, borderRadius: 20, borderColor: '#ddd', borderWidth: 1 },
-  searchInput:       { marginLeft: 10, flex: 1, fontSize: 14, padding: 0 },
-  searchInputMobile: { marginLeft: 6, fontSize: 13 },
-
-  body:       { paddingHorizontal: 24, paddingVertical: 10 },
-  bodyMobile: { paddingHorizontal: 12, paddingVertical: 8 },
-
-  section:       { marginBottom: 28 },
-  sectionMobile: { marginBottom: 20 },
-
-  stateSection: { marginBottom: 28 },
-  stateHeader: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, marginBottom: 14, borderBottomWidth: 2, borderBottomColor: '#f97316' },
-  stateHeaderMobile: { paddingVertical: 10, marginBottom: 12 },
-  stateTitle: { fontSize: 16, fontWeight: '800', color: '#111827', flex: 1 },
-  stateTitleMobile: { fontSize: 14 },
-  stateCount: { fontSize: 13, fontWeight: '700', color: '#f97316', backgroundColor: '#ffedd5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  stateCountMobile: { fontSize: 12 },
-
-  emptyBox: { marginTop: 10, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, padding: 16, alignItems: 'center', gap: 8 },
-  emptyText: { fontSize: 13, color: '#64748b', lineHeight: 19, textAlign: 'center' },
-
-  threeColGridWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  colStack:     { flexDirection: 'column' },
-
-  myNewsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  addNewsBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2563eb', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
-  addNewsBtnText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
-
-  sidebarCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#f3f4f6', elevation: 2,
-    ...Platform.select({
-      web: { boxShadow: '0px 2px 6px rgba(0,0,0,0.05)' },
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6 },
-      default: {},
-    }),
-  },
-  sidebarCardMobile: { padding: 14 },
-  fullWidth: { width: '100%' },
-  mainCol: { flex: 3, marginRight: 24 },
-  sidebar: { flex: 1, minWidth: 260 },
+const styles = StyleSheet.create({
+  screenShell: { flex: 1, backgroundColor: '#edf1f4' },
+  pageScrollView: { flex: 1 },
+  pageScrollContent: { paddingTop: 0, paddingBottom: 24 },
+  pageScrollContentWithMobileNav: { paddingBottom: 110 },
+  pageBodyShell: { paddingHorizontal: 0, paddingTop: 0, marginTop: -1, backgroundColor: '#edf1f4' },
+  pageBodyInner: { maxWidth: 1360, width: '100%', alignSelf: 'center', flexDirection: 'row', alignItems: 'flex-start', gap: 0 },
+  pageBodyInnerCompact: { flexDirection: 'column' },
+  sidebarStickyWrapper: { width: 252, ...Platform.select({ web: { position: 'sticky', top: DESKTOP_STICKY_TOP_OFFSET, alignSelf: 'flex-start' } }) },
+  sidebarStickyWrapperCompact: { width: '100%', position: 'relative' },
+  workspaceShell: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 0, paddingHorizontal: 0 },
+  workspaceShellCompact: { width: '100%', flexDirection: 'column', paddingHorizontal: 12, gap: 12 },
+  feedColumnShell: { flex: 1, minWidth: 0, alignItems: 'center', paddingHorizontal: 12 },
+  feedColumnShellCompact: { width: '100%' },
+  feedColumn: { width: '100%', minWidth: 0, maxWidth: 560, paddingBottom: 24 },
+  feedColumnStatesView: { maxWidth: 840 },
+  utilityStickyWrapper: { width: 320, ...Platform.select({ web: { position: 'sticky', top: DESKTOP_STICKY_TOP_OFFSET, alignSelf: 'flex-start' } }) },
+  utilityStickyWrapperCompact: { width: '100%', position: 'relative' },
+  sectionSearchRow: { marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sectionSearchRowCompact: { flexDirection: 'column', alignItems: 'stretch' },
+  sectionSearchField: { flex: 1, minHeight: 42, borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe3ee', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionSearchInput: { flex: 1, fontSize: 13, color: '#0f172a', ...Platform.select({ web: { outlineStyle: 'none' } }) },
+  sectionResetButton: { minHeight: 42, borderRadius: 18, paddingHorizontal: 14, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fdba74', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionResetButtonText: { color: '#f97316', fontSize: 12, fontWeight: '800' },
+  storyCardsStack: { gap: 12 },
 });

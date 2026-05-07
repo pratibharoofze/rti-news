@@ -2,9 +2,10 @@ import React from 'react';
 import {
   ScrollView, View, Text, Image, TouchableOpacity, StyleSheet, Linking, Platform,
 } from 'react-native';
-import AppHeader from '../components/AppHeader';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
+import { useLanguage } from '../contexts/LanguageContext';
+import { getSiteCopy } from '../constants/siteCopy';
 
 const values = [
   { icon: '🛡️', title: 'Transparency', desc: 'We believe every citizen has the right to know. We report openly, without fear or favour, holding power accountable.', color: '#f97316' },
@@ -89,6 +90,10 @@ const milestoneDotShadow = Platform.select({
 });
 
 export default function AboutScreen({ navigation }) {
+  const { language } = useLanguage();
+  const copy = getSiteCopy(language);
+  const aboutCopy = copy.about;
+
   const getWidth = () => {
     if (Platform.OS !== 'web') return 360;
     if (typeof document !== 'undefined') return document.documentElement.clientWidth;
@@ -117,19 +122,16 @@ export default function AboutScreen({ navigation }) {
       {isWeb && <AppNavbar navigation={navigation} activeScreen="About" />}
 
       <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
-        <AppHeader navigation={navigation} />
-
         {/* ── Hero ── */}
         <View style={[s.hero, isMobile && s.heroMobile]}>
           <View style={s.heroCircle1} />
           <View style={s.heroCircle2} />
           <View style={s.heroBadge}>
-            <Text style={[s.heroBadgeText, isMobile && s.heroBadgeTextMobile]}>🇮🇳 India&apos;s #1 RTI News Portal</Text>
+            <Text style={[s.heroBadgeText, isMobile && s.heroBadgeTextMobile]}>🇮🇳 {aboutCopy.heroBadge}</Text>
           </View>
-          <Text style={[s.heroTitle, isMobile && s.heroTitleMobile]}>About RTI News</Text>
+          <Text style={[s.heroTitle, isMobile && s.heroTitleMobile]}>{aboutCopy.heroTitle}</Text>
           <Text style={[s.heroSub, isMobile && s.heroSubMobile]}>
-            सरल सवाल · सटीक जवाब · संविधान द्वारा{'\n'}
-            Empowering citizens with the Right to Information since 2015.
+            {aboutCopy.heroSubtitle}
           </Text>
         </View>
 
@@ -152,11 +154,10 @@ export default function AboutScreen({ navigation }) {
               <View style={isMobile ? s.missionTextMobile : s.missionText}>
                 <View style={s.missionLabelRow}>
                   <View style={s.orangeBar} />
-                  <Text style={s.missionLabel}>OUR MISSION</Text>
+                  <Text style={s.missionLabel}>{aboutCopy.missionLabel}</Text>
                 </View>
                 <Text style={[s.missionTitle, isMobile && s.missionTitleMobile]}>
-                  Making Transparency{'\n'}
-                  <Text style={{ color: '#f97316' }}>Everyone&apos;s Right</Text>
+                  {aboutCopy.missionTitle}
                 </Text>
                 <Text style={[s.missionDesc, isMobile && s.missionDescMobile]}>
                   RTI News was founded with a single, powerful belief —{' '}
@@ -178,7 +179,7 @@ export default function AboutScreen({ navigation }) {
 
           {/* ── Core Values ── */}
           <View style={[s.section, isMobile && s.sectionMobile]}>
-            <SectionLabel label="WHAT WE STAND FOR" title="Our Core Values" isMobile={isMobile} />
+            <SectionLabel label={aboutCopy.valuesLabel} title={aboutCopy.valuesTitle} isMobile={isMobile} />
             <View style={isMobile ? s.valuesGridMobile : s.valuesGrid}>
               {values.map((v, i) => (
                 <View
@@ -203,7 +204,7 @@ export default function AboutScreen({ navigation }) {
 
           {/* ── Team ── */}
           <View style={[s.section, isMobile && s.sectionMobile]}>
-            <SectionLabel label="THE PEOPLE BEHIND THE STORIES" title="Meet Our Team" isMobile={isMobile} />
+            <SectionLabel label={aboutCopy.teamLabel} title={aboutCopy.teamTitle} isMobile={isMobile} />
             {teamRows.map((row, ri) => (
               <View
                 key={ri}
@@ -243,7 +244,7 @@ export default function AboutScreen({ navigation }) {
 
           {/* ── Milestones Timeline ── */}
           <View style={[s.section, isMobile && s.sectionMobile]}>
-            <SectionLabel label="OUR JOURNEY" title="Milestones" isMobile={isMobile} />
+            <SectionLabel label={aboutCopy.journeyLabel} title={aboutCopy.journeyTitle} isMobile={isMobile} />
             {isMobile ? (
               <View style={s.timelineMobile}>
                 <View style={s.timelineVLineMobile} />
@@ -298,18 +299,16 @@ export default function AboutScreen({ navigation }) {
             <View style={s.ctaOverlay} />
             <View style={[s.ctaContent, isMobile && s.ctaContentMobile]}>
               <View style={s.ctaBadgeWrap}>
-                <Text style={[s.ctaBadge, isMobile && s.ctaBadgeMobile]}>🤝 Join Our Mission</Text>
+                <Text style={[s.ctaBadge, isMobile && s.ctaBadgeMobile]}>🤝 {aboutCopy.ctaBadge}</Text>
               </View>
-              <Text style={[s.ctaTitle, isMobile && s.ctaTitleMobile]}>Be a Voice for Transparency & Justice 🇮🇳</Text>
-              <Text style={[s.ctaDesc, isMobile && s.ctaDescMobile]}>
-                Whether you&apos;re a journalist, RTI activist, lawyer, or a concerned citizen — we welcome you to contribute to India&apos;s largest RTI news platform.
-              </Text>
+              <Text style={[s.ctaTitle, isMobile && s.ctaTitleMobile]}>{aboutCopy.ctaTitle}</Text>
+              <Text style={[s.ctaDesc, isMobile && s.ctaDescMobile]}>{aboutCopy.ctaDescription}</Text>
               <View style={[s.ctaButtons, isMobile && s.ctaButtonsMobile]}>
                 <TouchableOpacity style={[s.ctaBtn1, isMobile ? s.ctaBtnMobile : s.ctaBtn1Gap]} onPress={() => navigation.navigate('Contact')}>
-                  <Text style={[s.ctaBtn1Text, isMobile && s.ctaBtnTextMobile]}>👥 Join as Reporter</Text>
+                  <Text style={[s.ctaBtn1Text, isMobile && s.ctaBtnTextMobile]}>👥 {aboutCopy.joinReporter}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.ctaBtn2, isMobile && s.ctaBtnMobile]} onPress={() => navigation.navigate('Contact')}>
-                  <Text style={[s.ctaBtn2Text, isMobile && s.ctaBtnTextMobile]}>✉️ Contact Us</Text>
+                  <Text style={[s.ctaBtn2Text, isMobile && s.ctaBtnTextMobile]}>✉️ {aboutCopy.contactUs}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -318,8 +317,8 @@ export default function AboutScreen({ navigation }) {
           {/* ── Contact Strip ── */}
           <View style={[s.contactStrip, isMobile && s.contactStripMobile]}>
             <View style={[s.contactStripLeft, isMobile && s.contactStripLeftMobile]}>
-              <Text style={[s.contactStripTitle, isMobile && s.contactStripTitleMobile]}>Have Questions?</Text>
-              <Text style={[s.contactStripSub, isMobile && s.contactStripSubMobile]}>Reach out to our editorial team anytime.</Text>
+              <Text style={[s.contactStripTitle, isMobile && s.contactStripTitleMobile]}>{aboutCopy.questionsTitle}</Text>
+              <Text style={[s.contactStripSub, isMobile && s.contactStripSubMobile]}>{aboutCopy.questionsSubtitle}</Text>
             </View>
             <View style={[s.contactBtns, isMobile && s.contactBtnsMobile]}>
               <TouchableOpacity style={[s.contactBtn1, isMobile ? s.contactBtnFullMobile : s.contactBtn1Gap]} onPress={() => Linking.openURL('tel:+911234567890')}>

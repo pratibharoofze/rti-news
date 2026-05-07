@@ -524,85 +524,159 @@ export default function DashboardScreen({ navigation, route }) {
       />
 
       {/* ── Subscription Modal ── */}
-      {showSubscriptionModal && (
-        <View style={modalStyles.overlay}>
-          <View style={modalStyles.modalContent}>
-            <View style={modalStyles.modalHeader}>
-              <Text style={modalStyles.modalTitle}>Choose Your Plan</Text>
-              <Text style={modalStyles.modalSubtitle}>Upgrade to unlock premium features</Text>
+{showSubscriptionModal && (
+  <View style={modalStyles.overlay}>
+    <View style={modalStyles.modalContent}>
+      <View style={modalStyles.modalHeader}>
+        <Text style={modalStyles.modalTitle}>Choose Your Plan</Text>
+        <Text style={modalStyles.modalSubtitle}>
+          Upgrade to unlock premium features
+        </Text>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ maxHeight: 380 }}
+      >
+        {SUBSCRIPTION_PLANS.map((plan) => (
+          <TouchableOpacity
+            key={plan.plan_id}
+            style={[
+              modalStyles.planCard,
+              {
+                borderWidth:
+                  (pendingPlan?.plan_id === plan.plan_id || plan.popular)
+                    ? 2
+                    : 1,
+                borderColor:
+                  pendingPlan?.plan_id === plan.plan_id
+                    ? plan.color
+                    : (plan.color + '44'),
+                backgroundColor:
+                  pendingPlan?.plan_id === plan.plan_id
+                    ? (plan.color + '0F')
+                    : '#f8fafc',
+              },
+              pendingPlan?.plan_id === plan.plan_id &&
+                modalStyles.planCardSelected,
+            ]}
+            onPress={() => {
+              setPendingPlan(plan);
+
+              const stateName =
+                seatSummary?.state || currentUser?.state || '';
+
+              if (!stateName) {
+                showPopup(
+                  'Please select your state first.',
+                  'error',
+                  {
+                    primaryLabel: 'Open',
+                    secondaryLabel: 'Cancel',
+                    onPrimaryPress: () =>
+                      navigation.navigate('StateSelect', {
+                        fromPremium: true,
+                        autoOpen: true,
+                      }),
+                  }
+                );
+                return;
+              }
+
+              const existingSeatId =
+                seatSummary?.current_seat?.seat_id || '';
+
+              // already selected seat
+              if (existingSeatId) {
+                setSelectedSeatId(existingSeatId);
+
+                setShowSubscriptionModal(false);
+                setPendingPlan(null);
+
+                showToast(
+                  `${plan.plan_name} Subscription Successful!`,
+                  'success'
+                );
+
+                return;
+              }
+
+              // open seat selector
+              setSeatModalOpen(true);
+            }}
+            activeOpacity={0.8}
+          >
+            {plan.popular && (
+              <View
+                style={[
+                  modalStyles.popularBadge,
+                  { backgroundColor: plan.color },
+                ]}
+              >
+                <Text style={modalStyles.popularText}>
+                  MOST POPULAR
+                </Text>
+              </View>
+            )}
+
+            <View style={modalStyles.planHeader}>
+              <View>
+                <Text
+                  style={[
+                    modalStyles.planName,
+                    { color: plan.color },
+                  ]}
+                >
+                  {plan.plan_name}
+                </Text>
+
+                <Text style={modalStyles.planDuration}>
+                  {plan.duration}
+                </Text>
+              </View>
+
+              <Text style={modalStyles.planPrice}>
+                ₹{plan.price}
+              </Text>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380 }}>
-              {SUBSCRIPTION_PLANS.map((plan) => (
-                <TouchableOpacity
-                  key={plan.plan_id}
-                  style={[
-                    modalStyles.planCard,
-                    {
-                      borderWidth: (pendingPlan?.plan_id === plan.plan_id || plan.popular) ? 2 : 1,
-                      borderColor: pendingPlan?.plan_id === plan.plan_id ? plan.color : (plan.color + '44'),
-                      backgroundColor: pendingPlan?.plan_id === plan.plan_id ? (plan.color + '0F') : '#f8fafc',
-                    },
-                    pendingPlan?.plan_id === plan.plan_id && modalStyles.planCardSelected,
-                  ]}
-                  onPress={() => {
-                    setPendingPlan(plan);
-                    const stateName = seatSummary?.state || currentUser?.state || '';
-                    if (!stateName) {
-                      showPopup('Please select your state first.', 'error', {
-                        primaryLabel: 'Open',
-                        secondaryLabel: 'Cancel',
-                        onPrimaryPress: () => navigation.navigate('StateSelect', { fromPremium: true, autoOpen: true }),
-                      });
-                      return;
-                    }
-
-                    const existingSeatId = seatSummary?.current_seat?.seat_id || '';
-
-                    if (existingSeatId) {
-                      setSelectedSeatId(existingSeatId);
-                      goToSubscriptionPlans(plan, existingSeatId);
-                      return;
-                    }
-
-                    setSeatModalOpen(true);
-                  }}
-                  activeOpacity={0.8}
+            <View style={modalStyles.featuresList}>
+              {plan.features.map((feature, idx) => (
+                <View
+                  key={idx}
+                  style={modalStyles.featureItem}
                 >
-                  {plan.popular && (
-                    <View style={[modalStyles.popularBadge, { backgroundColor: plan.color }]}>
-                      <Text style={modalStyles.popularText}>MOST POPULAR</Text>
-                    </View>
-                  )}
-                  <View style={modalStyles.planHeader}>
-                    <View>
-                      <Text style={[modalStyles.planName, { color: plan.color }]}>{plan.plan_name}</Text>
-                      <Text style={modalStyles.planDuration}>{plan.duration}</Text>
-                    </View>
-                    <Text style={modalStyles.planPrice}>₹{plan.price}</Text>
-                  </View>
-                  <View style={modalStyles.featuresList}>
-                    {plan.features.map((feature, idx) => (
-                      <View key={idx} style={modalStyles.featureItem}>
-                        <Ionicons name="checkmark-circle" size={14} color={plan.color} />
-                        <Text style={modalStyles.featureText}>{feature}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={14}
+                    color={plan.color}
+                  />
 
-            <TouchableOpacity
-              style={modalStyles.closeBtn}
-              onPress={() => { setShowSubscriptionModal(false); setPendingPlan(null); }}
-              activeOpacity={0.8}
-            >
-              <Text style={modalStyles.closeBtnText}>Maybe Later</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+                  <Text style={modalStyles.featureText}>
+                    {feature}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <TouchableOpacity
+        style={modalStyles.closeBtn}
+        onPress={() => {
+          setShowSubscriptionModal(false);
+          setPendingPlan(null);
+        }}
+        activeOpacity={0.8}
+      >
+        <Text style={modalStyles.closeBtnText}>
+          Maybe Later
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
     </View>
   );
 }

@@ -1,157 +1,339 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput,
-  Linking, StyleSheet, Platform,
+  Linking,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../contexts/LanguageContext';
+import { getSiteCopy } from '../constants/siteCopy';
 
-const quickLinks = [
-  { label: 'Home',           screen: 'Home' },
-  { label: 'About Us',       screen: 'About' },
-  { label: 'What is RTI?',   screen: 'WhatIsRTI' },
-  { label: 'Important Laws', screen: 'ImportantLaws' },
-  { label: 'Contact Us',     screen: 'Contact' },
+const STATE_LINK_ITEMS = [
+  'Bihar',
+  'Chhattisgarh',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Delhi',
+  'Karnataka',
+  'Goa',
+  'Kerala',
+  'Odisha',
+  'Andaman And Nicobar Islands',
+  'Gujarat',
+  'Uttar Pradesh',
+  'Meghalaya',
+  'Rajasthan',
+  'Uttarakhand',
+  'Manipur',
+  'Andhra Pradesh',
+  'Punjab',
+  'Tamil Nadu',
+  'Assam',
+  'Jammu And Kashmir',
+  'Telangana',
+  'Tripura',
+  'Chandigarh',
+  'Nagaland',
+  'West Bengal',
+  'Haryana',
+  'Himachal Pradesh',
 ];
 
-const socialLinks = [
-  { icon: 'f',  label: 'Facebook',  url: '#', color: '#1877f2' },
-  { icon: '𝕏',  label: 'Twitter',   url: '#', color: '#0ea5e9' },
-  { icon: '📸', label: 'Instagram', url: '#', color: '#e1306c' },
-  { icon: '💬', label: 'WhatsApp',  url: '#', color: '#25d366' },
-  { icon: '▶',  label: 'YouTube',   url: '#', color: '#ff0000' },
+const SOCIAL_LINK_ITEMS = [
+  { label: 'Facebook', icon: 'logo-facebook', url: 'https://www.facebook.com/', color: '#2563eb' },
+  { label: 'YouTube', icon: 'logo-youtube', url: 'https://www.youtube.com/', color: '#ef4444' },
+  { label: 'LinkedIn', icon: 'logo-linkedin', url: 'https://www.linkedin.com/', color: '#0284c7' },
+  { label: 'Instagram', icon: 'logo-instagram', url: 'https://www.instagram.com/', color: '#ec4899' },
 ];
 
-// ✅ Mobile web detection
-const IS_WEB = Platform.OS === 'web';
-const IS_WEB_MOBILE = IS_WEB && (
-  typeof window !== 'undefined' ? window.innerWidth < 768 : false
-);
+function FooterSection({ title, children }) {
+  return (
+    <View style={styles.footerSection}>
+      <Text style={styles.footerSectionTitle}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+function FooterInlineLinks({ items, onPress }) {
+  return (
+    <View style={styles.footerInlineList}>
+      {items.map((item, index) => (
+        <TouchableOpacity
+          key={`${item.label}-${index}`}
+          style={[
+            styles.footerInlineButton,
+            index === items.length - 1 && styles.footerInlineButtonLast,
+          ]}
+          onPress={() => onPress(item.action)}
+          activeOpacity={0.82}
+        >
+          <Text style={styles.footerInlineButtonText}>{item.label}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
 
 export default function AppFooter({ navigation }) {
-  const [email, setEmail] = useState('');
+  const { language } = useLanguage();
+  const copy = getSiteCopy(language);
 
-  // ✅ Native mobile pe nahi dikhega (pehle se tha)
-  if (Platform.OS !== 'web') return null;
+  const handleOpenAction = async (action) => {
+    if (!action) return;
 
-  // ✅ NEW: Mobile web pe bhi nahi dikhega — bottom tab bar hai wahan
-  if (IS_WEB_MOBILE) return null;
+    if (action.url) {
+      try {
+        await Linking.openURL(action.url);
+      } catch {
+        // no-op
+      }
+      return;
+    }
 
-  // ✅ Sirf Desktop web pe dikhega
+    if (action.email) {
+      try {
+        await Linking.openURL(`mailto:${action.email}`);
+      } catch {
+        // no-op
+      }
+      return;
+    }
+
+    if (action.screen) {
+      navigation?.navigate?.(action.screen, action.params);
+    }
+  };
+
+  const stateItems = STATE_LINK_ITEMS.map((stateName) => ({
+    label: stateName,
+    action: {
+      screen: 'Home',
+      params: {
+        initialView: 'feed',
+        initialMenuKey: 'latest',
+        initialStateName: stateName,
+      },
+    },
+  }));
+
+  const trendingItems = [
+    { label: copy.common.latestNews, action: { screen: 'Home', params: { initialView: 'feed', initialMenuKey: 'latest' } } },
+    { label: copy.common.newsByState, action: { screen: 'Home', params: { initialView: 'states', initialMenuKey: 'states' } } },
+    { label: copy.common.politics, action: { screen: 'Home', params: { initialView: 'feed', initialMenuKey: 'politics' } } },
+    { label: copy.common.elections, action: { screen: 'Home', params: { initialView: 'feed', initialMenuKey: 'elections' } } },
+    { label: copy.common.viral, action: { screen: 'Home', params: { initialView: 'feed', initialMenuKey: 'viral' } } },
+    { label: copy.common.latestPoliticalNews, action: { screen: 'Home', params: { initialView: 'feed', initialMenuKey: 'latest_political' } } },
+  ];
+
+  const quickLinks = [
+    { label: copy.common.home, action: { screen: 'Home' } },
+    { label: copy.common.feed, action: { screen: 'Feed' } },
+    { label: copy.common.rti, action: { screen: 'WhatIsRTI' } },
+    { label: copy.common.laws, action: { screen: 'ImportantLaws' } },
+    { label: copy.common.aboutUs, action: { screen: 'About' } },
+    { label: copy.common.contactUs, action: { screen: 'Contact' } },
+  ];
+
+  const aboutLinks = [
+    { label: copy.common.aboutUs, action: { screen: 'About' } },
+    { label: copy.common.contactUs, action: { screen: 'Contact' } },
+    { label: copy.common.terms, action: { screen: 'InfoPage', params: { pageKey: 'terms' } } },
+    { label: copy.common.privacy, action: { screen: 'InfoPage', params: { pageKey: 'privacy' } } },
+    { label: copy.common.teamCareer, action: { screen: 'InfoPage', params: { pageKey: 'careers' } } },
+    { label: copy.common.refund, action: { screen: 'InfoPage', params: { pageKey: 'refund' } } },
+  ];
+
   return (
-    <View style={s.footer}>
-      <View style={s.orangeStrip} />
+    <View style={styles.footerShell}>
+      <View style={styles.footerInner}>
+        <View style={styles.footerBrandRow}>
+          <View style={styles.footerBrandBlock}>
+            <Text style={styles.footerBrandTitle}>{copy.footer.brandTitle}</Text>
+            <Text style={styles.footerBrandSubtitle}>{copy.footer.brandSubtitle}</Text>
+          </View>
 
-      {/* Column 1 */}
-      <View style={s.section}>
-        <Text style={s.footerLogo}>📰 RTI News</Text>
-        <Text style={s.footerAbout}>
-          RTI News – सरल सवाल, सटीक जवाब, संविधान द्वारा।{'\n'}
-          Simple questions, precise answers – By the Constitution.
-        </Text>
-        <View style={s.socialRow}>
-          {socialLinks.map((sl) => (
-            <TouchableOpacity
-              key={sl.label}
-              style={[s.socialBtn, { backgroundColor: sl.color }]}
-              onPress={() => sl.url !== '#' && Linking.openURL(sl.url)}
-            >
-              <Text style={s.socialIcon}>{sl.icon}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Column 2 */}
-      <View style={s.section}>
-        <Text style={s.colTitle}>QUICK LINKS</Text>
-        <View style={s.divider} />
-        {quickLinks.map((link) => (
           <TouchableOpacity
-            key={link.label}
-            style={s.linkRow}
-            onPress={() => navigation?.navigate(link.screen)}
+            style={styles.footerBrandLink}
+            onPress={() => handleOpenAction({ screen: 'About' })}
+            activeOpacity={0.84}
           >
-            <Text style={s.linkArrow}>›</Text>
-            <Text style={s.linkText}>{link.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Column 3 */}
-      <View style={s.section}>
-        <Text style={s.colTitle}>CONTACT US</Text>
-        <View style={s.divider} />
-        <View style={s.contactRow}>
-          <Text style={s.contactIcon}>📍</Text>
-          <Text style={s.contactText}>India – RTI News Network, Headquarters</Text>
-        </View>
-        <TouchableOpacity style={s.contactRow} onPress={() => Linking.openURL('tel:+911234567890')}>
-          <Text style={s.contactIcon}>📞</Text>
-          <Text style={[s.contactText, s.contactLink]}>+91 12345 67890</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.contactRow} onPress={() => Linking.openURL('mailto:info@rtinews.in')}>
-          <Text style={s.contactIcon}>✉️</Text>
-          <Text style={[s.contactText, s.contactLink]}>info@rtinews.in</Text>
-        </TouchableOpacity>
-        <Text style={s.newsletterLabel}>Subscribe to newsletter:</Text>
-        <View style={s.newsletterRow}>
-          <TextInput
-            style={s.newsletterInput}
-            placeholder="Your email..."
-            placeholderTextColor="#9ca3af"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-          />
-          <TouchableOpacity style={s.joinBtn}>
-            <Text style={s.joinBtnText}>Join</Text>
+            <Text style={styles.footerBrandLinkText}>{copy.common.aboutUs}</Text>
+            <Ionicons name="open-outline" size={15} color="#ffffff" />
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Bottom */}
-      <View style={s.footerBottom}>
-        <Text style={s.bottomText}>
-          © {new Date().getFullYear()}{' '}
-          <Text style={s.bottomOrange}>RTI News</Text>
-          {'. All rights reserved. | Designed with ❤️ for transparency & justice.'}
-        </Text>
+        <TouchableOpacity
+          style={styles.footerContactLink}
+          onPress={() => handleOpenAction({ email: 'info@rtinews.in' })}
+          activeOpacity={0.84}
+        >
+          <Text style={styles.footerContactText}>{copy.footer.contactLine}</Text>
+        </TouchableOpacity>
+
+        <View style={styles.footerDivider} />
+
+        <FooterSection title={copy.common.trendingNews}>
+          <FooterInlineLinks items={trendingItems} onPress={handleOpenAction} />
+        </FooterSection>
+
+        <FooterSection title={copy.common.stateCoverage}>
+          <FooterInlineLinks items={stateItems} onPress={handleOpenAction} />
+        </FooterSection>
+
+        <FooterSection title={copy.common.quickLinks}>
+          <FooterInlineLinks items={quickLinks} onPress={handleOpenAction} />
+        </FooterSection>
+
+        <FooterSection title={copy.common.aboutRtiNews}>
+          <FooterInlineLinks items={aboutLinks} onPress={handleOpenAction} />
+        </FooterSection>
+
+        <View style={styles.footerBottomDivider} />
+
+        <View style={styles.footerSocialWrap}>
+          <Text style={styles.footerSocialTitle}>{copy.common.followOn}</Text>
+          <View style={styles.footerSocialRow}>
+            {SOCIAL_LINK_ITEMS.map((item) => (
+              <TouchableOpacity
+                key={item.label}
+                style={styles.footerSocialButton}
+                onPress={() => handleOpenAction({ url: item.url })}
+                activeOpacity={0.84}
+              >
+                <Ionicons name={item.icon} size={28} color={item.color} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </View>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  footer: { backgroundColor: '#111827' },
-  orangeStrip: { height: 4, backgroundColor: '#f97316' },
-  section: { paddingHorizontal: 20, paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: '#1f2937' },
-  footerLogo: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 8 },
-  footerAbout: { color: '#9ca3af', fontSize: 13, lineHeight: 20, marginBottom: 14 },
-  socialRow: { flexDirection: 'row', gap: 10 },
-  socialBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  socialIcon: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  colTitle: { color: '#fb923c', fontWeight: '800', fontSize: 14, letterSpacing: 1, marginBottom: 8 },
-  divider: { height: 1, backgroundColor: '#f97316', marginBottom: 12 },
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
-  linkArrow: { color: '#f97316', fontSize: 16, fontWeight: '700' },
-  linkText: { color: '#9ca3af', fontSize: 13 },
-  contactRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
-  contactIcon: { fontSize: 14, marginTop: 1 },
-  contactText: { color: '#9ca3af', fontSize: 13, flex: 1 },
-  contactLink: { color: '#fb923c' },
-  newsletterLabel: { color: '#9ca3af', fontSize: 13, marginBottom: 8, marginTop: 4 },
-  newsletterRow: { flexDirection: 'row' },
-  newsletterInput: {
-    flex: 1, backgroundColor: '#1f2937', color: '#fff',
-    paddingHorizontal: 14, paddingVertical: 10, fontSize: 13,
-    borderTopLeftRadius: 20, borderBottomLeftRadius: 20,
-    borderWidth: 1, borderColor: '#374151',
+const styles = StyleSheet.create({
+  footerShell: {
+    backgroundColor: '#073b44',
+    marginTop: 28,
   },
-  joinBtn: {
-    backgroundColor: '#f97316', paddingHorizontal: 16,
-    justifyContent: 'center', borderTopRightRadius: 20, borderBottomRightRadius: 20,
+  footerInner: {
+    maxWidth: 1360,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: Platform.OS === 'web' ? 32 : 18,
+    paddingTop: 24,
+    paddingBottom: 22,
   },
-  joinBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  footerBottom: { backgroundColor: '#030712', paddingVertical: 14, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: '#1f2937' },
-  bottomText: { color: '#6b7280', fontSize: 11, textAlign: 'center', lineHeight: 18 },
-  bottomOrange: { color: '#fb923c', fontWeight: '700' },
+  footerBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  footerBrandBlock: {
+    flex: 1,
+    minWidth: 240,
+  },
+  footerBrandTitle: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  footerBrandSubtitle: {
+    color: '#d7f2ef',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  footerBrandLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  footerBrandLinkText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
+  },
+  footerContactLink: {
+    marginTop: 22,
+    alignSelf: 'flex-start',
+  },
+  footerContactText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  footerDivider: {
+    marginTop: 22,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(186, 230, 253, 0.18)',
+  },
+  footerSection: {
+    marginTop: 28,
+  },
+  footerSectionTitle: {
+    color: '#ffe4e6',
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 14,
+  },
+  footerInlineList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+  },
+  footerInlineButton: {
+    paddingRight: 18,
+    marginRight: 4,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(186, 230, 253, 0.16)',
+  },
+  footerInlineButtonLast: {
+    borderRightWidth: 0,
+    paddingRight: 0,
+    marginRight: 0,
+  },
+  footerInlineButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  footerBottomDivider: {
+    marginTop: 26,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(186, 230, 253, 0.18)',
+  },
+  footerSocialWrap: {
+    marginTop: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerSocialTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  footerSocialRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    marginTop: 14,
+    flexWrap: 'wrap',
+  },
+  footerSocialButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
 });

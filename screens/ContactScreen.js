@@ -4,197 +4,118 @@ import {
   StyleSheet, Linking, Alert, Platform, Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import AppHeader from '../components/AppHeader';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
-
-// ─────────────────────────────────────────────
-// Static Data
-// ─────────────────────────────────────────────
-const addresses = [
-  {
-    label: 'Head Office',
-    line1: 'Flat No. 1106, Lotus Residency',
-    line2: 'A Wing, Ram Mandir Chowk, SV Road',
-    line3: 'Mahatma Jyotiba Phule Nagar, Jogeshwari West',
-    city: 'Mumbai - 400102',
-    state: 'Maharashtra, India',
-  },
-  {
-    label: 'Branch Office',
-    line1: '',
-    line2: '',
-    line3: '',
-    city: '',
-    state: '',
-  },
-];
+import { useLanguage } from '../contexts/LanguageContext';
+import { getSiteCopy } from '../constants/siteCopy';
 
 const faqs = [
   {
-    question: 'How can I file an RTI application?',
-    answer:
-      'You can file an RTI application online through the official RTI Online Portal (rtionline.gov.in) or submit a physical application to the concerned Public Information Officer (PIO). We also provide free RTI guides on our website.',
+    q: 'How can I file an RTI application?',
+    a: 'You can file an RTI application online through the official RTI Online Portal (rtionline.gov.in) or submit a physical application to the concerned Public Information Officer (PIO). We also provide free RTI guides on our website.',
   },
   {
-    question: 'How much does it cost to file an RTI?',
-    answer:
-      'The application fee for filing an RTI is ₹10 for central government departments. State government fees may vary. BPL cardholders are exempt from paying the fee.',
+    q: 'How much does it cost to file an RTI?',
+    a: 'The application fee for filing an RTI is ₹10 for central government departments. State government fees may vary. BPL cardholders are exempt from paying the fee.',
   },
   {
-    question: 'How long does it take to get a response?',
-    answer:
-      'Under the RTI Act, the Public Information Officer must respond within 30 days from the date of application. In matters related to life or liberty, the response must be provided within 48 hours.',
+    q: 'How long does it take to get a response?',
+    a: 'Under the RTI Act, the Public Information Officer must respond within 30 days from the date of application. In case of matters related to life or liberty, the response must be provided within 48 hours.',
   },
   {
-    question: 'Can I get help drafting an RTI application?',
-    answer:
-      "Yes! Our team provides free guidance on drafting RTI applications. Reach out via email or phone and we'll help you frame your questions effectively.",
+    q: 'Can I get help with drafting an RTI application?',
+    a: 'Yes! Our team provides free guidance on drafting RTI applications. You can reach out to us via email or phone, and we will help you frame your questions effectively.',
+  },
+  {
+    q: 'Is there any fee for BPL cardholders?',
+    a: 'No, BPL (Below Poverty Line) cardholders are exempt from paying the RTI application fee. They need to attach a copy of their BPL certificate with the application.',
+  },
+  {
+    q: 'What is the time limit for response?',
+    a: 'Normally 30 days from date of receipt. For life and liberty matters, it is 48 hours. For third party information, it can be extended to 60 days.',
   },
 ];
 
-const subjectOptions = ['General Inquiry', 'News Tip', 'RTI Assistance', 'Feedback', 'Partnership', 'Other'];
-
-const contactInfoItems = [
-  {
-    icon: '📞',
-    accentColor: '#16a34a',
-    title: 'Phone Number',
-    primaryText: '(+91) 070206 67971',
-    secondaryText: 'Call us for inquiries',
-    action: () => Linking.openURL('tel:+917020667971'),
-    isLink: true,
-  },
-  {
-    icon: '✉️',
-    accentColor: '#3b82f6',
-    title: 'Email Address',
-    primaryText: 'info@rtinews.in',
-    secondaryText: "We'll respond within 24 hours",
-    action: () => Linking.openURL('mailto:info@rtinews.in'),
-    isLink: true,
-  },
-  {
-    icon: '🕐',
-    accentColor: '#a855f7',
-    title: 'Working Hours',
-    primaryText: 'Mon – Sat: 10:00 AM – 7:00 PM',
-    secondaryText: 'Closed on Sundays',
-    action: null,
-    isLink: false,
-  },
-];
-
-const MAP_EMBED_URL =
+const mapUrl =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3769.6895!2d72.8344!3d19.1381!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7b63b5c5c5c5d%3A0x5c5c5c5c5c5c5c5c!2sJogeshwari%20West%2C%20Mumbai%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1700000000000';
 
-// ─────────────────────────────────────────────
-// Platform Shadow Helpers
-// ─────────────────────────────────────────────
-const cardElevation = Platform.select({
-  web: { boxShadow: '0px 2px 12px rgba(0,0,0,0.07)' },
+const cardShadow = Platform.select({
+  web: { boxShadow: '0px 1px 4px rgba(0,0,0,0.06)' },
   default: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
 });
 
-const modalElevation = Platform.select({
-  web: { boxShadow: '0px 12px 32px rgba(0,0,0,0.18)' },
+const modalShadow = Platform.select({
+  web: { boxShadow: '0px 8px 24px rgba(0,0,0,0.15)' },
   default: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.15,
     shadowRadius: 24,
-    elevation: 14,
+    elevation: 12,
   },
 });
 
-// ─────────────────────────────────────────────
-// Map Embed Component
-// ─────────────────────────────────────────────
 function MapEmbed() {
   if (Platform.OS === 'web') {
     return (
       <iframe
-        src={MAP_EMBED_URL}
+        src={mapUrl}
         width="100%"
         height="100%"
-        style={{ border: 'none', borderRadius: 14, display: 'block' }}
+        style={{ border: 'none', borderRadius: 5, display: 'block' }}
         allowFullScreen
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
       />
     );
   }
-  const mobileMapUrl =
-    'https://www.google.com/maps?q=Jogeshwari+West+Mumbai+Maharashtra&z=15&output=embed';
+  const androidMapUrl = 'https://www.google.com/maps?q=Jogeshwari+West+Mumbai+Maharashtra&z=15&output=embed';
   return (
-    <View style={s.mapEmbedWrapper}>
+    <View style={{ flex: 1, borderRadius: 5, overflow: 'hidden', backgroundColor: '#f9fafb' }}>
       <WebView
-        source={{ uri: mobileMapUrl }}
-        style={s.mapWebView}
-        scrollEnabled
-        javaScriptEnabled
-        domStorageEnabled
-        startInLoadingState
+        source={{ uri: androidMapUrl }}
+        style={{ flex: 1, backgroundColor: '#f9fafb' }}
+        scrollEnabled={true}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        startInLoadingState={true}
         scalesPageToFit={false}
         originWhitelist={['*']}
-        onError={(e) => console.warn('Map WebView error:', e.nativeEvent.description)}
       />
     </View>
   );
 }
 
-// ─────────────────────────────────────────────
-// Subject Picker Component
-// ─────────────────────────────────────────────
-function SubjectPicker({ value, onChange }) {
-  const [isOpen, setIsOpen] = useState(false);
+function SubjectPicker({ value, onChange, subjects, contactCopy }) {
+  const [open, setOpen] = useState(false);
   return (
     <>
-      <TouchableOpacity
-        style={s.pickerTrigger}
-        onPress={() => setIsOpen(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={[s.pickerTriggerText, !value && s.pickerPlaceholderText]}>
-          {value || 'Select a subject'}
+      <TouchableOpacity style={s.pickerBtn} onPress={() => setOpen(true)} activeOpacity={0.8}>
+        <Text style={[s.pickerBtnText, !value && { color: '#9ca3af' }]}>
+          {value || contactCopy.selectSubject}
         </Text>
-        <Text style={s.pickerChevron}>▾</Text>
+        <Text style={s.pickerArrow}>▾</Text>
       </TouchableOpacity>
-
-      <Modal
-        visible={isOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsOpen(false)}
-      >
-        <TouchableOpacity
-          style={s.modalBackdrop}
-          activeOpacity={1}
-          onPress={() => setIsOpen(false)}
-        >
-          <View style={s.modalSheet}>
-            <Text style={s.modalSheetTitle}>Select a Subject</Text>
-            {subjectOptions.map((option) => {
-              const isSelected = value === option;
-              return (
-                <TouchableOpacity
-                  key={option}
-                  style={[s.modalOptionRow, isSelected && s.modalOptionRowSelected]}
-                  onPress={() => { onChange(option); setIsOpen(false); }}
-                >
-                  <Text style={[s.modalOptionLabel, isSelected && s.modalOptionLabelSelected]}>
-                    {option}
-                  </Text>
-                  {isSelected && <Text style={s.modalOptionCheckmark}>✓</Text>}
-                </TouchableOpacity>
-              );
-            })}
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
+          <View style={s.modalBox}>
+            <Text style={s.modalTitle}>{contactCopy.selectSubjectTitle}</Text>
+            {subjects.map((sub) => (
+              <TouchableOpacity
+                key={sub}
+                style={[s.modalOption, value === sub && s.modalOptionActive]}
+                onPress={() => { onChange(sub); setOpen(false); }}
+              >
+                <Text style={[s.modalOptionText, value === sub && s.modalOptionTextActive]}>{sub}</Text>
+                {value === sub && <Text style={s.modalCheck}>✓</Text>}
+              </TouchableOpacity>
+            ))}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -202,267 +123,207 @@ function SubjectPicker({ value, onChange }) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Divider with Label
-// ─────────────────────────────────────────────
-function SectionDivider({ label }) {
-  return (
-    <View style={s.dividerRow}>
-      <View style={s.dividerLine} />
-      <Text style={s.dividerLabel}>{label}</Text>
-      <View style={s.dividerLine} />
-    </View>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Main Screen
-// ─────────────────────────────────────────────
 const isWeb = Platform.OS === 'web';
 
 export default function ContactScreen({ navigation }) {
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
+  const { language } = useLanguage();
+  const copy = getSiteCopy(language);
+  const contactCopy = copy.contact;
+  const [form, setForm] = useState({ name: '', phone: '', email: '', message: '' });
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [openFaqIndex, setOpenFaqIndex] = useState(null);
+  const [openFaq, setOpenFaq] = useState(null);
+  const subjects = contactCopy.subjects;
 
-  const updateFormField = (key, value) =>
-    setFormData((prev) => ({ ...prev, [key]: value }));
+  const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleFormSubmit = () => {
-    if (!formData.name || !formData.email || !selectedSubject || !formData.message) {
-      Alert.alert('Incomplete Form', 'Please fill in all required fields.');
+  const handleContactPress = (action) => {
+    if (action) {
+      Linking.openURL(action);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!form.name || !form.email || !selectedSubject || !form.message) {
+      Alert.alert(contactCopy.errorTitle, contactCopy.errorRequiredFields);
       return;
     }
-    Alert.alert('Message Sent!', 'Thank you for reaching out. We will get back to you shortly.');
-    setFormData({ name: '', phone: '', email: '', message: '' });
+    Alert.alert(contactCopy.successTitle, contactCopy.successMessage);
+    setForm({ name: '', phone: '', email: '', message: '' });
     setSelectedSubject('');
   };
 
   return (
-    <View style={s.screenRoot}>
+    <View style={{ flex: 1 }}>
       {isWeb && <AppNavbar navigation={navigation} activeScreen="Contact" />}
 
-      <ScrollView style={s.scrollArea} showsVerticalScrollIndicator={false}>
-        <AppHeader navigation={navigation} />
-
-        {/* ── Hero Banner ── */}
-        <View style={s.heroBanner}>
-          <View style={s.heroGlowTopRight} />
-          <View style={s.heroGlowBottomLeft} />
-          <View style={s.heroPill}>
-            <Text style={s.heroPillText}>📞  Get in Touch</Text>
-          </View>
-          <Text style={s.heroHeading}>Contact Us</Text>
-          <Text style={s.heroTagline}>
-            We'd love to hear from you. Reach out with your queries, feedback, or news tips.
-          </Text>
-          {/* Stat strip */}
-          <View style={s.heroStatStrip}>
-            <View style={s.heroStatItem}>
-              <Text style={s.heroStatValue}>24h</Text>
-              <Text style={s.heroStatLabel}>Response Time</Text>
-            </View>
-            <View style={s.heroStatDivider} />
-            <View style={s.heroStatItem}>
-              <Text style={s.heroStatValue}>Free</Text>
-              <Text style={s.heroStatLabel}>RTI Guidance</Text>
-            </View>
-            <View style={s.heroStatDivider} />
-            <View style={s.heroStatItem}>
-              <Text style={s.heroStatValue}>6 Days</Text>
-              <Text style={s.heroStatLabel}>Available</Text>
-            </View>
+      <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
+        {/* Smaller Hero Section - No Curves */}
+        <View style={s.hero}>
+          <View style={s.heroContent}>
+            <Text style={s.heroBadge}>{contactCopy.heroBadge}</Text>
+            <Text style={s.heroTitle}>{contactCopy.heroTitle}</Text>
+            <Text style={s.heroSub}>{contactCopy.heroSubtitle}</Text>
           </View>
         </View>
 
-        <View style={s.pageBody}>
-
-          {/* ── Address Cards ── */}
-          {addresses.map((addr, idx) => {
-            const hasContent = addr.line1 || addr.city || addr.state;
-            return (
-              <View key={idx} style={s.contactInfoCard}>
-                <View style={[s.contactInfoIconBox, { backgroundColor: '#f97316' }]}>
-                  <Text style={s.contactInfoIconEmoji}>📍</Text>
+        <View style={s.body}>
+          {/* Map + Contact Details Section - Side by Side */}
+          <View style={s.mapDetailsSection}>
+            {/* Left Side - Map */}
+            <View style={s.mapColumn}>
+              <View style={s.mapCard}>
+                <View style={s.mapHeader}>
+                  <Text style={s.mapTitle}>{contactCopy.ourLocation}</Text>
+                  <Text style={s.mapSubtitle}>Jogeshwari West, Mumbai - 400102</Text>
                 </View>
-                <View style={s.contactInfoTextBlock}>
-                  <Text style={s.contactInfoCardTitle}>{addr.label}</Text>
-                  {hasContent ? (
-                    <>
-                      {addr.line1 ? <Text style={s.contactInfoLine}>{addr.line1}</Text> : null}
-                      {addr.line2 ? <Text style={s.contactInfoLine}>{addr.line2}</Text> : null}
-                      {addr.line3 ? <Text style={s.contactInfoLine}>{addr.line3}</Text> : null}
-                      {addr.city  ? <Text style={s.contactInfoCityText}>{addr.city}</Text> : null}
-                      {addr.state ? <Text style={s.contactInfoLine}>{addr.state}</Text> : null}
-                    </>
-                  ) : (
-                    <Text style={s.contactInfoEmptyText}>Address not configured yet.</Text>
-                  )}
+                <View style={s.mapContainer}>
+                  <MapEmbed />
                 </View>
+                <TouchableOpacity 
+                  style={s.directionBtn} 
+                  onPress={() => Linking.openURL('https://maps.google.com/?q=Jogeshwari+West+Mumbai')}
+                >
+                  <Text style={s.directionBtnText}>{contactCopy.getDirections}</Text>
+                </TouchableOpacity>
               </View>
-            );
-          })}
+            </View>
 
-          {/* ── Phone / Email / Hours ── */}
-          {contactInfoItems.map((item) => {
-            const CardWrapper = item.isLink ? TouchableOpacity : View;
-            const wrapperProps = item.isLink ? { onPress: item.action, activeOpacity: 0.85 } : {};
-            return (
-              <CardWrapper key={item.title} style={s.contactInfoCard} {...wrapperProps}>
-                <View style={[s.contactInfoIconBox, { backgroundColor: item.accentColor }]}>
-                  <Text style={s.contactInfoIconEmoji}>{item.icon}</Text>
-                </View>
-                <View style={s.contactInfoTextBlock}>
-                  <Text style={s.contactInfoCardTitle}>{item.title}</Text>
-                  <Text style={[s.contactInfoPrimaryText, { color: item.accentColor }]}>
-                    {item.primaryText}
-                  </Text>
-                  <Text style={s.contactInfoSecondaryText}>{item.secondaryText}</Text>
-                </View>
-                {item.isLink && (
-                  <View style={[s.contactInfoArrowBadge, { backgroundColor: item.accentColor + '18' }]}>
-                    <Text style={[s.contactInfoArrow, { color: item.accentColor }]}>→</Text>
+            {/* Right Side - Contact Details */}
+            <View style={s.detailsColumn}>
+              <View style={s.detailsCard}>
+                <Text style={s.detailsSectionTitle}>{contactCopy.contactInformation}</Text>
+                
+                {/* Phone */}
+                <TouchableOpacity style={s.detailRow} onPress={() => handleContactPress('tel:+917020667971')} activeOpacity={0.7}>
+                  <View style={s.detailContent}>
+                    <Text style={s.detailLabel}>{contactCopy.phoneNumber}</Text>
+                    <Text style={s.detailValue}>+91 70206 67971</Text>
+                    <Text style={s.detailSub}>{contactCopy.callForInquiries}</Text>
                   </View>
-                )}
-              </CardWrapper>
-            );
-          })}
+                </TouchableOpacity>
 
-          {/* ── Map Section ── */}
-          <View style={s.mapCard}>
-            <View style={s.mapCardHeader}>
-              <View style={s.mapCardAccentBar} />
-              <Text style={s.mapCardTitle}>Our Location</Text>
-            </View>
-            <Text style={s.mapCardSubtitle}>Jogeshwari West, Mumbai – 400102</Text>
-            <View style={s.mapFrame}>
-              <MapEmbed />
-            </View>
-            <TouchableOpacity
-              style={s.getDirectionsButton}
-              onPress={() => Linking.openURL('https://maps.google.com/?q=Jogeshwari+West+Mumbai')}
-              activeOpacity={0.88}
-            >
-              <Text style={s.getDirectionsButtonText}>🗺️  Get Directions</Text>
-            </TouchableOpacity>
-          </View>
+                {/* Email */}
+                <TouchableOpacity style={s.detailRow} onPress={() => handleContactPress('mailto:info@rtinews.in')} activeOpacity={0.7}>
+                  <View style={s.detailContent}>
+                    <Text style={s.detailLabel}>{contactCopy.emailAddress}</Text>
+                    <Text style={s.detailValue}>info@rtinews.in</Text>
+                    <Text style={s.detailSub}>{contactCopy.respondWithinDay}</Text>
+                  </View>
+                </TouchableOpacity>
 
-          {/* ── Contact Form ── */}
-          <View style={s.formCard}>
-            <SectionDivider label="SEND US A MESSAGE" />
-            <Text style={s.formCardHeading}>Get in Touch</Text>
-            <Text style={s.formCardSubheading}>
-              Have a question or a news tip? Fill out the form and we'll get back to you.
-            </Text>
+                {/* Working Hours */}
+                <View style={s.detailRow}>
+                  <View style={s.detailContent}>
+                    <Text style={s.detailLabel}>{contactCopy.workingHours}</Text>
+                    <Text style={s.detailValue}>Monday - Saturday: 10:00 AM - 7:00 PM</Text>
+                    <Text style={s.detailSub}>{contactCopy.sundayClosed}</Text>
+                  </View>
+                </View>
 
-            {/* Name + Phone */}
-            <View style={s.formTwoColumnRow}>
-              <View style={s.formColumn}>
-                <Text style={s.formFieldLabel}>
-                  Full Name <Text style={s.formRequiredStar}>*</Text>
-                </Text>
-                <TextInput
-                  style={s.formTextInput}
-                  placeholder="Your full name"
-                  placeholderTextColor="#9ca3af"
-                  value={formData.name}
-                  onChangeText={(t) => updateFormField('name', t)}
-                />
-              </View>
-              <View style={s.formColumn}>
-                <Text style={s.formFieldLabel}>Phone Number</Text>
-                <TextInput
-                  style={s.formTextInput}
-                  placeholder="Your phone number"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="phone-pad"
-                  value={formData.phone}
-                  onChangeText={(t) => updateFormField('phone', t)}
-                />
+                {/* Office Address */}
+                <View style={s.detailRow}>
+                  <View style={s.detailContent}>
+                    <Text style={s.detailLabel}>{contactCopy.officeAddress}</Text>
+                    <Text style={s.detailValue}>
+                      Flat No. 1106 Lotus Residency{'\n'}
+                      A Wing Ram Mandir Chowk SV Road{'\n'}
+                      Mahatma Jyotiba Phule Nagar, Jogeshwari West{'\n'}
+                      Mumbai - 400102, Maharashtra
+                    </Text>
+                  </View>
+                </View>
               </View>
             </View>
-
-            {/* Email */}
-            <Text style={s.formFieldLabel}>
-              Email Address <Text style={s.formRequiredStar}>*</Text>
-            </Text>
-            <TextInput
-              style={s.formTextInput}
-              placeholder="your@email.com"
-              placeholderTextColor="#9ca3af"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={formData.email}
-              onChangeText={(t) => updateFormField('email', t)}
-            />
-
-            {/* Subject */}
-            <Text style={s.formFieldLabel}>
-              Subject <Text style={s.formRequiredStar}>*</Text>
-            </Text>
-            <SubjectPicker value={selectedSubject} onChange={setSelectedSubject} />
-
-            {/* Message */}
-            <Text style={[s.formFieldLabel, s.formFieldLabelSpacingTop]}>
-              Message <Text style={s.formRequiredStar}>*</Text>
-            </Text>
-            <TextInput
-              style={[s.formTextInput, s.formTextArea]}
-              placeholder="Write your message here..."
-              placeholderTextColor="#9ca3af"
-              multiline
-              numberOfLines={5}
-              value={formData.message}
-              onChangeText={(t) => updateFormField('message', t)}
-            />
-
-            <TouchableOpacity
-              style={s.formSubmitButton}
-              onPress={handleFormSubmit}
-              activeOpacity={0.88}
-            >
-              <Text style={s.formSubmitButtonText}>✈️  Send Message</Text>
-            </TouchableOpacity>
           </View>
 
-          {/* ── FAQ ── */}
-          <View style={s.faqCard}>
-            <SectionDivider label="COMMON QUESTIONS" />
-            <Text style={s.faqCardHeading}>Frequently Asked Questions</Text>
+          {/* FAQ + Contact Form Section - Equal Height */}
+          <View style={s.bottomSection}>
+            {/* Left Side - FAQ */}
+            <View style={s.faqColumn}>
+              <View style={s.faqCard}>
+                <Text style={s.sectionTitle}>{contactCopy.faqTitle}</Text>
+                <View style={s.faqList}>
+                  {faqs.map((faq, idx) => {
+                    const isOpen = openFaq === idx;
+                    return (
+                      <TouchableOpacity 
+                        key={idx} 
+                        style={[s.faqItem, isOpen && s.faqItemOpen]} 
+                        onPress={() => setOpenFaq(isOpen ? null : idx)} 
+                        activeOpacity={0.85}
+                      >
+                        <View style={s.faqHeader}>
+                          <Text style={s.faqQ} numberOfLines={isOpen ? undefined : 2}>
+                            {faq.q}
+                          </Text>
+                          <View style={[s.faqToggle, isOpen && s.faqToggleActive]}>
+                            <Text style={s.faqToggleText}>{isOpen ? '−' : '+'}</Text>
+                          </View>
+                        </View>
+                        {isOpen && <Text style={s.faqA}>{faq.a}</Text>}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
 
-            <View style={s.faqListContainer}>
-              {faqs.map((faq, idx) => {
-                const isExpanded = openFaqIndex === idx;
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[s.faqAccordionItem, isExpanded && s.faqAccordionItemExpanded]}
-                    onPress={() => setOpenFaqIndex(isExpanded ? null : idx)}
-                    activeOpacity={0.85}
-                  >
-                    <View style={s.faqAccordionHeader}>
-                      <Text style={s.faqQuestionText}>
-                        <Text style={s.faqQuestionPrefix}>Q.  </Text>
-                        {faq.question}
-                      </Text>
-                      <View style={[s.faqToggleButton, isExpanded && s.faqToggleButtonExpanded]}>
-                        <Text style={[s.faqToggleIcon, isExpanded && s.faqToggleIconExpanded]}>
-                          {isExpanded ? '−' : '+'}
-                        </Text>
-                      </View>
-                    </View>
-                    {isExpanded && (
-                      <Text style={s.faqAnswerText}>
-                        <Text style={s.faqAnswerPrefix}>A.  </Text>
-                        {faq.answer}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+            {/* Right Side - Contact Form (Same height as FAQ) */}
+            <View style={s.formColumn}>
+              <View style={s.formCard}>
+                <Text style={s.formTitle}>{contactCopy.formTitle}</Text>
+                <Text style={s.formSubtitle}>{contactCopy.formSubtitle}</Text>
+
+                <Text style={s.label}>{contactCopy.fullName} <Text style={s.required}>*</Text></Text>
+                <TextInput 
+                  style={s.input} 
+                  placeholder={contactCopy.namePlaceholder}
+                  placeholderTextColor="#9ca3af" 
+                  value={form.name} 
+                  onChangeText={(t) => updateField('name', t)} 
+                />
+
+                <Text style={s.label}>{contactCopy.phone}</Text>
+                <TextInput 
+                  style={s.input} 
+                  placeholder={contactCopy.phonePlaceholder}
+                  placeholderTextColor="#9ca3af" 
+                  keyboardType="phone-pad" 
+                  value={form.phone} 
+                  onChangeText={(t) => updateField('phone', t)} 
+                />
+
+                <Text style={s.label}>{contactCopy.emailAddress} <Text style={s.required}>*</Text></Text>
+                <TextInput 
+                  style={s.input} 
+                  placeholder={contactCopy.emailPlaceholder}
+                  placeholderTextColor="#9ca3af" 
+                  keyboardType="email-address" 
+                  autoCapitalize="none" 
+                  value={form.email} 
+                  onChangeText={(t) => updateField('email', t)} 
+                />
+
+                <Text style={s.label}>{contactCopy.subject} <Text style={s.required}>*</Text></Text>
+                <SubjectPicker value={selectedSubject} onChange={setSelectedSubject} subjects={subjects} contactCopy={contactCopy} />
+
+                <Text style={s.label}>{contactCopy.message} <Text style={s.required}>*</Text></Text>
+                <TextInput 
+                  style={[s.input, s.textarea]} 
+                  placeholder={contactCopy.messagePlaceholder}
+                  placeholderTextColor="#9ca3af" 
+                  multiline 
+                  numberOfLines={4} 
+                  value={form.message} 
+                  onChangeText={(t) => updateField('message', t)} 
+                />
+
+                <TouchableOpacity style={s.submitBtn} onPress={handleSubmit}>
+                  <Text style={s.submitBtnText}>{contactCopy.sendMessage}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-
         </View>
 
         <AppFooter navigation={navigation} />
@@ -473,522 +334,369 @@ export default function ContactScreen({ navigation }) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
-const ORANGE = '#f97316';
-const ORANGE_LIGHT = '#fff7ed';
-const ORANGE_BORDER = '#fdba74';
-const DARK = '#111827';
-const MUTED = '#6b7280';
-const SUBTLE = '#9ca3af';
-const BORDER = '#e5e7eb';
-const SURFACE = '#ffffff';
-const PAGE_BG = '#f1f5f9';
-const INPUT_BG = '#f9fafb';
-
 const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f5f7fa' },
 
-  // ── Root Layout ──
-  screenRoot: {
-    flex: 1,
-  },
-  scrollArea: {
-    flex: 1,
-    backgroundColor: PAGE_BG,
-  },
-  pageBody: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 12,
-  },
-
-  // ── Hero Banner ──
-  heroBanner: {
-    backgroundColor: ORANGE,
-    paddingHorizontal: 24,
-    paddingTop: 36,
-    paddingBottom: 28,
-    alignItems: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  heroGlowTopRight: {
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  heroGlowBottomLeft: {
-    position: 'absolute',
-    bottom: -60,
-    left: -30,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  heroPill: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  heroPillText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  heroHeading: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: '900',
-    marginBottom: 10,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  heroTagline: {
-    color: '#fed7aa',
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 300,
-    marginBottom: 24,
-  },
-  heroStatStrip: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    width: '100%',
-  },
-  heroStatItem: {
-    flex: 1,
+  // Smaller Hero Section - No Curves
+  hero: { 
+    backgroundColor: '#1a2c3e', 
+    paddingVertical: 32, 
+    paddingHorizontal: 24, 
     alignItems: 'center',
   },
-  heroStatValue: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 2,
-  },
-  heroStatLabel: {
-    color: '#fed7aa',
-    fontSize: 10,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  heroStatDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-
-  // ── Contact Info Cards ──
-  contactInfoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
-    backgroundColor: SURFACE,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: BORDER,
-    ...cardElevation,
-  },
-  contactInfoIconBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
+  heroContent: {
     alignItems: 'center',
-    justifyContent: 'center',
+    maxWidth: 700,
   },
-  contactInfoIconEmoji: {
-    fontSize: 22,
-  },
-  contactInfoTextBlock: {
-    flex: 1,
-  },
-  contactInfoCardTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: DARK,
-    marginBottom: 5,
-    letterSpacing: -0.2,
-  },
-  contactInfoLine: {
-    fontSize: 13,
-    color: MUTED,
-    lineHeight: 20,
-  },
-  contactInfoCityText: {
-    fontSize: 13,
-    color: DARK,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  contactInfoEmptyText: {
-    fontSize: 13,
-    color: '#d1d5db',
-    fontStyle: 'italic',
-  },
-  contactInfoPrimaryText: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  contactInfoSecondaryText: {
+  heroBadge: {
     fontSize: 11,
-    color: SUBTLE,
-    marginTop: 3,
-  },
-  contactInfoArrowBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-  },
-  contactInfoArrow: {
-    fontSize: 16,
     fontWeight: '700',
+    letterSpacing: 2,
+    color: '#ffffff',
+    marginBottom: 12,
+    textTransform: 'uppercase',
   },
-
-  // ── Map Card ──
-  mapCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    ...cardElevation,
-  },
-  mapCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  mapCardAccentBar: {
-    width: 4,
-    height: 22,
-    backgroundColor: ORANGE,
-    borderRadius: 3,
-    marginRight: 10,
-  },
-  mapCardTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: DARK,
+  heroTitle: { 
+    color: '#ffffff', 
+    fontSize: 36, 
+    fontWeight: '700', 
+    marginBottom: 12, 
+    textAlign: 'center',
     letterSpacing: -0.3,
   },
-  mapCardSubtitle: {
-    fontSize: 12,
-    color: MUTED,
-    marginBottom: 14,
-    marginLeft: 14,
-  },
-  mapFrame: {
-    height: 230,
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  mapEmbedWrapper: {
-    flex: 1,
-    height: 230,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#f3f4f6',
-  },
-  mapWebView: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  getDirectionsButton: {
-    marginTop: 14,
-    backgroundColor: ORANGE,
-    borderRadius: 28,
-    paddingVertical: 13,
-    alignItems: 'center',
-  },
-  getDirectionsButtonText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 0.3,
+  heroSub: { 
+    color: '#5a6e8a', 
+    fontSize: 14, 
+    textAlign: 'center', 
+    lineHeight: 22,
+    maxWidth: 500,
+    fontWeight: '400',
   },
 
-  // ── Section Divider ──
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: ORANGE,
-    opacity: 0.35,
-  },
-  dividerLabel: {
-    color: ORANGE,
-    fontWeight: '800',
-    fontSize: 10,
-    letterSpacing: 1.4,
-  },
-
-  // ── Form Card ──
-  formCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    ...cardElevation,
-  },
-  formCardHeading: {
-    color: DARK,
-    fontWeight: '900',
-    fontSize: 22,
-    textAlign: 'center',
-    marginBottom: 6,
-    letterSpacing: -0.5,
-  },
-  formCardSubheading: {
-    color: MUTED,
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  formTwoColumnRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  formColumn: {
-    flex: 1,
-  },
-  formFieldLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 7,
-    marginTop: 6,
-  },
-  formFieldLabelSpacingTop: {
-    marginTop: 14,
-  },
-  formRequiredStar: {
-    color: '#ef4444',
-  },
-  formTextInput: {
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 13,
-    color: DARK,
-    backgroundColor: INPUT_BG,
-    marginBottom: 12,
-  },
-  formTextArea: {
-    height: 130,
-    textAlignVertical: 'top',
-  },
-  formSubmitButton: {
-    backgroundColor: ORANGE,
-    borderRadius: 28,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 14,
+  body: { 
+    paddingHorizontal: 8, 
+    paddingTop: 32, 
+    paddingBottom: 16,
+    maxWidth: 1400,
     alignSelf: 'center',
-    paddingHorizontal: 48,
-  },
-  formSubmitButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    width: '100%'
   },
 
-  // ── Subject Picker ──
-  pickerTrigger: {
+  // Map + Details Section - Side by Side
+  mapDetailsSection: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 20,
+    marginBottom: 40,
+  },
+  
+  // Left Column - Map
+  mapColumn: {
+    flex: 1,
+    minWidth: 300,
+  },
+  mapCard: {
+    backgroundColor: '#fff',
+    borderRadius: 5,
     borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: INPUT_BG,
-    marginBottom: 4,
+    borderColor: '#e2e8f0',
+    overflow: 'hidden',
+    height: '100%',
+    ...cardShadow,
   },
-  pickerTriggerText: {
-    fontSize: 13,
-    color: DARK,
-    flex: 1,
-  },
-  pickerPlaceholderText: {
-    color: SUBTLE,
-  },
-  pickerChevron: {
-    fontSize: 16,
-    color: MUTED,
-    marginLeft: 8,
-  },
-
-  // ── Subject Picker Modal ──
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.48)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalSheet: {
-    backgroundColor: SURFACE,
-    borderRadius: 18,
-    padding: 8,
-    width: '100%',
-    maxWidth: 400,
-    ...modalElevation,
-  },
-  modalSheetTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: DARK,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-    marginBottom: 4,
-    letterSpacing: -0.2,
-  },
-  modalOptionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginHorizontal: 4,
-  },
-  modalOptionRowSelected: {
-    backgroundColor: ORANGE_LIGHT,
-  },
-  modalOptionLabel: {
-    fontSize: 13,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  modalOptionLabelSelected: {
-    color: ORANGE,
-    fontWeight: '700',
-  },
-  modalOptionCheckmark: {
-    color: ORANGE,
-    fontWeight: '800',
-    fontSize: 15,
-  },
-
-  // ── FAQ Card ──
-  faqCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 18,
+  mapHeader: {
     padding: 20,
-    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#fafbfc',
+  },
+  mapTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a2c3e',
+    marginBottom: 4,
+  },
+  mapSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  mapContainer: {
+    height: 380,
+    backgroundColor: '#f1f5f9',
+  },
+  directionBtn: {
+    backgroundColor: '#2c3e50',
+    borderRadius: 5,
+    paddingVertical: 14,
+    alignItems: 'center',
+    margin: 16,
+  },
+  directionBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
+  // Right Column - Contact Details
+  detailsColumn: {
+    flex: 1,
+    minWidth: 300,
+  },
+  detailsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 5,
     borderWidth: 1,
-    borderColor: BORDER,
-    ...cardElevation,
+    borderColor: '#e2e8f0',
+    padding: 24,
+    height: '100%',
+    ...cardShadow,
   },
-  faqCardHeading: {
-    color: DARK,
-    fontWeight: '900',
-    fontSize: 22,
-    textAlign: 'center',
-    marginBottom: 18,
-    letterSpacing: -0.5,
+  detailsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a2c3e',
+    marginBottom: 24,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
   },
-  faqListContainer: {
-    gap: 10,
+  detailRow: {
+    marginBottom: 24,
   },
-  faqAccordionItem: {
+  detailContent: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  detailValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a2c3e',
+    marginBottom: 4,
+    lineHeight: 24,
+  },
+  detailSub: {
+    fontSize: 12,
+    color: '#94a3b8',
+  },
+
+  // Bottom Section - FAQ + Form (Equal Height)
+  bottomSection: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+  },
+  
+  // Left Column - FAQ (Larger items)
+  faqColumn: {
+    flex: 1.5,
+    minWidth: 320,
+  },
+  faqCard: {
+    backgroundColor: '#fff',
+    borderRadius: 5,
     borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 14,
-    padding: 16,
-    backgroundColor: '#fafafa',
+    borderColor: '#e2e8f0',
+    padding: 24,
+    height: '100%',
+    ...cardShadow,
   },
-  faqAccordionItemExpanded: {
-    borderColor: ORANGE_BORDER,
-    backgroundColor: ORANGE_LIGHT,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a2c3e',
+    marginBottom: 24,
   },
-  faqAccordionHeader: {
+  faqList: {
+    gap: 16,
+  },
+  faqItem: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 5,
+    padding: 20,
+    backgroundColor: '#fafbfc',
+  },
+  faqItemOpen: {
+    borderColor: '#2c3e50',
+    backgroundColor: '#fff',
+  },
+  faqHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: 12,
   },
-  faqQuestionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: DARK,
+  faqQ: {
     flex: 1,
-    lineHeight: 21,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a2c3e',
+    lineHeight: 22,
   },
-  faqQuestionPrefix: {
-    color: ORANGE,
-    fontWeight: '800',
-  },
-  faqToggleButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#f3f4f6',
+  faqToggle: {
+    width: 28,
+    height: 28,
+    borderRadius: 5,
+    backgroundColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-  faqToggleButtonExpanded: {
-    backgroundColor: ORANGE,
+  faqToggleActive: {
+    backgroundColor: '#2c3e50',
   },
-  faqToggleIcon: {
+  faqToggleText: {
     fontSize: 18,
-    color: MUTED,
-    fontWeight: '800',
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  faqA: {
+    fontSize: 14,
+    color: '#475569',
     lineHeight: 22,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
   },
-  faqToggleIconExpanded: {
-    color: '#fff',
+
+  // Right Column - Contact Form (Same Height as FAQ)
+  formColumn: {
+    flex: 1,
+    minWidth: 300,
   },
-  faqAnswerText: {
+  formCard: {
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 24,
+    height: '100%',
+    ...cardShadow,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a2c3e',
+    marginBottom: 8,
+  },
+  formSubtitle: {
     fontSize: 13,
-    color: '#4b5563',
-    lineHeight: 21,
-    marginTop: 12,
-    paddingLeft: 4,
+    color: '#64748b',
+    marginBottom: 24,
+    lineHeight: 18,
   },
-  faqAnswerPrefix: {
-    color: '#16a34a',
-    fontWeight: '800',
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 6,
+    marginTop: 8,
+  },
+  required: {
+    color: '#ef4444',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#1a2c3e',
+    backgroundColor: '#fafbfc',
+    marginBottom: 8,
+  },
+  textarea: {
+    height: 110,
+    textAlignVertical: 'top',
+  },
+  pickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#fafbfc',
+    marginBottom: 8,
+  },
+  pickerBtnText: {
+    fontSize: 14,
+    color: '#1a2c3e',
+    flex: 1,
+  },
+  pickerArrow: {
+    fontSize: 14,
+    color: '#64748b',
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    padding: 8,
+    width: '100%',
+    maxWidth: 380,
+    ...modalShadow,
+  },
+  modalTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a2c3e',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 5,
+  },
+  modalOptionActive: {
+    backgroundColor: '#f0f9ff',
+  },
+  modalOptionText: {
+    fontSize: 13,
+    color: '#334155',
+  },
+  modalOptionTextActive: {
+    color: '#2c3e50',
+    fontWeight: '600',
+  },
+  modalCheck: {
+    color: '#2c3e50',
+    fontWeight: '700',
+  },
+  submitBtn: {
+    backgroundColor: '#2c3e50',
+    borderRadius: 5,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  submitBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

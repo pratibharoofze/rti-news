@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useWindowDimensions } from 'react-native';
-import AppHeader from '../components/AppHeader';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
 import WebLayout from '../components/WebLayout';
+import { useLanguage } from '../contexts/LanguageContext';
+import { getSiteCopy } from '../constants/siteCopy';
 
 import {
   View,
@@ -11,28 +11,27 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Linking,
   Platform,
 } from 'react-native';
 
 const contentsItems = [
-  "What is the procedure to apply for information?",
-  "How much time and fee is required to obtain information?",
-  "What are the reasons for denying information?",
-  "How to apply for information?",
+  "What is the method to apply for information?",
+  "How much time does it take to get information and what is the fee?",
+  "What can be the reasons for denial of information?",
+  "How to file an application to obtain information?",
   "Frequently Asked Questions?",
   "FAQs about complaint filing procedures?",
   "FAQs about writing RTI application?",
-  "Public Information Officer's duties and responsibilities?",
+  "Public Information Officer duties and responsibilities?",
 ];
 
 const faqData = [
   {
     id: 1,
-    question: "What is the procedure to apply for information?",
+    question: "What is the method to apply for information?",
     answer: [
-      "Submit a typed or handwritten application in English, Hindi, or the official language of the concerned state, addressed to the Public Information Officer. Clearly specify the information you are seeking.",
-      "You do not need to provide a reason for requesting the information. Only pay the prescribed fee if you are not below the poverty line.",
+      "Application should be typed or handwritten in English, Hindi, or the official language of that state in the name of the Information Officer, requesting the desired information.",
+      "You don't need to give a reason for requesting the information; just pay the prescribed fee (unless you are below the poverty line).",
     ],
   },
   {
@@ -40,176 +39,175 @@ const faqData = [
     question: "How much time does it take to get information?",
     answer: [
       "Within 30 days from the date of application.",
-      "For information related to a person's liberty or life: 48 hours. If the application is submitted to the Assistant Public Information Officer, add 5 more days to the above period.",
-      "If third-party interests are involved, the time limit can extend up to 40 days (maximum time + time given to the third party to represent). Failure to provide information within the stipulated time shall be deemed as a refusal.",
+      "48 hours for information related to a person's liberty or life and death. If the application is made to the Assistant Information Officer, add 5 more days to the above period.",
+      "If third-party interests are involved, the period can extend to 40 days (maximum time + time given for representation). Failure to provide information within the given period is considered a denial.",
     ],
   },
   {
     id: 3,
     question: "What is the fee for this?",
     answer: [
-      "A prescribed application fee is required. If additional fees are necessary, they will be charged in writing with a proper accounting. The applicant can request the PIO to reconsider the fee charged. No fee shall be charged from Below Poverty Line (BPL) individuals. If the PIO fails to provide information within the prescribed time, the information must be provided free of charge.",
+      "The prescribed application fee should be as determined. If additional fees are required, they will be charged in writing with full accounting. The applicant can request a reconsideration of the fee charged from the Information Officer. No fee will be charged from people below the poverty line. If the Information Officer fails to provide information within the prescribed time, they must provide it free of cost.",
     ],
   },
   {
     id: 4,
-    question: "What are the reasons for refusing information?",
+    question: "What can be the reasons for denial of information?",
     answer: [
       "Information whose disclosure is prohibited.",
-      "(Section 8) Information falling under someone else's copyright, excluding the state.",
-      "(Section 9) How to apply for information? - Frequently Asked Questions about complaint filing procedures and frequently asked questions about writing RTI applications.",
+      "(S.8) If the information falls under someone else's copyright other than the state.",
+      "(S.9) How to apply for information - FAQs about complaint filing procedures.",
     ],
   },
   {
     id: 5,
     question: "Where and how can I file a complaint?",
     answer: [
-      "For complaints regarding Public Authorities under the Central Government, approach the Central Information Commission (CIC). CIC Address: August Kranti Bhawan, Bhikaji Kama Place, New Delhi - 110066. Website: www.cic.gov.in. For state government public authorities, contact the State Information Commission (SIC).",
-      "Complaints regarding state government public authorities should be filed with the respective State Information Commission. Simultaneously, making efforts for mediation at the level of Secretary/Chief Secretary or the head of the concerned organization/department in the state capital can be beneficial for obtaining information.",
-      "After filing a complaint, verify its registration on the respective website, note the registration number, and track its current status. Send a copy of your complaint to the Public Information Officer/First Appellate Authority along with the Central/State Information Commission. A complaint is additional to the second/final appeal available to applicants.",
+      "For complaints related to Central Government public authorities, you can approach the Central Information Commission (CIC). CIC address: August Kranti Bhawan, Bhikaji Kama Place, New Delhi 110066, website: www.cic.gov.in. For state government public authorities, contact the State Information Commission (SIC).",
+      "Complaints related to state government public authorities should be filed with the respective State Information Commission. Additionally, it is beneficial to try mediation at the Secretary/Chief Secretary level with the head of the concerned organization or government department in the state capital.",
+      "After filing a complaint, ensure its registration on the relevant website, check the registration number and current status. Also send a copy of your complaint to the Public Information Officer/First Appellate Authority along with the Central/State Information Commission. Complaint is additional along with second/final appeal available to applicants.",
     ],
   },
   {
     id: 6,
-    question: "Are there prescribed formats for complaints? What can be asked in a complaint?",
+    question: "Are there prescribed formats for filing complaints? What can be asked in a complaint?",
     answer: [
-      "For complaints regarding Public Authorities under the Central Government, approach the Central Information Commission (CIC). CIC Address: August Kranti Bhawan, Bhikaji Kama Place, New Delhi - 110066. Website: www.cic.gov.in. For state government public authorities, contact the State Information Commission (SIC).",
-      "Complaints regarding state government public authorities should be filed with the respective State Information Commission. Simultaneously, making efforts for mediation at the level of Secretary/Chief Secretary or the head of the concerned organization/department in the state capital can be beneficial for obtaining information.",
-      "After filing a complaint, verify its registration on the respective website, note the registration number, and track its current status.",
-      "Send a copy of your complaint to the Public Information Officer/First Appellate Authority along with the Central/State Information Commission.",
-      "A complaint is additional to the second/final appeal available to applicants.",
+      "For complaints related to Central Government public authorities, you can approach the Central Information Commission (CIC). CIC address: August Kranti Bhawan, Bhikaji Kama Place, New Delhi 110066, website: www.cic.gov.in. For state government public authorities, contact the State Information Commission (SIC).",
+      "Complaints related to state government public authorities should be filed with the respective State Information Commission. Additionally, it is beneficial to try mediation at the Secretary/Chief Secretary level with the head of the concerned organization or government department in the state capital.",
+      "After filing a complaint, ensure its registration on the relevant website, check the registration number and current status.",
+      "Also send a copy of your complaint to the Public Information Officer/First Appellate Authority along with the Central/State Information Commission.",
+      "Complaint is additional along with second/final appeal available to applicants.",
     ],
   },
   {
     id: 7,
     question: "Are there prescribed formats for filing complaints? What can be asked in a complaint?",
     answer: [
-      "The CIC and some SICs have prescribed formats for certain minimum information or documents. Attaching these with the complaint is essential.",
-      "Some State Commissions have made it mandatory to file complaints in a prescribed format. Under this Act, you can also request punishment for the PIO/First Appellate Authority and claim compensation for delay in receiving information. If the desired information pertains to life and liberty, explicitly write 'Life and Liberty - Urgent' on the complaint to ensure priority and timely resolution. If the State Information Commission has email available, it is beneficial to follow up through it.",
+      "CIC and some SICs have prescribed formats for minimum information or documents. Attaching these with the complaint is necessary.",
+      "Some State Commissions have made it mandatory to file complaints in prescribed format. Under this law, you can also demand punishment for the Public Information Officer/First Appellate Authority as well as claim compensation for not receiving information on time. If the desired information pertains to life and liberty, clearly write 'Life and liberty - urgent' on the complaint so that it gets prioritized and resolved on time. If the State Information Commission has email available, it is beneficial to follow up through it.",
     ],
   },
   {
     id: 8,
     question: "Do I have to pay any fee for filing a complaint?",
     answer: [
-      "The Central Information Commission does not charge any fee for complaints. Some State Commissions charge a fee.",
-      "There is no time limit for filing a complaint, but it is best to file it within a reasonable period from when the cause of action arose.",
+      "The Central Information Commission does not charge any fee for complaints. Some State Commissions charge fees for this.",
+      "There is no time limit for filing a complaint, but it is best to file the complaint within a reasonable period from the occurrence of the cause of the complaint.",
     ],
   },
   {
     id: 9,
     question: "What response will I get to my complaint?",
     answer: [
-      "Sometimes, before the matter goes to the Central or State Information Commission, your complaint is resolved by the Public Information Officer/First Appellate Authority.",
-      "Information Commissions have powers to issue summons, compel attendance before the court, present evidence on oath, submit records, etc.",
-      "PIOs/First Appellate Authorities are flooded with appeals and complaints, leading to a large number of pending cases. It may take 12 to 36 months for your complaint to be heard.",
+      "Sometimes, even before the matter goes to the Central or State Information Commission, your complaint is resolved by the Public Information Officer/First Appellate Authority.",
+      "Information Commissions have been given powers regarding sending summons, compelling appearance before court, submitting evidence on oath, presenting records, etc.",
+      "Public Information Officers/First Appellate Authorities are flooded with appeals and complaints, leading to a large number of pending cases. It may take 12 to 36 months for your complaint to be heard.",
     ],
   },
   {
     id: 10,
     question: "What are the guidelines for writing an application? - OR - How to write an application?",
     answer: [
-      "It is very important to frame your questions correctly when filing an RTI application. Irrelevant or misleading questions give the PIO an opportunity to reject your application. Follow these guidelines:",
-      "Use plain white paper to write the application. There is no need to use ruled paper or court fee stamps.",
-      "You can write manually or type. Typing is not mandatory.",
-      "Write legibly.",
-      "There is no page limit.",
-      "You can ask any number of questions in one application. However, it is always better to ask fewer questions and ensure they are related to each other.",
-      "You can ask very short questions. But do not request a huge volume of information at once. Your name and signature are required on the application. You do not need to write your designation because every citizen has the right to information.",
-      "Do not ask 'Why' questions (questions asking for reasons). Such questions are likely to be rejected on the grounds of falling outside the RTI Act's scope.",
-      "For example, a question like 'Why did you not approve this resolution?' will certainly be rejected. Under Section 4(1)(d), if you are an 'affected person', you may ask for reasons behind 'administrative' or 'quasi-judicial' decisions.",
-      "If you are requesting a large volume of information, ask for it on a CD to reduce costs. Remember, you do not need to state a reason for requesting the information.",
-      "At the end of your application, provide details of the fee paid. For example: BC/DD/IPO number, issuing bank/post office, date, cash receipt details, etc.",
+      "Properly framing questions while filing an RTI application is very important. Irrelevant or misleading questions give the Public Information Officer an opportunity to reject your application. Use the following guidelines -",
+      "Use simple white paper to write the application. There's no need to use ruled paper or court stamp.",
+      "You can write the text by hand or type it. There's no compulsion to type the text.",
+      "Write the application in legible handwriting.",
+      "No limit on number of pages.",
+      "You can ask any number of questions in one application. But it's always better to ask fewer questions and ensure the questions in one application are related to each other.",
+      "You can ask very short questions. But don't request a very large amount of information at once. Your name and signature must be on the application. You don't need to write your designation because every citizen has the right to information.",
+      "Don't ask 'why' questions, i.e., questions asking for reasons. Such questions are likely to be rejected on the grounds that they don't fall under the purview of RTI.",
+      "For example, 'Why didn't you approve this resolution?' is sure to be rejected. Do ask for reasons behind 'administrative' or 'quasi-judicial' decisions taken under Section 4(1)(d), if you are an 'affected person'.",
+      "If you are requesting a large amount of information, ask for it on a CD to reduce costs. Remember, you don't need to provide a reason for requesting information.",
+      "At the end of your application, provide details of the fee paid. For example: BC/DD/Indian Postal Order number, issuing bank or post office, date, details of cash receipt, etc.",
     ],
   },
   {
     id: 11,
     question: "In whose name should the application be made?",
     answer: [
-      "Write the name and address of the Public Information Officer to whom you wish to apply. If you do not know the location of the concerned PIO/Assistant PIO, you can send your application with the prescribed fee to the concerned department, addressed as 'Public Information Officer, C/o Head of Department'.",
-      "This application will then be forwarded by the Head of Department to the concerned PIO. Do not write a specific PIO's name on your application, as transfer of that officer might cause procedural delays.",
+      "Write the name, address, etc. of the Public Information Officer to whom you wish to apply. If you don't know the location of your concerned Public Information Officer/Assistant Public Information Officer, you can send your application to the concerned department, with appropriate fee, addressing it to 'Public Information Officer, through Department Head'.",
+      "This application will be forwarded from the department head to the concerned Public Information Officer. Don't write the name of any specific Public Information Officer on your application, as processing could be hindered if that particular officer has been transferred elsewhere.",
     ],
   },
   {
     id: 12,
-    question: "Are the application procedure, rules, and fees different for each state?",
+    question: "Are the application methods, rules, and fees different for each state?",
     answer: [
-      "Public Authorities under Central and State Governments, Legislatures, and Supreme/High Courts have prescribed different rules for the Right to Information. The fee amount and payment method may vary by state, and it is essential to check the proper rules applicable to you.",
-      "A person can pay the application fee through the following methods:",
-      "- Paying cash in person (ensure you get a receipt of payment)",
-      "- Through the Post Office via: Demand Draft/Banker's Cheque, Indian Postal Order, Money Order (only in some states), Court Fee Stamps (only in some states)",
-      "Some states have opened specific accounts for this purpose. You must deposit your fee into that account. You can do this by going to any State Bank of India branch, depositing the money into that specific account, and attaching the receipt to your application. Alternatively, you can send a Postal Order or Demand Draft drawn in the name of that account along with your application.",
-      "For Central Public Authorities under the Central Information Rules, the Department of Posts has communicated that BC/DD/Indian Postal Order can be drawn in the name of the 'Accounts Officer'.",
+      "Central and state government public authorities, legislatures, and Supreme/High Courts have established different rules for RTI. The fee amount and payment method may vary by state, and you need to check the applicable rules for yourself.",
+      "A person can pay the application fee through:",
+      "- Paying cash in person (remember to take a receipt)",
+      "- Through post office via: Demand Draft/Banker's Check, Indian Postal Order, Money Order (only in some states), Court Fee Stamp (only in some states)",
+      "Some states have opened specific accounts for this purpose. You need to deposit your fee in that account by visiting any State Bank of India branch and attach the receipt to your application, OR you can send a Postal Order or Demand Draft drawn in the name of that account with your application.",
+      "The Post and Telegraph Department has informed that for public authorities under Central RTI Rules, BC/DD/Indian Postal Order can be drawn in the name of 'Accounts Officer'.",
     ],
   },
   {
     id: 13,
-    question: "How to write the first appeal under the RTI Act?",
+    question: "How to write the first appeal under RTI?",
     answer: [
-      "Follow these guidelines when writing the first appeal under the RTI Act 2005:",
+      "Follow these guidelines while writing the first appeal under RTI Act 2005 -",
       "The applicant must file the first appeal with the First Appellate Authority within 30 days of receiving the CPIO's decision.",
-      "If no response is received from CPIO within 30 days (or 35 days if application was made to ACPIO) from the date of acknowledgement by CPIO/ACPIO, the applicant must file the first appeal within 30 days from the expected date of receiving the response.",
-      "You can obtain the name, designation, and address of the First Appellate Authority from the letter containing the CPIO's decision.",
-      "If no response is received, visit the concerned government department/office/public undertaking's website and refer to the RTI logo for these details.",
-      "If despite all efforts you cannot find the First Appellate Authority's details, address your first appeal as follows: 'First Appellate Authority under RTI Act 2005, C/o Head of Department/Office (also mention the address of the head PIO of the department/office)'.",
-      "If you wish to remain present during the hearing of the first appeal, mention this at the end of your appeal.",
-      "No fee is charged for first appeals concerning Public Authorities under the Central Government.",
-      "Some states charge a fee and also require the application to be in a specific format. The applicant must 'attest' all photocopies of annexures mentioned in the appeal by writing 'attested' and putting their full signature underneath.",
-      "Keep a set of appeal, postal receipts, registered post acknowledgement, etc. with yourself. You can submit these documents personally, but sending via Registered Post or Speed Post is better. Avoid using private couriers.",
-      "The First Appellate Authority is expected to decide within 30 days of receiving the first appeal. If valid reasons are provided in writing, this can be extended by 15 more days (total 45 days). The First Appellate Authority can give their order in writing or orally.",
+      "If no response is received from CPIO within 30 days from the date of acknowledgment by CPIO or ACPIO (or 35 days if application was made to ACPIO), the applicant must file the first appeal within 30 days from the expected date of receiving a response.",
+      "You can get the name, designation, and address of the First Appellate Authority from the CPIO's decision letter.",
+      "If you receive no response, visit the website of the concerned government department/office/undertaking and refer to the RTI logo for these details.",
+      "If you still cannot get the details of the First Appellate Authority, address your first appeal as: First Appellate Authority under RTI Act 2005, through -------- Department Head/Office (also mention the address of the Chief Public Information Officer of the department/office)",
+      "If you wish to be present during the hearing of the first appeal, mention this at the end of your appeal.",
+      "No fee is charged for first appeals related to public authorities under the Central Government.",
+      "Some states charge fees and require applications in specific formats. The applicant must 'attest' all copies of annexures mentioned in the appeal by writing 'attested' and signing fully underneath, and thus self-attest them.",
+      "Keep one set of the appeal, postal receipts, registered post acknowledgment, etc., with yourself. You can also deliver these documents in person, but sending by registered post or speed post is better. Avoid sending through private courier.",
+      "The First Appellate Authority is expected to decide within 30 days of receiving the first appeal. If valid reasons are provided in writing, they may get 15 more days, totalling 45 days. The First Appellate Authority can give their order in writing or orally.",
     ],
   },
   {
     id: 14,
-    question: "How to file the second appeal under the RTI Act?",
+    question: "How to file a second appeal under RTI?",
     answer: [
-      "Fill the appeal form given below, along with the index and timeline of progress. Remove words like 'complaint/complainant' if filing an appeal. Remove words like 'second appeal/appellant' if filing a complaint. Get it typed in double spacing.",
-      "Make one photocopy each of: original RTI application with annexures, first appeal with annexures, bank DD/payslip/postal order/cash receipt for fee of Rs. 10/- and other fees paid, letter demanding fees from CPIO (if any), receipt of sending original application and first appeal by post, post acknowledgement/official receipt from CPIO and First Appellate Authority, decisions received from CPIO and First Appellate Authority (if any). Arrange all documents in order as per index and write page numbers in the top right corner of each page. This creates one set of the second appeal/complaint.",
-      "Make 4 more such sets after taking photocopies.",
-      "Sign each page of the appeal, index, and timeline table (for all five sets). Write 'attested' on all photocopies and sign below the word to make all copies 'self-attested'.",
-      "Send one set via Speed Post/Registered Post/Certificate of Posting to the CPIO and First Appellate Authority, and attach the copy of receipt (after filling details in index/timeline table) to the original set, the second appeal/complaint, and your own copy.",
-      "Send the original set and one additional copy via Registered AD Post to the Commission address: Registrar, Central Information Commission, 2nd Floor, August Kranti Bhawan, Bhikaji Kama Place, New Delhi - 110066.",
+      "Fill out the appeal form given below, also fill out the list and chronological progress chart. Remove the words complaint/complainant if filing an appeal. Remove the words second appeal/appellant if filing a complaint. Get it typed in double spacing.",
+      "Take one Xerox copy each of: Original RTI application, first appeal with annexures, application fee of Rs. 10 and other fees paid (Bank Demand Draft/pay slip/Postal Order/cash receipt), CPIO's fee demand letter (if any), postal receipt for sending original application and first appeal, postal acknowledgment/official receipt from CPIO and First Appellate Authority, decisions received from CPIO and First Appellate Authority (if any). Arrange all documents in order according to the list and write page numbers in the top right corner of each page. This will create one set for the second appeal/complaint.",
+      "Make 4 more such sets after taking Xerox copies.",
+      "Sign each page of the appeal, list, and sequence table (for all five sets). Write 'attested' on all Xerox copies and sign below that word to make all copies 'self-attested'.",
+      "Send one set by speed post/registered post/certificate of posting to the Chief Public Information Officer and First Appellate Authority, and attach the Xerox copy of the receipt (after filling details in the list/sequence table) to the original set, the second appeal/complaint, and your own copy.",
+      "Send the original set and one additional copy by registered AD post to the Commission at: Registrar, Central Information Commission, Second Floor, August Kranti Bhawan, Bhikaji Kama Place, New Delhi 110066.",
       "Avoid using private courier services.",
-      "Keep one set with yourself for reference, along with proof of sending and the acknowledgement received from Central Information Commission/CPIO/First Appellate Authority confirming receipt of the second appeal/complaint.",
-      "You may request the CIC to further investigate by sending a copy of the second appeal/complaint without annexures. You may also attach a photocopy of the Registered Post receipt.",
-      "While filing first or second appeal, you can also consult local NGOs, voluntary organizations, or individuals working on RTI matters. Such services are generally free.",
+      "Keep one set for your reference along with proof of sending and the acknowledgment received from Chief Information Commission/Chief Public Information Officer/First Appellate Authority.",
+      "You can request further investigation of this in the Chief Information Commission by sending one copy of the second appeal/complaint, without annexures. You can also attach a Xerox copy of the registered post receipt with it.",
+      "While filing first or second appeal, you can also consult local voluntary organizations, NGOs, or individuals working in the field of RTI. Such services are generally free.",
     ],
   },
   {
     id: 15,
     question: "Who can obtain information under the RTI Act?",
     answer: [
-      "Any Indian citizen can obtain information under this Act. This law applies throughout India except Jammu and Kashmir.",
-      "Indian citizens residing outside India, i.e., OCIs and PIOs (Persons of Indian Origin) with official cards can also obtain information under this Act.",
-      "OCIs and PIOs can file applications with the help of the local Indian Embassy/Consulate/High Commission. Information about the application fee in local currency and payment methods will be provided to them by the Indian Embassy/Consulate/High Commission.",
+      "Any Indian citizen can obtain information under this act. This law applies throughout India except Jammu and Kashmir.",
+      "Indian citizens living abroad, i.e., OCIs and Persons of Indian Origin (PIOs with official cards), can also obtain information under this act.",
+      "OCI and PIO category individuals can file applications with the help of the local Indian Embassy/Consulate/High Commission. They will be informed about the application fee in local currency and the payment method through the Indian Embassy/Consulate/High Commission.",
     ],
   },
   {
     id: 16,
     question: "How to file an RTI application?",
     answer: [
-      "To ensure your RTI application reaches the PIO and to obtain proof of submission, use one of these methods:",
-      "Submitting in person - Get a signature/stamp and date from the PIO or receipt section on your copy of the application and fee receipt.",
-      "Via Registered Post with AD - The AD card received from the Post Office is considered proof of submission. If the card lacks proper signature/stamp/date, follow up with the concerned post office.",
-      "Keep a printout of the delivery status.",
-      "Avoid using ordinary post or private courier services as you won't get reliable proof of delivery.",
-      "Example questions (add your own): Provide information about the daily progress of actions taken on my application/return/petition. E.g., when and which officer received my application, how long they had it, what action they took? Names and designations of all officers who did or did not take action on my application.",
-      "What action should be taken against these officers for not taking proper action on the application and causing public harassment? When should this action be taken? When will my work be completed?",
-      "Provide a list of RTI applications received after mine with the following details: Name of applicant/taxpayer/petitioner/receipt no., date of filing application/return/petition, date of disposal of application/return/petition. Provide a copy/printout of documents containing details of receipts of the above applications/returns/petitions. Provide information about applications/returns/petitions filed after mine but disposed of before mine, and clarify the reasons for their early disposal.",
+      "To ensure your RTI application reaches the Public Information Officer and to get proof of submission, use the following methods -",
+      "Delivering in person - In this case, get signature, stamp, and date on your copy of the application and fee receipt from the Public Information Officer or the incoming department.",
+      "By registered post, AD - The AD card received from the post office is considered proof of submission. However, if this card doesn't have proper signature, stamp, date, etc., follow up with the concerned post office.",
+      "Take a printout of the delivery status and preserve it.",
+      "Avoid using: Ordinary postal service, private courier services, as you won't get a reliable acknowledgment from them.",
+      "Example questions (you can add your own questions to these): Information about the daily progress of action taken on my application/return/petition should be provided to me. For example: When and to which officer did my application/return/petition reach, how many days was it with them, and what action did they take? Information about names and positions of all officers who did and did not take action on my application.",
+      "What action should be taken against these officers for not properly acting on the application and causing harassment to the public? When should this action be taken? By when will my work be completed?",
+      "Provide a list of RTI applications filed after mine with the following information: Applicant/taxpayer/petitioner name/receipt no., date of filing application/return/petition, date of disposal of application/return/petition, provide copy/printout of documents containing acknowledgment of the above application/return/petition. Provide information of applications/returns/petitions filed after mine but disposed before mine and clarify the reasons for their early disposal.",
     ],
   },
   {
     id: 17,
-    question: "When will the inquiry into the above matter commence?",
+    question: "When will the investigation of the above matter begin?",
     answer: [
-      "Maharashtra: Procedure for obtaining information under RTI via Post: Send a Demand Draft/Cheque of Rs. 10/- or Money Order or court fee stamp of that value in the name of the Public Authority/Government Office, addressed to the PIO.",
-      "In Person: You can submit the application to the PIO yourself or through another person, and pay the fee at their office.",
+      "Maharashtra: Method of obtaining information under RTI via post: Send a Demand Draft/Cheque of Rs. 10 in the name of the Public Authority/Government Office or make a Money Order or affix Court Fee Stamp of that value and send the application in the name of the Public Information Officer.",
+      "Personally: You can go yourself or send another person to submit the application to the Public Information Officer and pay this fee at their office.",
     ],
   },
 ];
 
-// CollapsibleLegalText component for the long legal paragraphs with light green background
-function CollapsibleLegalText({ children, id }) {
+function CollapsibleLegalText({ children, readMoreLabel, showLessLabel }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const previewLength = 500;
 
@@ -231,38 +229,39 @@ function CollapsibleLegalText({ children, id }) {
           style={styles.readMoreButton}
           onPress={() => setIsExpanded(!isExpanded)}
         >
-          {isExpanded ? "Show Less" : "Read More"}
+          {isExpanded ? showLessLabel : readMoreLabel}
         </Text>
       </Text>
     </View>
   );
 }
 
-// Place this OUTSIDE the component (before export default)
 const isWeb = Platform.OS === 'web';
 
 export default function RTIPage({ navigation }) {
+  const { language } = useLanguage();
+  const copy = getSiteCopy(language);
+  const rtiCopy = copy.rti;
   const [openId, setOpenId] = useState(null);
-  const { width } = useWindowDimensions();
 
   const toggle = (id) => setOpenId(openId === id ? null : id);
 
   const legalParagraphs = [
-    "- Office Delay Act: RNI No . MAHBIL / 2009 / 31745 Reg . No . MH / MR / South - 327 / 2013 - 15\n\nMaharashtra Government Gazette Extraordinary Part One: Middle Sub-Division - Year 5, Issue 36] Tuesday, November 19, 2013 / Kartik 28, Shaka 1935 Pages 22, Price: Rs. 12.00\n\nExtraordinary Number 61 Authorized Publication General Administration Department: Madam Cama Marg, Hutatma Rajguru Chowk, Mantralaya, Mumbai 400 032, Date 14 November 2013.\n\nNotification Maharashtra Government Servants' Regulation of Transfers and Prevention of Delay in Discharge of Official Duties Act, 2005: . . No POD - 1007 / P.C. No. 1 / 18 (R.V.Ka.).\n\nMaharashtra Government Servants' Regulation of Transfers and Prevention of Delay in Discharge of Official Duties Act, 2005 (Maharashtra 20 of 2006), using the powers conferred under Section 14, Sub-section (2) and all other powers enabling thereto, superseding all existing rules, orders or memoranda made in this behalf, the Government of Maharashtra hereby makes the following rules, as previously published as required under Section 14, Sub-section (1) of the said Act.",
-    "1. Short Title - (1) These rules may be called the Prevention of Delay in Discharge of Official Duties Rules, 2013. 2. *Definitions.* - In these rules, unless the context otherwise requires, (a) 'Act' means the Maharashtra Government Servants' Regulation of Transfers and Prevention of Delay in Discharge of Official Duties Act, 2005 (Maharashtra 21 of 2006). (b) 'Administrative Audit' means the mechanism prescribed by the Government to verify whether the final decision on a file or matter in any office or department has been properly submitted based on delegated powers, i.e., obtained after three levels, and whether the time limit prescribed under Section 10(1) of the Act has been complied with while deciding the matter and taking necessary action. (c) 'Pending Matter' means a matter where further action is to be taken after the stipulated period has elapsed. (1) 'Matter' means a received file or other related documents, references, correspondence, notes, etc., and their consolidated set.",
-    "2. Maharashtra Government Gazette, Extraordinary Part One - Middle Sub-Division, November 19, 2013 / Kartik 28, Shaka 1935* (d) 'Correspondence' means incoming and outgoing references in the decision-making process, including written letters, telegrams, inter-departmental notes, fax messages, e-mails, orders issued by the government from time to time, circulars, government resolutions. (e) 'Dormant Matter' means a matter where the decision to be taken falls under the authority of others besides the state government, including matters where basic information or data needs to be collected from various authorities for compiling government reports, periodicals, statements, etc., and matters where the final order has been given but is awaiting compliance with the terms of the final order. However, this does not include matters under Section 11 of the Act; (f) 'File' means a set of documents related to a specific subject assigned a distinct number, including one or more of the following parts: (1) Correspondence, (2) Notes, (3) Appendices to correspondence, (4) Appendices to notes; (g) 'Finally Disposed' means the action taken on a received reference or correspondence after exchange of views, the final decision taken on such reference or correspondence, and no further action is pending on such order or correspondence; (h) 'Format' means the format appended to these rules. (i) 'Immediate and Urgent Reference' means postal received, including telegrams, telex messages, fax messages, letters, e-mails, etc., marked by the competent authority as immediate or urgent, considering the seriousness of the matter, with the aim of completing the required action within the time mentioned in Section 10(1) of the Act; (j) 'In-charge Minister' means the minister under whose charge the concerned subject or work is placed according to the Rules of Business of the Government of Maharashtra; (k) 'In-charge Branch Officer or Desk Officer' means an officer working at the taluka, sub-divisional office, district, divisional, or department level nominated for disposing or finally disposing of the relevant subject or work at the desk; (l) 'Submission Level' means the three levels of government employees responsible for submitting matters before the authority who has the power to make the final decision, considering the nature, level, and importance of various subjects handled by the office or department; (m) 'Note' means entries made on a file such as a summary of previous documents, description and analysis of issues or questions under consideration, instructions given regarding the expediting of any matter, and final orders. (n) Wherever words like file, matter, correspondence, note, draft, reference, opinion, proposal, forms, letters, post appear, they shall include their electronic forms like e-file, e-matter, e-correspondence, e-note, e-draft, e-reference, e-opinion, e-proposal, e-forms, e-mail, etc. Also, whenever the word service (service or facility) is used, it shall include providing service or facility through electronic means. (2) Words and expressions used but not defined in these rules shall have the same meanings as respectively assigned to them in the Act.",
-    "3. Preparation of Citizens' Charter.* - (1) The Head of each administrative department in the Mantralaya and the Heads of all offices under their administrative control at divisional, district, taluka, sub-divisional, or local levels, as the case may be, shall prepare a separate Citizens' Charter for their respective offices. This Citizens' Charter shall be consistent with the Citizens' Charter at their respective headquarters.",
-    "4. Maharashtra Government Gazette, Extraordinary Part One - Middle Sub-Division, November 19, 2013* / Kartik 28, Shaka 1935. This Citizens' Charter shall be prepared and published based on instructions contained in circulars or letters issued by the government from time to time, displayed in a conspicuous place in the concerned office, and such information shall be displayed in electronic form on the government or department's website or portal. (2) The Citizens' Charter published under sub-rule (1) shall be updated from time to time as required based on the government's revised policies, schemes, programs, projects, rules, orders, etc., and on 2nd May of each subsequent year by each office. Each office, after considering any objections or suggestions regarding the Citizens' Charter, discussing difficulties of concerned officers, and fully deliberating on received suggestions, shall finalize and publish it. Such information shall also be displayed in electronic form on the government or department's website or portal. (3) The prescribed documents required for providing services or facilities by the office or department shall be minimal. For this purpose, the head of each office or department shall review accordingly. Format 'K' containing the list of required documents for providing services or facilities by the office/department shall be made available free of cost and easily by the concerned office/department. The list of required documents shall be specified in Format 'Kh' by each office/department head. Such information shall also be displayed in electronic form on the government or department's website/portal. (4) An application received from any citizen in Format 'K' shall be checked according to the checklist in Format 'G' regarding its completeness. If found incomplete after checking, the applicant shall be immediately informed of the deficiencies so that the applicant can complete the formalities for filling the format. (5) If the citizen's application is complete, an acknowledgement in Format 'Gh' shall be given, clearly mentioning the period mentioned in that office/department's Citizens' Charter for providing that service/facility, and the office shall ensure that the citizen does not have to visit the office frequently. (6) The minimum period prescribed in the Citizens' Charter for providing service/facility shall be determined considering the time limits in the relevant Acts and rules. If a complaint is filed against delay in providing service/facility, or if such delay comes to the notice of the concerned office head or department head, they shall complete a preliminary inquiry within fifteen days. If it is found that the concerned government employee has systematically, knowingly, and willfully delayed or neglected, the responsibility shall be fixed, disciplinary inquiry shall be recommended to the appropriate authority, and the disciplinary authority shall issue orders for disciplinary proceedings against the concerned officer or employee. (7) Information technology shall be maximally utilized in offices, and highest priority shall be given to e-Governance while providing services/facilities to citizens. Every administrative department in the Mantralaya, after consultation with their subordinate Commissioners/Department Heads/Office Heads, shall implement a time-bound program to provide services/facilities through electronic means. Services/facilities to be provided to citizens through electronic means shall be finalized within six months. Accordingly, licenses, certificates, approvals, grants, and application forms for such services shall be made available online. Information about this shall be made available on the department or office's website. Arrangements shall also be made to provide services/facilities through current prevailing methods to citizens who cannot avail online services.",
-    "5. Publishing list of powers delegated to subordinate officers for final decision making.* - The In-charge Secretary of the concerned administrative department at Mantralaya level, the Department Head at divisional level, or as the case may be, the district level officer and subordinate officers, who work under their supervision at various levels or to whom subject-wise or file-wise powers have been delegated for final decision making, shall prepare and publish a list of their powers, and display it in a conspicuous place in the concerned office as provided in Section 1, Sub-section (1) of the Act. The said list of powers shall be updated and published on 2nd May of each subsequent year. Such information shall also be displayed in electronic form on the government or department's website or portal. Part One M.U.V. - 61 - 1a",
-    "6. Maharashtra Government Gazette, Extraordinary Part One - Middle Sub-Division, November 19, 2013 / Kartik 28, Shaka 1935 5. Prohibition on delegating powers to government officers against whom disciplinary inquiry is pending.* - Notwithstanding anything contained in Rule 4, (1) If any disciplinary inquiry regarding serious allegations is pending against any employee or officer under the relevant disciplinary rules, or if any officer has to face any criminal case or investigation, such employee or officer shall not be delegated powers for final decision making regarding any work of executive nature or sensitive work or subject. (2) If chargesheets have been issued against any officer for allegations of misuse of official position, financial irregularities, embezzlement, or corruption, or if a decision has been made at the level of the disciplinary inquiry officer to issue a chargesheet against such officer, or if such officer has been suspended for any such allegations, then even after reinstatement of such officer, until such inquiry or investigation is completed, the punishment imposed is executed, or the officer is fully exonerated from such allegations or accusations, powers for final decision making on executive or sensitive subjects shall not be delegated to him. Provided that, the Government, after examining the merits of the case and recording reasons, may consider delegating powers for making final decisions on executive and sensitive subjects to such government employees mentioned in sub-rules (1) and (2).",
-    "7. Determining the level of authority for final decision making.* - (1) Subject to the provisions of Section 9 of the Act, the level for delegating powers for final decision making shall be determined by the Office Head or as the case may be, the Department Head, with the approval of the concerned In-charge Minister of the administrative department, considering the government decisions and orders issued from time to time by the Secretary of the concerned administrative department at Mantralaya level. Provided that, such submission level for final decision making shall not involve more than three officers. (2) A subject-wise list of delegation of each type of authority or power to an officer shall be maintained. (3) If the specific competent officer to whom final decision-making powers are delegated is absent or on leave, and the work of such competent authority cannot be postponed even temporarily, considering administrative convenience and urgency, the work of such competent authority shall be distributed among other officers of that establishment. Provided that, for extremely important matters like Cabinet notes and policy decisions, more than three levels may be kept. Provided further that, files of existing policies or orders requiring clarification or instructions to regional offices shall not be submitted to a level higher than the Secretary's level. Provided also that, reminders shall not be submitted to a superior level. (4) Files involving proposals for investments and infrastructure projects, and files/proposals received by the advisory department on policy matters to be placed before the Cabinet shall not be sent to junior officers or desks. Opinions or notes in such matters shall be recorded at the level of Deputy Secretary or at least Under Secretary. In exceptional circumstances, if Under Secretaries are unavailable, such files shall be submitted through the Desk Officer.",
-    "8. Updating the list of officer levels.* - (1) The concerned administrative department at Mantralaya level, the department head at divisional level or district level, or any other office head shall prepare the list of powers delegated to subordinate officers within three months from the publication of these rules, and thereafter, such published list shall be updated on 2nd May of each subsequent year, and such information shall be displayed in electronic form on the government or department's website or portal.",
-    "9. Maharashtra Government Gazette, Extraordinary Part One - Middle Sub-Division, November 19, 2013 / Kartik 28, Shaka 1935* (2) The concerned administrative department head at Mantralaya level shall, in the months of January and July each year, review the work of offices or departments randomly to ensure that each officer is properly and impartially exercising the powers delegated to them and that appropriate decisions are being made on matters falling within their purview. *8. Regarding acknowledgement of E-mails.* - Acknowledgement of receipt of e-mails shall be given by the concerned person. If the received e-mail is not related to that office, department, or desk, it shall be forwarded to the concerned office, department, or desk, and the applicant shall be informed via e-mail.",
-    "10. Responsibility of each officer.* - The primary responsibility for submitting matters on time and finally disposing of them within the time limit prescribed in the Act shall lie with each officer in the Mantralaya and the officer in charge of offices at divisional, district, or taluka level.",
-    "11. Measures to be taken to control progress of work of desks or branches.* - The in-charge branch, desk, or section officer shall monitor the progress of work in his branch, desk, or section and shall ensure the following: (a) No reference, file, or matter is neglected or pending due to lack of action; (b) Action has been personally taken on complex and important references; (c) Notes and drafts submitted to him have been scrutinized and, wherever necessary, his opinions or suggestions have been recorded before submitting them to the competent authority to ensure accuracy in notes and drafts; (d) Maximum matters have been disposed of by taking initiative and responsibility; (e) Appropriate and suitable measures have been adopted to ensure disposal of references or matters; (f) Daily work of the branch or desk is monitored; (g) A detailed analytical review of pending files in the branch, desk, or section is taken at the end of each month to strictly monitor the progress of work, and appropriate guidance and suitable corrective measures have been taken to dispose of pending files; (h) Records of the branch, desk, or section shall be maintained as follows: (1) Incoming post; (2) Matters under process; (3) Pending matters; (4) Dormant matters; (5) Matters with standing orders or collections; and (6) Finally disposed matters (sorted by categories A, B, C, D); The in-charge officer of the desk, branch, or section shall remain vigilant regarding implementation of rules.",
-    "12. Restrictions to prevent delays in inter-departmental references.* - To prevent delays in informal references or matters between Mantralaya departments, the following action shall be taken: (a) Except for the Finance Department and Law & Justice Department, all matters or references that need to be sent to other departments for opinion or deliberation shall be directly marked to the concerned Joint Secretary/Deputy Secretary/Under Secretary, and their opinions shall be sought. For this purpose, each department shall prepare a list of names of its concerned Joint Secretaries, Deputy Secretaries, and Under Secretaries and the subjects related to them. Such a list shall be provided to each department. Such list shall also be made available on the government website. If any changes occur in said list, necessary corrections shall be made from time to time, and the list shall also be displayed conspicuously in the concerned section. Such information shall also be displayed in electronic form on the government or department's website or portal.",
-    "13. Maharashtra Government Gazette, Extraordinary Part One - Middle Sub-Division, November 19, 2013 / Kartik 28, Shaka 1935* (b) If the proposal has been approved at the secretary level of another department, such proposal shall be carefully scrutinized at the joint secretary or deputy secretary level of the Finance Department, Planning Department, or General Administration Department, and there shall be no objection to rejecting it at the joint secretary or deputy secretary level. Provided that for this purpose, the secretary of that department must issue such an order. (c) If the secretary of that department does not agree with the opinions given by the joint secretary or deputy secretary of the Finance Department, Planning Department, or General Administration Department, such file shall be referred again to the Finance Department, Planning Department, or, as the case may be, the General Administration Department at the secretary level for review. (d) If the proposal has been forwarded by another department at secretary level as per clause (c) above, and the Finance Department, Planning Department, or General Administration Department wishes to reject such proposal, such rejection action shall be taken at the secretary level of the Finance Department, Planning Department, or, as the case may be, the General Administration Department. (e) After opinions of other departments have been recorded and the matter has been received by the original department, if differences of opinion are found, instead of writing further accounting notes, both secretaries or officers delegated with authority shall personally discuss the disputed question and dispose of the matter by mutual consent. (f) If the original department wishes to mark a file to more than one department, the file shall be presented to those departments in the same order as marked by the original department. (g) If adopting the procedure prescribed in clause (f) above is likely to cause delay in disposing of the matter, and the opinions expected from departments are not likely to be supportive or are inconsistent or contradictory with the original department's opinions, the original department shall prepare a separate proposal and forward the file separately to each concerned department to seek their opinions or views. (h) If the department believes that a particular matter received in its branch or section is related to another department, the department shall specify the exact entry in the Rules of Business of the Maharashtra Government with which this subject is related and, after obtaining the consent of the secretary of that department, send this matter to the concerned department. (i) If a question arises regarding which department should take action on correspondence received by a department, both departments shall discuss and resolve such issue. If this issue is not resolved within a week, the matter shall be decided by the Constitution and Procedure branch of the General Administration Department, and once a decision is given at the secretary level of the Constitution and Procedure (R.V.Ka.) branch of the General Administration Department, it shall be final unless there are any other instructions from the Chief Secretary or Hon'ble Chief Minister. If such a question regarding handling of a subject arises in any office other than a Mantralaya department, the matter shall be referred within two working days by the department head to the concerned in-charge secretary of the Mantralaya department. (j) While a question regarding transfer of a subject from one department to another is under consideration, the department that received the correspondence shall continue handling the subject related to it until a decision is made on transferring it to another department. In such cases, a separate proposal for transferring the subject shall be made by that department. (k) While preparing informal references to other departments for matters of investment and infrastructure projects, such matters shall not be forwarded like general matters. Doubts shall be resolved through discussion at secretary level or at least deputy secretary level, and after achieving consensus through preliminary procedures, notes shall be recorded, so that time is not wasted in writing and submitting notes repeatedly. A control register for matters related to investment and infrastructure projects received in the offices of secretaries of Mantralaya departments and other offices shall be maintained by the personal assistant to the secretary or, as the case may be, the department head, and the secretary or department head shall review the disposal or implementation of such matters based on this control register on either the first or last day of the week.",
-    "14. Maharashtra Government Gazette, Extraordinary Part One - Middle Sub-Division, November 19, 2013 / Kartik 28, Shaka 1935 12. Procedure regarding seeking opinions or views from subordinate offices.* - If a Mantralaya department, department head, or district office finds it necessary to seek opinions or consider views from subordinate offices, the following procedure shall be followed: (a) Generally, documents of matters shall, as far as possible, not be sent to officers in subordinate offices unless really necessary. E-mail service shall be preferred for such correspondence, and sending reminders by e-mail shall be mandatory. (b) When documents of matters or the entire matter is sent to a subordinate office, the specific points on which opinions or views are to be sought from the officer in the subordinate office shall be clearly and category-wise specified. (c) The concerned officer of the subordinate office shall give a clear opinion or present views on the points specified for opinion or views. The said officer shall also elaborate on related issues and circumstances. (d) The officer of the subordinate office from whom views are sought shall suggest an appropriate action plan or give an opinion or express views considering the specified circumstances in that matter. (e) The subordinate office shall cite relevant laws, rules, and administrative orders of the government to support its recommendations on a matter. (f) In matters where information has been sought from subordinates or field officers, the specific date by which the information is expected shall be mentioned in the letter sent by the Mantralaya department. The specified time limit for the subordinate or field office to submit the required information shall be determined considering the scope of information, the working days likely required for the concerned department or district office to collect information from the subordinate offices under it, and the time required to actually send that information. *13. Measures for making final decisions on matters within the prescribed time limit.* - The time limit prescribed under Section 10 of the Act for disposal of matters is maximum, and matters shall be disposed of within that time limit. To prevent delays in such matters, the following measures shall be taken: (a) The office head or department head or any other authority empowered in this regard shall take a periodic review at the end of each month to see if the work assigned to government employees is being disposed of according to the standards set for their work. If such standards have not been specified, they shall be immediately specified by each office head or department head. (b) Powers shall be delegated to the heads of each office or department under the administrative control of Mantralaya departments as far as possible for deciding on matters, and periodic review shall be taken to see if the delegated powers are being used effectively, and necessary measures shall be taken in that regard. (c) The work procedure specified for processing a matter for final decision shall be reviewed and amended if necessary. *14. Determining matters or issues mentioned in Section 11 of the Act and preparing a list.* - The concerned administrative department at Mantralaya level and the department head at divisional level or, as the case may be, the district office head at district level shall determine and prepare a list of matters or issues falling under Section 11 of the Act to which the provisions of Section 10 of the Act will not apply in specified circumstances."
+    "- Office Delay Act : RNI No . MAHBIL / 2009 / 31745 Reg . No . MH / MR / South - 327 / 2013 - 15\n\nMaharashtra Government Gazette Extraordinary Part One : Central Sub-Division - Year 5 , Issue 36 ] Tuesday , November 19 , 2013 / Kartik 28 , Shake 1935 Pages 22 , Price : Rs. 12 . 00\n\nExtraordinary Number 61 Authorized Publication General Administration Department : Madam Cama Marg , HutAtma Rajguru Chowk , Mantralaya , Mumbai 400 032 , Date 14 November 2013 .\n\nNotification Maharashtra Regulation of Government Servants' Transfers and Prevention of Delay in Performing Government Duties Act , 2005 : . . No POD - 1007 / Pra . No . 1 / 18 ( R . Va . Ka . ) .\n\nMaharashtra Government is making the following rules by exercising the powers provided under Section 14, Sub-section (2) of the Maharashtra Regulation of Government Servants' Transfers and Prevention of Delay in Performing Government Duties Act , 2005 (Maharashtra 20 of 2006) and all other powers enabling it in this behalf, and overruling all existing rules, orders, etc. made in this regard, and as required under Section 14, Sub-section (1) of the said Act, they are pre-published",
+    "1. Short Title - (One) These rules shall be called the Prevention of Delay in Performing Government Duties Rules, 2013. 2. *Definitions. -* In these rules, unless the context otherwise requires, (a) 'Act' means the Maharashtra Regulation of Government Servants' Transfers and Prevention of Delay in Performing Government Duties Act, 2005 (Maharashtra 21 of 2006). (b) 'Administrative Audit' means the system determined by the government to verify whether the final decision on a file or matter in any office or department has been submitted through appropriate levels, i.e., three levels, based on delegated powers, and whether the time limit prescribed under Section 10, Sub-section (1) of the Act has been complied with while making decisions and taking necessary action. (c) 'Pending Matter' means a matter where further action is to be taken after the specified period has elapsed. (d) 'Matter' means a received file or other related documents, references, correspondence, notes, etc., and their collective set.",
+    "2. Maharashtra Government Gazette, Extraordinary Part One - Central Sub-Division, November 19, 2013 / Kartik 28, Shake 1935 (d) 'Correspondence' means incoming and outgoing references in the decision-making process, including written letters, telegrams, inter-departmental notes, fax messages, e-mails, orders, circulars, government decisions issued by the government from time to time. (e) 'Dormant Matter' means a matter where the decision to be made falls under the authority of others besides the state government, including matters requiring collection of basic information or data from various authorities for compiling government reports, periodicals, statements, etc., and matters where final orders have been issued but waiting is required to ensure compliance with the terms of final orders. However, this does not include matters under Section 11 of the Act; (f) 'File' means a set of documents related to a specific subject assigned a distinct number, including one or more of the following parts: (one) Correspondence, (two) Notes, (three) Annexures to correspondence, (four) Annexures to notes: (g) 'Final Disposal' means the action taken on received reference or after exchange of views, the final decision on correspondence in the file, and no further action is pending on such reference or correspondence; (h) 'Format' means the format appended to these rules. (i) 'Immediate and Urgent Reference' means postal received including telegrams, telex messages, fax messages, letters, e-mails, etc., marked by the competent authority for immediate or urgent attention considering the seriousness of the subject, with the purpose of completing required action within the time mentioned in Section 10, Sub-section (1) of the Act; (j) 'In-charge Minister' means the minister in charge to whom the concerned subject or work has been assigned according to the Rules of Business of Maharashtra Government; (k) 'In-charge Branch Officer or Desk Officer' means an officer working at taluka or sub-divisional office or district or divisional or department level who has been nominated to dispose or finally dispose of the concerned subject or work in the desk; (l) 'Submission Level' means the three levels of government employees responsible for submitting matters to the officer who has been delegated the authority to make final decisions, considering the nature, level, and importance of various subjects handled in the office or department, for the purpose of final decision; (m) 'Note' means entries recorded on a file such as summary of previous documents, description and analysis of matters or questions under consideration, instructions regarding expediting any matter, and final orders. (n) Wherever words like file, matter, correspondence, note, draft, reference, opinion, proposal, forms, letters, postal are found, they include electronic form like e-file, e-matter, e-correspondence, e-note, e-draft, e-reference, e-opinion, e-proposal, e-forms, e-mail, etc. Also, wherever the word service (service or facility) is used, it includes providing service or facility to the concerned person through electronic means, (two) Words and phrases used in these rules but not defined shall have the meanings respectively assigned to them in the Act.",
+    "3. Preparation of Citizen's Charter. - (1) The head of each administrative department in the Secretariat and the head of all offices under their administrative control, i.e., divisional level, district level, taluka level, sub-divisional level or local level, as the case may be, will prepare a separate Citizen's Charter for their concerned office. This Citizen's Charter will be at their respective headquarters,",
+    "4. Maharashtra Government Gazette, Extraordinary Part One - Central Sub-Division, November 19, 2013* / Kartik 28, Shake 1935 consistent with the Citizen's Charter. This Citizen's Charter will be prepared and published based on instructions contained in circulars or letters issued by the government from time to time, displayed in a conspicuous place in the concerned office, and this information will be displayed in electronic form on the government's or department's website or portal. (2) The Citizen's Charter published under the provisions of Sub-rule (1) will be updated from time to time as necessary according to the government's revised policy or scheme or program or project or rules or orders, etc., and also by each office on 2nd May of every subsequent year. If there are objections or suggestions in the Citizen's Charter, each office, after considering them and discussing the difficulties of concerned officers and fully deliberating on suggestions received in this regard, will finalize and publish it. This information will also be displayed in electronic form on the government's or department's website or portal. (3) The prescribed documents for providing facilities or services from the office or department will be minimal; for that purpose, the head of each office or department will take a review accordingly. Format - A, required for providing facilities or services from the office or department, will be made easily available free of cost from the concerned office or department. The list of required documents will be specified in Format - B by the head of each office or department. This information will also be displayed in electronic form on the government's or department's website/portal. (4) Any application received from a citizen in Format - A will be checked according to the checklist given in Format - C regarding its completeness, and if found incomplete after checking, the applicant will be informed of the deficiencies on the spot so that the applicant can complete the formalities for filling the form. (5) If the citizen's application is complete, an acknowledgment will be given in Format - D, clearly mentioning the period specified in the office's or department's Citizen's Charter for providing that service or facility, and the office will ensure that the citizen does not have to come to the concerned office repeatedly. (6) The minimum period prescribed in the Citizen's Charter for providing service or facility will be determined considering the time limits in the relevant act and rules. If a complaint is filed against a defaulting officer for delay in providing service or facility, or if such default comes to the notice of the concerned office head or department head, the concerned office head or department head will complete the preliminary inquiry within fifteen days of office work. If it is found that the concerned government employee has regularly or knowingly and deliberately caused delay or negligence, responsibility will be fixed and a recommendation for departmental inquiry will be sent to the concerned competent authority, and the competent authority will issue orders for disciplinary action against the concerned officer or employee as per rules. (7) Information technology will be maximally used in offices, and highest priority will be given to e-Governance while providing facilities or services to citizens. Every administrative department in the Secretariat will, in consultation with their subordinate commissioners/department heads/office heads, implement a time-bound program for providing services or facilities through electronic means within the department. Services or facilities to be provided to citizens through electronic means will be determined within six months. Accordingly, services such as licenses, certificates, approvals, or payment of amounts as well as their application forms will be made available online. Information about this will be made available on the department's or office's website. For citizens who cannot avail online services, arrangements will also be made to provide services or facilities according to the current prevalent method.",
+    "5. Publishing the list of powers delegated to subordinate officers for final decision. - The concerned Secretary of the administrative department at the Secretariat level, the department head at the divisional level, or the district level officer and subordinate officer, as the case may be, will prepare and publish a list of officers working under their supervision at various levels or to whom subject-wise or file-wise powers have been delegated for final decision, and the list will be displayed in a conspicuous place in the concerned office as provided in Section 1, Sub-section (1) of the Act. The said list of powers will be updated and published on 2nd May of every subsequent year. This information will also be displayed in electronic form on the government's or department's website or portal. Part One M. U. Vi. - 61 - 1A",
+    "6. Maharashtra Government Gazette, Extraordinary Part One - Central Sub-Division, November 19, 2013 / Kartik 28, Shake 1935 5. Prohibition on delegating powers to government officers against whom departmental inquiry is ongoing. - Notwithstanding anything contained in Rule 4, (1) If any disciplinary inquiry is ongoing against any employee or officer under the relevant disciplinary rules regarding serious allegations, or if any officer has to face any criminal case or investigation, such employee or officer will not be delegated the power to make final decisions regarding any enforcement work or sensitive work or subject. (2) If a charge sheet has been served on any officer with allegations of misuse of government office or financial irregularity or embezzlement or corruption, or if a decision has been made at the level of the disciplinary inquiry officer to serve a charge sheet against such officer, or if such officer has been suspended for any such allegations, then even after reinstatement of such officer, until the decision of such inquiry or investigation is complete and the punishment awarded is implemented, or until such officer is completely acquitted of such allegations or accusations, no power will be delegated to such officer to make final decisions on enforcement or sensitive subjects: Provided that the government, after examining the merits of the case and recording reasons thereof, may consider delegating any power for enforcement or making final decisions on sensitive subjects to such government employee mentioned in Sub-rules (1) and (2).",
+    "7. Determining the level of powers for final decision. - (1) Subject to the provisions of Section 9 of the Act, the level for delegation of powers for final decision will be determined by the office head or, as the case may be, department head, considering the government decisions and orders issued from time to time in this regard, with the approval of the concerned minister in charge of administrative departments: Provided that such submission level for the purpose of final decision shall not be with more than three officers. (2) A subject-wise list of delegation of each type of authority or power to the officer will be maintained. (3) If the specific competent officer delegated with the power to make final decisions is absent or on leave and the work of such competent authority cannot be postponed even temporarily, considering administrative convenience and urgency, the work of such competent authority will be distributed among other officers of that establishment: Provided that more than three stages may be kept for extremely important matters such as Cabinet notes and policy decisions: Provided further that files of existing policies or orders requiring clarification or instructions to regional offices will not be submitted at a level higher than the rank of Secretary: Provided also that reminders will not be submitted to higher levels. (4) Files containing proposals for investments and infrastructure projects, files/proposals received by the advisory department for policy matters to be placed before the Cabinet will not be sent to junior officers or desks. In such matters, opinions or notes will be recorded at the Deputy Secretary or at least Under Secretary level. In exceptional circumstances, if Under Secretaries are not available, such files will be submitted through desk officers.",
+    "8. Updating the list of officer levels. - (1) The concerned administrative department at the Secretariat level, the department head at the divisional level or district level, as the case may be, or the head of any other office will prepare the list of powers delegated to subordinate officers within three months of the publication of these rules, and thereafter such published list will be updated on 2nd May of every subsequent year, and this information will also be displayed in electronic form on the government's or department's website or portal.",
+    "9. Maharashtra Government Gazette, Extraordinary Part One - Central Sub-Division, November 19, 2013 / Kartik 28, Shake 1935* (2) The head of the concerned administrative department at the Secretariat level will, in January and July of each year, take a random review of the work of offices or departments to ensure that each officer is properly and impartially using the powers delegated to them and that appropriate decisions are being made on matters falling within their jurisdiction. *8. Regarding acknowledgment of E-mails. - Acknowledgment of receipt of e-mails should be given by the concerned persons. If the received e-mail is not related to that office or department or desk, it should be sent to the concerned office or department or desk and the applicant should be informed via e-mail.",
+    "10. Responsibility of each officer. - The primary responsibility for submitting matters on time and finally disposing of those matters within the time limit prescribed in the Act will be of each officer at the Secretariat level and the officer in charge of the office at the departmental or district or taluka level.",
+    "11. Measures to be taken to control the progress of work of the desk or section. - The in-charge branch or desk or section officer will monitor the progress of work being carried out in their branch or desk or section and ensure the following: (a) No reference or file or matter is overlooked or pending due to lack of action; (b) Personally taken action on complex and important references; (c) Examined the notes and drafts submitted to them and recorded their opinions or suggestions wherever necessary before submitting those notes and drafts to the competent authority, with the aim of ensuring accuracy in the notes and drafts; (d) Disposed as many matters as possible by taking initiative and responsibility; (e) Adopted appropriate and suitable measures so that references or matters are disposed of; (f) Kept informed of the daily work of the branch or desk; (g) For the purpose of strictly monitoring the progress of work of the branch or desk, taken a detailed analytical review of pending files in the branch or desk at the end of each month and provided proper guidance and appropriate corrective measures to dispose of pending files; (h) Records of the branch or desk will be kept as follows: (one) Incoming postal, (two) Matters under process, (three) Pending matters, (four) Dormant matters, (five) Standing order matters or compilations, and (six) Finally disposed matters (according to categories A, B, C, D); The officer in charge of the desk or branch or section should remain vigilant regarding the implementation of the rules.",
+    "12. Restrictions to avoid delay in inter-departmental references. - To avoid delay in informal references or matters between Secretariat departments, action will be taken as follows: (a) Except for the Finance Department and the Law and Judiciary Department, all matters or references that need to be sent to other departments for opinion or consultation will be directly marked to the concerned Joint Secretary/Deputy Secretary/Under Secretary and their opinions will be sought. For this purpose, each department will prepare a list of names of the concerned Joint Secretary, Deputy Secretary, and Under Secretary of the department and the subjects related to them. Such a list will be made available to each department. Such a list will also be made available on the government's website. If there are any changes in the said list, necessary corrections will be made from time to time, and the list will also be displayed in a conspicuous place in the concerned desk. This information will also be displayed in electronic form on the government's or department's website or portal.",
+    "13. Maharashtra Government Gazette, Extraordinary Part One - Central Sub-Division, November 19, 2013 / Kartik 28, Shake 1935* (b) If the proposal has been approved at the level of the Secretary of another department, such proposal will be scrutinized at the level of the Joint Secretary or Deputy Secretary of the Finance Department or Planning Department or General Administration Department, and there will be no objection to rejecting it at the Joint Secretary or Deputy Secretary level: Provided that for such purpose, the Secretary of that department must issue such order; (c) If the Secretary of that department does not agree with the opinions given by the Joint Secretary or Deputy Secretary of the Finance Department or Planning Department or General Administration Department, such file will be sent back to the Finance Department or Planning Department or General Administration Department, as the case may be, for review at the Secretary level. (d) If a proposal has been sent forward by another department at the Secretary level according to clause (g) above, and the Finance Department or Planning Department or General Administration Department wishes to reject such proposal, such rejection will be done at the Secretary level of the Finance Department or Planning Department or General Administration Department, as the case may be. (e) After the opinion of another department has been recorded and the matter is received back by the original department, if differences of opinion are found, instead of writing more notes on this matter, the Secretaries of both departments or the officers to whom powers have been delegated will personally discuss the disputed question and dispose of the matter by mutual consent. (f) If the original department wants to mark a file to more than one department, the file will be submitted to those departments in the same order in which the original department marked it. (g) If adoption of the procedure prescribed in clause (f) above is likely to cause delay in disposing of the matter, and if the opinions expected from the departments are unlikely to be supportive or are inconsistent or contradictory with the opinions of the original department, the original department will prepare a separate proposal and forward the file to each concerned department separately, seeking their opinions or views. (h) If the department is of the opinion that a particular matter received in its branch or desk is related to another department, the department will specify clearly the exact entry of the Maharashtra Government's Rules of Business to which this subject is related and, after obtaining the consent of the Secretary of that concerned department, send this matter to the concerned department. (i) If a question arises whether action on correspondence received by a department should be taken by that department or by any other department, both departments will discuss and resolve such question. If this question is not resolved within one week, a decision on that question will be taken by the Organization and Methods Branch of the General Administration Department, and once a decision is made at the level of the Secretary of the Organization and Methods (O&M) Branch of the General Administration Department, it will be final unless there are any other directions from the Chief Secretary or Hon. Chief Minister. If such a question regarding handling of a subject arises in any office other than a Secretariat department, this matter will be referred by the department heads within two working days to the concerned Secretary of the Secretariat department. (j) Even if the question of transferring a subject from one department to another is under consideration, the department that received the correspondence will continue to handle the subject related to it until a decision is made on the question of transferring it to another department. In such matters, a separate proposal for transferring the subject will be made by that department. (k) While creating informal references to other departments for matters of investment and infrastructure projects, such matters will not be forwarded like other general matters. Doubts will be resolved through discussion at the Secretary level or at least Under Secretary level, and notes will be made after obtaining agreement through initial procedure, so that time is not wasted in repeatedly writing and submitting notes. A control register for matters received regarding investment and infrastructure projects will be maintained in the office of the Secretary of the Secretariat department as well as in other offices through the Secretary's personal assistant or, as the case may be, the department head, and on either the first or last day of the week, the Secretary of the department or department head will review the disposal or implementation of such matters based on this control register.",
+    "14. Maharashtra Government Gazette, Extraordinary Part One - Central Sub-Division, November 19, 2013 / Kartik 28, Shake 1935 12. Procedure for seeking opinions or views from subordinate offices. - If a Secretariat department or department head or district-level office finds it necessary to seek opinions or consult subordinate offices, the following procedure will be followed: (a) Generally, documents of matters will not be sent to officers in subordinate offices unless absolutely necessary. Preference will be given to using e-mail service for such correspondence, and sending reminders by e-mail will also be mandatory. (b) When documents of matters or the entire matter is sent to a subordinate office, the specific points on which consultation or opinion is expected from the officer in the subordinate office will be clearly and categorically mentioned. (c) The concerned officer of the subordinate office will give a clear opinion or views on the points specified for seeking opinion or consultation, elaborating related and relevant points concerning the matter. (d) The officer from whom opinion is sought will suggest an appropriate course of action or give an opinion or express views based on the specified situation in that particular matter. (e) The subordinate office will cite relevant laws, rules, and government administrative orders, etc., in support of its recommendations on a matter. (f) In matters where information has been sought from subordinate or field officers, the specific date by which the information is expected will be mentioned in the letter sent by the Secretariat department. The specified time limit for the subordinate or field office to submit the required information will be determined considering the scope of the information, the working days likely required to collect information from offices subordinate to that department or district-level office, and the time required to actually send that information. *13. Measures for making final decisions on matters within prescribed time limit. - The time limit prescribed under Section 10 of the Act for disposal of matters is maximum, and matters will be disposed within that time limit. The following measures will be taken to avoid delay regarding such matters: (a) The standards set for the work of government employees will be used to review whether the office work assigned to them is being disposed of properly or not. This periodic review will be done by each office head or department head or any other officer authorized in this regard by the end of each month. If such standards are not specified, they will be promptly specified by each office head or department head. (b) For making decisions on matters, wherever possible, powers will be delegated to each office or department head under the administrative control of Secretariat departments, and periodic review will be done of how effectively these delegated powers are being used, and necessary measures will be taken in this regard. (c) The procedure specified for taking action on matters for final decision will be reviewed and improved if necessary. *14. Determining matters mentioned in Section 11 of the Act and preparing a list. - The concerned administrative department at the Secretariat level and the department head at the divisional level or, as the case may be, the district office head at the district level will prepare a list of matters or subjects that fall under Section 11, to which the provisions of Section 10 of the Act will not apply in specific circumstances, and"
   ];
 
   const pageContent = (
@@ -270,17 +269,13 @@ export default function RTIPage({ navigation }) {
       <View style={styles.content}>
         <View style={styles.badgeContainer}>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>What is RTI?</Text>
+            <Text style={styles.badgeText}>{rtiCopy.badge}</Text>
           </View>
         </View>
 
         <View style={styles.headerCard}>
-          <Text style={styles.headerTitle}>
-            Simple and easy procedure to obtain information under the Right to Information Act
-          </Text>
-          <Text style={styles.headerDescription}>
-            Complete information about how to apply under RTI, how much time it takes, what the fees are, how to file an appeal, and the responsibilities of the Public Information Officer.
-          </Text>
+          <Text style={styles.headerTitle}>{rtiCopy.headerTitle}</Text>
+          <Text style={styles.headerDescription}>{rtiCopy.headerDescription}</Text>
         </View>
 
         <View style={styles.twoColumnContainer}>
@@ -289,7 +284,7 @@ export default function RTIPage({ navigation }) {
               <View style={styles.contentsIcon}>
                 <Text style={styles.contentsIconText}>📚</Text>
               </View>
-              <Text style={styles.contentsTitle}>Contents</Text>
+              <Text style={styles.contentsTitle}>{rtiCopy.contentsTitle}</Text>
             </View>
             {contentsItems.map((item, index) => (
               <TouchableOpacity
@@ -306,95 +301,93 @@ export default function RTIPage({ navigation }) {
           </View>
 
           <View style={styles.infoCard}>
-            <Text style={styles.infoSubtitle}>Right to Information</Text>
-            <Text style={styles.infoTitle}>
-              It is your right to know the procedure for obtaining information under the RTI Act in the state of Maharashtra
-            </Text>
-            <Text style={styles.infoDescription}>
-              Using RTI, any citizen can request information from the government. It is important to know the correct application, timely appeal, and required documents.
-            </Text>
+            <Text style={styles.infoSubtitle}>{rtiCopy.infoSubtitle}</Text>
+            <Text style={styles.infoTitle}>{rtiCopy.infoTitle}</Text>
+            <Text style={styles.infoDescription}>{rtiCopy.infoDescription}</Text>
           </View>
         </View>
 
-        <View style={styles.faqContainer}>
-          <View style={styles.faqHeader}>
-            <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
-          </View>
-
-          {faqData.map((faq) => (
-            <View key={faq.id} style={styles.faqItem}>
-              <TouchableOpacity
-                style={[styles.faqQuestion, openId === faq.id && styles.faqQuestionActive]}
-                onPress={() => toggle(faq.id)}
-              >
-                <View style={styles.faqQuestionContent}>
-                  <Text style={styles.faqQuestionLabel}>Question {faq.id}</Text>
-                  <Text style={styles.faqQuestionText}>{faq.question}</Text>
-                </View>
-                <View style={styles.faqToggleIcon}>
-                  <Text style={styles.faqToggleIconText}>
-                    {openId === faq.id ? "−" : "+"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              {openId === faq.id && (
-                <View style={styles.faqAnswer}>
-                  {faq.answer.map((para, i) => (
-                    <Text key={i} style={styles.faqAnswerText}>
-                      {para}
-                    </Text>
-                  ))}
-                </View>
-              )}
+        <View style={styles.bottomSplitContainer}>
+          <View style={styles.faqContainer}>
+            <View style={styles.faqHeader}>
+              <Text style={styles.faqTitle}>{rtiCopy.faqTitle}</Text>
             </View>
-          ))}
-        </View>
 
-        <View style={styles.responsibilityContainer}>
-          <View style={styles.responsibilityHeader}>
-            <Text style={styles.responsibilityTitle}>
-              Public Information Officer duties and responsibilities
-            </Text>
-            <Text style={styles.responsibilitySubtitle}>
-              Action to be taken by the Public Information Officer within the first 5 days of receiving an RTI application from a citizen
-            </Text>
-          </View>
+            {faqData.map((faq) => (
+              <View key={faq.id} style={styles.faqItem}>
+                <TouchableOpacity
+                  style={[styles.faqQuestion, openId === faq.id && styles.faqQuestionActive]}
+                  onPress={() => toggle(faq.id)}
+                >
+                  <View style={styles.faqQuestionContent}>
+                    <Text style={styles.faqQuestionLabel}>{rtiCopy.questionLabel} {faq.id}</Text>
+                    <Text style={styles.faqQuestionText}>{faq.question}</Text>
+                  </View>
+                  <View style={styles.faqToggleIcon}>
+                    <Text style={styles.faqToggleIconText}>
+                      {openId === faq.id ? "−" : "+"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
 
-          <View style={styles.responsibilityList}>
-            {[
-              "Provide acknowledgement of received application and record it in the RTI register.",
-              "Clarify the requested information if needed.",
-              "If the requested information is extensive or old and will take time to locate or compile, inform the applicant accordingly.",
-              "As per Section 2(f), if information is old, vague, or extensive, inform the applicant about inspecting the records.",
-              "If you are taking help from Assistant PIO under Section 5(4), inform the applicant with a copy of the letter.",
-              "If information is available and specific, calculate the fee and inform the applicant to make payment.",
-              "If requested information belongs to a third party, send notice to the third party and wait 10 days for their explanation/response.",
-              "If information is eligible for disclosure, provide it in the same form as available under Section 7(9).",
-              "If requested information is old and cannot be photocopied, it can be denied by providing inspection.",
-              "If requested information is not provided within 30 days and the applicant requested in person, provide acknowledgement on the filed application.",
-              "When denying information under Sections 8 and 9, provide a reasoned decision.",
-              "If documents are available from the questions raised by the applicant in the application, provide them.",
-              "If information is old, extensive, or will take time to collect, inform the applicant within the first 5 days.",
-              "If information is requested by post, calculate information fee plus postage and inform the applicant to pay the total amount, and keep the proof of receipt as record.",
-              "If requested information belongs to another public authority, forward the application to the appropriate authority and provide a copy of the letter to the applicant.",
-            ].map((item, index) => (
-              <View key={index} style={styles.responsibilityItem}>
-                <View style={styles.responsibilityNumber}>
-                  <Text style={styles.responsibilityNumberText}>{index + 1}</Text>
-                </View>
-                <Text style={styles.responsibilityItemText}>{item}</Text>
+                {openId === faq.id && (
+                  <View style={styles.faqAnswer}>
+                    {faq.answer.map((para, i) => (
+                      <Text key={i} style={styles.faqAnswerText}>
+                        {para}
+                      </Text>
+                    ))}
+                  </View>
+                )}
               </View>
             ))}
           </View>
 
-          <View style={styles.legalSection}>
-            {legalParagraphs.map((para, idx) => (
-              <CollapsibleLegalText key={idx} id={`legal-${idx}`}>
-                {para}
-              </CollapsibleLegalText>
-            ))}
+          <View style={styles.responsibilityContainer}>
+            <View style={styles.responsibilityHeader}>
+              <Text style={styles.responsibilityTitle}>{rtiCopy.responsibilitiesTitle}</Text>
+              <Text style={styles.responsibilitySubtitle}>{rtiCopy.responsibilitiesSubtitle}</Text>
+            </View>
+
+            <View style={styles.responsibilityList}>
+              {[
+                "Provide acknowledgment of the received application and record it in the information application register.",
+                "Clarity regarding the requested information.",
+                "Inform the applicant if the requested information is extensive, old, and will take time to find and prepare.",
+                "As per Section 2(r), if the information is old, vague, and extensive, inform about viewing the records.",
+                "If you are taking help from an Assistant Public Information Officer as per Section 5(4), inform the applicant of the letter's copy.",
+                "If the information is available and definite, calculate the fee and inform for payment.",
+                "If the requested information belongs to a third party, issue a notice to the third party and wait 10 days for their clarification/statements.",
+                "If the information is providable, provide it in the same form as it is as per Section 7(9).",
+                "If the requested information is old and cannot be photocopied, it can be denied by providing inspection.",
+                "If information is not provided within 30 days and requested by the applicant in person, provide acknowledgment on the filed application.",
+                "Give a reasoned decision when denying information under Sections 8 and 9.",
+                "If documents are available from the questions raised in the applicant's application, provide them.",
+                "If the information is old, extensive, and will take time to collect, inform the applicant within the first 5 days.",
+                "If the applicant has requested information by post, calculate total amount including information fee and extra postage and inform for payment, and preserve the acknowledgment proof in records.",
+                "If the requested information belongs to another public authority, send the applicant's application to the appropriate authority and give a copy of the letter to the applicant.",
+              ].map((item, index) => (
+                <View key={index} style={styles.responsibilityItem}>
+                  <View style={styles.responsibilityNumber}>
+                    <Text style={styles.responsibilityNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.responsibilityItemText}>{item}</Text>
+                </View>
+              ))}
+            </View>
           </View>
+        </View>
+
+        <View style={styles.legalSection}>
+          {legalParagraphs.map((para, idx) => (
+            <CollapsibleLegalText
+              key={idx}
+              readMoreLabel={rtiCopy.readMore}
+              showLessLabel={rtiCopy.showLess}
+            >
+              {para}
+            </CollapsibleLegalText>
+          ))}
         </View>
       </View>
       <AppFooter navigation={navigation} />
@@ -402,22 +395,21 @@ export default function RTIPage({ navigation }) {
   );
 
   const page = (
-  <View style={{ flex: 1 }}>
-    {isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
-    <AppHeader navigation={navigation} compact={!isWeb} />
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {pageContent}
-    </ScrollView>
-    {!isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
-  </View>
-);
+    <View style={{ flex: 1 }}>
+      {isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {pageContent}
+      </ScrollView>
+      {!isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
+    </View>
+  );
   return isWeb ? <WebLayout>{page}</WebLayout> : page;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fef7e0',
+    backgroundColor: '#f6f5f5',
   },
   content: {
     padding: 16,
@@ -432,7 +424,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#fecaca',
-    borderRadius: 999,
+    borderRadius: 3,
     paddingHorizontal: 16,
     paddingVertical: 8,
     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
@@ -447,7 +439,7 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     backgroundColor: 'white',
-    borderRadius: 24,
+    borderRadius: 3,
     padding: 24,
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 3,
@@ -466,15 +458,18 @@ const styles = StyleSheet.create({
     color: '#4b5563',
   },
   twoColumnContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
     marginBottom: 32,
   },
   contentsCard: {
+    flex: 1,
     backgroundColor: '#fef3c7',
-    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#fed7aa',
+    borderRadius: 3,
     padding: 24,
-    marginBottom: 16,
     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
     elevation: 1,
   },
@@ -487,7 +482,7 @@ const styles = StyleSheet.create({
   contentsIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 3,
     backgroundColor: '#f97316',
     alignItems: 'center',
     justifyContent: 'center',
@@ -508,8 +503,9 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   infoCard: {
+    flex: 1,
     backgroundColor: '#dc2626',
-    borderRadius: 24,
+    borderRadius: 3,
     padding: 24,
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 3,
@@ -534,12 +530,17 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: '#fef2f2',
   },
+  bottomSplitContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 24,
+  },
   faqContainer: {
+    flex: 1,
     backgroundColor: 'white',
-    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    marginBottom: 40,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   faqHeader: {
@@ -589,7 +590,7 @@ const styles = StyleSheet.create({
   faqToggleIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: 3,
     backgroundColor: '#fee2e2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -612,10 +613,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   responsibilityContainer: {
+    flex: 1,
     backgroundColor: '#f1f5f9',
-    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    borderRadius: 3,
     padding: 24,
   },
   responsibilityHeader: {
@@ -636,9 +638,8 @@ const styles = StyleSheet.create({
   },
   responsibilityList: {
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: 3,
     padding: 16,
-    marginBottom: 24,
   },
   responsibilityItem: {
     flexDirection: 'row',
@@ -647,13 +648,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    borderRadius: 3,
     marginBottom: 8,
   },
   responsibilityNumber: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 3,
     backgroundColor: '#ef4444',
     alignItems: 'center',
     justifyContent: 'center',
@@ -670,15 +671,16 @@ const styles = StyleSheet.create({
     color: '#374151',
   },
   legalSection: {
-    borderRadius: 16,
+    borderRadius: 3,
     borderWidth: 1,
     borderColor: '#bbf7d0',
     backgroundColor: '#f0fdf4',
     padding: 16,
+    width: '100%',
   },
   legalContainer: {
     backgroundColor: '#f0fdf4',
-    borderRadius: 8,
+    borderRadius: 3,
     padding: 16,
     borderWidth: 1,
     borderColor: '#bbf7d0',

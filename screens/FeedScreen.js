@@ -11,6 +11,7 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import AppNavbar from '../components/AppNavbar';
 import WebLayout from '../components/WebLayout';
 import { UserStore } from '../store/UserStore';
+import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 const MOBILE_BREAKPOINT = 768;
@@ -22,7 +23,8 @@ const SAMPLE_REEL_VIDEO_ALT2  = 'https://commondatastorage.googleapis.com/gtv-vi
 
 function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
-  if (url.startsWith('blob:') || url.startsWith('http://localhost') || url.startsWith('file://')) return false;
+  if (url.startsWith('blob:') || url.startsWith('http://localhost')) return false;
+  if (url.startsWith('file://') || url.startsWith('content://') || url.startsWith('ph://') || url.startsWith('asset://')) return Platform.OS !== 'web';
   if (url === '' || url === 'null' || url === 'undefined') return false;
   return true;
 }
@@ -35,7 +37,7 @@ function isPlayableVideoSource(uri) {
   if (Platform.OS !== 'web') return true;
 
   // Web: blobs/data URIs might not have an extension but can still play.
-  if (/^(blob:|data:)/i.test(uri)) return true;
+  if (/^(blob:|data:|idb-media:)/i.test(uri)) return true;
 
   return /^https?:/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
 }
@@ -584,11 +586,12 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [captionExpanded, setCaptionExpanded] = useState(false);
   // ✅ Default muted=false so audio plays automatically
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(Platform.OS === 'web');
   const [paused, setPaused] = useState(false);
-  const [showPoster, setShowPoster] = useState(!!safePost.thumbnail);
+  const [showPoster, setShowPoster] = useState(true);
   const [avatarError, setAvatarError] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
+  const [resolvedMediaUri, setResolvedMediaUri] = useState(null);
 
   const comments    = Array.isArray(safePost.comments) ? safePost.comments : [];
   const caption     = String(safePost.caption || '');
@@ -611,20 +614,52 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
     return (!thumbnailError && isValidImageUrl(t)) ? t : `https://picsum.photos/400/700?random=${postId}`;
   }, [safePost?.thumbnail, safePost?.image, thumbnailError, postId]);
 
-  const canPlayVideo = safePost.type === 'video' && isPlayableVideoSource(safePost.media);
+  const mediaUri = String(safePost.media || '').trim();
+
+  useEffect(() => {
+    let alive = true;
+    let objectUrl = null;
+
+    (async () => {
+      if (Platform.OS !== 'web') { setResolvedMediaUri(null); return; }
+      if (!isIdbMediaUri(mediaUri)) { setResolvedMediaUri(null); return; }
+      const next = await resolveIdbMediaUriToObjectUrl(mediaUri);
+      if (!alive) return;
+      objectUrl = next;
+      setResolvedMediaUri(next);
+    })();
+
+    return () => {
+      alive = false;
+      try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch {}
+    };
+  }, [mediaUri]);
+
+  const effectiveMediaUri = useMemo(() => {
+    if (Platform.OS === 'web' && isIdbMediaUri(mediaUri)) return resolvedMediaUri || '';
+    return mediaUri;
+  }, [mediaUri, resolvedMediaUri]);
+
+  const canPlayVideo = safePost.type === 'video' && isPlayableVideoSource(effectiveMediaUri);
 
   const player = useVideoPlayer(
-    canPlayVideo ? { uri: safePost.media } : null,
+    canPlayVideo ? { uri: effectiveMediaUri } : null,
     (p) => { p.loop = true; }
   );
 
-  useEffect(() => { setShowPoster(!!safePost.thumbnail); }, [safePost.thumbnail, safePost.media]);
+  useEffect(() => { setShowPoster(true); }, [mediaUri, effectiveMediaUri, safeThumbnailUrl, canPlayVideo]);
   useEffect(() => { setCaptionExpanded(false); }, [postId]);
   // ✅ Apply muted state to player
   useEffect(() => { if (!canPlayVideo) return; player.muted = muted; }, [canPlayVideo, muted, player]);
   useEffect(() => {
     if (!canPlayVideo) return;
-    if (isActive && !paused) { Promise.resolve(player.play()).catch(() => {}); return; }
+    if (isActive && !paused) {
+      Promise.resolve(player.play()).catch(() => {
+        setPaused(true);
+        setShowPoster(true);
+      });
+      return;
+    }
     player.pause();
   }, [canPlayVideo, isActive, paused, player]);
   useEffect(() => () => { if (player) player.pause(); }, [player]);
@@ -659,7 +694,20 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
         borderRadius: isMobileLayout ? 0 : 12,
       }}>
 
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setPaused(v => !v)}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={() => {
+            if (!canPlayVideo) return;
+            if (paused) {
+              setPaused(false);
+              Promise.resolve(player.play()).catch(() => { setPaused(true); });
+              return;
+            }
+            setPaused(true);
+            player.pause();
+          }}
+        >
           {canPlayVideo ? (
             <>
               <VideoView
@@ -879,7 +927,7 @@ export default function FeedScreen({ navigation }) {
 
   const page = (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-      {isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" />}
+     {isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" hideTopHeader={true} />}
 
       <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'flex-start' }}>
         <View style={{
@@ -901,7 +949,7 @@ export default function FeedScreen({ navigation }) {
                 onDescription={handleDescription}
                 onProfilePress={(postData) =>
                   navigation.navigate('UserProfile', {
-                    email: String(postData.user || '').trim().toLowerCase().replace(/\s+/g, '.'),
+                    email: String(postData.createdBy || postData.created_by || '').trim().toLowerCase(),
                     author: {
                       name: postData.user,
                       author_profile_image: isValidImageUrl(postData.avatar) ? postData.avatar : null,
@@ -909,6 +957,7 @@ export default function FeedScreen({ navigation }) {
                       author_seat_name: postData.location,
                       author_is_premium: Boolean(postData.verified),
                       author_is_subscriber: false,
+                      createdBy: String(postData.createdBy || postData.created_by || '').trim().toLowerCase(),
                     },
                   })
                 }
@@ -959,7 +1008,7 @@ export default function FeedScreen({ navigation }) {
         onShare={(id) => { setDescPost(null); handleShare(id); }}
       />
 
-      {!isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" />}
+      {!isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" hideTopHeader={true} />}
     </View>
   );
 

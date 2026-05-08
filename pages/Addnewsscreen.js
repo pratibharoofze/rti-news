@@ -14,6 +14,7 @@ import { CommonActions } from '@react-navigation/native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import VideoPreview from '../components/VideoPreview';
 import Header from '../components/Header';
@@ -22,6 +23,7 @@ import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import AddNewsStyles from '../styles/Addnewsstyles';
 import { UserStore } from '../store/UserStore';
+import { storeWebUriToIdbMedia } from '../utils/webMediaStore';
 
 const INDIA_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -36,6 +38,40 @@ const INDIA_STATES = [
 const REPORT_TYPES = ['Crime', 'Murder', 'Accident', 'Politics', 'Other'];
 
 const MEDIA_TYPES = ['None', 'Image', 'Video', 'File'];
+
+const UPLOADS_ROOT = FileSystem.documentDirectory
+  ? `${FileSystem.documentDirectory}uploads`
+  : null;
+
+function shouldPersistLocalUri(uri) {
+  if (!uri || typeof uri !== 'string') return false;
+  return /^(file:|content:|ph:|asset:)/i.test(uri);
+}
+
+function getFileExtensionFromUri(uri, fallbackExt = '') {
+  const safeFallback = String(fallbackExt || '').replace(/^\./, '');
+  if (!uri || typeof uri !== 'string') return safeFallback;
+  const cleaned = uri.split('?')[0].split('#')[0];
+  const match = cleaned.match(/\.([a-z0-9]{2,6})$/i);
+  return match ? match[1].toLowerCase() : safeFallback;
+}
+
+async function persistToUploadsDir({ uri, subdir, fallbackExt }) {
+  if (!UPLOADS_ROOT || Platform.OS === 'web') return uri;
+  if (!shouldPersistLocalUri(uri)) return uri;
+
+  try {
+    const targetDir = `${UPLOADS_ROOT}/${subdir}`;
+    await FileSystem.makeDirectoryAsync(targetDir, { intermediates: true });
+    const ext = getFileExtensionFromUri(uri, fallbackExt) || 'bin';
+    const dest = `${targetDir}/${Date.now()}-${Math.floor(Math.random() * 1e9)}.${ext}`;
+    await FileSystem.copyAsync({ from: uri, to: dest });
+    return dest;
+  } catch {
+    try { console.warn('persistToUploadsDir failed', { uri, subdir }); } catch {}
+    return uri;
+  }
+}
 
 function StatePickerModal({ visible, selected, onSelect, onClose }) {
   const [search, setSearch] = useState('');
@@ -367,7 +403,9 @@ export default function AddNewsScreen({ navigation }) {
         }
 
         if (!validateVideoDuration(asset.duration)) return;
-        setVideo(asset.uri);
+        const persisted = await storeWebUriToIdbMedia(asset.uri, { prefix: 'video', mimeType: asset.mimeType || '' });
+        setVideo(persisted);
+        showToast('Video selected.', 'success');
         return;
       }
 
@@ -482,8 +520,16 @@ export default function AddNewsScreen({ navigation }) {
       subtitle_html: subtitleHtml,
       description: descriptionHtml,
       mediaType,
-      images: mediaType === 'Image' ? images : [],
-      video: mediaType === 'Video' ? video : null,
+      images: mediaType === 'Image'
+        ? await Promise.all(
+          (Array.isArray(images) ? images : []).map((uri) =>
+            persistToUploadsDir({ uri, subdir: 'images', fallbackExt: 'jpg' })
+          )
+        )
+        : [],
+      video: mediaType === 'Video'
+        ? await persistToUploadsDir({ uri: video, subdir: 'videos', fallbackExt: 'mp4' })
+        : null,
       file: mediaType === 'File' ? attachment : null,
       report_type: reportType,
       category: reportType || stateValue || 'General',

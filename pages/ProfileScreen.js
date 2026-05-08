@@ -839,13 +839,15 @@ export default function ProfileScreen({ navigation }) {
 
         let uri = asset.uri || '';
 
-        // For web, still compress if needed, but use the URI directly
+        // Web: blob/object URLs break after refresh. Store a compact data URI so it persists.
         if (typeof document !== 'undefined' && uri) {
-          // Keep the existing compression for web, but use the URI instead of base64
-          handleChange('profile_image', uri);
-        } else {
-          handleChange('profile_image', uri);
-        }
+          try {
+            const dataUri = await compressImageToBase64(uri);
+            handleChange('profile_image', dataUri);
+          } catch {
+            handleChange('profile_image', uri);
+          }
+        } else handleChange('profile_image', uri);
 
         showToast('Image selected successfully.', 'success');
       }

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
 
 function isLikelyPlayableVideoSource(uri) {
   if (typeof uri !== 'string' || !uri.trim()) {
@@ -11,11 +12,40 @@ function isLikelyPlayableVideoSource(uri) {
     return true;
   }
 
-  return /^(https?:|blob:|data:)/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
+  if (isIdbMediaUri(uri)) return true;
+  if (/^(blob:|data:)/i.test(uri)) return true;
+
+  return /^https?:/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
 }
 
 export default function VideoPreview({ uri, style, contentFit = 'cover' }) {
-  const playableUri = isLikelyPlayableVideoSource(uri) ? uri : null;
+  const [resolved, setResolved] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    let objectUrl = null;
+
+    (async () => {
+      if (Platform.OS !== 'web') { setResolved(null); return; }
+      if (!isIdbMediaUri(uri)) { setResolved(null); return; }
+      const next = await resolveIdbMediaUriToObjectUrl(uri);
+      if (!alive) return;
+      objectUrl = next;
+      setResolved(next);
+    })();
+
+    return () => {
+      alive = false;
+      try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch {}
+    };
+  }, [uri]);
+
+  const finalUri = useMemo(() => {
+    if (Platform.OS === 'web' && isIdbMediaUri(uri)) return resolved;
+    return uri;
+  }, [resolved, uri]);
+
+  const playableUri = isLikelyPlayableVideoSource(finalUri) ? finalUri : null;
   const player = useVideoPlayer(playableUri, (p) => {
     p.loop = false;
   });

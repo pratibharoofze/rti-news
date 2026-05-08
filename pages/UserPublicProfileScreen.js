@@ -5,6 +5,7 @@ import { useToast } from '../components/ui/ToastProvider';
 import PremiumBadge from '../components/PremiumBadge';
 import VideoPreview from '../components/VideoPreview';
 import { UserStore } from '../store/UserStore';
+import { isValidImageUrl } from '../utils/storyHelpers';
 import styles from '../styles/UserPublicProfileStyles';
 
 const DEFAULT_AVATAR = require('../assets/images/icon.png');
@@ -36,6 +37,50 @@ function roleLabelToEnglish(role = '') {
   return '';
 }
 
+// Component for description with read more/less toggle
+const ExpandableDescription = ({ text, maxLines = 3 }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [needsExpansion, setNeedsExpansion] = useState(false);
+  
+  useEffect(() => {
+    // Simple check if text needs expansion based on length
+    // You can make this more accurate by measuring text width
+    if (text && text.length > 150) {
+      setNeedsExpansion(true);
+    } else {
+      setNeedsExpansion(false);
+    }
+  }, [text]);
+
+  if (!text) return null;
+
+  return (
+    <View style={styles.expandableContainer}>
+      <Text 
+        style={styles.feedDescription} 
+        numberOfLines={expanded ? undefined : maxLines}
+      >
+        {text}
+      </Text>
+      {needsExpansion && (
+        <TouchableOpacity 
+          onPress={() => setExpanded(!expanded)}
+          style={styles.readMoreBtn}
+        >
+          <Text style={styles.readMoreText}>
+            {expanded ? 'Read less' : 'Read more'}
+          </Text>
+          <Feather 
+            name={expanded ? 'chevron-up' : 'chevron-down'} 
+            size={14} 
+            color="#2563eb" 
+          />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
 export default function UserPublicProfileScreen({ route, navigation }) {
   const { showToast } = useToast();
   const { email, author } = route?.params || {};
@@ -57,16 +102,37 @@ export default function UserPublicProfileScreen({ route, navigation }) {
       const user = resolvedEmail ? await UserStore.getUser(resolvedEmail) : null;
       if (!active) return;
       setProfile(user || null);
-      const fromProfile = Array.isArray(user?.news) ? user.news : [];
-      if (fromProfile.length) {
-        setPosts(fromProfile);
-      } else {
-        const summary = resolvedEmail ? await UserStore.getNewsFeedSummary() : null;
-        const fromFeed = Array.isArray(summary?.items)
-          ? summary.items.filter((it) => String(it?.createdBy || '').trim().toLowerCase() === resolvedEmail)
-          : [];
-        setPosts(fromFeed);
-      }
+
+      const fromProfile = [
+        ...(Array.isArray(user?.news) ? user.news : []),
+        ...(Array.isArray(user?.news_feed) ? user.news_feed : []),
+      ];
+
+      const display = user || author || {};
+      const authorName = String(display?.name || display?.author_name || '').trim();
+
+      const summary = (resolvedEmail || authorName) ? await UserStore.getNewsFeedSummary() : null;
+      const fromFeed = Array.isArray(summary?.items)
+        ? summary.items.filter((it) => {
+          const createdBy = String(it?.createdBy || '').trim().toLowerCase();
+          if (resolvedEmail && createdBy) return createdBy === resolvedEmail;
+          if (!resolvedEmail && authorName) {
+            const itemAuthor = String(it?.author_name || it?.createdByName || it?.author || '').trim();
+            return itemAuthor && itemAuthor.toLowerCase() === authorName.toLowerCase();
+          }
+          return false;
+        })
+        : [];
+
+      const merged = [...fromProfile, ...fromFeed]
+        .filter(Boolean)
+        .filter((it, index, arr) => {
+          const id = it?.id;
+          if (!id) return arr.findIndex((x) => x === it) === index;
+          return arr.findIndex((x) => x?.id === id) === index;
+        });
+
+      setPosts(merged);
       setLoading(false);
       if (!user && resolvedEmail) showToast('User profile not found on this device. Showing available info.', 'error');
     })();
@@ -91,6 +157,7 @@ export default function UserPublicProfileScreen({ route, navigation }) {
   const accountAge = formatAccountAge(joinDate);
 
   const photoUri = display?.profile_image || display?.author_profile_image || '';
+  const safePhotoUri = isValidImageUrl(photoUri) ? photoUri : '';
   const hasSubscription = profile ? UserStore.hasActiveSubscription(profile) : Boolean(display?.author_is_subscriber || display?.author_is_premium);
   const isVerified = Boolean(hasSubscription || ['reporter', 'editor', 'admin'].includes(roleId));
 
@@ -137,7 +204,12 @@ export default function UserPublicProfileScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Profile Card ── */}
         <View style={styles.profileCard}>
           <View style={styles.profileTopRow}>
             <View style={styles.avatarWrap}>
@@ -207,6 +279,7 @@ export default function UserPublicProfileScreen({ route, navigation }) {
           </View>
         </View>
 
+        {/* ── Tabs ── */}
         <View style={styles.tabsRow}>
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 'posts' && styles.tabBtnActive]}
@@ -224,6 +297,7 @@ export default function UserPublicProfileScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* ── Tab Content ── */}
         {activeTab === 'activity' ? (
           <View style={styles.activityCard}>
             <Text style={styles.mutedText}>No activity yet.</Text>
@@ -232,9 +306,26 @@ export default function UserPublicProfileScreen({ route, navigation }) {
           <View style={{ gap: 12 }}>
             {sortedPosts.map((p) => {
               const postTitle = p.title || 'Untitled';
+
+              // Description — tries multiple common field names
+              const postDescription = stripHtml(
+                p.description || p.body || p.content || p.summary || p.caption || p.excerpt || ''
+              );
+
               const postLocation = [p.taluka, p.district, p.state].filter(Boolean).join(', ');
-              const postThumb = Array.isArray(p.images) && p.images.length ? p.images.filter(Boolean)[0] : null;
+
+              const postVideo = String(p.video || '').trim();
+              const imageCandidates = [
+                ...(Array.isArray(p.images) ? p.images : []),
+                p.image,
+              ]
+                .map((u) => String(u || '').trim())
+                .filter((u) => isValidImageUrl(u));
+              const postImages = Array.from(new Set(imageCandidates));
+              const postThumb = postImages.length ? postImages[0] : null;
+
               const showPending = p.status && String(p.status).toLowerCase() !== 'approved';
+
               return (
                 <TouchableOpacity
                   key={p.id || `${postTitle}-${p.date}`}
@@ -242,8 +333,12 @@ export default function UserPublicProfileScreen({ route, navigation }) {
                   onPress={() => openPost(p)}
                   activeOpacity={0.9}
                 >
+                  {/* ── Header: avatar + name + date + location ── */}
                   <View style={styles.feedHeader}>
-                    <Image source={photoUri ? { uri: photoUri } : DEFAULT_AVATAR} style={styles.feedAvatar} />
+                    <Image
+                      source={safePhotoUri ? { uri: safePhotoUri } : DEFAULT_AVATAR}
+                      style={styles.feedAvatar}
+                    />
                     <View style={styles.feedHeaderMain}>
                       <View style={styles.feedNameRow}>
                         {rolePillText ? (
@@ -266,19 +361,56 @@ export default function UserPublicProfileScreen({ route, navigation }) {
                     </View>
                   </View>
 
-                  <Text style={styles.feedTitle} numberOfLines={3}>{stripHtml(postTitle)}</Text>
-                  {postThumb ? <Image source={{ uri: postThumb }} style={styles.feedImage} /> : null}
-                  {p.video && !postThumb ? (
+                  {/* ── Title ── */}
+                  <Text style={styles.feedTitle} numberOfLines={3}>
+                    {stripHtml(postTitle)}
+                  </Text>
+
+                  {/* ── Description with Read More/Less ── */}
+                  {postDescription ? (
+                    <ExpandableDescription text={postDescription} maxLines={3} />
+                  ) : null}
+
+                  {/* ── Video ── */}
+                  {postVideo ? (
                     <View style={styles.feedVideoBox}>
-                      <VideoPreview uri={p.video} style={styles.feedVideo} contentFit="cover" />
+                      <VideoPreview uri={postVideo} style={styles.feedVideo} contentFit="cover" />
                     </View>
                   ) : null}
+
+                  {/* ── Thumbnail ── */}
+                  {postThumb ? (
+                    <Image source={{ uri: postThumb }} style={styles.feedImage} />
+                  ) : null}
+
+                  {/* ── Extra images gallery ── */}
+                  {postImages.length > 1 ? (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.feedGalleryScroll}
+                    >
+                      <View style={styles.feedGalleryRow}>
+                        {postImages.slice(1).map((uri, index) => (
+                          <Image
+                            key={`${uri}-${index}`}
+                            source={{ uri }}
+                            style={styles.feedGalleryThumb}
+                            resizeMode="cover"
+                          />
+                        ))}
+                      </View>
+                    </ScrollView>
+                  ) : null}
+
+                  {/* ── Pending status badge ── */}
                   {showPending ? (
                     <View style={styles.feedStatusPill}>
                       <Text style={styles.feedStatusText}>{String(p.status).toUpperCase()}</Text>
                     </View>
                   ) : null}
 
+                  {/* ── Action bar: like, comment, share, views ── */}
                   <View style={styles.feedActions}>
                     <View style={styles.feedActionItem}>
                       <Feather name="heart" size={16} color="#0f172a" />

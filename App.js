@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import AppNavigator from './navigation/AppNavigator';
 import { ToastProvider } from './components/ui/ToastProvider';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { AuthProvider } from './contexts/AuthContext';  // ← AuthProvider import karein
 
 SplashScreen.preventAutoHideAsync();
 
@@ -60,9 +61,11 @@ export default function App() {
 
   return (
     <LanguageProvider>
-      <ToastProvider>
-        <AppNavigator />
-      </ToastProvider>
+      <AuthProvider>  {/* ← AuthProvider yahan add karein */}
+        <ToastProvider>
+          <AppNavigator />
+        </ToastProvider>
+      </AuthProvider>
     </LanguageProvider>
   );
 }

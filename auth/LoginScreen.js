@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserStore } from '../store/UserStore';
+import { useAuth } from '../contexts/AuthContext';
 import LoginStyles from '../styles/LoginStyles';
 
 const CERTIFICATE_LOGO = require('../assets/images/certificate_logo.jpg');
@@ -37,6 +38,7 @@ if (Platform.OS === 'web') {
 }
 
 export default function LoginScreen({ navigation }) {
+  const { login } = useAuth();
   const [email, setEmail]               = useState('');
   const [password, setPassword]         = useState('');
   const [loading, setLoading]           = useState(false);
@@ -107,6 +109,7 @@ export default function LoginScreen({ navigation }) {
         return;
       }
       await UserStore.setCurrentUser(user.email);
+      login();
       const hasPremium = UserStore.hasPremiumAccess(user);
       if (hasPremium && !user.location_complete) {
         safeReplace('StateSelect', { fromPremium: true });

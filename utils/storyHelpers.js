@@ -1,4 +1,5 @@
 import { SIDEBAR_MENU_ITEMS, STATE_LABELS, FALLBACK_DISTRICT_MAP } from '../constants/homeData';
+import { Platform } from 'react-native';
 
 export function stripHtml(value) {
   return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -6,10 +7,19 @@ export function stripHtml(value) {
 
 export function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
-  if (url.startsWith('blob:')) return false;
-  if (url.startsWith('http://localhost')) return false;
-  if (url.startsWith('file://')) return false;
-  return url !== 'null' && url !== 'undefined';
+  const value = url.trim();
+  if (!value || value === 'null' || value === 'undefined') return false;
+  if (value.startsWith('blob:')) return false;
+  if (value.startsWith('http://localhost')) return false;
+
+  // Allow local URIs on native; they don't survive web reloads and typically won't render on web.
+  if (value.startsWith('file://')) return Platform.OS !== 'web';
+  if (value.startsWith('content://')) return Platform.OS !== 'web';
+  if (value.startsWith('ph://')) return Platform.OS !== 'web';
+  if (value.startsWith('asset://')) return Platform.OS !== 'web';
+
+  // `data:` URIs are fine (useful for web persistence).
+  return true;
 }
 
 export function buildPlaceholderImage(seedKey) {

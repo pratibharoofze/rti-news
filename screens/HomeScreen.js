@@ -41,6 +41,7 @@ export default function HomeScreen({ navigation, route }) {
   const [selectedDistrictName, setSelectedDistrictName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [liveStories, setLiveStories] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const nextHomeState = buildHomeStateFromParams({ initialView: routeInitialView, initialMenuKey: routeInitialMenuKey, initialStateName: routeInitialStateName });
@@ -61,7 +62,19 @@ export default function HomeScreen({ navigation, route }) {
     } catch { setLiveStories([]); }
   }, []);
 
-  useFocusEffect(useCallback(() => { loadNewsStories(); }, [loadNewsStories]));
+  const loadCurrentUser = useCallback(async () => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      setCurrentUser(user || null);
+    } catch {
+      setCurrentUser(null);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    loadNewsStories();
+    loadCurrentUser();
+  }, [loadCurrentUser, loadNewsStories]));
 
   const allStories = useMemo(() => {
     const manualStories = DEMO_STORIES.map((item, index) => normalizeStoryItem(item, index)).filter(Boolean);
@@ -182,6 +195,7 @@ export default function HomeScreen({ navigation, route }) {
                           onOpenDetails={handleOpenDetails} onOpenLocation={handleOpenLocation}
                           onOpenCategory={handleOpenCategory} onOpenAuthorProfile={handleOpenAuthorProfile}
                           commonCopy={commonCopy}
+                          currentUser={currentUser ? { name: currentUser.name, avatar: currentUser.profile_image } : null}
                         />
                       ))}
                     </View>

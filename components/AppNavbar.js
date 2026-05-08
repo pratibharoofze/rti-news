@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -8,16 +8,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { getSiteCopy } from '../constants/siteCopy';
+import { UserStore } from '../store/UserStore';
+import { isValidImageUrl } from '../utils/storyHelpers';
 
-const { width: WINDOW_WIDTH } = Dimensions.get('window');
 const IS_WEB = Platform.OS === 'web';
-const IS_WEB_MOBILE = IS_WEB && (
-  typeof window !== 'undefined' ? window.innerWidth < 768 : WINDOW_WIDTH < 768
-);
 
 const DESKTOP_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
@@ -52,12 +53,18 @@ const LANGUAGE_OPTIONS = [
 
 function blurActiveElement() {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-  const activeElement = document.activeElement;
-  if (activeElement && typeof activeElement.blur === 'function') {
-    activeElement.blur();
-  }
+  const el = document.activeElement;
+  if (el && typeof el.blur === 'function') el.blur();
 }
 
+// ─── Hook: live window width ───────────────────────────────────────────────
+function useIsDesktop() {
+  const { width } = useWindowDimensions();
+  if (!IS_WEB) return false;
+  return width >= 768;
+}
+
+// ─── Language Selector ─────────────────────────────────────────────────────
 function NavbarLanguageSelector() {
   const { language, changeLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -67,8 +74,8 @@ function NavbarLanguageSelector() {
     [language]
   );
 
-  const handleSelect = async (languageCode) => {
-    await changeLanguage(languageCode);
+  const handleSelect = async (code) => {
+    await changeLanguage(code);
     blurActiveElement();
     setIsOpen(false);
   };
@@ -77,7 +84,7 @@ function NavbarLanguageSelector() {
     <View style={styles.languageSelectorWrap}>
       <TouchableOpacity
         style={styles.utilityPillButton}
-        onPress={() => setIsOpen((currentValue) => !currentValue)}
+        onPress={() => setIsOpen((v) => !v)}
         activeOpacity={0.85}
       >
         <Ionicons name="globe-outline" size={16} color="#0f172a" />
@@ -89,83 +96,82 @@ function NavbarLanguageSelector() {
         />
       </TouchableOpacity>
 
-      {isOpen ? (
+      {isOpen && (
         <>
           <TouchableOpacity
-            style={styles.languageOverlay}
+            style={styles.overlay}
             activeOpacity={1}
-            onPress={() => {
-              blurActiveElement();
-              setIsOpen(false);
-            }}
+            onPress={() => { blurActiveElement(); setIsOpen(false); }}
           />
           <View style={styles.languageDropdownCard}>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {LANGUAGE_OPTIONS.map((item) => {
                 const isActive = item.code === selectedLanguage.code;
                 return (
                   <TouchableOpacity
                     key={item.code}
-                    style={[
-                      styles.languageDropdownItem,
-                      isActive && styles.languageDropdownItemActive,
-                    ]}
+                    style={[styles.languageDropdownItem, isActive && styles.languageDropdownItemActive]}
                     onPress={() => handleSelect(item.code)}
                     activeOpacity={0.8}
                   >
-                    <Text
-                      style={[
-                        styles.languageDropdownLabel,
-                        isActive && styles.languageDropdownLabelActive,
-                      ]}
-                    >
+                    <Text style={[styles.languageDropdownLabel, isActive && styles.languageDropdownLabelActive]}>
                       {item.label}
                     </Text>
-                    {isActive ? (
-                      <Ionicons name="checkmark-circle" size={16} color="#f97316" />
-                    ) : null}
+                    {isActive && <Ionicons name="checkmark-circle" size={16} color="#f97316" />}
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
           </View>
         </>
-      ) : null}
+      )}
     </View>
   );
 }
 
+// ─── Profile Dropdown ──────────────────────────────────────────────────────
 function ProfileDropdown({ navigation }) {
   const { language } = useLanguage();
+  const { isLoggedIn, logout, refresh } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // This should come from your auth context
+  const [avatarUri, setAvatarUri] = useState('');
+  const [avatarError, setAvatarError] = useState(false);
   const copy = useMemo(() => getSiteCopy(language), [language]);
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      refresh?.();
+      (async () => {
+        try {
+          const user = await UserStore.getCurrentUser();
+          if (!alive) return;
+          const uri = String(user?.profile_image || '').trim();
+          setAvatarError(false);
+          setAvatarUri(isValidImageUrl(uri) ? uri : '');
+        } catch {
+          if (!alive) return;
+          setAvatarError(false);
+          setAvatarUri('');
+        }
+      })();
+      return () => { alive = false; };
+    }, [refresh])
+  );
+
+  const handleLogout = async () => {
+    await logout();
     setIsOpen(false);
-    // Add your logout logic here
+    setAvatarError(false);
+    setAvatarUri('');
     navigation?.navigate?.('Home');
-  };
-
-  const handleProfile = () => {
-    setIsOpen(false);
-    navigation?.navigate?.('Profile');
-  };
-
-  const handleDashboard = () => {
-    setIsOpen(false);
-    navigation?.navigate?.('Dashboard');
   };
 
   if (!isLoggedIn) {
     return (
       <TouchableOpacity
         style={styles.primaryActionButton}
-        onPress={() => navigation?.navigate?.('Login')}
+        onPress={() => navigation?.navigate?.('Register')}
         activeOpacity={0.88}
       >
         <Ionicons name="person-add-outline" size={16} color="#ffffff" />
@@ -178,43 +184,48 @@ function ProfileDropdown({ navigation }) {
     <View style={styles.profileDropdownWrap}>
       <TouchableOpacity
         style={styles.profileIconButton}
-        onPress={() => setIsOpen(!isOpen)}
+        onPress={() => setIsOpen((v) => !v)}
         activeOpacity={0.85}
       >
-        <Ionicons name="person-circle-outline" size={32} color="#f97316" />
+        {avatarUri && !avatarError ? (
+          <Image
+            source={{ uri: avatarUri }}
+            style={styles.profileAvatarImg}
+            onError={() => setAvatarError(true)}
+          />
+        ) : (
+          <Ionicons name="person-circle-outline" size={32} color="#f97316" />
+        )}
       </TouchableOpacity>
 
-      {isOpen ? (
+      {isOpen && (
         <>
           <TouchableOpacity
-            style={styles.profileOverlay}
+            style={styles.overlay}
             activeOpacity={1}
-            onPress={() => {
-              blurActiveElement();
-              setIsOpen(false);
-            }}
+            onPress={() => { blurActiveElement(); setIsOpen(false); }}
           />
           <View style={styles.profileDropdownCard}>
             <TouchableOpacity
               style={styles.profileDropdownItem}
-              onPress={handleProfile}
+              onPress={() => { setIsOpen(false); navigation?.navigate?.('Profile'); }}
               activeOpacity={0.7}
             >
               <Ionicons name="person-outline" size={18} color="#475569" />
               <Text style={styles.profileDropdownText}>{copy.common.profile}</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.profileDropdownItem}
-              onPress={handleDashboard}
+              onPress={() => { setIsOpen(false); navigation?.navigate?.('Dashboard'); }}
               activeOpacity={0.7}
             >
               <Ionicons name="grid-outline" size={18} color="#475569" />
               <Text style={styles.profileDropdownText}>{copy.common.dashboard}</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.dropdownDivider} />
-            
+
             <TouchableOpacity
               style={[styles.profileDropdownItem, styles.logoutItem]}
               onPress={handleLogout}
@@ -225,65 +236,96 @@ function ProfileDropdown({ navigation }) {
             </TouchableOpacity>
           </View>
         </>
-      ) : null}
+      )}
     </View>
   );
 }
 
-function NavbarBrand({ onPressHome }) {
+// ─── Brand ────────────────────────────────────────────────────────────────
+function NavbarBrand({ onPressHome, compact }) {
   return (
-    <TouchableOpacity
-      style={styles.brandLink}
-      onPress={onPressHome}
-      activeOpacity={0.88}
-    >
+    <TouchableOpacity style={styles.brandLink} onPress={onPressHome} activeOpacity={0.88}>
       <Image
         source={require('../assets/images/certificate_logo.jpg')}
-        style={styles.brandLogo}
+        style={[styles.brandLogo, compact && styles.brandLogoCompact]}
         resizeMode="contain"
       />
     </TouchableOpacity>
   );
 }
 
-export default function AppNavbar({ activeScreen, navigation }) {
+// ─── Mobile Top Header ────────────────────────────────────────────────────
+function MobileTopHeader({ navigation, handleNavigate }) {
   const { language } = useLanguage();
   const copy = useMemo(() => getSiteCopy(language), [language]);
+
+  return (
+    <View style={styles.mobileTopHeader}>
+      {/* Logo */}
+      <NavbarBrand onPressHome={() => handleNavigate('Home')} compact />
+
+      {/* Right side: Language + Profile/Signup */}
+      <View style={styles.mobileTopHeaderActions}>
+        <NavbarLanguageSelector />
+        <ProfileDropdown navigation={navigation} />
+      </View>
+    </View>
+  );
+}
+
+// ─── Main Export ──────────────────────────────────────────────────────────
+export default function AppNavbar({ activeScreen, navigation, hideTopHeader = false }) {
+  const { language } = useLanguage();
+  const copy = useMemo(() => getSiteCopy(language), [language]);
+  const isDesktop = useIsDesktop();
 
   const handleNavigate = (screenName) => {
     blurActiveElement();
     navigation?.navigate?.(screenName);
   };
 
-  if (!IS_WEB || IS_WEB_MOBILE) {
+  // ── Mobile layout: top header + bottom tab bar ──
+  if (!isDesktop) {
     return (
-      <View style={styles.mobileBottomBar}>
-        {MOBILE_NAV_ITEMS.map((item) => {
-          const isActive = activeScreen === item.screen;
-          return (
-            <TouchableOpacity
-              key={item.screen}
-              style={styles.mobileTabButton}
-              onPress={() => handleNavigate(item.screen)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.mobileTabIconWrap, isActive && styles.mobileTabIconWrapActive]}>
-                <Ionicons
-                  name={item.icon}
-                  size={20}
-                  color={isActive ? '#f97316' : '#64748b'}
-                />
-              </View>
-              <Text style={[styles.mobileTabLabel, isActive && styles.mobileTabLabelActive]}>
-                {copy.common[item.labelKey] || item.labelKey}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <>
+        {/* ── Mobile Top Header: Logo + Language + Profile/Signup ── */}
+        {!hideTopHeader && (
+          <MobileTopHeader navigation={navigation} handleNavigate={handleNavigate} />
+        )}
+
+        {/* ── Mobile Bottom Tab Bar ── */}
+        <View style={styles.mobileBottomBar}>
+          {MOBILE_NAV_ITEMS.map((item) => {
+            const isActive = activeScreen === item.screen;
+            return (
+              <TouchableOpacity
+                key={item.screen}
+                style={styles.mobileTabButton}
+                onPress={() => handleNavigate(item.screen)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.mobileTabIconWrap, isActive && styles.mobileTabIconWrapActive]}>
+                  <Ionicons
+                    name={item.icon}
+                    size={20}
+                    color={isActive ? '#f97316' : '#64748b'}
+                  />
+                </View>
+                <Text
+                  style={[styles.mobileTabLabel, isActive && styles.mobileTabLabelActive]}
+                  numberOfLines={1}
+                >
+                  {copy.common[item.labelKey] || item.labelKey}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </>
     );
   }
 
+  // ── Desktop top navbar ──
   return (
     <View style={styles.desktopNavbarShell}>
       <View style={styles.desktopNavbarInner}>
@@ -304,12 +346,7 @@ export default function AppNavbar({ activeScreen, navigation }) {
                   size={16}
                   color={isActive ? '#f97316' : '#475569'}
                 />
-                <Text
-                  style={[
-                    styles.desktopNavLabel,
-                    isActive && styles.desktopNavLabelActive,
-                  ]}
-                >
+                <Text style={[styles.desktopNavLabel, isActive && styles.desktopNavLabelActive]}>
                   {copy.common[item.labelKey] || item.labelKey}
                 </Text>
               </TouchableOpacity>
@@ -327,6 +364,7 @@ export default function AppNavbar({ activeScreen, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // ── Desktop Navbar ──────────────────────────────────────────────────────
   desktopNavbarShell: {
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
@@ -351,19 +389,20 @@ const styles = StyleSheet.create({
     maxWidth: 1360,
     width: '100%',
     alignSelf: 'center',
-    paddingHorizontal: 28,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 18,
+    gap: 12,
+    flexWrap: 'nowrap',
   },
   brandLink: {
-    minWidth: 108,
-    flexDirection: 'row',
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
+    marginRight: 4,
   },
   brandLogo: {
     width: 74,
@@ -373,28 +412,35 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
     transform: [{ scale: 1.28 }],
   },
+  brandLogoCompact: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    transform: [{ scale: 1 }],
+  },
   desktopNavLinksRow: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 4,
+    minWidth: 0,
   },
   desktopNavLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: 'transparent',
   },
   desktopNavLinkActive: {
-    backgroundColor: '#ffffff',
-    borderColor: 'transparent',
+    backgroundColor: '#fff7ed',
+    borderColor: '#fdba74',
   },
   desktopNavLabel: {
     color: '#334155',
@@ -405,33 +451,47 @@ const styles = StyleSheet.create({
     color: '#f97316',
   },
   desktopActionsRow: {
-    minWidth: 248,
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 10,
+    gap: 8,
   },
-  languageSelectorWrap: {
-    position: 'relative',
-    zIndex: 1200,
+
+  // ── Mobile Top Header ───────────────────────────────────────────────────
+  mobileTopHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    ...Platform.select({
+      web: {
+        position: 'sticky',
+        top: 0,
+        zIndex: 1100,
+        boxShadow: '0 4px 16px rgba(15, 23, 42, 0.08)',
+      },
+      default: {
+        elevation: 6,
+        shadowColor: '#0f172a',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+      },
+    }),
   },
-  utilityPillButton: {
+  mobileTopHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 3,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
-  utilityPillText: {
-    color: '#0f172a',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  languageOverlay: {
+
+  // ── Shared overlay (language + profile dropdowns) ───────────────────────
+  overlay: {
     ...Platform.select({
       web: {
         position: 'fixed',
@@ -444,16 +504,40 @@ const styles = StyleSheet.create({
         position: 'absolute',
         width: 9999,
         height: 9999,
+        top: -9999,
+        left: -9999,
       },
     }),
     zIndex: 1198,
   },
+
+  // ── Language Selector ───────────────────────────────────────────────────
+  languageSelectorWrap: {
+    position: 'relative',
+    zIndex: 1200,
+  },
+  utilityPillButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 3,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  utilityPillText: {
+    color: '#0f172a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   languageDropdownCard: {
     position: 'absolute',
-    top: 56,
+    top: 44,
     right: 0,
     width: 190,
-    maxHeight: 250,
+    maxHeight: 260,
     borderRadius: 3,
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -461,9 +545,7 @@ const styles = StyleSheet.create({
     zIndex: 1199,
     overflow: 'hidden',
     ...Platform.select({
-      web: {
-        boxShadow: '0 18px 38px rgba(15, 23, 42, 0.16)',
-      },
+      web: { boxShadow: '0 18px 38px rgba(15, 23, 42, 0.16)' },
       default: {
         elevation: 16,
         shadowColor: '#0f172a',
@@ -475,30 +557,23 @@ const styles = StyleSheet.create({
   },
   languageDropdownItem: {
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  languageDropdownItemActive: {
-    backgroundColor: '#fff7ed',
-  },
-  languageDropdownLabel: {
-    color: '#1e293b',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  languageDropdownLabelActive: {
-    color: '#f97316',
-  },
-  // Profile Dropdown Styles
+  languageDropdownItemActive: { backgroundColor: '#fff7ed' },
+  languageDropdownLabel: { color: '#1e293b', fontSize: 13, fontWeight: '700' },
+  languageDropdownLabelActive: { color: '#f97316' },
+
+  // ── Profile Dropdown ────────────────────────────────────────────────────
   profileDropdownWrap: {
     position: 'relative',
     zIndex: 1200,
   },
   profileIconButton: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     borderRadius: 3,
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -506,26 +581,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  profileOverlay: {
-    ...Platform.select({
-      web: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      },
-      default: {
-        position: 'absolute',
-        width: 9999,
-        height: 9999,
-      },
-    }),
-    zIndex: 1198,
+  profileAvatarImg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#e2e8f0',
   },
   profileDropdownCard: {
     position: 'absolute',
-    top: 56,
+    top: 46,
     right: 0,
     width: 200,
     borderRadius: 3,
@@ -535,9 +599,7 @@ const styles = StyleSheet.create({
     zIndex: 1199,
     overflow: 'hidden',
     ...Platform.select({
-      web: {
-        boxShadow: '0 18px 38px rgba(15, 23, 42, 0.16)',
-      },
+      web: { boxShadow: '0 18px 38px rgba(15, 23, 42, 0.16)' },
       default: {
         elevation: 16,
         shadowColor: '#0f172a',
@@ -554,36 +616,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  profileDropdownText: {
-    color: '#1e293b',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  logoutItem: {
-    marginBottom: 4,
-  },
-  logoutText: {
-    color: '#ef4444',
-  },
-  dropdownDivider: {
-    height: 1,
-    backgroundColor: '#e2e8f0',
-    marginVertical: 4,
-  },
+  profileDropdownText: { color: '#1e293b', fontSize: 13, fontWeight: '600' },
+  logoutItem: { marginBottom: 4 },
+  logoutText: { color: '#ef4444' },
+  dropdownDivider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 4 },
+
+  // ── Primary Action Button ───────────────────────────────────────────────
   primaryActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     borderRadius: 3,
     backgroundColor: '#f97316',
   },
-  primaryActionButtonText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
+  primaryActionButtonText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
+
+  // ── Mobile Bottom Bar ────────────────────────────────────────────────────
   mobileBottomBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -591,9 +641,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fffdf8',
     borderTopWidth: 1,
     borderTopColor: '#f1e5d3',
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 26 : 10,
+    paddingHorizontal: 6,
+    paddingTop: 6,
+    paddingBottom: Platform.OS === 'ios' ? 26 : 8,
     ...Platform.select({
       web: {
         position: 'fixed',
@@ -616,11 +666,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
+    paddingHorizontal: 2,
   },
   mobileTabIconWrap: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 36,
     borderRadius: 3,
     alignItems: 'center',
     justifyContent: 'center',
@@ -634,10 +685,9 @@ const styles = StyleSheet.create({
   },
   mobileTabLabel: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
+    textAlign: 'center',
   },
-  mobileTabLabelActive: {
-    color: '#f97316',
-  },
+  mobileTabLabelActive: { color: '#f97316' },
 });

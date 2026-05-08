@@ -444,6 +444,19 @@ const UserPublicProfileStyles = StyleSheet.create({
     width: '100%',
     height: 240,
   },
+  feedGalleryScroll: {
+    marginBottom: 10,
+  },
+  feedGalleryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  feedGalleryThumb: {
+    width: 92,
+    height: 66,
+    borderRadius: 14,
+    backgroundColor: '#e2e8f0',
+  },
   feedStatusPill: {
     alignSelf: 'flex-start',
     borderRadius: 999,
@@ -478,6 +491,26 @@ const UserPublicProfileStyles = StyleSheet.create({
     color: '#0f172a',
     fontWeight: '800',
   },
+
+  // Add these to your existing styles object
+expandableContainer: {
+  marginBottom: 10,
+},
+readMoreBtn: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  alignSelf: 'flex-start',
+  marginTop: 4,
+  gap: 4,
+},
+readMoreText: {
+  fontSize: 13,
+  fontWeight: '600',
+  color: '#2563eb',
+},
+
+
+
 });
 
 export default UserPublicProfileStyles;

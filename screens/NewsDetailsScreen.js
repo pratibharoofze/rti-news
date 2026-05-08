@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Linking,
@@ -14,7 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
 import WebLayout from '../components/WebLayout';
-import VideoPreview from '../components/VideoPreview';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
 
 const IS_WEB = Platform.OS === 'web';
 const DEFAULT_AVATAR_IMAGE = require('../assets/images/icon.png');
@@ -29,9 +30,19 @@ function stripHtml(value) {
 function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
   if (url.startsWith('blob:')) return false;
-  if (url.startsWith('file://')) return false;
   if (url.startsWith('http://localhost')) return false;
   return url !== 'null' && url !== 'undefined';
+}
+
+function isPlayableVideoSource(uri) {
+  if (typeof uri !== 'string' || !uri.trim()) return false;
+  if (/(youtube\.com|youtu\.be)/i.test(uri)) return false;
+
+  if (Platform.OS !== 'web') return true;
+  if (/^(blob:|data:)/i.test(uri)) return true;
+  if (isIdbMediaUri(uri)) return true;
+
+  return /^https?:/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
 }
 
 function buildPlaceholderImage(seedKey) {
@@ -108,6 +119,56 @@ export default function NewsDetailsScreen({ route, navigation }) {
     () => (article.menuTags || []).find((tag) => tag !== 'latest') || 'latest',
     [article.menuTags]
   );
+
+  const videoUri = String(article.video || '').trim();
+  const [resolvedVideoUri, setResolvedVideoUri] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    let objectUrl = null;
+
+    (async () => {
+      if (Platform.OS !== 'web') { setResolvedVideoUri(null); return; }
+      if (!isIdbMediaUri(videoUri)) { setResolvedVideoUri(null); return; }
+      const next = await resolveIdbMediaUriToObjectUrl(videoUri);
+      if (!alive) return;
+      objectUrl = next;
+      setResolvedVideoUri(next);
+    })();
+
+    return () => {
+      alive = false;
+      try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch {}
+    };
+  }, [videoUri]);
+
+  const effectiveVideoUri = useMemo(() => {
+    if (Platform.OS === 'web' && isIdbMediaUri(videoUri)) return resolvedVideoUri || '';
+    return videoUri;
+  }, [resolvedVideoUri, videoUri]);
+
+  const canPlayVideo = Boolean(effectiveVideoUri) && isPlayableVideoSource(effectiveVideoUri);
+  const [videoPaused, setVideoPaused] = useState(false);
+  const [showVideoPoster, setShowVideoPoster] = useState(true);
+  const player = useVideoPlayer(canPlayVideo ? { uri: effectiveVideoUri } : null, (p) => {
+    p.loop = false;
+  });
+
+  useEffect(() => {
+    setShowVideoPoster(true);
+    setVideoPaused(false);
+    if (player) {
+      Promise.resolve(player.play()).catch(() => { setVideoPaused(true); });
+    }
+  }, [player, effectiveVideoUri]);
+
+  useEffect(() => {
+    if (!canPlayVideo) return;
+    if (videoPaused) { player.pause(); return; }
+    Promise.resolve(player.play()).catch(() => { setVideoPaused(true); });
+  }, [canPlayVideo, player, videoPaused]);
+
+  useEffect(() => () => { if (player) player.pause(); }, [player]);
 
   const handleOpenAttachment = useCallback(async () => {
     const fileUri = article?.file?.uri;
@@ -234,12 +295,33 @@ export default function NewsDetailsScreen({ route, navigation }) {
                 </View>
 
                 <View style={[styles.storyHeroImageWrap, isCompactLayout && styles.storyHeroImageWrapCompact]}>
-                  <Image source={{ uri: article.image }} style={styles.storyHeroImage} resizeMode="cover" />
-                  {article.mediaType === 'Video' ? (
-                    <View style={styles.storyVideoPlayOverlay}>
-                      <Ionicons name="play-circle" size={58} color="#ffffff" />
-                    </View>
-                  ) : null}
+                  {canPlayVideo ? (
+                    <TouchableOpacity
+                      style={StyleSheet.absoluteFill}
+                      activeOpacity={1}
+                      onPress={() => setVideoPaused((prev) => !prev)}
+                    >
+                     <VideoView
+  player={player}
+  style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+  contentFit="cover"
+  nativeControls={false}
+  allowsFullscreen={true}
+  playsInline
+  onFirstFrameRender={() => setShowVideoPoster(false)}
+/>
+                      {showVideoPoster ? (
+                        <Image source={{ uri: article.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                      ) : null}
+                      {videoPaused ? (
+                        <View style={styles.storyVideoPlayOverlay}>
+                          <Ionicons name="play-circle" size={58} color="#ffffff" />
+                        </View>
+                      ) : null}
+                    </TouchableOpacity>
+                  ) : (
+                    <Image source={{ uri: article.image }} style={styles.storyHeroImage} resizeMode="cover" />
+                  )}
                 </View>
 
                 <View style={styles.storyStatsRow}>
@@ -293,10 +375,12 @@ export default function NewsDetailsScreen({ route, navigation }) {
                   </View>
                 ) : null}
 
-                {article.video ? (
+                {article.video && !canPlayVideo ? (
                   <View style={styles.storyBodySection}>
                     <Text style={styles.storyBodyTitle}>Video</Text>
-                    <VideoPreview uri={article.video} style={styles.videoPreview} contentFit="contain" />
+                    <Text style={styles.storyBodyText}>
+                      Video preview is not available for this link. Please try a direct MP4/WebM URL.
+                    </Text>
                   </View>
                 ) : null}
 

@@ -14,6 +14,7 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 import { UserStore } from '../store/UserStore';
+import { useAuth } from '../contexts/AuthContext';
 import { getTalukas } from '../pages/locationData';
 import styles from '../styles/RegisterStyles';
 
@@ -204,6 +205,7 @@ export default function TalukaSelectScreen({
   navigation,
   route,
 }) {
+  const { login } = useAuth();
   const {
     selectedState,
     selectedDistrict,
@@ -312,6 +314,7 @@ export default function TalukaSelectScreen({
       await UserStore.setCurrentUser(
         pending.email
       );
+      login();
 
       await UserStore.completeLocationSetup(
         pending.email,
@@ -406,6 +409,7 @@ export default function TalukaSelectScreen({
       await UserStore.setCurrentUser(
         pending.email
       );
+      login();
 
       await UserStore.completeLocationSetup(
         pending.email,

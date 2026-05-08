@@ -1,13 +1,25 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet,
   Platform, Share, TextInput, KeyboardAvoidingView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { CATEGORY_COLOR_MAP, EDITORIAL_FONT_FAMILY } from '../constants/homeData';
 import { isValidImageUrl, buildPlaceholderImage, getLocalizedCategoryLabel, getLocalizedSeatLabel } from '../utils/storyHelpers';
+import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
 
 const DEFAULT_AVATAR_IMAGE = require('../assets/images/icon.png');
+
+function isPlayableVideoSource(uri) {
+  if (typeof uri !== 'string' || !uri.trim()) return false;
+  if (/(youtube\.com|youtu\.be)/i.test(uri)) return false;
+
+  if (Platform.OS !== 'web') return true;
+  if (/^(blob:|data:)/i.test(uri)) return true;
+
+  return /^https?:/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
+}
 
 export default function NewsFeedCard({
   story,
@@ -27,6 +39,7 @@ export default function NewsFeedCard({
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [localComments, setLocalComments] = useState([]);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
   const inputRef = useRef(null);
 
   const safeImage = isValidImageUrl(story.image)
@@ -40,7 +53,56 @@ export default function NewsFeedCard({
   // User info helpers
   const userName = currentUser?.name || commonCopy?.you || 'User';
   const userInitial = userName.charAt(0).toUpperCase();
-  const userAvatar = currentUser?.avatar || null;
+  const userAvatar = useMemo(() => {
+    const avatar = String(currentUser?.avatar || '').trim();
+    return isValidImageUrl(avatar) ? avatar : '';
+  }, [currentUser?.avatar]);
+
+  const videoUri = String(story.video || '').trim();
+  const [resolvedVideoUri, setResolvedVideoUri] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    let objectUrl = null;
+
+    (async () => {
+      if (Platform.OS !== 'web') { setResolvedVideoUri(null); return; }
+      if (!isIdbMediaUri(videoUri)) { setResolvedVideoUri(null); return; }
+      const next = await resolveIdbMediaUriToObjectUrl(videoUri);
+      if (!alive) return;
+      objectUrl = next;
+      setResolvedVideoUri(next);
+    })();
+
+    return () => {
+      alive = false;
+      try { if (objectUrl) URL.revokeObjectURL(objectUrl); } catch {}
+    };
+  }, [videoUri]);
+
+  const effectiveVideoUri = useMemo(() => {
+    if (Platform.OS === 'web' && isIdbMediaUri(videoUri)) return resolvedVideoUri || '';
+    return videoUri;
+  }, [resolvedVideoUri, videoUri]);
+
+  const canPlayVideo = Boolean(effectiveVideoUri) && isPlayableVideoSource(effectiveVideoUri);
+  const [videoPaused, setVideoPaused] = useState(true);
+  const [showVideoPoster, setShowVideoPoster] = useState(true);
+  const player = useVideoPlayer(canPlayVideo ? { uri: effectiveVideoUri } : null, (p) => { p.loop = false; });
+
+  useEffect(() => {
+    setVideoPaused(true);
+    setShowVideoPoster(true);
+    if (player) player.pause();
+  }, [effectiveVideoUri, player]);
+
+  useEffect(() => {
+    if (!canPlayVideo) return;
+    if (videoPaused) { player.pause(); return; }
+    Promise.resolve(player.play()).catch(() => { setVideoPaused(true); });
+  }, [canPlayVideo, videoPaused, player]);
+
+  useEffect(() => () => { if (player) player.pause(); }, [player]);
 
   // ✅ LIKE
   const handleLike = () => {
@@ -106,6 +168,8 @@ export default function NewsFeedCard({
     }
   };
 
+  const hasExpandableContent = Boolean(story.excerpt || story.description);
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.storyCardShell, isCompactLayout && styles.storyCardShellCompact]}>
@@ -149,30 +213,59 @@ export default function NewsFeedCard({
           </TouchableOpacity>
         </View>
 
-        {/* ── Headline + Excerpt ── */}
-        <TouchableOpacity
-          style={styles.storyContentWrap}
-          onPress={() => onOpenDetails(story)}
-          activeOpacity={0.88}
-        >
-          <Text style={[styles.storyHeadlineText, isCompactLayout && styles.storyHeadlineTextCompact]}>
-            {story.title}
-          </Text>
-          {story.excerpt
-            ? <Text style={styles.storyExcerptText} numberOfLines={2}>{story.excerpt}</Text>
-            : null}
-        </TouchableOpacity>
+        {/* ── Headline + Excerpt + Full Description ── */}
+        <View style={styles.storyContentWrap}>
+          <TouchableOpacity onPress={() => onOpenDetails(story)} activeOpacity={0.88}>
+            <Text style={[styles.storyHeadlineText, isCompactLayout && styles.storyHeadlineTextCompact]}>
+              {story.title}
+            </Text>
 
-        {/* ── View More + Category ── */}
-        <View style={styles.storyTopActionRow}>
-          <TouchableOpacity
-            style={styles.storyViewMoreButton}
-            onPress={() => onOpenDetails(story)}
-            activeOpacity={0.84}
-          >
-            <Text style={styles.storyViewMoreText}>{commonCopy.viewAll}</Text>
-            <Ionicons name="arrow-forward-outline" size={14} color="#e11d48" />
+            {/* Subtitle - if available */}
+            {story.subtitle ? (
+              <Text style={styles.storySubtitleText} numberOfLines={2}>
+                {story.subtitle}
+              </Text>
+            ) : null}
           </TouchableOpacity>
+
+          {/* Excerpt — always show, clamp when collapsed */}
+          {story.excerpt ? (
+            <Text
+              style={styles.storyExcerptText}
+              numberOfLines={isDescExpanded ? undefined : 3}
+            >
+              {story.excerpt}
+            </Text>
+          ) : null}
+
+          {/* Description — only show when expanded */}
+          {isDescExpanded && story.description && story.description !== story.excerpt ? (
+            <Text style={styles.storyDescriptionText}>
+              {story.description}
+            </Text>
+          ) : null}
+
+          {/* More / Less toggle */}
+          {hasExpandableContent && (
+            <TouchableOpacity
+              style={styles.moreLessBtn}
+              onPress={() => setIsDescExpanded((prev) => !prev)}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.moreLessBtnText}>
+                {isDescExpanded ? (commonCopy?.less || 'Less') : (commonCopy?.more || 'More')}
+              </Text>
+              <Ionicons
+                name={isDescExpanded ? 'chevron-up' : 'chevron-down'}
+                size={13}
+                color="#e11d48"
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── Category ── */}
+        <View style={styles.storyTopActionRow}>
           <TouchableOpacity
             style={[styles.storyCategoryChip, { backgroundColor: `${categoryColor}14`, borderColor: `${categoryColor}40` }]}
             onPress={() => onOpenCategory(story)}
@@ -187,18 +280,39 @@ export default function NewsFeedCard({
         {/* ── Hero Image ── */}
         <TouchableOpacity
           style={[styles.storyHeroImageWrap, isCompactLayout && styles.storyHeroImageWrapCompact]}
-          onPress={() => onOpenDetails(story)}
+          onPress={() => {
+            if (canPlayVideo) setVideoPaused((prev) => !prev);
+            else onOpenDetails(story);
+          }}
+          onLongPress={() => onOpenDetails(story)}
           activeOpacity={0.9}
         >
-          <Image source={{ uri: safeImage }} style={styles.storyHeroImage} resizeMode="cover" />
-          {(story.mediaType === 'Video' || Boolean(story.video)) ? (
-            <View style={styles.storyVideoPlayOverlay}>
-              <View style={styles.storyVideoPlayBadge}>
-                <Ionicons name="play" size={22} color="#ffffff" />
-              </View>
-              <Text style={styles.storyVideoLabel}>{commonCopy.video}</Text>
-            </View>
-          ) : null}
+          {canPlayVideo ? (
+            <>
+              <VideoView
+                player={player}
+                style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+                contentFit="cover"
+                nativeControls={false}
+                allowsFullscreen={false}
+                playsInline
+                onFirstFrameRender={() => setShowVideoPoster(false)}
+              />
+              {showVideoPoster ? (
+                <Image source={{ uri: safeImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+              ) : null}
+              {videoPaused ? (
+                <View style={styles.storyVideoPlayOverlay}>
+                  <View style={styles.storyVideoPlayBadge}>
+                    <Ionicons name="play" size={22} color="#ffffff" />
+                  </View>
+                  <Text style={styles.storyVideoLabel}>{commonCopy.video}</Text>
+                </View>
+              ) : null}
+            </>
+          ) : (
+            <Image source={{ uri: safeImage }} style={styles.storyHeroImage} resizeMode="cover" />
+          )}
         </TouchableOpacity>
 
         {/* ── Stats Row ── */}
@@ -350,19 +464,6 @@ export default function NewsFeedCard({
               </View>
             )}
 
-            {/* Purane comments dekhne ka link */}
-            {commentsCount > localComments.length && (
-              <TouchableOpacity
-                style={styles.viewAllComments}
-                onPress={() => onOpenDetails(story)}
-                activeOpacity={0.82}
-              >
-                <Text style={styles.viewAllCommentsText}>
-                  Saare {commentsCount} comments dekhein →
-                </Text>
-              </TouchableOpacity>
-            )}
-
           </View>
         )}
 
@@ -402,10 +503,12 @@ const styles = StyleSheet.create({
   storyContentWrap: { marginBottom: 10 },
   storyHeadlineText: { color: '#1e293b', fontSize: 18, lineHeight: 25, fontWeight: '900', fontFamily: EDITORIAL_FONT_FAMILY },
   storyHeadlineTextCompact: { fontSize: 16, lineHeight: 23 },
-  storyExcerptText: { color: '#64748b', fontSize: 12, lineHeight: 18, marginTop: 6 },
-  storyTopActionRow: { marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
-  storyViewMoreButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  storyViewMoreText: { color: '#e11d48', fontSize: 13, fontWeight: '900', textDecorationLine: 'underline' },
+  storySubtitleText: { color: '#475569', fontSize: 14, fontWeight: '600', lineHeight: 20, marginTop: 4, fontFamily: EDITORIAL_FONT_FAMILY },
+  storyExcerptText: { color: '#64748b', fontSize: 13, lineHeight: 19, marginTop: 6 },
+  storyDescriptionText: { color: '#334155', fontSize: 13, lineHeight: 19, marginTop: 4 },
+  moreLessBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 6, alignSelf: 'flex-start' },
+  moreLessBtnText: { color: '#e11d48', fontSize: 12, fontWeight: '800' },
+  storyTopActionRow: { marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' },
   storyCategoryChip: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
   storyCategoryChipText: { fontSize: 11, fontWeight: '800' },
   storyHeroImageWrap: { height: 148, borderRadius: 5, overflow: 'hidden', backgroundColor: '#e2e8f0' },
@@ -446,8 +549,6 @@ const styles = StyleSheet.create({
   commentAuthor: { color: '#334155', fontSize: 11, fontWeight: '800', marginBottom: 2 },
   commentText: { color: '#1e293b', fontSize: 13, lineHeight: 18 },
   commentTime: { color: '#94a3b8', fontSize: 10, marginTop: 4 },
-  viewAllComments: { marginTop: 10, alignItems: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#eef2f7' },
-  viewAllCommentsText: { color: '#0ea5e9', fontSize: 12, fontWeight: '700' },
 
   storyBottomMetaRow: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#eef2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
   storyBottomMetaText: { color: '#64748b', fontSize: 11, fontWeight: '600' },

@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { UserStore } from '../store/UserStore';
+import { useAuth } from '../contexts/AuthContext';
 import styles from '../styles/RegisterStyles';
 
 const CERTIFICATE_LOGO = require('../assets/images/certificate_logo.jpg');
@@ -23,6 +24,7 @@ function isValidEmailAddress(value) {
   if (!emailValue) return false;
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(emailValue);
 }
+
 
 function getPasswordChecks(value) {
   const passwordValue = String(value || '');
@@ -193,6 +195,7 @@ const dropStyles = StyleSheet.create({
 });
 
 export default function RegisterScreen({ navigation }) {
+  const { login } = useAuth();
   const [name, setName]               = useState('');
   const [mobile, setMobile]           = useState('');
   const [email, setEmail]             = useState('');
@@ -275,6 +278,7 @@ export default function RegisterScreen({ navigation }) {
     if (existing) {
       if (!existing.location_complete) {
         await UserStore.setCurrentUser(existing.email);
+        login();
         showToast('Account found. Continue location setup.', 'success');
         navigation.navigate('StateSelect', {
           fromPremium: false,

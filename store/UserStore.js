@@ -1399,15 +1399,10 @@ export const UserStore = {
         return rawItems;
       });
 
+      // FeedScreen expects to show all users' posts (video OR image) without login-gated visibility.
+      // We still skip items that have no playable media/thumbnail at all.
       const reels = injected
-        .filter((item) => {
-          const hasVideo = Boolean(getReelVideoUri(item));
-          if (!hasVideo) return false;
-          const statusLower = String(item.status || 'approved').toLowerCase();
-          if (statusLower === 'approved') return true;
-          const createdByEmail = String(item.createdBy || item.created_by || '').trim().toLowerCase();
-          return Boolean(currentEmail && createdByEmail && currentEmail === createdByEmail);
-        })
+        .filter((item) => Boolean(getReelVideoUri(item) || getReelThumbnailUri(item)))
         .map((item) => toReelPostFromNewsItem(item, currentEmail))
         .sort((a, b) => getNewsSortValue(b) - getNewsSortValue(a));
 

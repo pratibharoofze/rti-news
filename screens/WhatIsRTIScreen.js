@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Platform,
+  Dimensions,
+  useWindowDimensions
+} from 'react-native';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
 import WebLayout from '../components/WebLayout';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getSiteCopy } from '../constants/siteCopy';
-
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
 
 const contentsItems = [
   "What is the method to apply for information?",
@@ -243,6 +244,8 @@ export default function RTIPage({ navigation }) {
   const copy = getSiteCopy(language);
   const rtiCopy = copy.rti;
   const [openId, setOpenId] = useState(null);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
 
   const toggle = (id) => setOpenId(openId === id ? null : id);
 
@@ -264,6 +267,24 @@ export default function RTIPage({ navigation }) {
     "14. Maharashtra Government Gazette, Extraordinary Part One - Central Sub-Division, November 19, 2013 / Kartik 28, Shake 1935 12. Procedure for seeking opinions or views from subordinate offices. - If a Secretariat department or department head or district-level office finds it necessary to seek opinions or consult subordinate offices, the following procedure will be followed: (a) Generally, documents of matters will not be sent to officers in subordinate offices unless absolutely necessary. Preference will be given to using e-mail service for such correspondence, and sending reminders by e-mail will also be mandatory. (b) When documents of matters or the entire matter is sent to a subordinate office, the specific points on which consultation or opinion is expected from the officer in the subordinate office will be clearly and categorically mentioned. (c) The concerned officer of the subordinate office will give a clear opinion or views on the points specified for seeking opinion or consultation, elaborating related and relevant points concerning the matter. (d) The officer from whom opinion is sought will suggest an appropriate course of action or give an opinion or express views based on the specified situation in that particular matter. (e) The subordinate office will cite relevant laws, rules, and government administrative orders, etc., in support of its recommendations on a matter. (f) In matters where information has been sought from subordinate or field officers, the specific date by which the information is expected will be mentioned in the letter sent by the Secretariat department. The specified time limit for the subordinate or field office to submit the required information will be determined considering the scope of the information, the working days likely required to collect information from offices subordinate to that department or district-level office, and the time required to actually send that information. *13. Measures for making final decisions on matters within prescribed time limit. - The time limit prescribed under Section 10 of the Act for disposal of matters is maximum, and matters will be disposed within that time limit. The following measures will be taken to avoid delay regarding such matters: (a) The standards set for the work of government employees will be used to review whether the office work assigned to them is being disposed of properly or not. This periodic review will be done by each office head or department head or any other officer authorized in this regard by the end of each month. If such standards are not specified, they will be promptly specified by each office head or department head. (b) For making decisions on matters, wherever possible, powers will be delegated to each office or department head under the administrative control of Secretariat departments, and periodic review will be done of how effectively these delegated powers are being used, and necessary measures will be taken in this regard. (c) The procedure specified for taking action on matters for final decision will be reviewed and improved if necessary. *14. Determining matters mentioned in Section 11 of the Act and preparing a list. - The concerned administrative department at the Secretariat level and the department head at the divisional level or, as the case may be, the district office head at the district level will prepare a list of matters or subjects that fall under Section 11, to which the provisions of Section 10 of the Act will not apply in specific circumstances, and"
   ];
 
+  const responsibilitiesList = [
+    "Provide acknowledgment of the received application and record it in the information application register.",
+    "Clarity regarding the requested information.",
+    "Inform the applicant if the requested information is extensive, old, and will take time to find and prepare.",
+    "As per Section 2(r), if the information is old, vague, and extensive, inform about viewing the records.",
+    "If you are taking help from an Assistant Public Information Officer as per Section 5(4), inform the applicant of the letter's copy.",
+    "If the information is available and definite, calculate the fee and inform for payment.",
+    "If the requested information belongs to a third party, issue a notice to the third party and wait 10 days for their clarification/statements.",
+    "If the information is providable, provide it in the same form as it is as per Section 7(9).",
+    "If the requested information is old and cannot be photocopied, it can be denied by providing inspection.",
+    "If information is not provided within 30 days and requested by the applicant in person, provide acknowledgment on the filed application.",
+    "Give a reasoned decision when denying information under Sections 8 and 9.",
+    "If documents are available from the questions raised in the applicant's application, provide them.",
+    "If the information is old, extensive, and will take time to collect, inform the applicant within the first 5 days.",
+    "If the applicant has requested information by post, calculate total amount including information fee and extra postage and inform for payment, and preserve the acknowledgment proof in records.",
+    "If the requested information belongs to another public authority, send the applicant's application to the appropriate authority and give a copy of the letter to the applicant.",
+  ];
+
   const pageContent = (
     <>
       <View style={styles.content}>
@@ -278,8 +299,8 @@ export default function RTIPage({ navigation }) {
           <Text style={styles.headerDescription}>{rtiCopy.headerDescription}</Text>
         </View>
 
-        <View style={styles.twoColumnContainer}>
-          <View style={styles.contentsCard}>
+        <View style={[styles.twoColumnContainer, isMobile && styles.twoColumnContainerMobile]}>
+          <View style={[styles.contentsCard, isMobile && styles.contentsCardMobile]}>
             <View style={styles.contentsHeader}>
               <View style={styles.contentsIcon}>
                 <Text style={styles.contentsIconText}>📚</Text>
@@ -300,15 +321,15 @@ export default function RTIPage({ navigation }) {
             ))}
           </View>
 
-          <View style={styles.infoCard}>
+          <View style={[styles.infoCard, isMobile && styles.infoCardMobile]}>
             <Text style={styles.infoSubtitle}>{rtiCopy.infoSubtitle}</Text>
             <Text style={styles.infoTitle}>{rtiCopy.infoTitle}</Text>
             <Text style={styles.infoDescription}>{rtiCopy.infoDescription}</Text>
           </View>
         </View>
 
-        <View style={styles.bottomSplitContainer}>
-          <View style={styles.faqContainer}>
+        <View style={[styles.bottomSplitContainer, isMobile && styles.bottomSplitContainerMobile]}>
+          <View style={[styles.faqContainer, isMobile && styles.faqContainerMobile]}>
             <View style={styles.faqHeader}>
               <Text style={styles.faqTitle}>{rtiCopy.faqTitle}</Text>
             </View>
@@ -318,6 +339,7 @@ export default function RTIPage({ navigation }) {
                 <TouchableOpacity
                   style={[styles.faqQuestion, openId === faq.id && styles.faqQuestionActive]}
                   onPress={() => toggle(faq.id)}
+                  activeOpacity={0.7}
                 >
                   <View style={styles.faqQuestionContent}>
                     <Text style={styles.faqQuestionLabel}>{rtiCopy.questionLabel} {faq.id}</Text>
@@ -343,30 +365,14 @@ export default function RTIPage({ navigation }) {
             ))}
           </View>
 
-          <View style={styles.responsibilityContainer}>
+          <View style={[styles.responsibilityContainer, isMobile && styles.responsibilityContainerMobile]}>
             <View style={styles.responsibilityHeader}>
               <Text style={styles.responsibilityTitle}>{rtiCopy.responsibilitiesTitle}</Text>
               <Text style={styles.responsibilitySubtitle}>{rtiCopy.responsibilitiesSubtitle}</Text>
             </View>
 
             <View style={styles.responsibilityList}>
-              {[
-                "Provide acknowledgment of the received application and record it in the information application register.",
-                "Clarity regarding the requested information.",
-                "Inform the applicant if the requested information is extensive, old, and will take time to find and prepare.",
-                "As per Section 2(r), if the information is old, vague, and extensive, inform about viewing the records.",
-                "If you are taking help from an Assistant Public Information Officer as per Section 5(4), inform the applicant of the letter's copy.",
-                "If the information is available and definite, calculate the fee and inform for payment.",
-                "If the requested information belongs to a third party, issue a notice to the third party and wait 10 days for their clarification/statements.",
-                "If the information is providable, provide it in the same form as it is as per Section 7(9).",
-                "If the requested information is old and cannot be photocopied, it can be denied by providing inspection.",
-                "If information is not provided within 30 days and requested by the applicant in person, provide acknowledgment on the filed application.",
-                "Give a reasoned decision when denying information under Sections 8 and 9.",
-                "If documents are available from the questions raised in the applicant's application, provide them.",
-                "If the information is old, extensive, and will take time to collect, inform the applicant within the first 5 days.",
-                "If the applicant has requested information by post, calculate total amount including information fee and extra postage and inform for payment, and preserve the acknowledgment proof in records.",
-                "If the requested information belongs to another public authority, send the applicant's application to the appropriate authority and give a copy of the letter to the applicant.",
-              ].map((item, index) => (
+              {responsibilitiesList.map((item, index) => (
                 <View key={index} style={styles.responsibilityItem}>
                   <View style={styles.responsibilityNumber}>
                     <Text style={styles.responsibilityNumberText}>{index + 1}</Text>
@@ -397,7 +403,11 @@ export default function RTIPage({ navigation }) {
   const page = (
     <View style={{ flex: 1 }}>
       {isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {pageContent}
       </ScrollView>
       {!isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
@@ -411,8 +421,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f6f5f5',
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
     paddingTop: 32,
     paddingBottom: 32,
   },
@@ -427,8 +440,14 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-    elevation: 1,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+      },
+      default: {
+        elevation: 1,
+      }
+    }),
   },
   badgeText: {
     fontSize: 12,
@@ -441,8 +460,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 3,
     padding: 24,
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+      default: {
+        elevation: 3,
+      }
+    }),
     marginBottom: 32,
   },
   headerTitle: {
@@ -463,6 +488,10 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 32,
   },
+  twoColumnContainerMobile: {
+    flexDirection: 'column',
+    gap: 16,
+  },
   contentsCard: {
     flex: 1,
     backgroundColor: '#fef3c7',
@@ -470,14 +499,24 @@ const styles = StyleSheet.create({
     borderColor: '#fed7aa',
     borderRadius: 3,
     padding: 24,
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-    elevation: 1,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+      },
+      default: {
+        elevation: 1,
+      }
+    }),
+  },
+  contentsCardMobile: {
+    marginBottom: 0,
   },
   contentsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     marginBottom: 16,
+    flexWrap: 'wrap',
   },
   contentsIcon: {
     width: 40,
@@ -495,6 +534,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#111827',
+    flexShrink: 1,
   },
   contentsItem: {
     fontSize: 14,
@@ -507,8 +547,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#dc2626',
     borderRadius: 3,
     padding: 24,
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      },
+      default: {
+        elevation: 3,
+      }
+    }),
+  },
+  infoCardMobile: {
+    marginTop: 0,
   },
   infoSubtitle: {
     fontSize: 12,
@@ -535,6 +584,10 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 24,
   },
+  bottomSplitContainerMobile: {
+    flexDirection: 'column',
+    gap: 16,
+  },
   faqContainer: {
     flex: 1,
     backgroundColor: 'white',
@@ -542,6 +595,9 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     borderRadius: 3,
     overflow: 'hidden',
+  },
+  faqContainerMobile: {
+    marginBottom: 0,
   },
   faqHeader: {
     borderBottomWidth: 1,
@@ -572,6 +628,7 @@ const styles = StyleSheet.create({
   },
   faqQuestionContent: {
     flex: 1,
+    paddingRight: 12,
   },
   faqQuestionLabel: {
     fontSize: 12,
@@ -594,7 +651,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fee2e2',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
+    flexShrink: 0,
   },
   faqToggleIconText: {
     fontSize: 20,
@@ -619,6 +676,9 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderRadius: 3,
     padding: 24,
+  },
+  responsibilityContainerMobile: {
+    marginTop: 0,
   },
   responsibilityHeader: {
     marginBottom: 24,
@@ -658,6 +718,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ef4444',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   responsibilityNumberText: {
     fontSize: 10,

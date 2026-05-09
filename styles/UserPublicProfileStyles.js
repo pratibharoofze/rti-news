@@ -427,6 +427,13 @@ const UserPublicProfileStyles = StyleSheet.create({
     lineHeight: 26,
     marginBottom: 10,
   },
+  // ✅ feedDescription — ExpandableDescription ke liye
+  feedDescription: {
+    fontSize: 14,
+    color: '#334155',
+    lineHeight: 20,
+    fontWeight: '500',
+  },
   feedImage: {
     width: '100%',
     height: 220,
@@ -486,31 +493,183 @@ const UserPublicProfileStyles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  feedActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  feedActionButtonActive: {
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+  },
   feedActionText: {
     fontSize: 12,
     color: '#0f172a',
     fontWeight: '800',
   },
 
-  // Add these to your existing styles object
-expandableContainer: {
-  marginBottom: 10,
-},
-readMoreBtn: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  alignSelf: 'flex-start',
-  marginTop: 4,
-  gap: 4,
-},
-readMoreText: {
-  fontSize: 13,
-  fontWeight: '600',
-  color: '#2563eb',
-},
+  commentOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.45)',
+    justifyContent: 'flex-end',
+  },
+  commentSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    maxHeight: '70%',
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  commentTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  commentList: {
+    marginBottom: 12,
+  },
+  commentItem: {
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    marginBottom: 8,
+  },
+  commentTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  commentAuthor: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  commentDate: {
+    fontSize: 10,
+    color: '#94a3b8',
+  },
+  commentText: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 18,
+  },
+  commentEditInput: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 12,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
+    marginTop: 4,
+  },
+  commentActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  commentActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#fee2e2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  commentActionBtnActive: {
+    backgroundColor: '#fecaca',
+  },
+  commentActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#e11d48',
+  },
+  commentActionTextActive: {
+    color: '#b91c1c',
+  },
+  commentMiniBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  commentMiniBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  commentEmptyText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  commentInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 110,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: '#0f172a',
+    backgroundColor: '#ffffff',
+  },
+  commentSendBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-
-
+  // ✅ ExpandableDescription container
+  expandableContainer: {
+    marginBottom: 10,
+  },
+  readMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    gap: 4,
+  },
+  readMoreText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2563eb',
+  },
 });
 
 export default UserPublicProfileStyles;

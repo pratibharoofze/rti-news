@@ -5,9 +5,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useIsFocused } from '@react-navigation/native';
 import { CATEGORY_COLOR_MAP, EDITORIAL_FONT_FAMILY } from '../constants/homeData';
 import { isValidImageUrl, buildPlaceholderImage, getLocalizedCategoryLabel, getLocalizedSeatLabel } from '../utils/storyHelpers';
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
+import { UserStore } from '../store/UserStore';
 
 const DEFAULT_AVATAR_IMAGE = require('../assets/images/icon.png');
 
@@ -29,9 +31,12 @@ export default function NewsFeedCard({
   onOpenCategory,
   onOpenAuthorProfile,
   commonCopy,
-  currentUser,   // ✅ logged-in user — { name, avatar }
+  currentUser,
 }) {
+  const isScreenFocused = useIsFocused();
+  const [currentEmail, setCurrentEmail] = useState('');
   const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(Boolean(story.bookmarked));
   const [likesCount, setLikesCount] = useState(Number(story.likes || 0));
   const [commentsCount, setCommentsCount] = useState(Number(story.comments || 0));
   const [sharesCount, setSharesCount] = useState(Number(story.shares || 0));
@@ -41,6 +46,35 @@ export default function NewsFeedCard({
   const [localComments, setLocalComments] = useState([]);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const user = await UserStore.getCurrentUser();
+        if (!alive) return;
+        const email = String(user?.email || '').trim().toLowerCase();
+        setCurrentEmail(email);
+      } catch {
+        if (!alive) return;
+        setCurrentEmail('');
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    setLikesCount(Number(story.likes || 0));
+    setCommentsCount(Number(story.comments || 0));
+    setSharesCount(Number(story.shares || 0));
+    setIsSaved(Boolean(story.bookmarked));
+    const liked = Boolean(
+      currentEmail
+        && Array.isArray(story.liked_by)
+        && story.liked_by.includes(currentEmail)
+    );
+    setIsLiked(liked);
+  }, [currentEmail, story.bookmarked, story.comments, story.likes, story.liked_by, story.shares]);
 
   const safeImage = isValidImageUrl(story.image)
     ? story.image
@@ -90,31 +124,83 @@ export default function NewsFeedCard({
   const [showVideoPoster, setShowVideoPoster] = useState(true);
   const player = useVideoPlayer(canPlayVideo ? { uri: effectiveVideoUri } : null, (p) => { p.loop = false; });
 
+  // Stop video when screen loses focus
+  useEffect(() => {
+    if (!isScreenFocused && player) {
+      player.pause();
+      setVideoPaused(true);
+      setShowVideoPoster(true);
+    }
+  }, [isScreenFocused, player]);
+
+  // Initial setup - video starts paused
   useEffect(() => {
     setVideoPaused(true);
     setShowVideoPoster(true);
-    if (player) player.pause();
+    if (player) {
+      player.pause();
+    }
   }, [effectiveVideoUri, player]);
 
+  // Handle play/pause based on videoPaused state
   useEffect(() => {
-    if (!canPlayVideo) return;
-    if (videoPaused) { player.pause(); return; }
-    Promise.resolve(player.play()).catch(() => { setVideoPaused(true); });
+    if (!canPlayVideo || !player) return;
+    if (videoPaused) {
+      player.pause();
+    } else {
+      Promise.resolve(player.play()).catch(() => { 
+        setVideoPaused(true); 
+      });
+    }
   }, [canPlayVideo, videoPaused, player]);
 
-  useEffect(() => () => { if (player) player.pause(); }, [player]);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { 
+      if (player) {
+        player.pause();
+      }
+    };
+  }, [player]);
+
+  // Handle video tap - toggle play/pause
+  const handleVideoPress = () => {
+    if (videoPaused) {
+      setVideoPaused(false);
+    } else {
+      setVideoPaused(true);
+    }
+  };
+
+  // Handle image tap - open details
+  const handleImagePress = () => {
+    onOpenDetails(story);
+  };
 
   // ✅ LIKE
-  const handleLike = () => {
-    setIsLiked((prev) => {
-      const next = !prev;
-      setLikesCount((c) => c + (next ? 1 : -1));
-      return next;
-    });
+  const handleLike = async () => {
+    const prev = isLiked;
+    setIsLiked(!prev);
+    setLikesCount((c) => c + (!prev ? 1 : -1));
+
+    try {
+      const result = await UserStore.updateNewsFeedItem(story.id, 'like');
+      if (!result?.ok) {
+        setIsLiked(prev);
+        setLikesCount((c) => c + (prev ? 1 : -1));
+        return;
+      }
+      if (typeof result.liked === 'boolean') {
+        setIsLiked(result.liked);
+      }
+    } catch {
+      setIsLiked(prev);
+      setLikesCount((c) => c + (prev ? 1 : -1));
+    }
   };
 
   // ✅ COMMENT — toggle section + auto focus
-  const handleComment = () => {
+  const handleComment = async () => {
     setShowComments((prev) => {
       const next = !prev;
       if (next) {
@@ -122,25 +208,50 @@ export default function NewsFeedCard({
       }
       return next;
     });
+
+    if (!showComments) {
+      try {
+        const summary = await UserStore.getNewsFeedSummary({ focusItemId: story.id });
+        const item = Array.isArray(summary?.items) ? summary.items.find((it) => it.id === story.id) : null;
+        const list = Array.isArray(item?.comments_list) ? item.comments_list : [];
+        setLocalComments(list.map((c) => ({
+          id: String(c.id || ''),
+          text: String(c.text || ''),
+          author: String(c.author || 'User'),
+          authorInitial: String(c.author || 'U').charAt(0).toUpperCase(),
+          authorAvatar: '',
+          time: c.date || '',
+        })));
+        setCommentsCount(Number(item?.comments || commentsCount || 0));
+      } catch {
+        // ignore
+      }
+    }
   };
 
   // ✅ COMMENT SUBMIT — user ka naam aur avatar
-  const handleSubmitComment = () => {
+  const handleSubmitComment = async () => {
     const trimmed = commentText.trim();
     if (!trimmed) return;
 
-    const newComment = {
-      id: Date.now().toString(),
-      text: trimmed,
-      author: userName,
-      authorInitial: userInitial,
-      authorAvatar: userAvatar,
-      time: 'Abhi',
-    };
-
-    setLocalComments((prev) => [newComment, ...prev]);
-    setCommentsCount((c) => c + 1);
-    setCommentText('');
+    try {
+      const result = await UserStore.addNewsComment(story.id, trimmed);
+      if (!result?.ok) return;
+      const added = result.comment || {};
+      const newComment = {
+        id: String(added.id || Date.now().toString()),
+        text: String(added.text || trimmed),
+        author: String(added.author || userName),
+        authorInitial: String(added.author || userName).charAt(0).toUpperCase(),
+        authorAvatar: userAvatar,
+        time: added.date || 'Now',
+      };
+      setLocalComments((prev) => [newComment, ...prev]);
+      setCommentsCount((c) => c + 1);
+      setCommentText('');
+    } catch {
+      // ignore
+    }
   };
 
   // ✅ SHARE — WhatsApp + sabhi platforms
@@ -162,9 +273,22 @@ export default function NewsFeedCard({
 
       if (result.action === Share.sharedAction) {
         setSharesCount((c) => c + 1);
+        try { await UserStore.updateNewsFeedItem(story.id, 'share'); } catch { /* noop */ }
       }
     } catch (error) {
       console.error('Share error:', error);
+    }
+  };
+
+  const handleSave = async () => {
+    const prev = isSaved;
+    setIsSaved(!prev);
+    try {
+      const result = await UserStore.updateNewsFeedItem(story.id, 'bookmark');
+      if (!result?.ok) { setIsSaved(prev); return; }
+      if (typeof result.bookmarked === 'boolean') setIsSaved(result.bookmarked);
+    } catch {
+      setIsSaved(prev);
     }
   };
 
@@ -277,14 +401,10 @@ export default function NewsFeedCard({
           </TouchableOpacity>
         </View>
 
-        {/* ── Hero Image ── */}
+        {/* ── Hero Image / Video ── */}
         <TouchableOpacity
           style={[styles.storyHeroImageWrap, isCompactLayout && styles.storyHeroImageWrapCompact]}
-          onPress={() => {
-            if (canPlayVideo) setVideoPaused((prev) => !prev);
-            else onOpenDetails(story);
-          }}
-          onLongPress={() => onOpenDetails(story)}
+          onPress={canPlayVideo ? handleVideoPress : handleImagePress}
           activeOpacity={0.9}
         >
           {canPlayVideo ? (
@@ -298,7 +418,7 @@ export default function NewsFeedCard({
                 playsInline
                 onFirstFrameRender={() => setShowVideoPoster(false)}
               />
-              {showVideoPoster ? (
+              {showVideoPoster || videoPaused ? (
                 <Image source={{ uri: safeImage }} style={StyleSheet.absoluteFill} resizeMode="cover" />
               ) : null}
               {videoPaused ? (
@@ -306,7 +426,7 @@ export default function NewsFeedCard({
                   <View style={styles.storyVideoPlayBadge}>
                     <Ionicons name="play" size={22} color="#ffffff" />
                   </View>
-                  <Text style={styles.storyVideoLabel}>{commonCopy.video}</Text>
+                  <Text style={styles.storyVideoLabel}>{commonCopy.video || 'VIDEO'}</Text>
                 </View>
               ) : null}
             </>
@@ -384,6 +504,22 @@ export default function NewsFeedCard({
           >
             <Ionicons name="share-social-outline" size={17} color="#64748b" />
             <Text style={styles.storyActionButtonText}>{commonCopy.share}</Text>
+          </TouchableOpacity>
+
+          {/* Save */}
+          <TouchableOpacity
+            style={[styles.storyActionButton, isSaved && styles.storyActionButtonActive]}
+            onPress={handleSave}
+            activeOpacity={0.82}
+          >
+            <Ionicons
+              name={isSaved ? 'bookmark' : 'bookmark-outline'}
+              size={17}
+              color={isSaved ? '#0ea5e9' : '#64748b'}
+            />
+            <Text style={[styles.storyActionButtonText, isSaved && styles.storyActionButtonTextActive]}>
+              {commonCopy?.save || 'Save'}
+            </Text>
           </TouchableOpacity>
 
         </View>
@@ -511,8 +647,8 @@ const styles = StyleSheet.create({
   storyTopActionRow: { marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' },
   storyCategoryChip: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
   storyCategoryChipText: { fontSize: 11, fontWeight: '800' },
-  storyHeroImageWrap: { height: 148, borderRadius: 5, overflow: 'hidden', backgroundColor: '#e2e8f0' },
-  storyHeroImageWrapCompact: { height: 136 },
+  storyHeroImageWrap: { height: 520, borderRadius: 5, overflow: 'hidden', backgroundColor: '#e2e8f0' },
+storyHeroImageWrapCompact: { height: 200 },
   storyHeroImage: { width: '100%', height: '100%' },
   storyVideoPlayOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.38)', gap: 8 },
   storyVideoPlayBadge: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(225, 29, 72, 0.9)', alignItems: 'center', justifyContent: 'center' },

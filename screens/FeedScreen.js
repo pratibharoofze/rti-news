@@ -6,7 +6,7 @@ import {
   Animated, useWindowDimensions, Share, Linking,
 } from 'react-native';
 import styles from './FeedScreenStyles';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import AppNavbar from '../components/AppNavbar';
 import WebLayout from '../components/WebLayout';
@@ -16,7 +16,7 @@ import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaS
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 const MOBILE_BREAKPOINT = 768;
 
-// ✅ Real video with audio — public domain MP4
+// Real video with audio — public domain MP4
 const SAMPLE_REEL_VIDEO       = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 const SAMPLE_REEL_VIDEO_ALT   = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4';
 const SAMPLE_REEL_VIDEO_ALT2  = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
@@ -33,36 +33,26 @@ function isPlayableVideoSource(uri) {
   if (typeof uri !== 'string' || !uri.trim()) return false;
   if (/(youtube\.com|youtu\.be)/i.test(uri)) return false;
 
-  // Native (iOS/Android): allow local `file://` and other platform URIs.
   if (Platform.OS !== 'web') return true;
-
-  // Web: blobs/data URIs might not have an extension but can still play.
   if (/^(blob:|data:|idb-media:)/i.test(uri)) return true;
-
   return /^https?:/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Share Handler — WhatsApp, Twitter, Facebook, Copy Link
-// ─────────────────────────────────────────────────────────────────────────────
+// Share Handler
 function handleSharePost(post) {
   const shareText = `📰 ${post.headline}\n\n${post.caption}\n\n📍 ${post.location}\n\n🗞️ Read more on RTI News`;
   const shareUrl  = `https://rtinews.in/reel/${post.id}`;
   const fullMsg   = `${shareText}\n${shareUrl}`;
 
   if (Platform.OS === 'web') {
-    // Web: show share sheet modal (handled by ShareModal component)
     return { text: shareText, url: shareUrl };
   }
-  // Native: use system share sheet
   Share.share({ message: fullMsg, title: post.headline, url: shareUrl })
     .catch(() => {});
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Icons
-// ─────────────────────────────────────────────────────────────────────────────
 function HeartIcon({ filled, size = 24 }) {
   if (Platform.OS === 'web') {
     return (
@@ -130,9 +120,7 @@ function MuteIcon({ muted, size = 20 }) {
   return <Text style={{ fontSize: size, color: '#fff' }}>{muted ? '🔇' : '🔊'}</Text>;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Share Modal — WhatsApp, Twitter/X, Facebook, Telegram, Copy
-// ─────────────────────────────────────────────────────────────────────────────
+// Share Modal
 function ShareModal({ visible, onClose, post }) {
   if (!post) return null;
 
@@ -200,14 +188,12 @@ function ShareModal({ visible, onClose, post }) {
           <View style={localShareStyles.handle} />
           <Text style={localShareStyles.title}>🚀 Share This Story</Text>
 
-          {/* Post preview */}
           <View style={localShareStyles.previewBox}>
             <Text style={localShareStyles.previewHeadline} numberOfLines={2}>{post.headline}</Text>
             <Text style={localShareStyles.previewCaption} numberOfLines={2}>{post.caption}</Text>
             <Text style={localShareStyles.previewLocation}>📍 {post.location}</Text>
           </View>
 
-          {/* Share buttons */}
           <View style={localShareStyles.grid}>
             {platforms.map((p) => (
               <TouchableOpacity key={p.name} style={localShareStyles.platformBtn} onPress={p.action} activeOpacity={0.8}>
@@ -245,9 +231,7 @@ const localShareStyles = StyleSheet.create({
   closeBtnText:    { color: '#64748b', fontSize: 14, fontWeight: '700' },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Description Modal — full post details
-// ─────────────────────────────────────────────────────────────────────────────
+// Description Modal
 function DescriptionModal({ visible, onClose, post, onShare }) {
   if (!post) return null;
   return (
@@ -257,15 +241,12 @@ function DescriptionModal({ visible, onClose, post, onShare }) {
         <View style={localDescStyles.sheet}>
           <View style={localDescStyles.handle} />
 
-          {/* Tag */}
           <View style={[localDescStyles.tagBadge, { backgroundColor: post.tagColor || '#16a34a' }]}>
             <Text style={localDescStyles.tagText}>{post.tag}</Text>
           </View>
 
-          {/* Headline */}
           <Text style={localDescStyles.headline}>{post.headline}</Text>
 
-          {/* User row */}
           <View style={localDescStyles.userRow}>
             <Image source={{ uri: post.avatar || 'https://i.pravatar.cc/100?img=5' }} style={localDescStyles.avatar} />
             <View style={{ flex: 1 }}>
@@ -277,13 +258,11 @@ function DescriptionModal({ visible, onClose, post, onShare }) {
             </View>
           </View>
 
-          {/* Location */}
           <View style={localDescStyles.locRow}>
             <Text>📍 </Text>
             <Text style={localDescStyles.locText}>{post.location}</Text>
           </View>
 
-          {/* Full caption/description */}
           <ScrollView style={localDescStyles.captionScroll} showsVerticalScrollIndicator={false}>
             <Text style={localDescStyles.caption}>{post.caption}</Text>
             {post.fullDescription ? (
@@ -291,7 +270,6 @@ function DescriptionModal({ visible, onClose, post, onShare }) {
             ) : null}
           </ScrollView>
 
-          {/* Stats row */}
           <View style={localDescStyles.statsRow}>
             <View style={localDescStyles.statItem}>
               <Text style={localDescStyles.statNum}>{post.likes >= 1000 ? (post.likes / 1000).toFixed(1) + 'K' : post.likes}</Text>
@@ -309,7 +287,6 @@ function DescriptionModal({ visible, onClose, post, onShare }) {
             </View>
           </View>
 
-          {/* Action buttons */}
           <View style={localDescStyles.actionRow}>
             <TouchableOpacity style={localDescStyles.shareBtn} onPress={() => { onClose(); onShare(post.id); }} activeOpacity={0.85}>
               <Text style={localDescStyles.shareBtnText}>📤 Share This Story</Text>
@@ -352,9 +329,7 @@ const localDescStyles = StyleSheet.create({
   closeBtnText:  { color: '#64748b', fontSize: 14, fontWeight: '700' },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Dummy Data — with fullDescription & audio videos
-// ─────────────────────────────────────────────────────────────────────────────
+// Dummy Data
 const DUMMY_POSTS = [
   {
     id: '1', user: 'Rahul Sharma', avatar: 'https://i.pravatar.cc/100?img=11',
@@ -418,9 +393,7 @@ const DUMMY_POSTS = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Upload Modal
-// ─────────────────────────────────────────────────────────────────────────────
 function UploadModal({ visible, onClose, onPost }) {
   const [caption, setCaption] = useState('');
   const [headline, setHeadline] = useState('');
@@ -465,13 +438,13 @@ function UploadModal({ visible, onClose, onPost }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Comments Modal
-// ─────────────────────────────────────────────────────────────────────────────
-function CommentsModal({ visible, onClose, comments, onAddComment }) {
+function CommentsModal({ visible, onClose, post, comments, onAddComment }) {
   const [text, setText] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
   const { height: WH } = useWindowDimensions();
   const safeComments = Array.isArray(comments) ? comments : [];
+  const totalCount = safeComments.reduce((sum, c) => sum + 1 + (Array.isArray(c.replies) ? c.replies.length : 0), 0);
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -479,22 +452,63 @@ function CommentsModal({ visible, onClose, comments, onAddComment }) {
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
         <View style={[styles.commentsSheet, { maxHeight: WH * 0.75 }]}>
           <View style={styles.sheetHandle} />
-          <Text style={styles.sheetTitle}>💬 Comments</Text>
+          <Text style={styles.sheetTitle}>Comments {totalCount ? `(${totalCount})` : ''}</Text>
+          {post ? (
+            <View style={{ marginBottom: 10 }}>
+              {post.headline ? <Text style={styles.commentPostHeadline} numberOfLines={2}>{post.headline}</Text> : null}
+              {post.caption ? <Text style={styles.commentPostCaption} numberOfLines={2}>{post.caption}</Text> : null}
+            </View>
+          ) : null}
           <ScrollView style={{ maxHeight: WH * 0.42, marginBottom: 10 }} showsVerticalScrollIndicator={false}>
             {safeComments.length === 0 && <Text style={styles.noComments}>No comments yet. Be the first! 👇</Text>}
             {safeComments.map((c) => (
               <View key={c.id} style={styles.commentRow}>
-                <View style={styles.commentAvatar}><Text style={styles.commentAvatarText}>{c.user[0]}</Text></View>
+                <View style={styles.commentAvatar}><Text style={styles.commentAvatarText}>{String(c.user || 'U').charAt(0)}</Text></View>
                 <View style={styles.commentBubble}>
-                  <Text style={styles.commentUser}>{c.user}</Text>
+                  <View style={styles.commentTopLine}>
+                    <Text style={styles.commentUser}>{c.user}</Text>
+                    <TouchableOpacity onPress={() => setReplyTo({ id: c.id, user: c.user })} activeOpacity={0.85}>
+                      <Text style={styles.commentReplyBtn}>Reply</Text>
+                    </TouchableOpacity>
+                  </View>
                   <Text style={styles.commentText}>{c.text}</Text>
+
+                  {Array.isArray(c.replies) && c.replies.length ? (
+                    <View style={styles.replyWrap}>
+                      {c.replies.map((r) => (
+                        <View key={r.id} style={styles.replyRow}>
+                          <View style={styles.replyAvatar}><Text style={styles.replyAvatarText}>{String(r.user || 'U').charAt(0)}</Text></View>
+                          <View style={styles.replyBubble}>
+                            <Text style={styles.replyUser}>{r.user}</Text>
+                            <Text style={styles.replyText}>{r.text}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
               </View>
             ))}
           </ScrollView>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View style={styles.commentInputRow}>
-              <TextInput style={styles.commentInput} placeholder="Write a comment..." placeholderTextColor="#475569" value={text} onChangeText={setText} />
+              <View style={{ flex: 1 }}>
+                {replyTo ? (
+                  <View style={styles.replyingPill}>
+                    <Text style={styles.replyingText}>Replying to {replyTo.user}</Text>
+                    <TouchableOpacity onPress={() => setReplyTo(null)}>
+                      <Text style={styles.replyingClose}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder={replyTo ? `Reply to ${replyTo.user}...` : 'Write a comment...'}
+                  placeholderTextColor="#475569"
+                  value={text}
+                  onChangeText={setText}
+                />
+              </View>
               <TouchableOpacity style={styles.sendBtn} onPress={() => { if (!text.trim()) return; onAddComment(text.trim()); setText(''); }}>
                 <Text style={styles.sendBtnText}>➤</Text>
               </TouchableOpacity>
@@ -507,9 +521,7 @@ function CommentsModal({ visible, onClose, comments, onAddComment }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Action Column
-// ─────────────────────────────────────────────────────────────────────────────
 function ActionColumn({ post, onLike, onComment, onShare, onBookmark, onDescription, scaleAnim, isMobileLayout }) {
   const formatCount = (n) =>
     n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + 'M' :
@@ -517,7 +529,7 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, onDescript
 
   const likeCount    = formatCount(post.liked ? (Number(post.likes) + 1) : Number(post.likes));
   const shareCount   = formatCount(Number(post.shares));
-  const commentCount = Array.isArray(post.comments) ? post.comments.length : 0;
+  const commentCount = post.commentsCount ?? (Array.isArray(post.comments) ? post.comments.length : 0);
 
   const sz = isMobileLayout ? 44 : 52;
   const iconSz = isMobileLayout ? 22 : 26;
@@ -541,8 +553,6 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, onDescript
 
   return (
     <View style={containerStyle}>
-
-      {/* Like */}
       <TouchableOpacity style={btn} onPress={() => onLike(post.id)} activeOpacity={0.75}>
         <Animated.View style={[circle(post.liked ? 'rgba(255,59,92,0.28)' : 'rgba(0,0,0,0.5)'), { transform: [{ scale: scaleAnim }] }]}>
           <HeartIcon filled={post.liked} size={iconSz} />
@@ -551,42 +561,34 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, onDescript
         <Text style={labelStyle}>Like</Text>
       </TouchableOpacity>
 
-      {/* Comment */}
       <TouchableOpacity style={btn} onPress={() => onComment(post.id)} activeOpacity={0.75}>
         <View style={circle('rgba(0,0,0,0.5)')}><CommentIcon size={iconSz} /></View>
         <Text style={countStyle}>{commentCount}</Text>
         <Text style={labelStyle}>Comment</Text>
       </TouchableOpacity>
 
-      {/* Share — opens share modal */}
       <TouchableOpacity style={btn} onPress={() => onShare(post.id)} activeOpacity={0.75}>
         <View style={circle('rgba(0,0,0,0.5)')}><ShareIcon size={iconSz} /></View>
         <Text style={countStyle}>{shareCount}</Text>
         <Text style={labelStyle}>Share</Text>
       </TouchableOpacity>
 
-      {/* Save */}
       <TouchableOpacity style={btn} onPress={() => onBookmark(post.id)} activeOpacity={0.75}>
         <View style={circle(post.bookmarked ? 'rgba(249,115,22,0.3)' : 'rgba(0,0,0,0.5)')}>
           <BookmarkIcon filled={post.bookmarked} size={iconSz} />
         </View>
         <Text style={labelStyle}>Save</Text>
       </TouchableOpacity>
-
-
     </View>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Reel Card
-// ─────────────────────────────────────────────────────────────────────────────
 function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription, onProfilePress, isActive, cardWidth, cardHeight, isMobileLayout }) {
   const safePost = post || {};
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [captionExpanded, setCaptionExpanded] = useState(false);
-  // ✅ Default muted=false so audio plays automatically
-  const [muted, setMuted] = useState(Platform.OS === 'web');
+  const [muted, setMuted] = useState(false); // Default false (unmuted) for audio
   const [paused, setPaused] = useState(false);
   const [showPoster, setShowPoster] = useState(true);
   const [avatarError, setAvatarError] = useState(false);
@@ -649,8 +651,11 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
 
   useEffect(() => { setShowPoster(true); }, [mediaUri, effectiveMediaUri, safeThumbnailUrl, canPlayVideo]);
   useEffect(() => { setCaptionExpanded(false); }, [postId]);
-  // ✅ Apply muted state to player
+  
+  // Apply muted state to player
   useEffect(() => { if (!canPlayVideo) return; player.muted = muted; }, [canPlayVideo, muted, player]);
+  
+  // Handle video playback based on active state
   useEffect(() => {
     if (!canPlayVideo) return;
     if (isActive && !paused) {
@@ -662,7 +667,18 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
     }
     player.pause();
   }, [canPlayVideo, isActive, paused, player]);
+
+  // Cleanup on unmount
   useEffect(() => () => { if (player) player.pause(); }, [player]);
+
+  // Pause video when component is not active (for navigation)
+  useEffect(() => {
+    if (!canPlayVideo) return;
+    if (!isActive) {
+      player.pause();
+      setPaused(true);
+    }
+  }, [isActive, canPlayVideo, player]);
 
   const handleLikePress = () => {
     Animated.sequence([
@@ -685,15 +701,12 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
       flexDirection: isMobileLayout ? 'column' : 'row',
       alignItems: 'center', justifyContent: 'center',
     }}>
-
-      {/* ── VIDEO PANEL ── */}
       <View style={{
         width: videoWidth,
         height: isMobileLayout ? cardHeight : Math.min(cardHeight * 0.92, 780),
         position: 'relative', overflow: 'hidden',
         borderRadius: isMobileLayout ? 0 : 12,
       }}>
-
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
@@ -728,20 +741,14 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
           )}
         </TouchableOpacity>
 
-        {/* Gradient overlay */}
         <View style={{ ...styles.reelOverlayBottom, pointerEvents: 'none' }} />
 
-        {/* Paused indicator */}
         {paused && (
-          <View
-            style={[styles.pausedOverlay, Platform.OS === 'web' ? { pointerEvents: 'none' } : null]}
-            {...(Platform.OS === 'web' ? {} : { pointerEvents: 'none' })}
-          >
+          <View style={[styles.pausedOverlay, Platform.OS === 'web' ? { pointerEvents: 'none' } : null]}>
             <Text style={styles.pausedIcon}>||</Text>
           </View>
         )}
 
-        {/* ✅ Mute/Unmute button — top right, prominent */}
         <View style={styles.reelTopBar}>
           <TouchableOpacity
             style={[styles.muteBtn, { backgroundColor: muted ? 'rgba(249,115,22,0.8)' : 'rgba(0,0,0,0.5)' }]}
@@ -752,17 +759,15 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Mobile: action icons inside video */}
         {isMobileLayout && (
           <ActionColumn
-            post={{ ...safePost, likes: Number(safePost.likes || 0), shares, comments }}
+            post={{ ...safePost, likes: Number(safePost.likes || 0), shares, comments, commentsCount: safePost.commentsCount ?? comments.length }}
             onLike={handleLikePress} onComment={onComment} onShare={onShare}
             onBookmark={onBookmark} onDescription={onDescription}
             scaleAnim={scaleAnim} isMobileLayout={true}
           />
         )}
 
-        {/* Bottom info overlay */}
         <View style={[styles.reelBottom, { bottom: bottomBottom, right: bottomRight }]}>
           <View style={[styles.reelTagBadge, { backgroundColor: String(safePost.tagColor || '#16a34a') }]}>
             <Text style={styles.reelTagText}>{String(safePost.tag || '')}</Text>
@@ -786,7 +791,6 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
 
           {headline ? <Text style={styles.reelHeadline}>{headline}</Text> : null}
 
-          {/* ✅ Tap caption to open description modal */}
           <TouchableOpacity activeOpacity={0.85} onPress={() => onDescription(postId)}>
             <Text style={styles.reelCaption} numberOfLines={captionExpanded ? undefined : 2}>{caption}</Text>
             {caption.length > 80 && (
@@ -794,15 +798,14 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
             )}
           </TouchableOpacity>
 
-          {comments.length > 0 && (
-            <TouchableOpacity onPress={() => onComment(postId)} style={{ marginTop: 5 }}>
-              <Text style={styles.reelViewComments}>💬 View all {comments.length} comments</Text>
-            </TouchableOpacity>
-          )}
+          {(safePost.commentsCount > 0 || comments.length > 0) && (
+  <TouchableOpacity onPress={() => onComment(postId)} style={{ marginTop: 5 }}>
+    <Text style={styles.reelViewComments}>💬 View all {safePost.commentsCount ?? comments.length} comments</Text>
+  </TouchableOpacity>
+)}
         </View>
       </View>
 
-      {/* ✅ Desktop: action icons outside video */}
       {!isMobileLayout && (
         <ActionColumn
           post={{ ...safePost, likes: Number(safePost.likes || 0), shares, comments }}
@@ -815,17 +818,16 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Main Feed Screen
-// ─────────────────────────────────────────────────────────────────────────────
 export default function FeedScreen({ navigation }) {
   const [posts, setPosts]               = useState(DUMMY_POSTS);
   const [uploadVisible, setUploadVisible] = useState(false);
   const [commentPost, setCommentPost]   = useState(null);
-  const [sharePost, setSharePost]       = useState(null);   // ✅ share modal
-  const [descPost, setDescPost]         = useState(null);   // ✅ description modal
+  const [sharePost, setSharePost]       = useState(null);
+  const [descPost, setDescPost]         = useState(null);
   const [activeIndex, setActiveIndex]   = useState(0);
   const [currentUser, setCurrentUser]   = useState({ name: 'User', avatar: null });
+  const isScreenFocused = useIsFocused();
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
@@ -837,31 +839,82 @@ export default function FeedScreen({ navigation }) {
   const cardHeight    = isWebPlatform ? windowHeight - WEB_TOPNAV_H : windowHeight - NAVBAR_H;
   const cardWidth     = isMobileLayout ? windowWidth : Math.min(windowWidth * 0.65, 560);
 
-  const handleLike = useCallback((id) =>
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p)), []);
+ const handleLike = useCallback(async (id) => {
+  setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p));
+  try {
+    const result = await UserStore.updateNewsFeedItem(id, 'like');
+    if (result?.ok && typeof result.liked === 'boolean') {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: result.liked } : p));
+    } else {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p));
+    }
+  } catch {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p));
+  }
+}, []);
 
-  const handleBookmark = useCallback((id) =>
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p)), []);
+  const handleBookmark = useCallback(async (id) => {
+  setPosts(prev => prev.map(p => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p));
+  try {
+    const result = await UserStore.updateNewsFeedItem(id, 'bookmark');
+    if (result?.ok && typeof result.bookmarked === 'boolean') {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, bookmarked: result.bookmarked } : p));
+    } else {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p));
+    }
+  } catch {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p));
+  }
+}, []);
+  const handleComment = useCallback(async (id) => {
+  setCommentPost(id);
+  try {
+    const summary = await UserStore.getNewsFeedSummary({ focusItemId: id });
+    const item = summary?.items?.find(i => String(i.id) === String(id));
+    if (item && Array.isArray(item.comments_list)) {
+      setPosts(prev => prev.map(p => p.id === id
+        ? {
+            ...p,
+            comments: item.comments_list.map(c => ({
+              id: String(c.id || ''),
+              user: String(c.author || 'User'),
+              text: String(c.text || ''),
+              replies: Array.isArray(c.replies) ? c.replies : [],
+            })),
+            commentsCount: item.comments_list.length,
+          }
+        : p
+      ));
+    }
+  } catch {}
+}, []);
 
-  const handleComment = useCallback((id) => setCommentPost(id), []);
-
-  // ✅ Share: increment count + show share modal
   const handleShare = useCallback((id) => {
     setPosts(prev => prev.map(p => p.id === id ? { ...p, shares: (Number(p.shares) || 0) + 1 } : p));
     setSharePost(id);
   }, []);
 
-  // ✅ Description modal
   const handleDescription = useCallback((id) => setDescPost(id), []);
 
-  const handleAddComment = useCallback((text) => {
-    setPosts(prev =>
-      prev.map(p => p.id === commentPost
-        ? { ...p, comments: [...(Array.isArray(p.comments) ? p.comments : []), { id: Date.now().toString(), user: currentUser.name, text }] }
-        : p)
-    );
-  }, [commentPost, currentUser.name]);
+  const handleAddComment = useCallback(async (text) => {
+  const tempId = Date.now().toString();
+  const newComment = { id: tempId, user: currentUser.name, text };
 
+  // Turant UI mein dikhao
+  setPosts(prev =>
+  prev.map(p => p.id === commentPost
+    ? { 
+        ...p, 
+        comments: [...(Array.isArray(p.comments) ? p.comments : []), newComment],
+        commentsCount: (p.commentsCount ?? (Array.isArray(p.comments) ? p.comments.length : 0)) + 1,
+      }
+    : p)
+);
+  // UserStore mein save karo
+  try {
+    await UserStore.addNewsComment(commentPost, text);
+  } catch {}
+}, [commentPost, currentUser.name]);
   const handleNewPost = useCallback(({ caption, headline, tag }) => {
     const seed = Date.now();
     setPosts(prev => [{
@@ -886,6 +939,13 @@ export default function FeedScreen({ navigation }) {
   const activeCommentData = posts.find(p => p.id === commentPost);
   const activeShareData   = posts.find(p => p.id === sharePost);
   const activeDescData    = posts.find(p => p.id === descPost);
+
+  // Reset active index when screen loses focus to stop videos
+  useEffect(() => {
+    if (!isScreenFocused) {
+      setActiveIndex(-1);
+    }
+  }, [isScreenFocused]);
 
   useFocusEffect(
     useCallback(() => {
@@ -912,7 +972,13 @@ export default function FeedScreen({ navigation }) {
               avatar: isValidImageUrl(item.avatar) ? item.avatar : null,
               thumbnail: isValidImageUrl(item.thumbnail) ? item.thumbnail : null,
               image: isValidImageUrl(item.image) ? item.image : null,
-              comments: Array.isArray(item.comments) ? item.comments : [],
+             comments: Array.isArray(item.comments) ? item.comments : [],
+comments: Array.isArray(item.comments) ? item.comments : [],
+commentsCount: Number(
+  item.commentsCount ??
+  item.comments_count ??
+  (Array.isArray(item.comments) ? item.comments.length : Number(item.comments ?? 0))
+),
               likes: Number(item.likes) || 0, shares: Number(item.shares) || 0,
               liked: Boolean(item.liked), bookmarked: Boolean(item.bookmarked),
             }));
@@ -927,7 +993,7 @@ export default function FeedScreen({ navigation }) {
 
   const page = (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-     {isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" hideTopHeader={true} />}
+      {isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" hideTopHeader={true} />}
 
       <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'flex-start' }}>
         <View style={{
@@ -961,7 +1027,7 @@ export default function FeedScreen({ navigation }) {
                     },
                   })
                 }
-                isActive={index === activeIndex}
+                isActive={index === activeIndex && isScreenFocused}
                 cardWidth={cardWidth}
                 cardHeight={cardHeight}
                 isMobileLayout={isMobileLayout}
@@ -983,24 +1049,26 @@ export default function FeedScreen({ navigation }) {
 
       <UploadModal visible={uploadVisible} onClose={() => setUploadVisible(false)} onPost={handleNewPost} />
 
-      {/* ✅ Comments Modal */}
       {activeCommentData && (
         <CommentsModal
           visible={!!commentPost}
           onClose={() => setCommentPost(null)}
-          comments={Array.isArray(activeCommentData.comments) ? activeCommentData.comments : []}
+          post={activeCommentData}
+          comments={Array.isArray(activeCommentData?.comments) ? activeCommentData.comments.map(c => ({
+  ...c,
+  user: c.user || c.author || 'User',
+  text: c.text || '',
+})) : []}
           onAddComment={handleAddComment}
         />
       )}
 
-      {/* ✅ Share Modal — WhatsApp, Telegram, Twitter, Facebook, Copy */}
       <ShareModal
         visible={!!sharePost}
         onClose={() => setSharePost(null)}
         post={activeShareData}
       />
 
-      {/* ✅ Description Modal */}
       <DescriptionModal
         visible={!!descPost}
         onClose={() => setDescPost(null)}
@@ -1014,6 +1082,3 @@ export default function FeedScreen({ navigation }) {
 
   return isWebPlatform ? <WebLayout>{page}</WebLayout> : page;
 }
-
-
-

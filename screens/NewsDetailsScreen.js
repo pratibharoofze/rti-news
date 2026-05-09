@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   Image,
   Linking,
@@ -16,6 +16,7 @@ import AppFooter from '../components/AppFooter';
 import WebLayout from '../components/WebLayout';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
+
 
 const IS_WEB = Platform.OS === 'web';
 const DEFAULT_AVATAR_IMAGE = require('../assets/images/icon.png');
@@ -122,6 +123,11 @@ export default function NewsDetailsScreen({ route, navigation }) {
 
   const videoUri = String(article.video || '').trim();
   const [resolvedVideoUri, setResolvedVideoUri] = useState(null);
+  
+  // Video playback state
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [showVideoPoster, setShowVideoPoster] = useState(true);
+  const posterImageRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -148,27 +154,71 @@ export default function NewsDetailsScreen({ route, navigation }) {
   }, [resolvedVideoUri, videoUri]);
 
   const canPlayVideo = Boolean(effectiveVideoUri) && isPlayableVideoSource(effectiveVideoUri);
-  const [videoPaused, setVideoPaused] = useState(false);
-  const [showVideoPoster, setShowVideoPoster] = useState(true);
+  
+  // Initialize video player but DON'T auto-play
   const player = useVideoPlayer(canPlayVideo ? { uri: effectiveVideoUri } : null, (p) => {
     p.loop = false;
+    p.play(); // This will auto-play by default, so we need to pause immediately
+    // Pause immediately after initialization
+    setTimeout(() => {
+      if (p) p.pause();
+    }, 0);
   });
 
-  useEffect(() => {
-    setShowVideoPoster(true);
-    setVideoPaused(false);
-    if (player) {
-      Promise.resolve(player.play()).catch(() => { setVideoPaused(true); });
+  // Handle play/pause toggle
+  const handleVideoPress = useCallback(() => {
+    if (!player) return;
+    
+    if (isVideoPlaying) {
+      player.pause();
+      setIsVideoPlaying(false);
+    } else {
+      player.play();
+      setIsVideoPlaying(true);
+      setShowVideoPoster(false);
     }
-  }, [player, effectiveVideoUri]);
+  }, [player, isVideoPlaying]);
 
+  // Stop video when navigating away from screen
   useEffect(() => {
-    if (!canPlayVideo) return;
-    if (videoPaused) { player.pause(); return; }
-    Promise.resolve(player.play()).catch(() => { setVideoPaused(true); });
-  }, [canPlayVideo, player, videoPaused]);
+    const unsubscribe = navigation.addListener('beforeRemove', () => {
+      if (player) {
+        player.pause();
+        setIsVideoPlaying(false);
+      }
+    });
 
-  useEffect(() => () => { if (player) player.pause(); }, [player]);
+    return unsubscribe;
+  }, [navigation, player]);
+
+  // Also stop video when screen is blurred (user goes to another screen)
+  useEffect(() => {
+    const unsubscribeBlur = navigation.addListener('blur', () => {
+      if (player) {
+        player.pause();
+        setIsVideoPlaying(false);
+      }
+    });
+
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      // Don't auto-play when returning to screen
+      setShowVideoPoster(true);
+    });
+
+    return () => {
+      unsubscribeBlur();
+      unsubscribeFocus();
+    };
+  }, [navigation, player]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (player) {
+        player.pause();
+      }
+    };
+  }, [player]);
 
   const handleOpenAttachment = useCallback(async () => {
     const fileUri = article?.file?.uri;
@@ -297,25 +347,41 @@ export default function NewsDetailsScreen({ route, navigation }) {
                 <View style={[styles.storyHeroImageWrap, isCompactLayout && styles.storyHeroImageWrapCompact]}>
                   {canPlayVideo ? (
                     <TouchableOpacity
-                      style={StyleSheet.absoluteFill}
+                      style={styles.videoContainer}
                       activeOpacity={1}
-                      onPress={() => setVideoPaused((prev) => !prev)}
+                      onPress={handleVideoPress}
                     >
-                     <VideoView
-  player={player}
-  style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
-  contentFit="cover"
-  nativeControls={false}
-  allowsFullscreen={true}
-  playsInline
-  onFirstFrameRender={() => setShowVideoPoster(false)}
-/>
-                      {showVideoPoster ? (
-                        <Image source={{ uri: article.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                      <VideoView
+                        player={player}
+                        style={styles.videoView}
+                        contentFit="cover"
+                        nativeControls={false}
+                        allowsFullscreen={true}
+                        playsInline
+                        onFirstFrameRender={() => {
+                          if (!isVideoPlaying) {
+                            setShowVideoPoster(false);
+                          }
+                        }}
+                      />
+                      {showVideoPoster && !isVideoPlaying ? (
+                        <>
+                          <Image 
+                            source={{ uri: article.image }} 
+                            style={styles.videoPoster} 
+                            resizeMode="cover" 
+                            ref={posterImageRef}
+                          />
+                          <View style={styles.playButtonOverlay}>
+                            <Ionicons name="play-circle" size={68} color="#ffffff" />
+                            <Text style={styles.playButtonText}>Tap to Play</Text>
+                          </View>
+                        </>
                       ) : null}
-                      {videoPaused ? (
-                        <View style={styles.storyVideoPlayOverlay}>
-                          <Ionicons name="play-circle" size={58} color="#ffffff" />
+                      {!isVideoPlaying && !showVideoPoster ? (
+                        <View style={styles.playButtonOverlay}>
+                          <Ionicons name="play-circle" size={68} color="#ffffff" />
+                          <Text style={styles.playButtonText}>Tap to Play</Text>
                         </View>
                       ) : null}
                     </TouchableOpacity>
@@ -621,11 +687,43 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  storyVideoPlayOverlay: {
-    ...StyleSheet.absoluteFillObject,
+  videoContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  videoView: {
+    width: '100%',
+    height: '100%',
+  },
+  videoPoster: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  playButtonOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.14)',
+    backgroundColor: 'rgba(15, 23, 42, 0.3)',
+  },
+  playButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
   storyStatsRow: {
     marginTop: 18,

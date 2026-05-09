@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Image, ScrollView, Share, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Clipboard, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Share, StatusBar, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useToast } from '../components/ui/ToastProvider';
 import PremiumBadge from '../components/PremiumBadge';
@@ -37,50 +37,242 @@ function roleLabelToEnglish(role = '') {
   return '';
 }
 
-// Component for description with read more/less toggle
-const ExpandableDescription = ({ text, maxLines = 3 }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [needsExpansion, setNeedsExpansion] = useState(false);
-  
-  useEffect(() => {
-    // Simple check if text needs expansion based on length
-    // You can make this more accurate by measuring text width
-    if (text && text.length > 150) {
-      setNeedsExpansion(true);
-    } else {
-      setNeedsExpansion(false);
-    }
-  }, [text]);
-
-  if (!text) return null;
-
+// ✅ Instagram jaisa Profile Image Modal
+const ProfileImageModal = ({ visible, imageUri, name, onClose }) => {
   return (
-    <View style={styles.expandableContainer}>
-      <Text 
-        style={styles.feedDescription} 
-        numberOfLines={expanded ? undefined : maxLines}
-      >
-        {text}
-      </Text>
-      {needsExpansion && (
-        <TouchableOpacity 
-          onPress={() => setExpanded(!expanded)}
-          style={styles.readMoreBtn}
-        >
-          <Text style={styles.readMoreText}>
-            {expanded ? 'Read less' : 'Read more'}
-          </Text>
-          <Feather 
-            name={expanded ? 'chevron-up' : 'chevron-down'} 
-            size={14} 
-            color="#2563eb" 
-          />
-        </TouchableOpacity>
-      )}
-    </View>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <StatusBar backgroundColor="rgba(0,0,0,0.95)" barStyle="light-content" />
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.95)',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{
+              position: 'absolute',
+              top: 50,
+              right: 20,
+              zIndex: 10,
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderRadius: 20,
+              padding: 8,
+            }}
+            activeOpacity={0.8}
+          >
+            <Feather name="x" size={22} color="#ffffff" />
+          </TouchableOpacity>
+
+          {name ? (
+            <Text style={{
+              color: '#ffffff',
+              fontSize: 16,
+              fontWeight: '600',
+              marginBottom: 20,
+              letterSpacing: 0.3,
+            }}>
+              {name}
+            </Text>
+          ) : null}
+
+          <TouchableWithoutFeedback>
+            <Image
+              source={imageUri ? { uri: imageUri } : DEFAULT_AVATAR}
+              style={{
+                width: 300,
+                height: 300,
+                borderRadius: 150,
+                borderWidth: 3,
+                borderColor: 'rgba(255,255,255,0.3)',
+              }}
+              resizeMode="cover"
+            />
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
   );
 };
 
+// ✅ Three-dot Menu Bottom Sheet
+const ProfileMenuSheet = ({ visible, onClose, onCopyLink, onReport, onBlock }) => {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          justifyContent: 'flex-end',
+        }}>
+          <TouchableWithoutFeedback>
+            <View style={{
+              backgroundColor: '#ffffff',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              paddingTop: 12,
+              paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+            }}>
+              {/* Drag handle */}
+              <View style={{
+                width: 40,
+                height: 4,
+                backgroundColor: '#e2e8f0',
+                borderRadius: 2,
+                alignSelf: 'center',
+                marginBottom: 16,
+              }} />
+
+              {/* Copy Profile Link */}
+              <TouchableOpacity
+                onPress={onCopyLink}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 16,
+                  paddingHorizontal: 24,
+                  gap: 16,
+                }}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#eff6ff',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <Feather name="link" size={18} color="#2563eb" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>Copy Profile Link</Text>
+                  <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Share this profile with others</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={{ height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 24 }} />
+
+              {/* Report */}
+              <TouchableOpacity
+                onPress={onReport}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 16,
+                  paddingHorizontal: 24,
+                  gap: 16,
+                }}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#fff7ed',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <Feather name="flag" size={18} color="#f97316" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#0f172a' }}>Report</Text>
+                  <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Report inappropriate content</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={{ height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 24 }} />
+
+              {/* Block */}
+              <TouchableOpacity
+                onPress={onBlock}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 16,
+                  paddingHorizontal: 24,
+                  gap: 16,
+                }}
+              >
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#fff1f2',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <Feather name="slash" size={18} color="#ef4444" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#ef4444' }}>Block</Text>
+                  <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Block this user from your feed</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Cancel */}
+              <View style={{ height: 8, backgroundColor: '#f8fafc', marginTop: 8 }} />
+              <TouchableOpacity
+                onPress={onClose}
+                activeOpacity={0.7}
+                style={{ paddingVertical: 16, alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#64748b' }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
+
+const COLLAPSE_CHAR_LIMIT = 180;
+
+const ExpandableDescription = ({ text }) => {
+  const [expanded, setExpanded] = useState(false);
+  const cleaned = String(text || '').trim();
+  const isLong = cleaned.length > COLLAPSE_CHAR_LIMIT;
+  if (!cleaned) return null;
+  const displayText = (!isLong || expanded)
+    ? cleaned
+    : cleaned.slice(0, COLLAPSE_CHAR_LIMIT).trimEnd();
+  return (
+    <View style={styles.expandableContainer}>
+      <Text style={styles.feedDescription}>
+        {displayText}
+        {isLong && !expanded ? (
+          <Text
+            onPress={() => setExpanded(true)}
+            style={{ color: '#2563eb', fontWeight: '600', fontSize: 13 }}
+          >
+            {'... '}
+            <Text style={{ color: '#2563eb', fontWeight: '600', fontSize: 13 }}>more</Text>
+          </Text>
+        ) : null}
+      </Text>
+      {isLong && expanded ? (
+        <TouchableOpacity onPress={() => setExpanded(false)} activeOpacity={0.7} style={{ marginTop: 2 }}>
+          <Text style={{ color: '#2563eb', fontWeight: '600', fontSize: 13 }}>less</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+};
 export default function UserPublicProfileScreen({ route, navigation }) {
   const { showToast } = useToast();
   const { email, author } = route?.params || {};
@@ -94,6 +286,37 @@ export default function UserPublicProfileScreen({ route, navigation }) {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState('posts');
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalImage, setModalImage] = useState('');
+  const [modalName, setModalName] = useState('');
+
+  // ✅ Three-dot menu state
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const [viewerEmail, setViewerEmail] = useState('');
+
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [activeCommentPostId, setActiveCommentPostId] = useState(null);
+  const [activeComments, setActiveComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const user = await UserStore.getCurrentUser();
+        if (!alive) return;
+        setViewerEmail(String(user?.email || '').trim().toLowerCase());
+      } catch {
+        if (!alive) return;
+        setViewerEmail('');
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -124,7 +347,7 @@ export default function UserPublicProfileScreen({ route, navigation }) {
         })
         : [];
 
-      const merged = [...fromProfile, ...fromFeed]
+      const merged = [...fromFeed, ...fromProfile]
         .filter(Boolean)
         .filter((it, index, arr) => {
           const id = it?.id;
@@ -171,21 +394,213 @@ export default function UserPublicProfileScreen({ route, navigation }) {
     return [...src].sort((a, b) => sortValue(b) - sortValue(a));
   }, [posts]);
 
-  const openPost = (post) => {
+  const patchPostById = (postId, patch) => {
+    const pid = String(postId || '');
+    if (!pid) return;
+    setPosts((prev) => (Array.isArray(prev) ? prev.map((p) => {
+      if (String(p?.id || '') !== pid) return p;
+      return { ...p, ...patch };
+    }) : prev));
+  };
+
+  const loadCommentsForPost = async (postId) => {
+    const pid = String(postId || '').trim();
+    if (!pid) return;
+    try {
+      const summary = await UserStore.getNewsFeedSummary({ focusItemId: pid });
+      const item = Array.isArray(summary?.items) ? summary.items.find((it) => String(it?.id || '') === pid) : null;
+      const list = Array.isArray(item?.comments_list) ? item.comments_list : [];
+      setActiveComments(list);
+      patchPostById(pid, {
+        comments: Number(item?.comments || 0),
+        likes: Number(item?.likes || 0),
+        shares: Number(item?.shares || 0),
+        views: Number(item?.views || 0),
+        liked_by: Array.isArray(item?.liked_by) ? item.liked_by : [],
+      });
+    } catch {
+      setActiveComments([]);
+    }
+  };
+
+  const openPost = async (post) => {
     if (!post) return;
+    try { if (post.id) await UserStore.updateNewsFeedItem(post.id, 'view'); } catch { /* noop */ }
     navigation.navigate('NewsDetails', { article: post });
   };
 
-  const handleShareProfile = async () => {
-    const parts = [
-      name ? `Name: ${name}` : '',
-      resolvedEmail ? `Email: ${resolvedEmail}` : '',
-      seatName || seatId ? `Seat: ${seatName || seatId}` : '',
-      roleLabel ? `Role: ${roleLabel}` : '',
-    ].filter(Boolean);
-    const message = `${parts.join('\n')}\n\nShared from RTI News app.`;
-    try { await Share.share({ title: 'RTI News Profile', message }); }
-    catch { showToast('Unable to share profile.', 'error'); }
+  const handleLikePost = async (post) => {
+    const pid = String(post?.id || '').trim();
+    if (!pid) return;
+
+    const prevLiked = Boolean(viewerEmail && Array.isArray(post?.liked_by) && post.liked_by.includes(viewerEmail));
+    patchPostById(pid, {
+      likes: Math.max(0, Number(post?.likes || 0) + (prevLiked ? -1 : 1)),
+      liked_by: prevLiked ? [] : (viewerEmail ? [viewerEmail] : []),
+    });
+
+    const result = await UserStore.updateNewsFeedItem(pid, 'like');
+    if (!result?.ok) {
+      patchPostById(pid, { likes: Number(post?.likes || 0), liked_by: Array.isArray(post?.liked_by) ? post.liked_by : [] });
+      showToast(result?.message || 'Unable to update like.', 'error');
+      return;
+    }
+
+    if (typeof result.liked === 'boolean') {
+      patchPostById(pid, {
+        likes: Math.max(0, Number(post?.likes || 0) + (result.liked ? 1 : 0) - (prevLiked ? 1 : 0)),
+        liked_by: result.liked && viewerEmail ? [viewerEmail] : [],
+      });
+    }
+  };
+
+  const handleSharePost = async (post) => {
+    const pid = String(post?.id || '').trim();
+    if (!pid) return;
+
+    const message = `📰 ${stripHtml(post?.title || 'News')}\n\n${stripHtml(post?.subtitle || post?.description || '')}`;
+    try {
+      await Share.share({ title: stripHtml(post?.title || 'RTI News'), message });
+    } catch {
+      showToast('Share failed.', 'error');
+      return;
+    }
+
+    patchPostById(pid, { shares: Number(post?.shares || 0) + 1 });
+    const result = await UserStore.updateNewsFeedItem(pid, 'share');
+    if (!result?.ok) showToast(result?.message || 'Unable to update share.', 'error');
+  };
+
+  const openCommentsForPost = async (post) => {
+    const pid = String(post?.id || '').trim();
+    if (!pid) return;
+    setActiveCommentPostId(pid);
+    setCommentText('');
+    setEditingCommentId(null);
+    setEditingCommentText('');
+    setCommentModalVisible(true);
+    await loadCommentsForPost(pid);
+  };
+
+  const handleAddComment = async () => {
+    if (!activeCommentPostId) return;
+    const result = await UserStore.addNewsComment(activeCommentPostId, commentText);
+    if (!result?.ok) { showToast(result?.message || 'Unable to add comment.', 'error'); return; }
+    setCommentText('');
+    await loadCommentsForPost(activeCommentPostId);
+  };
+
+  const handleLikeComment = async (commentId) => {
+    if (!activeCommentPostId) return;
+    const result = await UserStore.likeNewsComment(activeCommentPostId, commentId);
+    if (!result?.ok) { showToast(result?.message || 'Unable to update comment.', 'error'); return; }
+    await loadCommentsForPost(activeCommentPostId);
+  };
+
+  const handleStartEdit = (comment) => {
+    setEditingCommentId(comment?.id || null);
+    setEditingCommentText(comment?.text || '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingCommentText('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!activeCommentPostId || !editingCommentId) return;
+    const result = await UserStore.editNewsComment(activeCommentPostId, editingCommentId, editingCommentText);
+    if (!result?.ok) { showToast(result?.message || 'Unable to edit comment.', 'error'); return; }
+    handleCancelEdit();
+    await loadCommentsForPost(activeCommentPostId);
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!activeCommentPostId) return;
+    const result = await UserStore.deleteNewsComment(activeCommentPostId, commentId);
+    if (!result?.ok) { showToast(result?.message || 'Unable to delete comment.', 'error'); return; }
+    if (editingCommentId === commentId) handleCancelEdit();
+    await loadCommentsForPost(activeCommentPostId);
+  };
+
+  const openImageModal = (imageUri, personName) => {
+    setModalImage(imageUri || '');
+    setModalName(personName || '');
+    setModalVisible(true);
+  };
+
+  const openAuthorProfile = (p) => {
+    const authorEmail = String(p?.createdBy || p?.author_email || '').trim().toLowerCase();
+    const authorName = String(p?.author_name || p?.createdByName || p?.author || '').trim();
+
+    if (authorEmail && authorEmail === resolvedEmail) return;
+    if (!authorEmail && authorName && authorName.toLowerCase() === name.toLowerCase()) return;
+
+    const authorData = {
+      name: authorName || name,
+      profile_image: p?.author_profile_image || p?.authorAvatar || safePhotoUri,
+      role: p?.author_role || p?.createdByRole || roleId,
+      role_label: p?.author_role_label || roleLabel,
+      state: p?.state || state,
+      district: p?.district || district,
+      taluka: p?.taluka || taluka,
+      author_seat_name: p?.author_seat_name || seatName,
+      author_seat_id: p?.author_seat_id || seatId,
+    };
+
+    navigation.push('UserPublicProfile', {
+      email: authorEmail || undefined,
+      author: authorData,
+    });
+  };
+
+  // ✅ Menu: Copy Profile Link
+  const handleCopyProfileLink = () => {
+    setMenuVisible(false);
+    const link = `rtinews://profile?email=${resolvedEmail || ''}&name=${encodeURIComponent(name)}`;
+    Clipboard.setString(link);
+    showToast('Profile link copied!', 'success');
+  };
+
+  // ✅ Menu: Report
+  const handleReport = () => {
+    setMenuVisible(false);
+    Alert.alert(
+      'Report User',
+      `Are you sure you want to report "${name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Report',
+          style: 'destructive',
+          onPress: async () => {
+            try { await UserStore.reportUser?.(resolvedEmail); } catch { /* noop */ }
+            showToast('User reported. We will review shortly.', 'success');
+          },
+        },
+      ]
+    );
+  };
+
+  // ✅ Menu: Block
+  const handleBlock = () => {
+    setMenuVisible(false);
+    Alert.alert(
+      'Block User',
+      `Are you sure you want to block "${name}"? You won't see their posts anymore.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            try { await UserStore.blockUser?.(resolvedEmail); } catch { /* noop */ }
+            showToast(`"${name}" has been blocked.`, 'success');
+            navigation.goBack();
+          },
+        },
+      ]
+    );
   };
 
   const handleSubscribe = () => {
@@ -194,12 +609,140 @@ export default function UserPublicProfileScreen({ route, navigation }) {
 
   return (
     <View style={styles.root}>
+      {/* ✅ Profile Image Modal */}
+      <ProfileImageModal
+        visible={modalVisible}
+        imageUri={modalImage}
+        name={modalName}
+        onClose={() => setModalVisible(false)}
+      />
+
+      {/* ✅ Three-dot Menu Bottom Sheet */}
+      <ProfileMenuSheet
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        onCopyLink={handleCopyProfileLink}
+        onReport={handleReport}
+        onBlock={handleBlock}
+      />
+
+      {/* Comments Bottom Sheet */}
+      <Modal
+        visible={commentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCommentModalVisible(false)}
+      >
+        <View style={styles.commentOverlay}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <View style={styles.commentSheet}>
+              <View style={styles.commentHeader}>
+                <Text style={styles.commentTitle}>Comments</Text>
+                <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
+                  <Feather name="x" size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.commentList} contentContainerStyle={{ paddingBottom: 10 }} showsVerticalScrollIndicator={false}>
+                {activeComments?.length ? (
+                  activeComments.map((c) => {
+                    const ownerMatch =
+                      (c.author_email && viewerEmail && String(c.author_email).trim().toLowerCase() === viewerEmail)
+                      || (!c.author_email && (c.author === viewerEmail));
+                    const liked = viewerEmail && Array.isArray(c.liked_by) && c.liked_by.includes(viewerEmail);
+
+                    return (
+                      <View key={c.id} style={styles.commentItem}>
+                        <View style={styles.commentTopRow}>
+                          <Text style={styles.commentAuthor}>{c.author || 'User'}</Text>
+                          <Text style={styles.commentDate}>{c.date || ''}{c.edited_at ? ' • Edited' : ''}</Text>
+                        </View>
+
+                        {editingCommentId === c.id ? (
+                          <TextInput
+                            style={styles.commentEditInput}
+                            value={editingCommentText}
+                            onChangeText={setEditingCommentText}
+                            multiline
+                          />
+                        ) : (
+                          <Text style={styles.commentText}>{c.text}</Text>
+                        )}
+
+                        <View style={styles.commentActionRow}>
+                          <TouchableOpacity
+                            style={[styles.commentActionBtn, liked && styles.commentActionBtnActive]}
+                            onPress={() => handleLikeComment(c.id)}
+                          >
+                            <Feather name="heart" size={13} color={liked ? '#ef4444' : '#e11d48'} />
+                            <Text style={[styles.commentActionText, liked && styles.commentActionTextActive]}>
+                              {liked ? 'Liked' : 'Like'}{c.likes ? ` (${c.likes})` : ''}
+                            </Text>
+                          </TouchableOpacity>
+
+                          {ownerMatch ? (
+                            editingCommentId === c.id ? (
+                              <>
+                                <TouchableOpacity style={styles.commentMiniBtn} onPress={handleSaveEdit}>
+                                  <Feather name="check" size={13} color="#16a34a" />
+                                  <Text style={[styles.commentMiniBtnText, { color: '#16a34a' }]}>Save</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.commentMiniBtn} onPress={handleCancelEdit}>
+                                  <Feather name="x" size={13} color="#64748b" />
+                                  <Text style={styles.commentMiniBtnText}>Cancel</Text>
+                                </TouchableOpacity>
+                              </>
+                            ) : (
+                              <>
+                                <TouchableOpacity style={styles.commentMiniBtn} onPress={() => handleStartEdit(c)}>
+                                  <Feather name="edit-2" size={13} color="#2563eb" />
+                                  <Text style={styles.commentMiniBtnText}>Edit</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.commentMiniBtn} onPress={() => handleDeleteComment(c.id)}>
+                                  <Feather name="trash-2" size={13} color="#ef4444" />
+                                  <Text style={[styles.commentMiniBtnText, { color: '#ef4444' }]}>Delete</Text>
+                                </TouchableOpacity>
+                              </>
+                            )
+                          ) : null}
+                        </View>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <Text style={styles.commentEmptyText}>No comments yet.</Text>
+                )}
+              </ScrollView>
+
+              <View style={styles.commentInputRow}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Write a comment..."
+                  placeholderTextColor="#94a3b8"
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[styles.commentSendBtn, !commentText.trim() && { opacity: 0.6 }]}
+                  onPress={handleAddComment}
+                  disabled={!commentText.trim()}
+                >
+                  <Feather name="send" size={16} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* ✅ Top Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
           <Feather name="arrow-left" size={20} color="#0f172a" />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>Profile</Text>
-        <TouchableOpacity style={styles.menuBtn} onPress={handleShareProfile} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.menuBtn} onPress={() => setMenuVisible(true)} activeOpacity={0.8}>
           <Feather name="more-vertical" size={18} color="#0f172a" />
         </TouchableOpacity>
       </View>
@@ -212,14 +755,18 @@ export default function UserPublicProfileScreen({ route, navigation }) {
         {/* ── Profile Card ── */}
         <View style={styles.profileCard}>
           <View style={styles.profileTopRow}>
-            <View style={styles.avatarWrap}>
+            <TouchableOpacity
+              style={styles.avatarWrap}
+              onPress={() => openImageModal(safePhotoUri, name)}
+              activeOpacity={0.85}
+            >
               <Image source={photoUri ? { uri: photoUri } : DEFAULT_AVATAR} style={styles.avatar} />
               {isVerified ? (
                 <View style={styles.verifiedOnAvatar}>
                   <Feather name="check" size={12} color="#ffffff" />
                 </View>
               ) : null}
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.profileMain}>
               <View style={styles.nameRow}>
@@ -272,7 +819,7 @@ export default function UserPublicProfileScreen({ route, navigation }) {
               <Feather name="user-plus" size={16} color="#ffffff" />
               <Text style={styles.subscribeBtnText}>Subscribe</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.shareBtn} onPress={handleShareProfile} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.shareBtn} onPress={() => setMenuVisible(true)} activeOpacity={0.85}>
               <Feather name="share-2" size={16} color="#0f172a" />
               <Text style={styles.shareBtnText}>Share Profile</Text>
             </TouchableOpacity>
@@ -307,7 +854,6 @@ export default function UserPublicProfileScreen({ route, navigation }) {
             {sortedPosts.map((p) => {
               const postTitle = p.title || 'Untitled';
 
-              // Description — tries multiple common field names
               const postDescription = stripHtml(
                 p.description || p.body || p.content || p.summary || p.caption || p.excerpt || ''
               );
@@ -326,19 +872,27 @@ export default function UserPublicProfileScreen({ route, navigation }) {
 
               const showPending = p.status && String(p.status).toLowerCase() !== 'approved';
 
+              const postAuthorPhoto = String(p?.author_profile_image || p?.authorAvatar || safePhotoUri || '').trim();
+              const safePostAuthorPhoto = isValidImageUrl(postAuthorPhoto) ? postAuthorPhoto : '';
+              const postAuthorName = String(p?.author_name || p?.createdByName || p?.author || name).trim();
+
               return (
-                <TouchableOpacity
+                <View
                   key={p.id || `${postTitle}-${p.date}`}
                   style={styles.feedCard}
-                  onPress={() => openPost(p)}
-                  activeOpacity={0.9}
                 >
-                  {/* ── Header: avatar + name + date + location ── */}
+                  {/* ── Header ── */}
                   <View style={styles.feedHeader}>
-                    <Image
-                      source={safePhotoUri ? { uri: safePhotoUri } : DEFAULT_AVATAR}
-                      style={styles.feedAvatar}
-                    />
+                    <TouchableOpacity
+                      onPress={() => openImageModal(safePostAuthorPhoto, postAuthorName)}
+                      activeOpacity={0.8}
+                    >
+                      <Image
+                        source={safePostAuthorPhoto ? { uri: safePostAuthorPhoto } : DEFAULT_AVATAR}
+                        style={styles.feedAvatar}
+                      />
+                    </TouchableOpacity>
+
                     <View style={styles.feedHeaderMain}>
                       <View style={styles.feedNameRow}>
                         {rolePillText ? (
@@ -346,7 +900,9 @@ export default function UserPublicProfileScreen({ route, navigation }) {
                             <Text style={styles.feedRoleMiniText}>{rolePillText}</Text>
                           </View>
                         ) : null}
-                        <Text style={styles.feedName} numberOfLines={1}>{name}</Text>
+                        <TouchableOpacity onPress={() => openAuthorProfile(p)} activeOpacity={0.8}>
+                          <Text style={styles.feedName} numberOfLines={1}>{postAuthorName}</Text>
+                        </TouchableOpacity>
                         {isVerified ? <Feather name="check-circle" size={14} color="#2563eb" /> : null}
                       </View>
                       <View style={styles.feedMetaRow}>
@@ -361,12 +917,12 @@ export default function UserPublicProfileScreen({ route, navigation }) {
                     </View>
                   </View>
 
-                  {/* ── Title ── */}
+                  {/* ── Title (No navigation - just display) ── */}
                   <Text style={styles.feedTitle} numberOfLines={3}>
                     {stripHtml(postTitle)}
                   </Text>
 
-                  {/* ── Description with Read More/Less ── */}
+                  {/* ── Description with fixed ...more / less ── */}
                   {postDescription ? (
                     <ExpandableDescription text={postDescription} maxLines={3} />
                   ) : null}
@@ -410,26 +966,42 @@ export default function UserPublicProfileScreen({ route, navigation }) {
                     </View>
                   ) : null}
 
-                  {/* ── Action bar: like, comment, share, views ── */}
+                  {/* ── Action bar ── */}
                   <View style={styles.feedActions}>
-                    <View style={styles.feedActionItem}>
-                      <Feather name="heart" size={16} color="#0f172a" />
-                      <Text style={styles.feedActionText}>{Number(p.likes || 0)}</Text>
-                    </View>
-                    <View style={styles.feedActionItem}>
+                    {(() => {
+                      const liked = Boolean(
+                        viewerEmail
+                          && Array.isArray(p.liked_by)
+                          && p.liked_by.includes(viewerEmail)
+                      );
+                      return (
+                        <TouchableOpacity
+                          style={[styles.feedActionButton, liked && styles.feedActionButtonActive]}
+                          onPress={() => handleLikePost(p)}
+                          activeOpacity={0.8}
+                        >
+                          <Feather name="heart" size={16} color={liked ? '#ef4444' : '#0f172a'} />
+                          <Text style={styles.feedActionText}>{Number(p.likes || 0)}</Text>
+                        </TouchableOpacity>
+                      );
+                    })()}
+
+                    <TouchableOpacity style={styles.feedActionButton} onPress={() => openCommentsForPost(p)} activeOpacity={0.8}>
                       <Feather name="message-circle" size={16} color="#0f172a" />
                       <Text style={styles.feedActionText}>{Number(p.comments || 0)}</Text>
-                    </View>
-                    <View style={styles.feedActionItem}>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.feedActionButton} onPress={() => handleSharePost(p)} activeOpacity={0.8}>
                       <Feather name="share-2" size={16} color="#0f172a" />
                       <Text style={styles.feedActionText}>{Number(p.shares || 0)}</Text>
-                    </View>
+                    </TouchableOpacity>
+
                     <View style={[styles.feedActionItem, { marginLeft: 'auto' }]}>
                       <Feather name="eye" size={16} color="#0f172a" />
                       <Text style={styles.feedActionText}>{Number(p.views || 0)}</Text>
                     </View>
                   </View>
-                </TouchableOpacity>
+                </View>
               );
             })}
           </View>

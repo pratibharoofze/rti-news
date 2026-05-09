@@ -136,6 +136,7 @@ function ProfileDropdown({ navigation }) {
   const [isOpen, setIsOpen] = useState(false);
   const [avatarUri, setAvatarUri] = useState('');
   const [avatarError, setAvatarError] = useState(false);
+  const [isReady, setIsReady] = useState(false); // ✅ auth check complete hua ya nahi
   const copy = useMemo(() => getSiteCopy(language), [language]);
 
   useFocusEffect(
@@ -147,12 +148,15 @@ function ProfileDropdown({ navigation }) {
           const user = await UserStore.getCurrentUser();
           if (!alive) return;
           const uri = String(user?.profile_image || '').trim();
-          setAvatarError(false);
-          setAvatarUri(isValidImageUrl(uri) ? uri : '');
+          const validUri = isValidImageUrl(uri) ? uri : '';
+          setAvatarUri(prev => {
+            if (prev !== validUri) setAvatarError(false);
+            return validUri;
+          });
         } catch {
           if (!alive) return;
-          setAvatarError(false);
-          setAvatarUri('');
+        } finally {
+          if (alive) setIsReady(true); // ✅ check complete — ab render karo
         }
       })();
       return () => { alive = false; };
@@ -166,6 +170,9 @@ function ProfileDropdown({ navigation }) {
     setAvatarUri('');
     navigation?.navigate?.('Home');
   };
+
+  // ✅ Jab tak auth check complete nahi — kuch bhi mat dikhao (no blink)
+  if (!isReady) return null;
 
   if (!isLoggedIn) {
     return (
@@ -261,10 +268,7 @@ function MobileTopHeader({ navigation, handleNavigate }) {
 
   return (
     <View style={styles.mobileTopHeader}>
-      {/* Logo */}
       <NavbarBrand onPressHome={() => handleNavigate('Home')} compact />
-
-      {/* Right side: Language + Profile/Signup */}
       <View style={styles.mobileTopHeaderActions}>
         <NavbarLanguageSelector />
         <ProfileDropdown navigation={navigation} />
@@ -284,16 +288,13 @@ export default function AppNavbar({ activeScreen, navigation, hideTopHeader = fa
     navigation?.navigate?.(screenName);
   };
 
-  // ── Mobile layout: top header + bottom tab bar ──
   if (!isDesktop) {
     return (
       <>
-        {/* ── Mobile Top Header: Logo + Language + Profile/Signup ── */}
         {!hideTopHeader && (
           <MobileTopHeader navigation={navigation} handleNavigate={handleNavigate} />
         )}
 
-        {/* ── Mobile Bottom Tab Bar ── */}
         <View style={styles.mobileBottomBar}>
           {MOBILE_NAV_ITEMS.map((item) => {
             const isActive = activeScreen === item.screen;
@@ -325,7 +326,6 @@ export default function AppNavbar({ activeScreen, navigation, hideTopHeader = fa
     );
   }
 
-  // ── Desktop top navbar ──
   return (
     <View style={styles.desktopNavbarShell}>
       <View style={styles.desktopNavbarInner}>
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
 
-  // ── Shared overlay (language + profile dropdowns) ───────────────────────
+  // ── Shared overlay ──────────────────────────────────────────────────────
   overlay: {
     ...Platform.select({
       web: {

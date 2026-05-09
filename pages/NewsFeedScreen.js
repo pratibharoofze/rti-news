@@ -184,7 +184,7 @@ export default function NewsFeedScreen({ navigation }) {
 
   const syncFeed = useCallback(async (focusItemId = null) => {
     setLoading(true);
-    const data = await UserStore.getNewsFeedSummary();
+    const data = await UserStore.getNewsFeedSummary(focusItemId ? { focusItemId } : undefined);
     setLoading(false);
     if (!data) { navigation.replace('Login'); return null; }
     const filteredItems = applyLocationFilter(data.items, data.currentUser);
@@ -250,12 +250,21 @@ export default function NewsFeedScreen({ navigation }) {
     loadNewsFeed();
   };
 
-  const openComments = (item) => {
+  const handleBookmark = async (item) => {
+    setSuccessMessage('');
+    const result = await UserStore.updateNewsFeedItem(item.id, 'bookmark');
+    if (!result.ok) { showToast(result.message, 'error'); return; }
+    setSuccessMessage(result.bookmarked ? 'Saved.' : 'Removed from saved.');
+    loadNewsFeed();
+  };
+
+  const openComments = async (item) => {
     setActiveCommentItem(item);
     setCommentText('');
     setEditingCommentId(null);
     setEditingCommentText('');
     setCommentModalVisible(true);
+    await syncFeed(item?.id || null);
   };
 
   const toggleExpanded = (itemId) => setExpandedItems((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
@@ -725,6 +734,13 @@ export default function NewsFeedScreen({ navigation }) {
                   <TouchableOpacity style={styles.actionIconButton} onPress={() => handleShare(item)}>
                     <Feather name="share-2" size={16} color="#2563eb" />
                     <Text style={styles.actionIconText}>{item.shares}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionIconButton, item.bookmarked && styles.actionIconButtonActive]}
+                    onPress={() => handleBookmark(item)}
+                  >
+                    <Feather name="bookmark" size={16} color={item.bookmarked ? '#ef4444' : '#64748b'} />
+                    <Text style={[styles.actionIconText, item.bookmarked && styles.actionIconTextActive]}>Save</Text>
                   </TouchableOpacity>
                 </View>
               </View>

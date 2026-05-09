@@ -121,8 +121,9 @@ export default function HomeScreen({ navigation, route }) {
 
   const handleDistrictSelection = useCallback((districtName) => { setSelectedDistrictName(districtName); }, []);
 
-  const handleOpenDetails = useCallback((story) => {
+  const handleOpenDetails = useCallback(async (story) => {
     if (!story) return;
+    try { if (story.id) await UserStore.updateNewsFeedItem(story.id, 'view'); } catch { /* noop */ }
     navigation?.navigate?.('NewsDetails', { article: story });
   }, [navigation]);
 

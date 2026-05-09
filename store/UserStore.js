@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
+import * as SQLite from 'expo-sqlite';
 import {
   DEMO_PLAYBACK_URL,
   DEMO_STREAM_TITLE,
@@ -13,6 +15,346 @@ const CURRENT_USER_KEY = 'current_user_email';
 const STATE_SEATS_KEY  = 'state_seat_allocations_v1';
 const PENDING_REG_KEY  = 'pending_registration_v1';
 
+const ENGAGEMENT_DB_NAME = 'rti_news_engagement_v1.db';
+const ENGAGEMENT_FALLBACK_KEY = 'news_engagement_fallback_v1';
+
+let engagementDbPromise = null;
+let engagementDbInitialized = false;
+
+const safeJsonParse = (value, fallback) => {
+  try { return value ? JSON.parse(value) : fallback; } catch { return fallback; }
+};
+
+const readEngagementFallback = async () => {
+  const raw = await AsyncStorage.getItem(ENGAGEMENT_FALLBACK_KEY);
+  const state = safeJsonParse(raw, {
+    likesByPost: {},            // postId -> { [email]: true }
+    sharesByPost: {},           // postId -> number
+    viewsByPost: {},            // postId -> number
+    commentsByPost: {},         // postId -> comment[]
+    commentLikesById: {},       // commentId -> { [email]: true }
+    bookmarksByPost: {},        // postId -> { [email]: true }
+  });
+
+  if (!state || typeof state !== 'object') {
+    return {
+      likesByPost: {},
+      sharesByPost: {},
+      viewsByPost: {},
+      commentsByPost: {},
+      commentLikesById: {},
+      bookmarksByPost: {},
+    };
+  }
+
+  state.likesByPost = state.likesByPost && typeof state.likesByPost === 'object' ? state.likesByPost : {};
+  state.sharesByPost = state.sharesByPost && typeof state.sharesByPost === 'object' ? state.sharesByPost : {};
+  state.viewsByPost = state.viewsByPost && typeof state.viewsByPost === 'object' ? state.viewsByPost : {};
+  state.commentsByPost = state.commentsByPost && typeof state.commentsByPost === 'object' ? state.commentsByPost : {};
+  state.commentLikesById = state.commentLikesById && typeof state.commentLikesById === 'object' ? state.commentLikesById : {};
+  state.bookmarksByPost = state.bookmarksByPost && typeof state.bookmarksByPost === 'object' ? state.bookmarksByPost : {};
+  return state;
+};
+
+const writeEngagementFallback = async (state) => {
+  await AsyncStorage.setItem(ENGAGEMENT_FALLBACK_KEY, JSON.stringify(state || {}));
+};
+
+const getEngagementDb = async () => {
+  if (Platform.OS === 'web') return null;
+  if (!engagementDbPromise) {
+    engagementDbPromise = SQLite.openDatabaseAsync(ENGAGEMENT_DB_NAME);
+  }
+  const db = await engagementDbPromise;
+  if (!engagementDbInitialized) {
+    await db.execAsync(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA foreign_keys = ON;
+
+      CREATE TABLE IF NOT EXISTS post_likes (
+        post_id TEXT NOT NULL,
+        user_email TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (post_id, user_email)
+      );
+
+      CREATE TABLE IF NOT EXISTS post_shares (
+        post_id TEXT PRIMARY KEY NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS post_views (
+        post_id TEXT PRIMARY KEY NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS post_comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        post_id TEXT NOT NULL,
+        user_email TEXT,
+        author TEXT,
+        text TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        edited_at TEXT,
+        parent_comment_id INTEGER,
+        deleted INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS comment_likes (
+        comment_id INTEGER NOT NULL,
+        user_email TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (comment_id, user_email),
+        FOREIGN KEY (comment_id) REFERENCES post_comments(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS post_bookmarks (
+        post_id TEXT NOT NULL,
+        user_email TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (post_id, user_email)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_post_likes_post ON post_likes(post_id);
+      CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id);
+      CREATE INDEX IF NOT EXISTS idx_comment_likes_comment ON comment_likes(comment_id);
+      CREATE INDEX IF NOT EXISTS idx_post_bookmarks_user ON post_bookmarks(user_email);
+    `);
+
+    // Lightweight migration for older db files.
+    try { await db.execAsync('ALTER TABLE post_comments ADD COLUMN parent_comment_id INTEGER'); } catch {}
+    try { await db.execAsync('CREATE INDEX IF NOT EXISTS idx_post_comments_parent ON post_comments(parent_comment_id)'); } catch {}
+    engagementDbInitialized = true;
+  }
+  return db;
+};
+
+const upsertCounter = async (db, table, postId) => {
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO ${table} (post_id, count, updated_at)
+     VALUES (?, 1, ?)
+     ON CONFLICT(post_id) DO UPDATE SET count = count + 1, updated_at = excluded.updated_at`,
+    postId,
+    now
+  );
+};
+
+const getEngagementForPostsSqlite = async (postIds = [], currentEmail = '', focusPostId = null) => {
+  const db = await getEngagementDb();
+  if (!db || !Array.isArray(postIds) || postIds.length === 0) {
+    return { statsByPost: {}, commentsByPost: {} };
+  }
+
+  const ids = postIds.filter(Boolean).map((v) => String(v));
+  if (ids.length === 0) return { statsByPost: {}, commentsByPost: {} };
+  const placeholders = ids.map(() => '?').join(',');
+
+  const likesRows = await db.getAllAsync(
+    `SELECT post_id, COUNT(*) AS count
+     FROM post_likes
+     WHERE post_id IN (${placeholders})
+     GROUP BY post_id`,
+    ids
+  );
+
+  const commentsRows = await db.getAllAsync(
+    `SELECT post_id, COUNT(*) AS count
+     FROM post_comments
+     WHERE deleted = 0 AND post_id IN (${placeholders})
+     GROUP BY post_id`,
+    ids
+  );
+
+  const sharesRows = await db.getAllAsync(
+    `SELECT post_id, count
+     FROM post_shares
+     WHERE post_id IN (${placeholders})`,
+    ids
+  );
+
+  const viewsRows = await db.getAllAsync(
+    `SELECT post_id, count
+     FROM post_views
+     WHERE post_id IN (${placeholders})`,
+    ids
+  );
+
+  const bookmarkedRows = currentEmail
+    ? await db.getAllAsync(
+      `SELECT post_id FROM post_bookmarks WHERE user_email = ? AND post_id IN (${placeholders})`,
+      [currentEmail, ...ids]
+    )
+    : [];
+
+  const likedRows = currentEmail
+    ? await db.getAllAsync(
+      `SELECT post_id FROM post_likes WHERE user_email = ? AND post_id IN (${placeholders})`,
+      [currentEmail, ...ids]
+    )
+    : [];
+
+  const likedSet = new Set((likedRows || []).map((r) => String(r.post_id)));
+  const bookmarkedSet = new Set((bookmarkedRows || []).map((r) => String(r.post_id)));
+  const likeMap = new Map((likesRows || []).map((r) => [String(r.post_id), Number(r.count || 0)]));
+  const commentCountMap = new Map((commentsRows || []).map((r) => [String(r.post_id), Number(r.count || 0)]));
+  const shareMap = new Map((sharesRows || []).map((r) => [String(r.post_id), Number(r.count || 0)]));
+  const viewMap = new Map((viewsRows || []).map((r) => [String(r.post_id), Number(r.count || 0)]));
+
+  const statsByPost = {};
+  ids.forEach((id) => {
+    statsByPost[id] = {
+      likes: likeMap.get(id) || 0,
+      comments: commentCountMap.get(id) || 0,
+      shares: shareMap.get(id) || 0,
+      views: viewMap.get(id) || 0,
+      likedByCurrentUser: likedSet.has(id),
+      bookmarkedByCurrentUser: bookmarkedSet.has(id),
+    };
+  });
+
+  const commentsByPost = {};
+  if (focusPostId) {
+    const pid = String(focusPostId);
+    const comments = await db.getAllAsync(
+      `SELECT id, post_id, user_email, author, text, created_at, edited_at, parent_comment_id
+       FROM post_comments
+       WHERE post_id = ? AND deleted = 0
+       ORDER BY created_at DESC
+       LIMIT 300`,
+      pid
+    );
+
+    const commentIds = (comments || []).map((c) => Number(c.id)).filter((n) => Number.isFinite(n));
+    const likedCommentSet = new Set();
+    const likesCountMap = new Map();
+
+    if (commentIds.length) {
+      const cph = commentIds.map(() => '?').join(',');
+      const likeCounts = await db.getAllAsync(
+        `SELECT comment_id, COUNT(*) AS count
+         FROM comment_likes
+         WHERE comment_id IN (${cph})
+         GROUP BY comment_id`,
+        commentIds
+      );
+      (likeCounts || []).forEach((r) => likesCountMap.set(Number(r.comment_id), Number(r.count || 0)));
+
+      if (currentEmail) {
+        const likedComments = await db.getAllAsync(
+          `SELECT comment_id FROM comment_likes WHERE user_email = ? AND comment_id IN (${cph})`,
+          [currentEmail, ...commentIds]
+        );
+        (likedComments || []).forEach((r) => likedCommentSet.add(Number(r.comment_id)));
+      }
+    }
+
+    const normalized = (comments || []).map((c) => {
+      const commentId = Number(c.id);
+      const created = c.created_at ? new Date(c.created_at) : null;
+      return {
+        id: `cmt-${commentId}`,
+        text: String(c.text || '').trim(),
+        author: String(c.author || 'User'),
+        author_email: String(c.user_email || ''),
+        date: created ? created.toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN'),
+        edited_at: c.edited_at || null,
+        likes: likesCountMap.get(commentId) || 0,
+        liked_by: likedCommentSet.has(commentId) && currentEmail ? [currentEmail] : [],
+        parent_comment_id: Number.isFinite(Number(c.parent_comment_id)) ? Number(c.parent_comment_id) : null,
+      };
+    });
+
+    const byId = new Map(normalized.map((c) => [c.id, c]));
+    const topLevel = [];
+    normalized.forEach((c) => {
+      const parentId = c.parent_comment_id;
+      if (!parentId) { topLevel.push({ ...c, replies: [] }); return; }
+      const parentKey = `cmt-${parentId}`;
+      const parent = byId.get(parentKey);
+      if (!parent) { topLevel.push({ ...c, replies: [] }); return; }
+    });
+
+    // Attach replies (second pass) using a map of top-level items.
+    const topMap = new Map(topLevel.map((c) => [c.id, c]));
+    normalized.forEach((c) => {
+      const parentId = c.parent_comment_id;
+      if (!parentId) return;
+      const parentKey = `cmt-${parentId}`;
+      const parent = topMap.get(parentKey);
+      if (!parent) return;
+      parent.replies = Array.isArray(parent.replies) ? parent.replies : [];
+      parent.replies.push({ ...c });
+    });
+
+    // Keep newest-first for top-level and replies.
+    topLevel.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+    topLevel.forEach((c) => {
+      if (Array.isArray(c.replies)) c.replies.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+    });
+
+    commentsByPost[pid] = topLevel;
+  }
+
+  return { statsByPost, commentsByPost };
+};
+
+const getEngagementForPostsFallback = async (postIds = [], currentEmail = '', focusPostId = null) => {
+  const state = await readEngagementFallback();
+  const ids = (postIds || []).filter(Boolean).map((v) => String(v));
+
+  const statsByPost = {};
+  ids.forEach((id) => {
+    const likesMap = state.likesByPost?.[id] || {};
+    const likedByCurrentUser = Boolean(currentEmail && likesMap[currentEmail]);
+    const bookmarksMap = state.bookmarksByPost?.[id] || {};
+    const bookmarkedByCurrentUser = Boolean(currentEmail && bookmarksMap[currentEmail]);
+    statsByPost[id] = {
+      likes: Object.keys(likesMap).length,
+      comments: Array.isArray(state.commentsByPost?.[id]) ? state.commentsByPost[id].length : 0,
+      shares: Number(state.sharesByPost?.[id] || 0),
+      views: Number(state.viewsByPost?.[id] || 0),
+      likedByCurrentUser,
+      bookmarkedByCurrentUser,
+    };
+  });
+
+  const commentsByPost = {};
+  if (focusPostId) {
+    const pid = String(focusPostId);
+    const list = Array.isArray(state.commentsByPost?.[pid]) ? state.commentsByPost[pid] : [];
+    const normalized = list.map((c) => ({
+      ...c,
+      liked_by: Array.isArray(c.liked_by) ? c.liked_by : [],
+      parent_comment_id: c.parent_comment_id || null,
+    }));
+
+    const byId = new Map(normalized.map((c) => [String(c.id), c]));
+    const topLevel = [];
+    normalized.forEach((c) => {
+      const parent = c.parent_comment_id ? String(c.parent_comment_id) : '';
+      if (!parent) { topLevel.push({ ...c, replies: [] }); return; }
+      const parentComment = byId.get(parent);
+      if (!parentComment) topLevel.push({ ...c, replies: [] });
+    });
+
+    const topMap = new Map(topLevel.map((c) => [String(c.id), c]));
+    normalized.forEach((c) => {
+      const parent = c.parent_comment_id ? String(c.parent_comment_id) : '';
+      if (!parent) return;
+      const parentComment = topMap.get(parent);
+      if (!parentComment) return;
+      parentComment.replies = Array.isArray(parentComment.replies) ? parentComment.replies : [];
+      parentComment.replies.push({ ...c });
+    });
+
+    commentsByPost[pid] = topLevel;
+  }
+
+  return { statsByPost, commentsByPost };
+};
 const STATE_SEAT_ROLES = [
   { id: 'chief_editor_published',     name: 'Chief Editor / Published' },
   { id: 'executive_editor',           name: 'Executive Editor' },
@@ -465,7 +807,7 @@ const normalizeUserNewsItems = (items = []) => {
       likes: Number(item.likes || 0),
       comments: Number(item.comments ?? (Array.isArray(item.comments_list) ? item.comments_list.length : 0)),
     }))
-    .sort((a, b) => getNewsSortValue(b) - getNewsSortValue(a));
+    .sort(() => Math.random() - 0.5);
 };
 
 const normalizeEPapers = (items = []) => {
@@ -1310,8 +1652,11 @@ export const UserStore = {
     }
   },
 
-  getNewsFeedSummary: async () => {
+  getNewsFeedSummary: async (options = {}) => {
     try {
+      const focusItemId = options && typeof options === 'object'
+        ? (options.focusItemId ? String(options.focusItemId) : null)
+        : null;
       const currentUser = await UserStore.getCurrentUser();
       const allUsers = await UserStore.getAllUsers();
       const defaultItems = normalizeNewsFeed(defaultNewsFeed).map((item) => ({
@@ -1353,19 +1698,69 @@ export const UserStore = {
         .filter((item, index, arr) => arr.findIndex((e) => e.id === item.id) === index)
         .sort((a, b) => getNewsSortValue(b) - getNewsSortValue(a));
 
+      const currentEmail = String(currentUser?.email || '').trim().toLowerCase();
+      const postIds = mergedItems.map((i) => i.id).filter(Boolean);
+
+      const engagement = Platform.OS === 'web'
+        ? await getEngagementForPostsFallback(postIds, currentEmail, focusItemId)
+        : await getEngagementForPostsSqlite(postIds, currentEmail, focusItemId);
+
+      const itemsWithEngagement = mergedItems.map((item) => {
+        const id = String(item.id || '');
+        const stat = engagement?.statsByPost?.[id];
+        const next = { ...item };
+
+        if (stat) {
+          const baseLikes = Number(item.likes || 0);
+          const baseComments = Number(item.comments || 0);
+          const baseShares = Number(item.shares || 0);
+          const baseViews = Number(item.views || 0);
+
+          next.likes = baseLikes + Number(stat.likes || 0);
+          next.comments = baseComments + Number(stat.comments || 0);
+          next.shares = baseShares + Number(stat.shares || 0);
+          next.views = baseViews + Number(stat.views || 0);
+
+          const legacyLiked = Boolean(
+            currentEmail
+              && Array.isArray(item.liked_by)
+              && item.liked_by.includes(currentEmail)
+          );
+          const likedNow = Boolean(stat.likedByCurrentUser || legacyLiked);
+          next.liked_by = likedNow && currentEmail ? [currentEmail] : [];
+
+          const legacyBookmarked = Boolean(item.bookmarked);
+          next.bookmarked = Boolean(stat.bookmarkedByCurrentUser || legacyBookmarked);
+        }
+
+        if (focusItemId && id === focusItemId) {
+          next.comments_list = Array.isArray(engagement?.commentsByPost?.[focusItemId])
+            ? engagement.commentsByPost[focusItemId]
+            : [];
+        } else {
+          // Ensure we don't accidentally show stale in-item comments.
+          if (next.comments_list) delete next.comments_list;
+        }
+
+        return next;
+      });
+
       return {
         currentUser,
-        items: mergedItems,
-        totalViews: mergedItems.reduce((s, i) => s + i.views, 0),
-        totalShares: mergedItems.reduce((s, i) => s + i.shares, 0),
+        items: itemsWithEngagement,
+        totalViews: itemsWithEngagement.reduce((s, i) => s + (Number(i.views) || 0), 0),
+        totalShares: itemsWithEngagement.reduce((s, i) => s + (Number(i.shares) || 0), 0),
       };
     } catch {
       return null;
     }
   },
 
-  getReelsFeedSummary: async () => {
+  getReelsFeedSummary: async (options = {}) => {
     try {
+      const focusItemId = options && typeof options === 'object'
+        ? (options.focusItemId ? String(options.focusItemId) : null)
+        : null;
       const currentUser = await UserStore.getCurrentUser();
       const allUsers = await UserStore.getAllUsers();
       const currentEmail = String(currentUser?.email || '').trim().toLowerCase();
@@ -1406,7 +1801,45 @@ export const UserStore = {
         .map((item) => toReelPostFromNewsItem(item, currentEmail))
         .sort((a, b) => getNewsSortValue(b) - getNewsSortValue(a));
 
-      return { currentUser, items: reels };
+      const postIds = reels.map((r) => r.id).filter(Boolean);
+      const engagement = Platform.OS === 'web'
+        ? await getEngagementForPostsFallback(postIds, currentEmail, focusItemId)
+        : await getEngagementForPostsSqlite(postIds, currentEmail, focusItemId);
+
+      const itemsWithEngagement = reels.map((item) => {
+        const id = String(item.id || '');
+        const stat = engagement?.statsByPost?.[id];
+        const next = { ...item };
+        if (stat) {
+  next.likes = Number(item.likes || 0) + Number(stat.likes || 0);
+  next.shares = Number(item.shares || 0) + Number(stat.shares || 0);
+  next.commentsCount = Number(stat.comments || 0);
+  next.liked = Boolean(item.liked || stat.likedByCurrentUser);
+  next.bookmarked = Boolean(item.bookmarked || stat.bookmarkedByCurrentUser);
+}
+
+        if (focusItemId && id === focusItemId) {
+          const list = Array.isArray(engagement?.commentsByPost?.[focusItemId])
+            ? engagement.commentsByPost[focusItemId]
+            : [];
+          next.comments = list.map((c) => ({
+            id: String(c.id || ''),
+            user: String(c.author || 'User'),
+            text: String(c.text || ''),
+            replies: Array.isArray(c.replies)
+              ? c.replies.map((r) => ({
+                id: String(r.id || ''),
+                user: String(r.author || 'User'),
+                text: String(r.text || ''),
+              }))
+              : [],
+          }));
+        }
+
+        return next;
+      });
+
+      return { currentUser, items: itemsWithEngagement };
     } catch {
       return null;
     }
@@ -1417,51 +1850,105 @@ export const UserStore = {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
-      const email = user.email || '';
-      let likedNow = null;
-      const items = normalizeNewsFeed(user.news_feed).map((item) => {
-        if (item.id !== itemId) return item;
-        const currentLikes = Number(item.likes || 0);
-        const likedBy = Array.isArray(item.liked_by) ? item.liked_by : [];
-        const alreadyLiked = email && likedBy.includes(email);
-        const nextLikedBy = action === 'like'
-          ? (alreadyLiked ? likedBy.filter((e) => e !== email) : [...likedBy, email])
-          : likedBy;
-        const nextLikes = action === 'like'
-          ? (alreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1)
-          : currentLikes;
-        if (action === 'like') likedNow = !alreadyLiked;
-        return {
-          ...item,
-          views: action === 'view' ? item.views + 1 : item.views,
-          shares: action === 'share' ? item.shares + 1 : item.shares,
-          likes: nextLikes, liked_by: nextLikedBy,
-          comments: action === 'comment' ? (Number(item.comments || 0) + 1) : Number(item.comments || 0),
-        };
-      });
-      const newsItems = Array.isArray(user.news) ? user.news.map((item) => {
-        if (item.id !== itemId) return item;
-        const currentLikes = Number(item.likes || 0);
-        const likedBy = Array.isArray(item.liked_by) ? item.liked_by : [];
-        const alreadyLiked = email && likedBy.includes(email);
-        const nextLikedBy = action === 'like'
-          ? (alreadyLiked ? likedBy.filter((e) => e !== email) : [...likedBy, email])
-          : likedBy;
-        const nextLikes = action === 'like'
-          ? (alreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1)
-          : currentLikes;
-        if (action === 'like') likedNow = !alreadyLiked;
-        return {
-          ...item,
-          views: action === 'view' ? Number(item.views || 0) + 1 : Number(item.views || 0),
-          shares: action === 'share' ? Number(item.shares || 0) + 1 : Number(item.shares || 0),
-          likes: nextLikes, liked_by: nextLikedBy,
-          comments: action === 'comment' ? (Number(item.comments || 0) + 1) : Number(item.comments || 0),
-        };
-      }) : [];
-      const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
-      if (!updatedUser) return { ok: false, message: 'Unable to update news item.' };
-      return { ok: true, items, liked: likedNow };
+
+      const postId = String(itemId || '').trim();
+      if (!postId) return { ok: false, message: 'Invalid post id.' };
+
+      const email = String(user.email || '').trim().toLowerCase();
+      const now = new Date().toISOString();
+
+      if (Platform.OS === 'web') {
+        const state = await readEngagementFallback();
+
+        if (action === 'like') {
+          if (!email) return { ok: false, message: 'Email missing.' };
+          state.likesByPost[postId] = state.likesByPost[postId] || {};
+          const alreadyLiked = Boolean(state.likesByPost[postId][email]);
+          if (alreadyLiked) delete state.likesByPost[postId][email];
+          else state.likesByPost[postId][email] = true;
+          await writeEngagementFallback(state);
+          return { ok: true, liked: !alreadyLiked };
+        }
+
+        if (action === 'bookmark') {
+          if (!email) return { ok: false, message: 'Email missing.' };
+          state.bookmarksByPost[postId] = state.bookmarksByPost[postId] || {};
+          const alreadySaved = Boolean(state.bookmarksByPost[postId][email]);
+          if (alreadySaved) delete state.bookmarksByPost[postId][email];
+          else state.bookmarksByPost[postId][email] = true;
+          await writeEngagementFallback(state);
+          return { ok: true, bookmarked: !alreadySaved };
+        }
+
+        if (action === 'share') {
+          state.sharesByPost[postId] = Number(state.sharesByPost[postId] || 0) + 1;
+          await writeEngagementFallback(state);
+          return { ok: true };
+        }
+
+        if (action === 'view') {
+          state.viewsByPost[postId] = Number(state.viewsByPost[postId] || 0) + 1;
+          await writeEngagementFallback(state);
+          return { ok: true };
+        }
+
+        return { ok: true };
+      }
+
+      const db = await getEngagementDb();
+      if (!db) return { ok: false, message: 'SQLite not available.' };
+
+      if (action === 'like') {
+        if (!email) return { ok: false, message: 'Email missing.' };
+        const exists = await db.getFirstAsync(
+          'SELECT 1 AS ok FROM post_likes WHERE post_id = ? AND user_email = ? LIMIT 1',
+          postId,
+          email
+        );
+        if (exists) {
+          await db.runAsync('DELETE FROM post_likes WHERE post_id = ? AND user_email = ?', postId, email);
+          return { ok: true, liked: false };
+        }
+        await db.runAsync(
+          'INSERT INTO post_likes (post_id, user_email, created_at) VALUES (?, ?, ?)',
+          postId,
+          email,
+          now
+        );
+        return { ok: true, liked: true };
+      }
+
+      if (action === 'bookmark') {
+        if (!email) return { ok: false, message: 'Email missing.' };
+        const exists = await db.getFirstAsync(
+          'SELECT 1 AS ok FROM post_bookmarks WHERE post_id = ? AND user_email = ? LIMIT 1',
+          postId,
+          email
+        );
+        if (exists) {
+          await db.runAsync('DELETE FROM post_bookmarks WHERE post_id = ? AND user_email = ?', postId, email);
+          return { ok: true, bookmarked: false };
+        }
+        await db.runAsync(
+          'INSERT INTO post_bookmarks (post_id, user_email, created_at) VALUES (?, ?, ?)',
+          postId,
+          email,
+          now
+        );
+        return { ok: true, bookmarked: true };
+      }
+
+      if (action === 'share') {
+        await upsertCounter(db, 'post_shares', postId);
+        return { ok: true };
+      }
+
+      if (action === 'view') {
+        await upsertCounter(db, 'post_views', postId);
+        return { ok: true };
+      }
+
+      return { ok: true };
     } catch { return { ok: false, message: 'Unable to update news item.' }; }
   },
 
@@ -1471,23 +1958,128 @@ export const UserStore = {
       if (!user) return { ok: false, message: 'Please login again.' };
       const text = String(commentText || '').trim();
       if (!text) return { ok: false, message: 'Please enter a comment.' };
+
+      const postId = String(itemId || '').trim();
+      if (!postId) return { ok: false, message: 'Invalid post id.' };
+
+      const email = String(user.email || '').trim().toLowerCase();
+      const author = String(user.name || user.email || 'User');
+      const nowIso = new Date().toISOString();
+
+      if (Platform.OS === 'web') {
+        const state = await readEngagementFallback();
+        const id = `cmt-${Date.now()}`;
+        const newComment = {
+          id,
+          text,
+          author,
+          author_email: email,
+          date: new Date().toLocaleDateString('en-IN'),
+          edited_at: null,
+          likes: 0,
+          liked_by: [],
+        };
+        state.commentsByPost[postId] = Array.isArray(state.commentsByPost[postId]) ? state.commentsByPost[postId] : [];
+        state.commentsByPost[postId] = [newComment, ...state.commentsByPost[postId]];
+        await writeEngagementFallback(state);
+        return { ok: true, comment: newComment };
+      }
+
+      const db = await getEngagementDb();
+      if (!db) return { ok: false, message: 'SQLite not available.' };
+
+      const result = await db.runAsync(
+        'INSERT INTO post_comments (post_id, user_email, author, text, created_at, edited_at, parent_comment_id, deleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)',
+        postId,
+        email || null,
+        author || null,
+        text,
+        nowIso,
+        null,
+        null
+      );
+
+      const rowId = Number(result?.lastInsertRowId || 0);
       const newComment = {
-        id: `cmt-${Date.now()}`, text,
-        author: user.name || user.email || 'User',
-        author_email: user.email || '',
-        date: new Date().toLocaleDateString('en-IN'),
-        edited_at: null, likes: 0, liked_by: [],
+        id: `cmt-${rowId || Date.now()}`,
+        text,
+        author,
+        author_email: email,
+        date: new Date(nowIso).toLocaleDateString('en-IN'),
+        edited_at: null,
+        likes: 0,
+        liked_by: [],
       };
-      const updateItem = (item) => {
-        if (item.id !== itemId) return item;
-        const list = normalizeComments(item.comments_list);
-        const updatedList = [...list, newComment];
-        return { ...item, comments_list: updatedList, comments: updatedList.length };
+
+      return { ok: true, comment: newComment };
+    } catch { return { ok: false, message: 'Unable to add comment.' }; }
+  },
+
+  replyNewsComment: async (itemId, parentCommentId, replyText) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+      const text = String(replyText || '').trim();
+      if (!text) return { ok: false, message: 'Please enter a comment.' };
+
+      const postId = String(itemId || '').trim();
+      if (!postId) return { ok: false, message: 'Invalid post id.' };
+
+      const parentRaw = String(parentCommentId || '').trim();
+      const parentId = parentRaw.startsWith('cmt-') ? Number(parentRaw.slice(4)) : Number(parentRaw);
+      if (!Number.isFinite(parentId) || parentId <= 0) return { ok: false, message: 'Invalid comment id.' };
+
+      const email = String(user.email || '').trim().toLowerCase();
+      const author = String(user.name || user.email || 'User');
+      const nowIso = new Date().toISOString();
+
+      if (Platform.OS === 'web') {
+        const state = await readEngagementFallback();
+        const id = `cmt-${Date.now()}`;
+        const newComment = {
+          id,
+          text,
+          author,
+          author_email: email,
+          date: new Date().toLocaleDateString('en-IN'),
+          edited_at: null,
+          likes: 0,
+          liked_by: [],
+          parent_comment_id: parentRaw,
+        };
+        state.commentsByPost[postId] = Array.isArray(state.commentsByPost[postId]) ? state.commentsByPost[postId] : [];
+        state.commentsByPost[postId] = [newComment, ...state.commentsByPost[postId]];
+        await writeEngagementFallback(state);
+        return { ok: true, comment: newComment };
+      }
+
+      const db = await getEngagementDb();
+      if (!db) return { ok: false, message: 'SQLite not available.' };
+
+      const result = await db.runAsync(
+        'INSERT INTO post_comments (post_id, user_email, author, text, created_at, edited_at, parent_comment_id, deleted) VALUES (?, ?, ?, ?, ?, ?, ?, 0)',
+        postId,
+        email || null,
+        author || null,
+        text,
+        nowIso,
+        null,
+        parentId
+      );
+
+      const rowId = Number(result?.lastInsertRowId || 0);
+      const newComment = {
+        id: `cmt-${rowId || Date.now()}`,
+        text,
+        author,
+        author_email: email,
+        date: new Date(nowIso).toLocaleDateString('en-IN'),
+        edited_at: null,
+        likes: 0,
+        liked_by: [],
+        parent_comment_id: parentId,
       };
-      const items = normalizeNewsFeed(user.news_feed).map(updateItem);
-      const newsItems = Array.isArray(user.news) ? user.news.map(updateItem) : [];
-      const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
-      if (!updatedUser) return { ok: false, message: 'Unable to add comment.' };
+
       return { ok: true, comment: newComment };
     } catch { return { ok: false, message: 'Unable to add comment.' }; }
   },
@@ -1496,28 +2088,58 @@ export const UserStore = {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
-      const email = user.email;
+      const email = String(user.email || '').trim().toLowerCase();
       if (!email) return { ok: false, message: 'Email missing.' };
-      let likedNow = false;
-      const updateItem = (item) => {
-        if (item.id !== itemId) return item;
-        const list = normalizeComments(item.comments_list);
-        const updatedList = list.map((c) => {
-          if (c.id !== commentId) return c;
-          const likedBy = Array.isArray(c.liked_by) ? c.liked_by : [];
-          const alreadyLiked = likedBy.includes(email);
-          likedNow = !alreadyLiked;
-          const nextLikedBy = alreadyLiked ? likedBy.filter((e) => e !== email) : [...likedBy, email];
-          const nextLikes = alreadyLiked ? Math.max(0, (Number(c.likes) || 0) - 1) : (Number(c.likes) || 0) + 1;
-          return { ...c, liked_by: nextLikedBy, likes: nextLikes };
+
+      const cidRaw = String(commentId || '').trim();
+      const parsedId = cidRaw.startsWith('cmt-') ? Number(cidRaw.slice(4)) : Number(cidRaw);
+      if (!Number.isFinite(parsedId) || parsedId <= 0) return { ok: false, message: 'Invalid comment id.' };
+
+      const now = new Date().toISOString();
+
+      if (Platform.OS === 'web') {
+        const state = await readEngagementFallback();
+        state.commentLikesById[cidRaw] = state.commentLikesById[cidRaw] || {};
+        const alreadyLiked = Boolean(state.commentLikesById[cidRaw][email]);
+        if (alreadyLiked) delete state.commentLikesById[cidRaw][email];
+        else state.commentLikesById[cidRaw][email] = true;
+
+        const postId = String(itemId || '').trim();
+        const list = Array.isArray(state.commentsByPost?.[postId]) ? state.commentsByPost[postId] : [];
+        state.commentsByPost[postId] = list.map((c) => {
+          if (String(c.id) !== cidRaw) return c;
+          const likedByMap = state.commentLikesById[cidRaw] || {};
+          const likes = Object.keys(likedByMap).length;
+          const liked_by = likedByMap[email] ? [email] : [];
+          return { ...c, likes, liked_by };
         });
-        return { ...item, comments_list: updatedList, comments: updatedList.length };
-      };
-      const items = normalizeNewsFeed(user.news_feed).map(updateItem);
-      const newsItems = Array.isArray(user.news) ? user.news.map(updateItem) : [];
-      const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
-      if (!updatedUser) return { ok: false, message: 'Unable to update comment.' };
-      return { ok: true, liked: likedNow };
+
+        await writeEngagementFallback(state);
+        return { ok: true, liked: !alreadyLiked };
+      }
+
+      const db = await getEngagementDb();
+      if (!db) return { ok: false, message: 'SQLite not available.' };
+
+      const exists = await db.getFirstAsync(
+        'SELECT 1 AS ok FROM comment_likes WHERE comment_id = ? AND user_email = ? LIMIT 1',
+        parsedId,
+        email
+      );
+
+      if (exists) {
+        await db.runAsync('DELETE FROM comment_likes WHERE comment_id = ? AND user_email = ?', parsedId, email);
+        return { ok: true, liked: false };
+      }
+
+      await db.runAsync(
+        'INSERT INTO comment_likes (comment_id, user_email, created_at) VALUES (?, ?, ?)',
+        parsedId,
+        email,
+        now
+      );
+
+      return { ok: true, liked: true };
     } catch { return { ok: false, message: 'Unable to update comment.' }; }
   },
 
@@ -1527,25 +2149,46 @@ export const UserStore = {
       if (!user) return { ok: false, message: 'Please login again.' };
       const text = String(nextText || '').trim();
       if (!text) return { ok: false, message: 'Please enter a comment.' };
-      const isOwner = (c) => {
-        if (c.author_email && user.email) return c.author_email === user.email;
-        const identity = user.email || user.name || '';
-        return identity && c.author === identity;
-      };
-      const updateItem = (item) => {
-        if (item.id !== itemId) return item;
-        const list = normalizeComments(item.comments_list);
-        const updatedList = list.map((c) => {
-          if (c.id !== commentId) return c;
-          if (!isOwner(c)) return c;
-          return { ...c, text, edited_at: new Date().toLocaleDateString('en-IN') };
+
+      const email = String(user.email || '').trim().toLowerCase();
+      const cidRaw = String(commentId || '').trim();
+      const parsedId = cidRaw.startsWith('cmt-') ? Number(cidRaw.slice(4)) : Number(cidRaw);
+      if (!Number.isFinite(parsedId) || parsedId <= 0) return { ok: false, message: 'Invalid comment id.' };
+
+      if (Platform.OS === 'web') {
+        const state = await readEngagementFallback();
+        const postId = String(itemId || '').trim();
+        const list = Array.isArray(state.commentsByPost?.[postId]) ? state.commentsByPost[postId] : [];
+        let changed = false;
+        state.commentsByPost[postId] = list.map((c) => {
+          if (String(c.id) !== cidRaw) return c;
+          const ownerOk = email && String(c.author_email || '').trim().toLowerCase() === email;
+          if (!ownerOk) return c;
+          changed = true;
+          return { ...c, text, edited_at: new Date().toISOString() };
         });
-        return { ...item, comments_list: updatedList, comments: updatedList.length };
-      };
-      const items = normalizeNewsFeed(user.news_feed).map(updateItem);
-      const newsItems = Array.isArray(user.news) ? user.news.map(updateItem) : [];
-      const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
-      if (!updatedUser) return { ok: false, message: 'Unable to edit comment.' };
+        if (!changed) return { ok: false, message: 'Unable to edit comment.' };
+        await writeEngagementFallback(state);
+        return { ok: true };
+      }
+
+      const db = await getEngagementDb();
+      if (!db) return { ok: false, message: 'SQLite not available.' };
+
+      const row = await db.getFirstAsync(
+        'SELECT user_email FROM post_comments WHERE id = ? AND deleted = 0 LIMIT 1',
+        parsedId
+      );
+      const ownerEmail = String(row?.user_email || '').trim().toLowerCase();
+      if (!email || !ownerEmail || ownerEmail !== email) return { ok: false, message: 'Unable to edit comment.' };
+
+      await db.runAsync(
+        'UPDATE post_comments SET text = ?, edited_at = ? WHERE id = ?',
+        text,
+        new Date().toISOString(),
+        parsedId
+      );
+
       return { ok: true };
     } catch { return { ok: false, message: 'Unable to edit comment.' }; }
   },
@@ -1554,24 +2197,36 @@ export const UserStore = {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
-      const isOwner = (c) => {
-        if (c.author_email && user.email) return c.author_email === user.email;
-        const identity = user.email || user.name || '';
-        return identity && c.author === identity;
-      };
-      const updateItem = (item) => {
-        if (item.id !== itemId) return item;
-        const list = normalizeComments(item.comments_list);
-        const updatedList = list.filter((c) => {
-          if (c.id !== commentId) return true;
-          return !isOwner(c);
+
+      const email = String(user.email || '').trim().toLowerCase();
+      const cidRaw = String(commentId || '').trim();
+      const parsedId = cidRaw.startsWith('cmt-') ? Number(cidRaw.slice(4)) : Number(cidRaw);
+      if (!Number.isFinite(parsedId) || parsedId <= 0) return { ok: false, message: 'Invalid comment id.' };
+
+      if (Platform.OS === 'web') {
+        const state = await readEngagementFallback();
+        const postId = String(itemId || '').trim();
+        const list = Array.isArray(state.commentsByPost?.[postId]) ? state.commentsByPost[postId] : [];
+        state.commentsByPost[postId] = list.filter((c) => {
+          if (String(c.id) !== cidRaw) return true;
+          const ownerOk = email && String(c.author_email || '').trim().toLowerCase() === email;
+          return !ownerOk;
         });
-        return { ...item, comments_list: updatedList, comments: updatedList.length };
-      };
-      const items = normalizeNewsFeed(user.news_feed).map(updateItem);
-      const newsItems = Array.isArray(user.news) ? user.news.map(updateItem) : [];
-      const updatedUser = await UserStore.updateUser(user.email, { news_feed: items, news: newsItems });
-      if (!updatedUser) return { ok: false, message: 'Unable to delete comment.' };
+        await writeEngagementFallback(state);
+        return { ok: true };
+      }
+
+      const db = await getEngagementDb();
+      if (!db) return { ok: false, message: 'SQLite not available.' };
+
+      const row = await db.getFirstAsync(
+        'SELECT user_email FROM post_comments WHERE id = ? AND deleted = 0 LIMIT 1',
+        parsedId
+      );
+      const ownerEmail = String(row?.user_email || '').trim().toLowerCase();
+      if (!email || !ownerEmail || ownerEmail !== email) return { ok: false, message: 'Unable to delete comment.' };
+
+      await db.runAsync('UPDATE post_comments SET deleted = 1 WHERE id = ?', parsedId);
       return { ok: true };
     } catch { return { ok: false, message: 'Unable to delete comment.' }; }
   },

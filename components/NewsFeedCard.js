@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet,
   Platform, Share, TextInput, KeyboardAvoidingView
@@ -13,6 +13,37 @@ import { UserStore } from '../store/UserStore';
 
 const DEFAULT_AVATAR_IMAGE = require('../assets/images/icon.png');
 
+// ─────────────────────────────────────────────
+// Like persistence helpers  (AsyncStorage-based)
+// ─────────────────────────────────────────────
+const LIKED_STORAGE_KEY = '@newsfeed_liked_ids';
+
+async function getLikedIds() {
+  try {
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    const raw = await AsyncStorage.getItem(LIKED_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+async function setLikedId(storyId, liked) {
+  try {
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    const current = await getLikedIds();
+    if (liked) {
+      current[storyId] = true;
+    } else {
+      delete current[storyId];
+    }
+    await AsyncStorage.setItem(LIKED_STORAGE_KEY, JSON.stringify(current));
+  } catch {}
+}
+
+// ─────────────────────────────────────────────
+// CommentItem (unchanged)
+// ─────────────────────────────────────────────
 function CommentItem({
   comment,
   currentUserEmail,
@@ -161,20 +192,15 @@ function isPlayableVideoSource(uri) {
   return /^https?:/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
 }
 
-// ✅ Video ka pehla frame capture karne wala hook (FIXED)
-// Sirf actual video thumbnail use karta hai — koi fallback image nahi
 function useVideoThumbnail(videoUri) {
-  const [thumbnail, setThumbnail] = useState(null); // null = capturing, string = ready
+  const [thumbnail, setThumbnail] = useState(null);
   const [capturing, setCapturing] = useState(false);
 
   useEffect(() => {
-    // Reset on every new URI
     setThumbnail(null);
     setCapturing(false);
 
     if (!videoUri || Platform.OS !== 'web') return;
-
-    // Native mein VideoView khud poster handle karta hai
     if (!/^https?:|^blob:|^data:/i.test(videoUri)) return;
 
     let cancelled = false;
@@ -186,14 +212,10 @@ function useVideoThumbnail(videoUri) {
     video.muted = true;
     video.preload = 'metadata';
 
-    const cleanup = () => {
-      video.src = '';
-      video.load();
-    };
+    const cleanup = () => { video.src = ''; video.load(); };
 
     video.addEventListener('loadedmetadata', () => {
       if (cancelled) { cleanup(); return; }
-      // 0.1 second pe seek karo — 0 pe black frame aa sakta hai
       video.currentTime = Math.min(0.1, video.duration * 0.05 || 0.1);
     });
 
@@ -209,9 +231,7 @@ function useVideoThumbnail(videoUri) {
         if (dataUrl && dataUrl !== 'data:,' && dataUrl.length > 100) {
           if (!cancelled) setThumbnail(dataUrl);
         }
-      } catch {
-        // CORS block — thumbnail nahi milega, null rahega
-      }
+      } catch {}
       if (!cancelled) setCapturing(false);
       cleanup();
     });
@@ -221,7 +241,6 @@ function useVideoThumbnail(videoUri) {
       cleanup();
     });
 
-    // Timeout: 8 second mein thumbnail nahi mila to give up
     const timeout = setTimeout(() => {
       if (!cancelled) { setCapturing(false); setThumbnail(null); }
       cleanup();
@@ -239,6 +258,37 @@ function useVideoThumbnail(videoUri) {
   return { thumbnail, capturing };
 }
 
+// ─────────────────────────────────────────────
+// FIX 2: Web IntersectionObserver hook — card
+// visible percentage track karne ke liye.
+// Jab card 30% se kam visible ho, video band.
+// ─────────────────────────────────────────────
+function useCardVisibility(ref, threshold = 0.3) {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return; // Native mein useIsFocused + FlatList handle karta hai
+
+    const element = ref?.current;
+    if (!element || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.intersectionRatio >= threshold);
+      },
+      { threshold: [0, threshold, 1.0] }
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, threshold]);
+
+  return isVisible;
+}
+
+// ─────────────────────────────────────────────
+// Main Card Component
+// ─────────────────────────────────────────────
 export default function NewsFeedCard({
   story,
   isCompactLayout,
@@ -250,6 +300,9 @@ export default function NewsFeedCard({
   currentUser,
 }) {
   const isScreenFocused = useIsFocused();
+  const cardRef = useRef(null); // FIX 2: card DOM ref (web only)
+  const isCardVisible = useCardVisibility(cardRef, 0.3); // FIX 2: visibility hook
+
   const [currentEmail, setCurrentEmail] = useState('');
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(Boolean(story.bookmarked));
@@ -267,13 +320,23 @@ export default function NewsFeedCard({
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const inputRef = useRef(null);
 
+  // ── FIX 2 (Native): scroll se hide/show track karne ke liye
+  // Native mein parent FlatList ko onViewableItemsChanged pass karna hoga.
+  // Yahan ek prop accept karte hain: isVisible (optional, parent se)
+  // Agar parent ne pass nahi kiya to default true maan lo.
+  // Aap parent FlatList mein ye add karein:
+  //   viewabilityConfig={{ itemVisiblePercentThreshold: 30 }}
+  //   onViewableItemsChanged={({ viewableItems }) => { ... setVisibleIds }}
+  // Phir har card ko isVisible={visibleIds.includes(story.id)} pass karein.
+
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         const user = await UserStore.getCurrentUser();
         if (!alive) return;
-        setCurrentEmail(String(user?.email || '').trim().toLowerCase());
+        const email = String(user?.email || '').trim().toLowerCase();
+        setCurrentEmail(email);
       } catch {
         if (!alive) return;
         setCurrentEmail('');
@@ -282,16 +345,36 @@ export default function NewsFeedCard({
     return () => { alive = false; };
   }, []);
 
+  // ── FIX 1: Like state — server + local storage dono se load karo ──
+  useEffect(() => {
+    if (!currentEmail) return;
+    let alive = true;
+
+    (async () => {
+      // Step 1: Server se liked_by array check karo
+      const serverLiked = Boolean(
+        Array.isArray(story.liked_by) && story.liked_by.includes(currentEmail)
+      );
+
+      // Step 2: Local storage se bhi check karo (offline / refresh ke baad)
+      const likedIds = await getLikedIds();
+      const localLiked = Boolean(likedIds[story.id]);
+
+      if (!alive) return;
+
+      // Dono mein se koi bhi true ho to liked maano
+      setIsLiked(serverLiked || localLiked);
+    })();
+
+    return () => { alive = false; };
+  }, [currentEmail, story.id, story.liked_by]);
+
   useEffect(() => {
     setLikesCount(Number(story.likes || 0));
     setCommentsCount(Number(story.comments || 0));
     setSharesCount(Number(story.shares || 0));
     setIsSaved(Boolean(story.bookmarked));
-    const liked = Boolean(
-      currentEmail && Array.isArray(story.liked_by) && story.liked_by.includes(currentEmail)
-    );
-    setIsLiked(liked);
-  }, [currentEmail, story.bookmarked, story.comments, story.likes, story.liked_by, story.shares]);
+  }, [story.bookmarked, story.comments, story.likes, story.shares]);
 
   // Image URI resolve
   const rawImageUri = useMemo(() => {
@@ -370,7 +453,6 @@ export default function NewsFeedCard({
 
   const canPlayVideo = Boolean(effectiveVideoUri) && isPlayableVideoSource(effectiveVideoUri);
 
-  // ✅ FIXED: Video thumbnail hook — sirf actual frame use hoga
   const { thumbnail: videoThumbnail, capturing: thumbnailCapturing } = useVideoThumbnail(
     canPlayVideo ? effectiveVideoUri : null
   );
@@ -382,7 +464,7 @@ export default function NewsFeedCard({
     p.loop = false;
   });
 
-  // Stop video when screen loses focus
+  // ── FIX 2: Screen focus lost → pause ──
   useEffect(() => {
     if (!isScreenFocused && player) {
       player.pause();
@@ -390,6 +472,16 @@ export default function NewsFeedCard({
       setShowVideoPoster(true);
     }
   }, [isScreenFocused, player]);
+
+  // ── FIX 2: Card scroll se bahar gaya → pause ──
+  useEffect(() => {
+    if (!isCardVisible && player && !videoPaused) {
+      player.pause();
+      setVideoPaused(true);
+      // Poster wapas dikhao taaki next time play button mile
+      setShowVideoPoster(true);
+    }
+  }, [isCardVisible, player, videoPaused]);
 
   // Reset when video changes
   useEffect(() => {
@@ -424,17 +516,36 @@ export default function NewsFeedCard({
 
   const handleImagePress = () => onOpenDetails(story);
 
+  // ── FIX 1: handleLike — local storage mein bhi save karo ──
   const handleLike = async () => {
     const prev = isLiked;
-    setIsLiked(!prev);
-    setLikesCount((c) => c + (!prev ? 1 : -1));
+    const newLiked = !prev;
+
+    // Optimistic UI update
+    setIsLiked(newLiked);
+    setLikesCount((c) => c + (newLiked ? 1 : -1));
+
+    // Local storage mein turant save karo (refresh-safe)
+    await setLikedId(story.id, newLiked);
+
     try {
       const result = await UserStore.updateNewsFeedItem(story.id, 'like');
-      if (!result?.ok) { setIsLiked(prev); setLikesCount((c) => c + (prev ? 1 : -1)); return; }
-      if (typeof result.liked === 'boolean') setIsLiked(result.liked);
+      if (!result?.ok) {
+        // Server fail — revert both UI and storage
+        setIsLiked(prev);
+        setLikesCount((c) => c + (prev ? 1 : -1));
+        await setLikedId(story.id, prev);
+        return;
+      }
+      // Server se actual liked state sync karo
+      if (typeof result.liked === 'boolean') {
+        setIsLiked(result.liked);
+        await setLikedId(story.id, result.liked);
+      }
     } catch {
       setIsLiked(prev);
       setLikesCount((c) => c + (prev ? 1 : -1));
+      await setLikedId(story.id, prev);
     }
   };
 
@@ -663,17 +774,20 @@ export default function NewsFeedCard({
 
   const hasExpandableContent = Boolean(story.excerpt || story.description);
 
-  // ✅ VIDEO POSTER LOGIC (FIXED):
-  // - Jab tak thumbnail capture ho raha hai: dark loading overlay dikhao (koi fallback image NAHI)
-  // - Jab thumbnail ready ho: wahi dikhao
-  // - Agar thumbnail capture fail ho jaaye (null, capturing=false): sirf play icon dikhao, koi image nahi
   const showPosterOverlay = videoPaused && showVideoPoster;
   const posterReady = videoThumbnail !== null;
   const stillCapturing = thumbnailCapturing && !posterReady;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[styles.storyCardShell, isCompactLayout && styles.storyCardShellCompact]}>
+      {/*
+        FIX 2: ref attach karo card ke outermost View pe.
+        Web pe IntersectionObserver isi ref se card visibility track karega.
+      */}
+      <View
+        ref={cardRef}
+        style={[styles.storyCardShell, isCompactLayout && styles.storyCardShellCompact]}
+      >
 
         {/* Author Row */}
         <View style={styles.storyAuthorRow}>
@@ -756,7 +870,7 @@ export default function NewsFeedCard({
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Hero Image / Video — FIXED POSTER LOGIC */}
+        {/* Hero Image / Video */}
         <TouchableOpacity
           style={[styles.storyHeroImageWrap, isCompactLayout && styles.storyHeroImageWrapCompact]}
           onPress={canPlayVideo ? handleVideoPress : handleImagePress}
@@ -764,7 +878,6 @@ export default function NewsFeedCard({
         >
           {canPlayVideo ? (
             <>
-              {/* Video player */}
               <VideoView
                 player={player}
                 style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
@@ -775,30 +888,24 @@ export default function NewsFeedCard({
                 onFirstFrameRender={() => setShowVideoPoster(false)}
               />
 
-              {/* ✅ POSTER: sirf actual video thumbnail dikhao */}
-              {/* Profile image ya koi dusri image kabhi poster nahi banegi */}
               {showPosterOverlay && (
                 posterReady ? (
-                  // Thumbnail ready hai — dikhao
                   <Image
                     source={{ uri: videoThumbnail }}
                     style={StyleSheet.absoluteFill}
                     resizeMode="cover"
                   />
                 ) : stillCapturing ? (
-                  // Abhi capture ho raha hai — dark loading state
                   <View style={styles.videoLoadingOverlay}>
                     <View style={styles.videoLoadingBadge}>
                       <Text style={styles.videoLoadingText}>⏳</Text>
                     </View>
                   </View>
                 ) : (
-                  // Capture fail — dark background, sirf play button
                   <View style={styles.videoLoadingOverlay} />
                 )
               )}
 
-              {/* Play/Pause overlay */}
               {videoPaused && (
                 <View style={styles.storyVideoPlayOverlay}>
                   <View style={styles.storyVideoPlayBadge}>
@@ -808,7 +915,6 @@ export default function NewsFeedCard({
                 </View>
               )}
 
-              {/* Playing indicator */}
               {!videoPaused && (
                 <View style={styles.videoPlayingIndicator}>
                   <Ionicons name="pause" size={18} color="#ffffff" />
@@ -816,7 +922,6 @@ export default function NewsFeedCard({
               )}
             </>
           ) : (
-            // Regular image post
             <Image source={{ uri: safeImage }} style={styles.storyHeroImage} resizeMode="cover" />
           )}
         </TouchableOpacity>
@@ -989,8 +1094,6 @@ const styles = StyleSheet.create({
   storyHeroImageWrap: { height: 520, borderRadius: 5, overflow: 'hidden', backgroundColor: '#0f172a' },
   storyHeroImageWrapCompact: { height: 200 },
   storyHeroImage: { width: '100%', height: '100%' },
-
-  // ✅ Video loading states
   videoLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 23, 42, 0.85)',
@@ -1003,7 +1106,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   videoLoadingText: { fontSize: 22 },
-
   storyVideoPlayOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center', justifyContent: 'center',
@@ -1021,7 +1123,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center', justifyContent: 'center',
   },
-
   storyStatsRow: { marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   storyStatsLeftGroup: { flexDirection: 'row', alignItems: 'center', gap: 14, flexWrap: 'wrap' },
   storyStatItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },

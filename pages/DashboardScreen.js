@@ -199,7 +199,7 @@ function SeatSelectModal({
             disabled={!selectedSeatId || isLoadingSeats}
           >
             <Text style={{ color: selectedSeatId ? '#fff' : '#64748b', fontWeight: '900' }}>
-              OK
+              Pay Now
             </Text>
           </TouchableOpacity>
         </View>
@@ -294,16 +294,106 @@ export default function DashboardScreen({ navigation, route }) {
     } catch {}
   };
 
-  const goToSubscriptionPlans = (plan, seatRoleId) => {
-    if (!plan || !seatRoleId) return;
-    setSeatModalOpen(false);
-    setShowSubscriptionModal(false);
-    setPendingPlan(null);
-    navigation.navigate('Subscription Plans', {
-      preselectedPlanId: plan.plan_id,
-      preselectedSeatId: seatRoleId,
-      fromDashboard: true,
-    });
+  // ── FIX: Seat confirm → subscription save → success toast (no navigation) ──
+  const handleSeatConfirm = async () => {
+    if (!pendingPlan || !selectedSeatId) return;
+
+    try {
+      // 1. Seat UserStore mein save karo
+      await UserStore.saveSelectedSeat(selectedSeatId);
+
+      // 2. Subscription UserStore mein save karo
+      await UserStore.saveSubscription({
+        plan_id: pendingPlan.plan_id,
+        plan_name: pendingPlan.plan_name,
+        seat_id: selectedSeatId,
+        price: pendingPlan.price,
+        duration: pendingPlan.duration,
+      });
+
+      // 3. Local currentUser state update karo taaki UI refresh ho
+      setCurrentUser((prev) => ({
+        ...prev,
+        subscription_type: pendingPlan.plan_id.replace('plan-', ''), // e.g. 'basic', 'pro', 'premium'
+        subscription_active: true,
+      }));
+
+      // 4. Modals band karo
+      setSeatModalOpen(false);
+      setShowSubscriptionModal(false);
+      setPendingPlan(null);
+
+      // 5. Success toast dikhao
+      showToast(`${pendingPlan.plan_name} Subscription Successful! 🎉`, 'success');
+
+    } catch (err) {
+      console.error('Subscription save failed:', err);
+      showToast('Something went wrong. Please try again.', 'error');
+    }
+  };
+
+  // ── FIX: Plan select karte waqt existing seat ka bhi same flow ──
+  const handlePlanPress = (plan) => {
+    setPendingPlan(plan);
+
+    const stateName = seatSummary?.state || currentUser?.state || '';
+
+    if (!stateName) {
+      showPopup(
+        'Please select your state first.',
+        'error',
+        {
+          primaryLabel: 'Open',
+          secondaryLabel: 'Cancel',
+          onPrimaryPress: () =>
+            navigation.navigate('StateSelect', {
+              fromPremium: true,
+              autoOpen: true,
+            }),
+        }
+      );
+      return;
+    }
+
+    const existingSeatId = seatSummary?.current_seat?.seat_id || '';
+
+    if (existingSeatId) {
+      // Already seat hai → seedha subscription save karo
+      setSelectedSeatId(existingSeatId);
+      handleDirectSubscribe(plan, existingSeatId);
+      return;
+    }
+
+    // Seat nahi hai → seat modal kholo
+    setSeatModalOpen(true);
+  };
+
+  // Existing seat ke saath direct subscribe (seat modal skip)
+  const handleDirectSubscribe = async (plan, seatId) => {
+    try {
+      await UserStore.saveSubscription({
+        plan_id: plan.plan_id,
+        plan_name: plan.plan_name,
+        seat_id: seatId,
+        price: plan.price,
+        duration: plan.duration,
+      });
+
+      setCurrentUser((prev) => ({
+        ...prev,
+        subscription_type: plan.plan_id.replace('plan-', ''),
+        subscription_active: true,
+      }));
+
+      setShowSubscriptionModal(false);
+      setPendingPlan(null);
+
+      showToast(`${plan.plan_name} Subscription Successful! 🎉`, 'success');
+
+    } catch (err) {
+      console.error('Subscription save failed:', err);
+      showToast('Something went wrong. Please try again.', 'error');
+    }
   };
 
   // ── Filtered users ─────────────────────────────────────────────────────────
@@ -330,6 +420,8 @@ export default function DashboardScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
+
+      {/* ── Seat Select Modal ── */}
       <SeatSelectModal
         visible={seatModalOpen}
         stateName={seatSummary?.state || currentUser?.state || ''}
@@ -340,12 +432,10 @@ export default function DashboardScreen({ navigation, route }) {
           setSeatModalOpen(false);
           setPendingPlan(null);
         }}
-        onConfirm={() => {
-          const stateName = seatSummary?.state || currentUser?.state || '';
-          if (!pendingPlan || !stateName || !selectedSeatId) return;
-          goToSubscriptionPlans(pendingPlan, selectedSeatId);
-        }}
+        // FIX: onConfirm ab handleSeatConfirm call karta hai
+        onConfirm={handleSeatConfirm}
       />
+
       <Header
         title="Dashboard"
         onMenuPress={() => setSidebarVisible(true)}
@@ -524,159 +614,114 @@ export default function DashboardScreen({ navigation, route }) {
       />
 
       {/* ── Subscription Modal ── */}
-{showSubscriptionModal && (
-  <View style={modalStyles.overlay}>
-    <View style={modalStyles.modalContent}>
-      <View style={modalStyles.modalHeader}>
-        <Text style={modalStyles.modalTitle}>Choose Your Plan</Text>
-        <Text style={modalStyles.modalSubtitle}>
-          Upgrade to unlock premium features
-        </Text>
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={{ maxHeight: 380 }}
-      >
-        {SUBSCRIPTION_PLANS.map((plan) => (
-          <TouchableOpacity
-            key={plan.plan_id}
-            style={[
-              modalStyles.planCard,
-              {
-                borderWidth:
-                  (pendingPlan?.plan_id === plan.plan_id || plan.popular)
-                    ? 2
-                    : 1,
-                borderColor:
-                  pendingPlan?.plan_id === plan.plan_id
-                    ? plan.color
-                    : (plan.color + '44'),
-                backgroundColor:
-                  pendingPlan?.plan_id === plan.plan_id
-                    ? (plan.color + '0F')
-                    : '#f8fafc',
-              },
-              pendingPlan?.plan_id === plan.plan_id &&
-                modalStyles.planCardSelected,
-            ]}
-            onPress={() => {
-              setPendingPlan(plan);
-
-              const stateName =
-                seatSummary?.state || currentUser?.state || '';
-
-              if (!stateName) {
-                showPopup(
-                  'Please select your state first.',
-                  'error',
-                  {
-                    primaryLabel: 'Open',
-                    secondaryLabel: 'Cancel',
-                    onPrimaryPress: () =>
-                      navigation.navigate('StateSelect', {
-                        fromPremium: true,
-                        autoOpen: true,
-                      }),
-                  }
-                );
-                return;
-              }
-
-              const existingSeatId =
-                seatSummary?.current_seat?.seat_id || '';
-
-              // already selected seat
-              if (existingSeatId) {
-                setSelectedSeatId(existingSeatId);
-
-                setShowSubscriptionModal(false);
-                setPendingPlan(null);
-
-                showToast(
-                  `${plan.plan_name} Subscription Successful!`,
-                  'success'
-                );
-
-                return;
-              }
-
-              // open seat selector
-              setSeatModalOpen(true);
-            }}
-            activeOpacity={0.8}
-          >
-            {plan.popular && (
-              <View
-                style={[
-                  modalStyles.popularBadge,
-                  { backgroundColor: plan.color },
-                ]}
-              >
-                <Text style={modalStyles.popularText}>
-                  MOST POPULAR
-                </Text>
-              </View>
-            )}
-
-            <View style={modalStyles.planHeader}>
-              <View>
-                <Text
-                  style={[
-                    modalStyles.planName,
-                    { color: plan.color },
-                  ]}
-                >
-                  {plan.plan_name}
-                </Text>
-
-                <Text style={modalStyles.planDuration}>
-                  {plan.duration}
-                </Text>
-              </View>
-
-              <Text style={modalStyles.planPrice}>
-                ₹{plan.price}
+      {showSubscriptionModal && (
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.modalContent}>
+            <View style={modalStyles.modalHeader}>
+              <Text style={modalStyles.modalTitle}>Choose Your Plan</Text>
+              <Text style={modalStyles.modalSubtitle}>
+                Upgrade to unlock premium features
               </Text>
             </View>
 
-            <View style={modalStyles.featuresList}>
-              {plan.features.map((feature, idx) => (
-                <View
-                  key={idx}
-                  style={modalStyles.featureItem}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: 380 }}
+            >
+              {SUBSCRIPTION_PLANS.map((plan) => (
+                <TouchableOpacity
+                  key={plan.plan_id}
+                  style={[
+                    modalStyles.planCard,
+                    {
+                      borderWidth:
+                        (pendingPlan?.plan_id === plan.plan_id || plan.popular)
+                          ? 2
+                          : 1,
+                      borderColor:
+                        pendingPlan?.plan_id === plan.plan_id
+                          ? plan.color
+                          : (plan.color + '44'),
+                      backgroundColor:
+                        pendingPlan?.plan_id === plan.plan_id
+                          ? (plan.color + '0F')
+                          : '#f8fafc',
+                    },
+                    pendingPlan?.plan_id === plan.plan_id &&
+                      modalStyles.planCardSelected,
+                  ]}
+                  // FIX: handlePlanPress use karo
+                  onPress={() => handlePlanPress(plan)}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={14}
-                    color={plan.color}
-                  />
+                  {plan.popular && (
+                    <View
+                      style={[
+                        modalStyles.popularBadge,
+                        { backgroundColor: plan.color },
+                      ]}
+                    >
+                      <Text style={modalStyles.popularText}>
+                        MOST POPULAR
+                      </Text>
+                    </View>
+                  )}
 
-                  <Text style={modalStyles.featureText}>
-                    {feature}
-                  </Text>
-                </View>
+                  <View style={modalStyles.planHeader}>
+                    <View>
+                      <Text
+                        style={[
+                          modalStyles.planName,
+                          { color: plan.color },
+                        ]}
+                      >
+                        {plan.plan_name}
+                      </Text>
+                      <Text style={modalStyles.planDuration}>
+                        {plan.duration}
+                      </Text>
+                    </View>
+                    <Text style={modalStyles.planPrice}>
+                      ₹{plan.price}
+                    </Text>
+                  </View>
+
+                  <View style={modalStyles.featuresList}>
+                    {plan.features.map((feature, idx) => (
+                      <View
+                        key={idx}
+                        style={modalStyles.featureItem}
+                      >
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={14}
+                          color={plan.color}
+                        />
+                        <Text style={modalStyles.featureText}>
+                          {feature}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </TouchableOpacity>
               ))}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+            </ScrollView>
 
-      <TouchableOpacity
-        style={modalStyles.closeBtn}
-        onPress={() => {
-          setShowSubscriptionModal(false);
-          setPendingPlan(null);
-        }}
-        activeOpacity={0.8}
-      >
-        <Text style={modalStyles.closeBtnText}>
-          Maybe Later
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-)}
+            <TouchableOpacity
+              style={modalStyles.closeBtn}
+              onPress={() => {
+                setShowSubscriptionModal(false);
+                setPendingPlan(null);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={modalStyles.closeBtnText}>
+                Maybe Later
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -713,8 +758,6 @@ const dashStyles = StyleSheet.create({
     fontWeight: '800',
     color: '#7c3aed',
   },
-
-  // Rank Progress
   rankProgressCard: {
     backgroundColor: '#fff',
     borderRadius: 18,
@@ -756,8 +799,6 @@ const dashStyles = StyleSheet.create({
     textAlign: 'right',
     fontWeight: '600',
   },
-
-  // Referral Card
   referralCard: {
     backgroundColor: '#1e3a5f',
     borderRadius: 18,
@@ -801,8 +842,6 @@ const dashStyles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 13,
   },
-
-  // Filter label
   filterSectionLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -811,8 +850,6 @@ const dashStyles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-
-  // Table
   tableCard: {
     backgroundColor: '#fff',
     borderRadius: 18,

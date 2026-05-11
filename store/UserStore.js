@@ -2678,6 +2678,66 @@ export const UserStore = {
       return { isFollowing: false, followersCount: 0, followingCount: 0 };
     }
   },
+  saveSelectedSeat: async (seatId) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+      const seatRoleId = String(seatId || '').trim();
+      if (!seatRoleId) return { ok: false, message: 'Invalid seat id.' };
+      const profileState = String(user.state || '').trim();
+      if (!profileState) return { ok: false, message: 'Please select your state first.' };
+      const roleMeta = getStateSeatRole(seatRoleId);
+      if (!roleMeta) return { ok: false, message: 'Invalid seat selection.' };
+      const today = new Date().toISOString().slice(0, 10);
+      const allocations = await getStateSeatAllocationsFromStorage();
+      const stateKey = normalizeStateKey(profileState);
+      const stateAlloc = allocations[stateKey] && typeof allocations[stateKey] === 'object' ? allocations[stateKey] : {};
+      const takenBy = String(stateAlloc?.[seatRoleId]?.email || '').trim().toLowerCase();
+      if (takenBy && takenBy !== user.email) {
+        return { ok: false, message: `"${roleMeta.name}" seat already taken. Please select another.` };
+      }
+      const updatedAllocations = {
+        ...allocations,
+        [stateKey]: { ...stateAlloc, [seatRoleId]: { email: user.email, name: user.name || '', assigned_at: today } },
+      };
+      await AsyncStorage.setItem(STATE_SEATS_KEY, JSON.stringify(updatedAllocations));
+      const seatToAssign = { state: profileState, seat_id: seatRoleId, seat_name: roleMeta.name, assigned_at: today, plan_id: String(user.subscription_plan?.plan_id || '').trim() };
+      const updatedUser = await UserStore.updateUser(user.email, { state_seat: seatToAssign });
+      if (!updatedUser) return { ok: false, message: 'Unable to save seat.' };
+      return { ok: true, seat: seatToAssign };
+    } catch (err) {
+      console.error('saveSelectedSeat error:', err);
+      return { ok: false, message: 'Unable to save seat.' };
+    }
+  },
+
+  saveSubscription: async ({ plan_id, plan_name, seat_id, price, duration }) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+      const activePlan = defaultSubscriptionPlans.find((p) => p.plan_id === plan_id)
+        || { plan_id, plan_name, price: Number(price || 0), duration: duration || '', features: [] };
+      const newRole = getRoleFromPlanId(plan_id);
+      const today = new Date().toISOString().slice(0, 10);
+      const newPayment = { order_id: `ORD_${Date.now()}`, payment_id: `PAY_${Date.now()}`, amount: Number(activePlan.price || price || 0), status: 'success', date: today, plan_id: activePlan.plan_id, plan_name: activePlan.plan_name, signature: '' };
+      const roleNotification = { id: `notif-sub-${Date.now()}`, title: `🎉 ${activePlan.plan_name} Activated!`, message: `Your subscription has been activated. Enjoy your new features!`, date: today, status: 'Unread' };
+      const currentNotifications = normalizeNotifications(user.notifications);
+      const updatedUser = await UserStore.updateUser(user.email, {
+        subscription_plan: activePlan,
+        subscription_type: newRole,
+        role: newRole,
+        role_label: getRoleLabel(newRole),
+        is_subscribed: true,
+        payment_history: [...normalizePaymentHistory(user.payment_history), newPayment],
+        notifications: [...currentNotifications, roleNotification],
+      });
+      if (!updatedUser) return { ok: false, message: 'Unable to save subscription.' };
+      return { ok: true, plan: activePlan, role: newRole };
+    } catch (err) {
+      console.error('saveSubscription error:', err);
+      return { ok: false, message: 'Unable to save subscription.' };
+    }
+  },
 };
 
 export { buildCertificateSvg as buildCertificateSvgForPreview };

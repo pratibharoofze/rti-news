@@ -2,25 +2,19 @@ import { StyleSheet, Platform } from 'react-native';
 
 const FooterStyles = StyleSheet.create({
   footerRow: {
+    // ✅ FIX: position fixed/absolute NAHI - normal flow mein rahega
+    width: '100%',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     backgroundColor: '#1e293b',
-    borderTopWidth: 1,
-    borderTopColor: '#334155',
-    paddingVertical: 8,
-    paddingHorizontal: 0,
-    paddingBottom: Platform.OS === 'android' ? 8 : 24,
-    justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
-    margin: 0,
+    justifyContent: 'center',
   },
-
   footerText: {
+    fontSize: 11,
     color: '#94a3b8',
-    fontSize: 12,
     textAlign: 'center',
-    width: '100%',
-    marginHorizontal: 0,
-    paddingHorizontal: 0,
+    fontWeight: '500',
   },
 });
 

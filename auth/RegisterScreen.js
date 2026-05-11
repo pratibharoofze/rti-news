@@ -25,7 +25,6 @@ function isValidEmailAddress(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(emailValue);
 }
 
-// ✅ NEW: Indian mobile number validation (6-9 se shuru, exactly 10 digits)
 function isValidMobileNumber(value) {
   const mobile = String(value || '').trim();
   return /^[6-9]\d{9}$/.test(mobile);
@@ -34,10 +33,10 @@ function isValidMobileNumber(value) {
 function getPasswordChecks(value) {
   const passwordValue = String(value || '');
   return {
-    length: passwordValue.length >= 8,
-    lower:  /[a-z]/.test(passwordValue),
-    upper:  /[A-Z]/.test(passwordValue),
-    number: /\d/.test(passwordValue),
+    length:  passwordValue.length >= 8,
+    lower:   /[a-z]/.test(passwordValue),
+    upper:   /[A-Z]/.test(passwordValue),
+    number:  /\d/.test(passwordValue),
     special: /[^A-Za-z0-9]/.test(passwordValue),
     noSpace: !/\s/.test(passwordValue),
   };
@@ -137,71 +136,35 @@ export function DropdownModal({ visible, title, items, selected, onSelect, onClo
 }
 
 const dropStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
   sheet: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    backgroundColor: '#1a1329',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 20,
-    paddingBottom: 36,
-    borderWidth: 1,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: '#1a1329', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: 20, paddingBottom: 36, borderWidth: 1,
     borderColor: 'rgba(196,181,253,0.16)',
   },
-  handle: {
-    width: 40, height: 4,
-    backgroundColor: '#4b3579',
-    borderRadius: 99,
-    alignSelf: 'center',
-    marginBottom: 14,
-  },
-  title: {
-    fontSize: 16, fontWeight: '800',
-    color: '#faf5ff', marginBottom: 12,
-    textAlign: 'center',
-  },
+  handle: { width: 40, height: 4, backgroundColor: '#4b3579', borderRadius: 99, alignSelf: 'center', marginBottom: 14 },
+  title: { fontSize: 16, fontWeight: '800', color: '#faf5ff', marginBottom: 12, textAlign: 'center' },
   searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#120d1d',
-    borderWidth: 1,
-    borderColor: '#302246',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#120d1d', borderWidth: 1, borderColor: '#302246',
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 10,
   },
-  searchInput: {
-    flex: 1, fontSize: 14, color: '#f5f3ff',
-  },
-  item: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 4,
-  },
-  itemSelected: {
-    backgroundColor: 'rgba(124,58,237,0.18)',
-  },
-  itemText: {
-    fontSize: 14, color: '#ddd6fe', fontWeight: '500',
-  },
-  itemTextSelected: {
-    color: '#c4b5fd', fontWeight: '700',
-  },
+  searchInput: { flex: 1, fontSize: 14, color: '#f5f3ff' },
+  item: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, marginBottom: 4 },
+  itemSelected: { backgroundColor: 'rgba(124,58,237,0.18)' },
+  itemText: { fontSize: 14, color: '#ddd6fe', fontWeight: '500' },
+  itemTextSelected: { color: '#c4b5fd', fontWeight: '700' },
 });
 
 export default function RegisterScreen({ navigation }) {
   const { login } = useAuth();
-  const [name, setName]               = useState('');
+
+  // ── Name fields ──
+  const [firstName, setFirstName]   = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName]     = useState('');
+
   const [mobile, setMobile]           = useState('');
   const [email, setEmail]             = useState('');
   const [referralCode, setReferralCode] = useState('');
@@ -211,7 +174,11 @@ export default function RegisterScreen({ navigation }) {
   const [showConfirm, setShowConfirm]   = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
-  const [mobileTouched, setMobileTouched] = useState(false); // ✅ NEW
+  const [mobileTouched, setMobileTouched] = useState(false);
+
+  // ── Terms ──
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsTouched, setTermsTouched]   = useState(false);
 
   const [toast, setToast]       = useState(null);
   const opacity    = useRef(new Animated.Value(0)).current;
@@ -219,27 +186,26 @@ export default function RegisterScreen({ navigation }) {
   const timerRef   = useRef(null);
 
   const normalizedEmail = useMemo(() => String(email || '').trim().toLowerCase(), [email]);
-  const emailOk = useMemo(() => isValidEmailAddress(normalizedEmail), [normalizedEmail]);
-
-  const mobileOk = useMemo(() => isValidMobileNumber(mobile), [mobile]); // ✅ NEW
+  const emailOk  = useMemo(() => isValidEmailAddress(normalizedEmail), [normalizedEmail]);
+  const mobileOk = useMemo(() => isValidMobileNumber(mobile), [mobile]);
 
   const passwordChecks = useMemo(() => getPasswordChecks(password), [password]);
   const passwordStrong = useMemo(
-    () =>
-      passwordChecks.length
-      && passwordChecks.lower
-      && passwordChecks.upper
-      && passwordChecks.number
-      && passwordChecks.special
-      && passwordChecks.noSpace,
+    () => passwordChecks.length && passwordChecks.lower && passwordChecks.upper
+          && passwordChecks.number && passwordChecks.special && passwordChecks.noSpace,
     [passwordChecks]
   );
 
+  // Full name joined for UserStore (first + optional middle + last)
+  const fullName = useMemo(() => {
+    return [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
+  }, [firstName, middleName, lastName]);
+
   const formOk = useMemo(() => {
-    const nameOk = Boolean(String(name || '').trim());
+    const nameOk = Boolean(firstName.trim()) && Boolean(lastName.trim());
     const confirmOk = password && confirm && password === confirm;
-    return nameOk && mobileOk && emailOk && passwordStrong && confirmOk; // ✅ mobileOk use kiya
-  }, [name, mobileOk, emailOk, passwordStrong, password, confirm]);
+    return nameOk && mobileOk && emailOk && passwordStrong && confirmOk && termsAccepted;
+  }, [firstName, lastName, mobileOk, emailOk, passwordStrong, password, confirm, termsAccepted]);
 
   const showToast = (message, type = 'success') => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -259,11 +225,14 @@ export default function RegisterScreen({ navigation }) {
   };
 
   const handleRegister = async () => {
-    if (!name.trim()) {
-      showToast('Please enter your full name', 'error'); return;
+    if (!firstName.trim()) {
+      showToast('Please enter your first name', 'error'); return;
+    }
+    if (!lastName.trim()) {
+      showToast('Please enter your last name', 'error'); return;
     }
     if (!mobileOk) {
-      setMobileTouched(true); // ✅ box red ho jaayega
+      setMobileTouched(true);
       showToast('Please enter a valid 10-digit Indian mobile number', 'error'); return;
     }
     if (!normalizedEmail) {
@@ -281,6 +250,10 @@ export default function RegisterScreen({ navigation }) {
     if (password !== confirm) {
       showToast('Passwords do not match', 'error'); return;
     }
+    if (!termsAccepted) {
+      setTermsTouched(true);
+      showToast('Please accept the Terms & Conditions to continue', 'error'); return;
+    }
 
     const existing = await UserStore.getUser(normalizedEmail);
     if (existing) {
@@ -296,14 +269,13 @@ export default function RegisterScreen({ navigation }) {
         });
         return;
       }
-
       showToast('This email is already registered! Please sign in.', 'error');
       navigation.navigate('Login');
       return;
     }
 
     const ok = await UserStore.setPendingRegistration({
-      name: name.trim(),
+      name: fullName,
       mobile: mobile.trim(),
       email: normalizedEmail,
       referral_code_used: referralCode.trim() || null,
@@ -318,11 +290,8 @@ export default function RegisterScreen({ navigation }) {
     navigation.navigate('StateSelect', { fromPremium: false, needsCreateUser: true });
   };
 
-  const handleClose = () => {
-    navigation.navigate('Home');
-  };
+  const handleClose = () => { navigation.navigate('Home'); };
 
-  // ✅ Mobile box error condition
   const mobileShowError = mobileTouched && mobile.length > 0 && !mobileOk;
 
   return (
@@ -342,11 +311,7 @@ export default function RegisterScreen({ navigation }) {
           bounces={false}
         >
           <View style={styles.formContainer}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleClose}
-              activeOpacity={0.7}
-            >
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose} activeOpacity={0.7}>
               <Ionicons name="close-outline" size={24} color="#94a3b8" />
             </TouchableOpacity>
 
@@ -365,17 +330,49 @@ export default function RegisterScreen({ navigation }) {
               <Text style={styles.formSubtitle}>Set up your profile and start using RTI News</Text>
             </View>
 
-            {/* ── Full Name ── */}
+            {/* ── First Name ── */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name <Text style={styles.required}>*</Text></Text>
+              <Text style={styles.inputLabel}>First Name <Text style={styles.required}>*</Text></Text>
               <View style={styles.inputWrap}>
                 <Ionicons name="person-outline" size={18} color="#a78bfa" />
                 <TextInput
                   style={styles.input}
-                  placeholder="John Doe"
+                  placeholder="e.g. Rahul"
                   placeholderTextColor="#64748b"
-                  value={name}
-                  onChangeText={setName}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                />
+              </View>
+            </View>
+
+            {/* ── Middle Name ── */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                Middle Name <Text style={styles.optional}>(optional)</Text>
+              </Text>
+              <View style={styles.inputWrap}>
+                <Ionicons name="person-outline" size={18} color="#a78bfa" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Kumar"
+                  placeholderTextColor="#64748b"
+                  value={middleName}
+                  onChangeText={setMiddleName}
+                />
+              </View>
+            </View>
+
+            {/* ── Last Name ── */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Last Name <Text style={styles.required}>*</Text></Text>
+              <View style={styles.inputWrap}>
+                <Ionicons name="person-outline" size={18} color="#a78bfa" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Sharma"
+                  placeholderTextColor="#64748b"
+                  value={lastName}
+                  onChangeText={setLastName}
                 />
               </View>
             </View>
@@ -383,34 +380,21 @@ export default function RegisterScreen({ navigation }) {
             {/* ── Mobile ── */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Mobile Number <Text style={styles.required}>*</Text></Text>
-              <View style={[
-                styles.inputWrap,
-                mobileShowError && styles.inputWrapError, // ✅ red border
-              ]}>
-                <Ionicons
-                  name="call-outline"
-                  size={18}
-                  color={mobileShowError ? '#ef4444' : '#a78bfa'} // ✅ icon bhi red
-                />
+              <View style={[styles.inputWrap, mobileShowError && styles.inputWrapError]}>
+                <Ionicons name="call-outline" size={18} color={mobileShowError ? '#ef4444' : '#a78bfa'} />
                 <TextInput
                   style={styles.input}
                   placeholder="10-digit mobile number"
                   placeholderTextColor="#64748b"
                   value={mobile}
                   onChangeText={setMobile}
-                  onBlur={() => setMobileTouched(true)} // ✅ box se bahar jaate hi check
+                  onBlur={() => setMobileTouched(true)}
                   keyboardType="phone-pad"
                   maxLength={10}
                 />
-                {/* ✅ Valid ho toh green tick, invalid touched ho toh red cross */}
-                {mobileOk && (
-                  <Ionicons name="checkmark-circle" size={18} color="#22c55e" />
-                )}
-                {mobileShowError && (
-                  <Ionicons name="close-circle" size={18} color="#ef4444" />
-                )}
+                {mobileOk && <Ionicons name="checkmark-circle" size={18} color="#22c55e" />}
+                {mobileShowError && <Ionicons name="close-circle" size={18} color="#ef4444" />}
               </View>
-              {/* ✅ Error message */}
               {mobileShowError && (
                 <Text style={styles.errorText}>
                   Enter a valid 10-digit Indian mobile number (starts with 6-9)
@@ -484,30 +468,25 @@ export default function RegisterScreen({ navigation }) {
                 (passwordTouched || password.length > 0) ? (
                   <View style={styles.passwordHintsBox}>
                     <Text style={styles.helperTitle}>Password must include:</Text>
-                    <View style={styles.hintRow}>
-                      <Ionicons name={passwordChecks.length ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.length ? '#22c55e' : '#64748b'} />
-                      <Text style={[styles.helperText, passwordChecks.length && styles.helperTextOk]}>8+ characters</Text>
-                    </View>
-                    <View style={styles.hintRow}>
-                      <Ionicons name={passwordChecks.upper ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.upper ? '#22c55e' : '#64748b'} />
-                      <Text style={[styles.helperText, passwordChecks.upper && styles.helperTextOk]}>1 uppercase (A-Z)</Text>
-                    </View>
-                    <View style={styles.hintRow}>
-                      <Ionicons name={passwordChecks.lower ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.lower ? '#22c55e' : '#64748b'} />
-                      <Text style={[styles.helperText, passwordChecks.lower && styles.helperTextOk]}>1 lowercase (a-z)</Text>
-                    </View>
-                    <View style={styles.hintRow}>
-                      <Ionicons name={passwordChecks.number ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.number ? '#22c55e' : '#64748b'} />
-                      <Text style={[styles.helperText, passwordChecks.number && styles.helperTextOk]}>1 number (0-9)</Text>
-                    </View>
-                    <View style={styles.hintRow}>
-                      <Ionicons name={passwordChecks.special ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.special ? '#22c55e' : '#64748b'} />
-                      <Text style={[styles.helperText, passwordChecks.special && styles.helperTextOk]}>1 symbol (!@#$...)</Text>
-                    </View>
-                    <View style={styles.hintRow}>
-                      <Ionicons name={passwordChecks.noSpace ? 'checkmark-circle' : 'ellipse-outline'} size={14} color={passwordChecks.noSpace ? '#22c55e' : '#64748b'} />
-                      <Text style={[styles.helperText, passwordChecks.noSpace && styles.helperTextOk]}>No spaces</Text>
-                    </View>
+                    {[
+                      { key: 'length',  label: '8+ characters' },
+                      { key: 'upper',   label: '1 uppercase (A-Z)' },
+                      { key: 'lower',   label: '1 lowercase (a-z)' },
+                      { key: 'number',  label: '1 number (0-9)' },
+                      { key: 'special', label: '1 symbol (!@#$...)' },
+                      { key: 'noSpace', label: 'No spaces' },
+                    ].map(({ key, label }) => (
+                      <View key={key} style={styles.hintRow}>
+                        <Ionicons
+                          name={passwordChecks[key] ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={14}
+                          color={passwordChecks[key] ? '#22c55e' : '#64748b'}
+                        />
+                        <Text style={[styles.helperText, passwordChecks[key] && styles.helperTextOk]}>
+                          {label}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 ) : (
                   <Text style={styles.helperText}>Tip: Use something like `Rti@2026News`</Text>
@@ -538,6 +517,37 @@ export default function RegisterScreen({ navigation }) {
               ) : null}
             </View>
 
+            {/* ── Terms & Conditions Checkbox ── */}
+            <TouchableOpacity
+              style={localStyles.termsRow}
+              onPress={() => {
+                setTermsAccepted(!termsAccepted);
+                setTermsTouched(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={[
+                localStyles.checkbox,
+                termsAccepted && localStyles.checkboxChecked,
+                termsTouched && !termsAccepted && localStyles.checkboxError,
+              ]}>
+                {termsAccepted && (
+                  <Ionicons name="checkmark" size={14} color="#fff" />
+                )}
+              </View>
+              <Text style={localStyles.termsText}>
+                I accept the{' '}
+                <Text style={localStyles.termsLink}>Terms & Conditions</Text>
+                {' '}and{' '}
+                <Text style={localStyles.termsLink}>Privacy Policy</Text>
+              </Text>
+            </TouchableOpacity>
+            {termsTouched && !termsAccepted && (
+              <Text style={[styles.errorText, { marginTop: 4, marginBottom: 6 }]}>
+                Please accept the Terms & Conditions to continue
+              </Text>
+            )}
+
             {/* ── Submit ── */}
             <TouchableOpacity
               style={[styles.submitBtn, !formOk && styles.submitBtnDisabled]}
@@ -561,3 +571,43 @@ export default function RegisterScreen({ navigation }) {
     </KeyboardAvoidingView>
   );
 }
+
+// ── Local styles (sirf checkbox ke liye) ─────────────────────────────────────
+const localStyles = StyleSheet.create({
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 6,
+    marginBottom: 14,
+    paddingHorizontal: 2,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#4b3579',
+    backgroundColor: '#120d1d',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#7c3aed',
+    borderColor: '#7c3aed',
+  },
+  checkboxError: {
+    borderColor: '#ef4444',
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#a78bfa',
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: '#c4b5fd',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+});

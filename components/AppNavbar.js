@@ -22,8 +22,8 @@ const IS_WEB = Platform.OS === 'web';
 
 const DESKTOP_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
-  { labelKey: 'about', screen: 'About', icon: 'information-circle-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
+  { labelKey: 'about', screen: 'About', icon: 'information-circle-outline' },
   { labelKey: 'rti', screen: 'WhatIsRTI', icon: 'document-text-outline' },
   { labelKey: 'laws', screen: 'ImportantLaws', icon: 'library-outline' },
   { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
@@ -31,10 +31,10 @@ const DESKTOP_NAV_ITEMS = [
 
 const MOBILE_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
+  { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
   { labelKey: 'about', screen: 'About', icon: 'information-circle-outline' },
   { labelKey: 'rtiShort', screen: 'WhatIsRTI', icon: 'document-text-outline' },
   { labelKey: 'laws', screen: 'ImportantLaws', icon: 'library-outline' },
-  { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
   { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
 ];
 

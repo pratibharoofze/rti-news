@@ -671,25 +671,27 @@ export default function NewsDetailsScreen({ route, navigation }) {
     await loadArticleDetails();
   }, [article.id, loadArticleDetails]);
 
-  const handleDeleteComment = useCallback((commentId) => {
-    Alert.alert(
-      'Delete Comment',
-      'Are you sure you want to delete this comment?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const result = await UserStore.deleteNewsComment(article.id, commentId);
-            if (!result?.ok) { Alert.alert('Error', result?.message || 'Could not delete comment'); return; }
-            if (editingCommentId === commentId) { setEditingCommentId(null); setEditingCommentText(''); }
-            if (replyingToCommentId === commentId) { setReplyingToCommentId(null); setReplyText(''); }
-            await loadArticleDetails();
-          },
-        },
-      ]
-    );
+  const handleDeleteComment = useCallback(async (commentId) => {
+    const confirmed = IS_WEB
+      ? window.confirm('Are you sure you want to delete this comment?')
+      : await new Promise((resolve) => {
+          Alert.alert(
+            'Delete Comment',
+            'Are you sure you want to delete this comment?',
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+            ]
+          );
+        });
+
+    if (!confirmed) return;
+
+    const result = await UserStore.deleteNewsComment(article.id, commentId);
+    if (!result?.ok) { Alert.alert('Error', result?.message || 'Could not delete comment'); return; }
+    if (editingCommentId === commentId) { setEditingCommentId(null); setEditingCommentText(''); }
+    if (replyingToCommentId === commentId) { setReplyingToCommentId(null); setReplyText(''); }
+    await loadArticleDetails();
   }, [article.id, editingCommentId, loadArticleDetails, replyingToCommentId]);
 
   const handleOpenAttachment = useCallback(async () => {

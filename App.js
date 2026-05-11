@@ -33,26 +33,13 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS !== 'web') return undefined;
     if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
-
-    const root = document.getElementById('root');
-    if (!root) return undefined;
-
-    const applyViewportHeight = () => {
-      const height = Math.round(window.visualViewport?.height || window.innerHeight || 0);
-      if (height <= 0) return;
-      root.style.height = `${height}px`;
-      root.style.minHeight = `${height}px`;
-      root.style.width = '100%';
-    };
-
-    applyViewportHeight();
-    window.addEventListener('resize', applyViewportHeight);
-    window.visualViewport?.addEventListener('resize', applyViewportHeight);
-
-    return () => {
-      window.removeEventListener('resize', applyViewportHeight);
-      window.visualViewport?.removeEventListener('resize', applyViewportHeight);
-    };
+    // Height update ab index.html ka script handle karta hai
+    try {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } catch {}
+    return undefined;
   }, []);
 
   if (!fontsLoaded && !fontError) {

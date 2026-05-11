@@ -269,12 +269,7 @@ export default function StateSelectScreen({
   const handleStateSelect = (selectedState) => {
     setState(selectedState);
 
-    setTimeout(() => {
-      showPopup(
-        `State selected: ${selectedState}`,
-        'success'
-      );
-    }, 100);
+    
   };
 
   return (

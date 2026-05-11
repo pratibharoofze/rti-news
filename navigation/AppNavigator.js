@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import HomeScreen from '../screens/HomeScreen';
 import AboutScreen from '../screens/AboutScreen';
@@ -40,10 +42,69 @@ import CertificatePreviewScreen from '../pages/CertificatePreviewScreen';
 import UserPublicProfileScreen from '../pages/UserPublicProfileScreen';
 
 const Stack = createNativeStackNavigator();
+const NAVIGATION_STATE_KEY = 'rti-news-navigation-state';
+
+async function readPersistedNavigationState() {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      const raw = window.localStorage.getItem(NAVIGATION_STATE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }
+
+    const raw = await AsyncStorage.getItem(NAVIGATION_STATE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function persistNavigationState(state) {
+  try {
+    const serialized = JSON.stringify(state);
+
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      window.localStorage.setItem(NAVIGATION_STATE_KEY, serialized);
+      return;
+    }
+
+    await AsyncStorage.setItem(NAVIGATION_STATE_KEY, serialized);
+  } catch {
+    // Ignore persistence failures so navigation keeps working.
+  }
+}
 
 export default function AppNavigator() {
+  const [initialState, setInitialState] = useState();
+  const [isNavStateReady, setIsNavStateReady] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      const savedState = await readPersistedNavigationState();
+      if (!alive) return;
+      if (savedState) {
+        setInitialState(savedState);
+      }
+      setIsNavStateReady(true);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!isNavStateReady) {
+    return null;
+  }
+
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      initialState={initialState}
+      onStateChange={persistNavigationState}
+    >
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{ headerShown: false }}

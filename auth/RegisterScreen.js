@@ -25,6 +25,11 @@ function isValidEmailAddress(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(emailValue);
 }
 
+// ✅ NEW: Indian mobile number validation (6-9 se shuru, exactly 10 digits)
+function isValidMobileNumber(value) {
+  const mobile = String(value || '').trim();
+  return /^[6-9]\d{9}$/.test(mobile);
+}
 
 function getPasswordChecks(value) {
   const passwordValue = String(value || '');
@@ -206,6 +211,7 @@ export default function RegisterScreen({ navigation }) {
   const [showConfirm, setShowConfirm]   = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
+  const [mobileTouched, setMobileTouched] = useState(false); // ✅ NEW
 
   const [toast, setToast]       = useState(null);
   const opacity    = useRef(new Animated.Value(0)).current;
@@ -214,6 +220,8 @@ export default function RegisterScreen({ navigation }) {
 
   const normalizedEmail = useMemo(() => String(email || '').trim().toLowerCase(), [email]);
   const emailOk = useMemo(() => isValidEmailAddress(normalizedEmail), [normalizedEmail]);
+
+  const mobileOk = useMemo(() => isValidMobileNumber(mobile), [mobile]); // ✅ NEW
 
   const passwordChecks = useMemo(() => getPasswordChecks(password), [password]);
   const passwordStrong = useMemo(
@@ -229,10 +237,9 @@ export default function RegisterScreen({ navigation }) {
 
   const formOk = useMemo(() => {
     const nameOk = Boolean(String(name || '').trim());
-    const mobileOk = Boolean(String(mobile || '').trim()) && String(mobile || '').trim().length === 10;
     const confirmOk = password && confirm && password === confirm;
-    return nameOk && mobileOk && emailOk && passwordStrong && confirmOk;
-  }, [name, mobile, emailOk, passwordStrong, password, confirm]);
+    return nameOk && mobileOk && emailOk && passwordStrong && confirmOk; // ✅ mobileOk use kiya
+  }, [name, mobileOk, emailOk, passwordStrong, password, confirm]);
 
   const showToast = (message, type = 'success') => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -255,8 +262,9 @@ export default function RegisterScreen({ navigation }) {
     if (!name.trim()) {
       showToast('Please enter your full name', 'error'); return;
     }
-    if (!mobile.trim() || mobile.length < 10) {
-      showToast('Please enter a valid 10-digit mobile number', 'error'); return;
+    if (!mobileOk) {
+      setMobileTouched(true); // ✅ box red ho jaayega
+      showToast('Please enter a valid 10-digit Indian mobile number', 'error'); return;
     }
     if (!normalizedEmail) {
       setEmailTouched(true);
@@ -307,13 +315,15 @@ export default function RegisterScreen({ navigation }) {
       return;
     }
 
-    // ✅ FIX: replace ki jagah navigate — Register stack mein rehta hai
     navigation.navigate('StateSelect', { fromPremium: false, needsCreateUser: true });
   };
 
   const handleClose = () => {
     navigation.navigate('Home');
   };
+
+  // ✅ Mobile box error condition
+  const mobileShowError = mobileTouched && mobile.length > 0 && !mobileOk;
 
   return (
     <KeyboardAvoidingView
@@ -373,18 +383,39 @@ export default function RegisterScreen({ navigation }) {
             {/* ── Mobile ── */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Mobile Number <Text style={styles.required}>*</Text></Text>
-              <View style={styles.inputWrap}>
-                <Ionicons name="call-outline" size={18} color="#a78bfa" />
+              <View style={[
+                styles.inputWrap,
+                mobileShowError && styles.inputWrapError, // ✅ red border
+              ]}>
+                <Ionicons
+                  name="call-outline"
+                  size={18}
+                  color={mobileShowError ? '#ef4444' : '#a78bfa'} // ✅ icon bhi red
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="10-digit mobile number"
                   placeholderTextColor="#64748b"
                   value={mobile}
                   onChangeText={setMobile}
+                  onBlur={() => setMobileTouched(true)} // ✅ box se bahar jaate hi check
                   keyboardType="phone-pad"
                   maxLength={10}
                 />
+                {/* ✅ Valid ho toh green tick, invalid touched ho toh red cross */}
+                {mobileOk && (
+                  <Ionicons name="checkmark-circle" size={18} color="#22c55e" />
+                )}
+                {mobileShowError && (
+                  <Ionicons name="close-circle" size={18} color="#ef4444" />
+                )}
               </View>
+              {/* ✅ Error message */}
+              {mobileShowError && (
+                <Text style={styles.errorText}>
+                  Enter a valid 10-digit Indian mobile number (starts with 6-9)
+                </Text>
+              )}
             </View>
 
             {/* ── Email ── */}

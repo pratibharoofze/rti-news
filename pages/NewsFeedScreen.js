@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   Image, Linking, Modal, Platform, ScrollView, Share,
   Text, TextInput, TouchableOpacity, View,
@@ -16,6 +16,7 @@ import { useToast } from '../components/ui/ToastProvider';
 import styles from '../styles/NewsFeedStyles';
 import { UserStore } from '../store/UserStore';
 import { INDIAN_STATES } from './locationData';
+import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
 
 const DEFAULT_AVATAR = require('../assets/images/icon.png');
 
@@ -29,6 +30,29 @@ const REPORT_TYPES = [
 const ROLE_TYPES = [
   'All', 'Subscriber', 'Premium', 'Reporter', 'Editor',
 ];
+
+// ✅ idb-media: URI ko blob URL mein convert karke dikhao
+function ResolvedImage({ uri, style, resizeMode = 'cover' }) {
+  const [resolvedUri, setResolvedUri] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    if (!uri) return;
+    if (Platform.OS === 'web' && isIdbMediaUri(uri)) {
+      resolveIdbMediaUriToObjectUrl(uri).then((url) => {
+        if (alive && url) setResolvedUri(url);
+      }).catch(() => {});
+    } else {
+      setResolvedUri(uri);
+    }
+    return () => { alive = false; };
+  }, [uri]);
+
+  if (!resolvedUri) {
+    return <View style={[style, { backgroundColor: '#e2e8f0', borderRadius: 8 }]} />;
+  }
+  return <Image source={{ uri: resolvedUri }} style={style} resizeMode={resizeMode} />;
+}
 
 // ─── FilterChip ────────────────────────────────────────────────────
 const FilterChip = ({ label, active, onPress }) => (
@@ -102,7 +126,6 @@ export default function NewsFeedScreen({ navigation }) {
   const [expandedItems, setExpandedItems] = useState({});
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
 
-  // Filter states
   const [filterState, setFilterState] = useState('All');
   const [filterDistrict, setFilterDistrict] = useState('');
   const [filterTaluka, setFilterTaluka] = useState('');
@@ -280,12 +303,10 @@ export default function NewsFeedScreen({ navigation }) {
       author_is_premium: Boolean(item.author_is_premium),
       author_is_subscriber: Boolean(item.author_is_subscriber),
     };
-
     if (!authorEmail && !fallbackAuthor.name && !fallbackAuthor.author_profile_image) {
       showToast('Author profile not available.', 'error');
       return;
     }
-
     navigation.navigate('UserProfile', { email: authorEmail, author: fallbackAuthor });
   };
 
@@ -381,10 +402,8 @@ export default function NewsFeedScreen({ navigation }) {
           </View>
         </View>
 
-        {/* ── Filter Card ─────────────────────────────────────── */}
+        {/* Filter Card */}
         <View style={styles.filterCard}>
-
-          {/* Search + Toggle */}
           <View style={styles.searchRow}>
             <View style={styles.searchBox}>
               <Feather name="search" size={15} color="#94a3b8" />
@@ -416,7 +435,6 @@ export default function NewsFeedScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Active chips (collapsed summary) */}
           {activeFilterCount > 0 && !filterPanelVisible && (
             <View style={styles.activeChipsRow}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -457,96 +475,44 @@ export default function NewsFeedScreen({ navigation }) {
             </View>
           )}
 
-          {/* Expanded filter panel */}
           {filterPanelVisible && (
             <View style={styles.filterPanel}>
-
-              {/* State */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterLabel}>📍  State</Text>
-                <FilterDropdown
-                  label="Select State"
-                  value={filterState}
-                  options={stateOptions}
-                  onSelect={setFilterState}
-                />
+                <FilterDropdown label="Select State" value={filterState} options={stateOptions} onSelect={setFilterState} />
               </View>
-
-              {/* District / City */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterLabel}>🏘  District / City</Text>
                 <View style={styles.textFilterBox}>
                   <Feather name="search" size={13} color="#94a3b8" />
-                  <TextInput
-                    style={styles.textFilterInput}
-                    placeholder="Type district or city..."
-                    placeholderTextColor="#94a3b8"
-                    value={filterDistrict}
-                    onChangeText={setFilterDistrict}
-                  />
-                  {filterDistrict ? (
-                    <TouchableOpacity onPress={() => setFilterDistrict('')}>
-                      <Feather name="x" size={13} color="#94a3b8" />
-                    </TouchableOpacity>
-                  ) : null}
+                  <TextInput style={styles.textFilterInput} placeholder="Type district or city..." placeholderTextColor="#94a3b8" value={filterDistrict} onChangeText={setFilterDistrict} />
+                  {filterDistrict ? <TouchableOpacity onPress={() => setFilterDistrict('')}><Feather name="x" size={13} color="#94a3b8" /></TouchableOpacity> : null}
                 </View>
               </View>
-
-              {/* Taluka */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterLabel}>🗂  Taluka</Text>
                 <View style={styles.textFilterBox}>
                   <Feather name="search" size={13} color="#94a3b8" />
-                  <TextInput
-                    style={styles.textFilterInput}
-                    placeholder="Type taluka..."
-                    placeholderTextColor="#94a3b8"
-                    value={filterTaluka}
-                    onChangeText={setFilterTaluka}
-                  />
-                  {filterTaluka ? (
-                    <TouchableOpacity onPress={() => setFilterTaluka('')}>
-                      <Feather name="x" size={13} color="#94a3b8" />
-                    </TouchableOpacity>
-                  ) : null}
+                  <TextInput style={styles.textFilterInput} placeholder="Type taluka..." placeholderTextColor="#94a3b8" value={filterTaluka} onChangeText={setFilterTaluka} />
+                  {filterTaluka ? <TouchableOpacity onPress={() => setFilterTaluka('')}><Feather name="x" size={13} color="#94a3b8" /></TouchableOpacity> : null}
                 </View>
               </View>
-
-              {/* Report Type */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterLabel}>🏷  Report Type</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.chipsRow}>
-                    {REPORT_TYPES.map((rt) => (
-                      <FilterChip
-                        key={rt}
-                        label={rt}
-                        active={filterReportType === rt}
-                        onPress={() => setFilterReportType(rt)}
-                      />
-                    ))}
+                    {REPORT_TYPES.map((rt) => <FilterChip key={rt} label={rt} active={filterReportType === rt} onPress={() => setFilterReportType(rt)} />)}
                   </View>
                 </ScrollView>
               </View>
-
-              {/* Role Type */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterLabel}>👤  Author Role</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.chipsRow}>
-                    {ROLE_TYPES.map((rt) => (
-                      <FilterChip
-                        key={rt}
-                        label={rt}
-                        active={filterRoleType === rt}
-                        onPress={() => setFilterRoleType(rt)}
-                      />
-                    ))}
+                    {ROLE_TYPES.map((rt) => <FilterChip key={rt} label={rt} active={filterRoleType === rt} onPress={() => setFilterRoleType(rt)} />)}
                   </View>
                 </ScrollView>
               </View>
-
-              {/* Reset */}
               {activeFilterCount > 0 && (
                 <TouchableOpacity style={styles.resetBtn} onPress={resetFilters}>
                   <Feather name="refresh-ccw" size={13} color="#ef4444" />
@@ -556,16 +522,13 @@ export default function NewsFeedScreen({ navigation }) {
             </View>
           )}
         </View>
-        {/* ── End Filter Card ─────────────────────────────────── */}
 
         {/* News Feed */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>News Feed</Text>
           <Text style={styles.sectionText}>
             Latest reports in one dedicated feed section.
-            {activeFilterCount > 0
-              ? ` • ${displayedItems.length} result${displayedItems.length !== 1 ? 's' : ''} found`
-              : ''}
+            {activeFilterCount > 0 ? ` • ${displayedItems.length} result${displayedItems.length !== 1 ? 's' : ''} found` : ''}
           </Text>
 
           {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
@@ -582,52 +545,24 @@ export default function NewsFeedScreen({ navigation }) {
                   <Text style={styles.newsDate}>{item.date}</Text>
                 </View>
 
-                {/* Location tags */}
                 {(item.state || item.district || item.taluka) ? (
                   <View style={styles.locationTagRow}>
-                    {item.state ? (
-                      <View style={styles.locationTag}>
-                        <Feather name="map-pin" size={10} color="#0f766e" />
-                        <Text style={styles.locationTagText}>{item.state}</Text>
-                      </View>
-                    ) : null}
-                    {item.district ? (
-                      <View style={styles.locationTag}>
-                        <Feather name="home" size={10} color="#0f766e" />
-                        <Text style={styles.locationTagText}>{item.district}</Text>
-                      </View>
-                    ) : null}
-                    {item.taluka ? (
-                      <View style={styles.locationTag}>
-                        <Feather name="layers" size={10} color="#0f766e" />
-                        <Text style={styles.locationTagText}>{item.taluka}</Text>
-                      </View>
-                    ) : null}
+                    {item.state ? <View style={styles.locationTag}><Feather name="map-pin" size={10} color="#0f766e" /><Text style={styles.locationTagText}>{item.state}</Text></View> : null}
+                    {item.district ? <View style={styles.locationTag}><Feather name="home" size={10} color="#0f766e" /><Text style={styles.locationTagText}>{item.district}</Text></View> : null}
+                    {item.taluka ? <View style={styles.locationTag}><Feather name="layers" size={10} color="#0f766e" /><Text style={styles.locationTagText}>{item.taluka}</Text></View> : null}
                   </View>
                 ) : null}
 
                 <View style={styles.authorRow}>
-                  <TouchableOpacity
-                    style={styles.authorAvatarBtn}
-                    onPress={() => openAuthorProfile(item)}
-                    activeOpacity={0.8}
-                  >
-                    <Image
-                      source={item.author_profile_image ? { uri: item.author_profile_image } : DEFAULT_AVATAR}
-                      style={styles.authorAvatar}
-                    />
+                  <TouchableOpacity style={styles.authorAvatarBtn} onPress={() => openAuthorProfile(item)} activeOpacity={0.8}>
+                    <Image source={item.author_profile_image ? { uri: item.author_profile_image } : DEFAULT_AVATAR} style={styles.authorAvatar} />
                   </TouchableOpacity>
                   <Text style={styles.authorLabel}>By</Text>
                   <Text style={styles.authorName}>{item.author_name || 'RTI News'}</Text>
                   {item.author_seat_name ? (
-                    <>
-                      <Text style={styles.authorMetaDot}>•</Text>
-                      <Text style={styles.authorSeat} numberOfLines={1}>{item.author_seat_name}</Text>
-                    </>
+                    <><Text style={styles.authorMetaDot}>•</Text><Text style={styles.authorSeat} numberOfLines={1}>{item.author_seat_name}</Text></>
                   ) : null}
-                  {(item.author_is_subscriber || item.author_is_premium) ? (
-                    <PremiumBadge size={14} style={styles.authorBadge} />
-                  ) : null}
+                  {(item.author_is_subscriber || item.author_is_premium) ? <PremiumBadge size={14} style={styles.authorBadge} /> : null}
                 </View>
 
                 <Text style={styles.newsTitle}>{item.title}</Text>
@@ -649,32 +584,27 @@ export default function NewsFeedScreen({ navigation }) {
                       {isExpanded ? (
                         <View style={styles.reportDetailsBox}>
                           <Text style={styles.reportDetailsTitle}>Report Details</Text>
-                          <Text style={styles.reportDetailLine}>
-                            <Text style={styles.reportDetailLabel}>Title: </Text>
-                            <Text style={styles.reportDetailValue}>{item.title || 'N/A'}</Text>
-                          </Text>
-                          {item.subtitle ? (
-                            <Text style={styles.reportDetailLine}>
-                              <Text style={styles.reportDetailLabel}>Sub Title: </Text>
-                              <Text style={styles.reportDetailValue}>{item.subtitle}</Text>
-                            </Text>
-                          ) : null}
-                          <Text style={styles.reportDetailLine}>
-                            <Text style={styles.reportDetailLabel}>Description: </Text>
-                            <Text style={styles.reportDetailValue}>{fullText}</Text>
-                          </Text>
+                          <Text style={styles.reportDetailLine}><Text style={styles.reportDetailLabel}>Title: </Text><Text style={styles.reportDetailValue}>{item.title || 'N/A'}</Text></Text>
+                          {item.subtitle ? <Text style={styles.reportDetailLine}><Text style={styles.reportDetailLabel}>Sub Title: </Text><Text style={styles.reportDetailValue}>{item.subtitle}</Text></Text> : null}
+                          <Text style={styles.reportDetailLine}><Text style={styles.reportDetailLabel}>Description: </Text><Text style={styles.reportDetailValue}>{fullText}</Text></Text>
                         </View>
                       ) : null}
                     </View>
                   );
                 })()}
 
+                {/* ✅ FIX: idb-media images ko ResolvedImage se dikhao */}
                 {item.images?.length ? (
                   <View style={styles.mediaPreviewWrap}>
                     <Text style={styles.mediaLabel}>Upload Image</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       {item.images.map((img, idx) => (
-                        <Image key={`${item.id}-img-${idx}`} source={{ uri: img }} style={styles.mediaThumb} />
+                        <ResolvedImage
+                          key={`${item.id}-img-${idx}`}
+                          uri={img}
+                          style={styles.mediaThumb}
+                          resizeMode="cover"
+                        />
                       ))}
                     </ScrollView>
                   </View>
@@ -712,18 +642,11 @@ export default function NewsFeedScreen({ navigation }) {
 
                 <View style={styles.actionRow}>
                   {(() => {
-                    const liked = newsData.currentUser?.email
-                      && Array.isArray(item.liked_by)
-                      && item.liked_by.includes(newsData.currentUser.email);
+                    const liked = newsData.currentUser?.email && Array.isArray(item.liked_by) && item.liked_by.includes(newsData.currentUser.email);
                     return (
-                      <TouchableOpacity
-                        style={[styles.actionIconButton, liked && styles.actionIconButtonActive]}
-                        onPress={() => handleLike(item)}
-                      >
+                      <TouchableOpacity style={[styles.actionIconButton, liked && styles.actionIconButtonActive]} onPress={() => handleLike(item)}>
                         <Feather name="heart" size={16} color={liked ? '#ef4444' : '#e11d48'} />
-                        <Text style={[styles.actionIconText, liked && styles.actionIconTextActive]}>
-                          {item.likes || 0}
-                        </Text>
+                        <Text style={[styles.actionIconText, liked && styles.actionIconTextActive]}>{item.likes || 0}</Text>
                       </TouchableOpacity>
                     );
                   })()}
@@ -735,10 +658,7 @@ export default function NewsFeedScreen({ navigation }) {
                     <Feather name="share-2" size={16} color="#2563eb" />
                     <Text style={styles.actionIconText}>{item.shares}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionIconButton, item.bookmarked && styles.actionIconButtonActive]}
-                    onPress={() => handleBookmark(item)}
-                  >
+                  <TouchableOpacity style={[styles.actionIconButton, item.bookmarked && styles.actionIconButtonActive]} onPress={() => handleBookmark(item)}>
                     <Feather name="bookmark" size={16} color={item.bookmarked ? '#ef4444' : '#64748b'} />
                     <Text style={[styles.actionIconText, item.bookmarked && styles.actionIconTextActive]}>Save</Text>
                   </TouchableOpacity>
@@ -748,9 +668,7 @@ export default function NewsFeedScreen({ navigation }) {
           ) : (
             <View style={styles.emptyState}>
               <Feather name="inbox" size={32} color="#cbd5e1" />
-              <Text style={styles.emptyText}>
-                {activeFilterCount > 0 ? 'No news matches your filters.' : 'No news records found.'}
-              </Text>
+              <Text style={styles.emptyText}>{activeFilterCount > 0 ? 'No news matches your filters.' : 'No news records found.'}</Text>
               {activeFilterCount > 0 && (
                 <TouchableOpacity style={styles.emptyResetBtn} onPress={resetFilters}>
                   <Text style={styles.emptyResetText}>Clear Filters</Text>
@@ -765,12 +683,7 @@ export default function NewsFeedScreen({ navigation }) {
       <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} activeItem={moduleName} />
 
       {/* Comments Modal */}
-      <Modal
-        visible={commentModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCommentModalVisible(false)}
-      >
+      <Modal visible={commentModalVisible} transparent animationType="slide" onRequestClose={() => setCommentModalVisible(false)}>
         <View style={styles.commentOverlay}>
           <View style={styles.commentSheet}>
             <View style={styles.commentHeader}>
@@ -794,47 +707,25 @@ export default function NewsFeedScreen({ navigation }) {
                         <Text style={styles.commentDate}>{c.date || ''}{c.edited_at ? ' • Edited' : ''}</Text>
                       </View>
                       {editingCommentId === c.id ? (
-                        <TextInput
-                          style={styles.commentEditInput}
-                          value={editingCommentText}
-                          onChangeText={setEditingCommentText}
-                          multiline
-                        />
+                        <TextInput style={styles.commentEditInput} value={editingCommentText} onChangeText={setEditingCommentText} multiline />
                       ) : (
                         <Text style={styles.commentText}>{c.text}</Text>
                       )}
                       <View style={styles.commentActionRow}>
-                        <TouchableOpacity
-                          style={[styles.commentActionBtn, liked && styles.commentActionBtnActive]}
-                          onPress={() => handleLikeComment(c.id)}
-                        >
+                        <TouchableOpacity style={[styles.commentActionBtn, liked && styles.commentActionBtnActive]} onPress={() => handleLikeComment(c.id)}>
                           <Feather name="heart" size={13} color={liked ? '#ef4444' : '#e11d48'} />
-                          <Text style={[styles.commentActionText, liked && styles.commentActionTextActive]}>
-                            {liked ? 'Liked' : 'Like'}{c.likes ? ` (${c.likes})` : ''}
-                          </Text>
+                          <Text style={[styles.commentActionText, liked && styles.commentActionTextActive]}>{liked ? 'Liked' : 'Like'}{c.likes ? ` (${c.likes})` : ''}</Text>
                         </TouchableOpacity>
                         {ownerMatch ? (
                           editingCommentId === c.id ? (
                             <>
-                              <TouchableOpacity style={styles.commentMiniBtn} onPress={handleSaveEdit}>
-                                <Feather name="check" size={13} color="#16a34a" />
-                                <Text style={styles.commentMiniBtnText}>Save</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity style={styles.commentMiniBtn} onPress={handleCancelEdit}>
-                                <Feather name="x" size={13} color="#64748b" />
-                                <Text style={styles.commentMiniBtnText}>Cancel</Text>
-                              </TouchableOpacity>
+                              <TouchableOpacity style={styles.commentMiniBtn} onPress={handleSaveEdit}><Feather name="check" size={13} color="#16a34a" /><Text style={styles.commentMiniBtnText}>Save</Text></TouchableOpacity>
+                              <TouchableOpacity style={styles.commentMiniBtn} onPress={handleCancelEdit}><Feather name="x" size={13} color="#64748b" /><Text style={styles.commentMiniBtnText}>Cancel</Text></TouchableOpacity>
                             </>
                           ) : (
                             <>
-                              <TouchableOpacity style={styles.commentMiniBtn} onPress={() => handleStartEdit(c)}>
-                                <Feather name="edit-2" size={13} color="#2563eb" />
-                                <Text style={styles.commentMiniBtnText}>Edit</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity style={styles.commentMiniBtn} onPress={() => handleDeleteComment(c.id)}>
-                                <Feather name="trash-2" size={13} color="#ef4444" />
-                                <Text style={[styles.commentMiniBtnText, { color: '#ef4444' }]}>Delete</Text>
-                              </TouchableOpacity>
+                              <TouchableOpacity style={styles.commentMiniBtn} onPress={() => handleStartEdit(c)}><Feather name="edit-2" size={13} color="#2563eb" /><Text style={styles.commentMiniBtnText}>Edit</Text></TouchableOpacity>
+                              <TouchableOpacity style={styles.commentMiniBtn} onPress={() => handleDeleteComment(c.id)}><Feather name="trash-2" size={13} color="#ef4444" /><Text style={[styles.commentMiniBtnText, { color: '#ef4444' }]}>Delete</Text></TouchableOpacity>
                             </>
                           )
                         ) : null}
@@ -847,14 +738,7 @@ export default function NewsFeedScreen({ navigation }) {
               )}
             </ScrollView>
             <View style={styles.commentInputRow}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Write a comment..."
-                placeholderTextColor="#94a3b8"
-                value={commentText}
-                onChangeText={setCommentText}
-                multiline
-              />
+              <TextInput style={styles.commentInput} placeholder="Write a comment..." placeholderTextColor="#94a3b8" value={commentText} onChangeText={setCommentText} multiline />
               <TouchableOpacity style={styles.commentSendBtn} onPress={handleAddComment}>
                 <Feather name="send" size={16} color="#ffffff" />
               </TouchableOpacity>
@@ -865,5 +749,3 @@ export default function NewsFeedScreen({ navigation }) {
     </View>
   );
 }
-
-

@@ -9,8 +9,10 @@ export function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
   const value = url.trim();
   if (!value || value === 'null' || value === 'undefined') return false;
-  if (value.startsWith('blob:')) return false;
   if (value.startsWith('http://localhost')) return false;
+
+  // Web-picked images often come through as blob URLs and should render in-session.
+  if (value.startsWith('blob:')) return true;
 
   // Allow local URIs on native; they don't survive web reloads and typically won't render on web.
   if (value.startsWith('file://')) return Platform.OS !== 'web';

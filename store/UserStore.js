@@ -400,6 +400,15 @@ const calculateRank = (referralCount = 0) => {
   return tier ? tier.rank : 'Member';
 };
 
+const normalizeIndianMobileNumber = (value = '') => {
+  const digits = String(value || '').replace(/\D+/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
+  return digits.slice(0, 10);
+};
+
+const isValidIndianMobileNumber = (value = '') => /^[6-9]\d{9}$/.test(normalizeIndianMobileNumber(value));
+
 const generateReferralCode = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = 'RTI-';
@@ -747,6 +756,7 @@ const toReelPostFromNewsItem = (item = {}, currentEmail = '') => {
     type: hasVideo ? 'video' : (Array.isArray(item.images) && item.images.length ? 'image' : 'image'),
     media: hasVideo ? videoUri : (getReelThumbnailUri(item) || ''),
     thumbnail: getReelThumbnailUri(item),
+    image: Array.isArray(item.images) && item.images.length ? item.images[0] : (item.image || ''),
     headline,
     caption,
     fullDescription,
@@ -799,9 +809,15 @@ const normalizeUserNewsItems = (items = []) => {
       liked_by: Array.isArray(item.liked_by) ? item.liked_by : [],
       comments_list: normalizeComments(item.comments_list),
       images: Array.isArray(item.images) ? item.images : [],
-      video: item.video || null,
-      file: item.file || null,
-      date: item.date, createdAt: item.createdAt || item.date,
+image: Array.isArray(item.images) && item.images.length > 0
+  ? item.images[0]
+  : (item.image || ''),
+thumbnail: Array.isArray(item.images) && item.images.length > 0
+  ? item.images[0]
+  : (item.thumbnail || item.image || ''),
+video: item.video || null,
+file: item.file || null,
+date: item.date, createdAt: item.createdAt || item.date,
       status: item.status || 'approved',
       views: Number(item.views || 0), shares: Number(item.shares || 0),
       likes: Number(item.likes || 0),
@@ -966,16 +982,18 @@ const normalizeUser = (user = {}) => {
   const referralCount = Number(user.referral_count || 0);
   const savedPlan = normalizeSubscriptionPlan(user.subscription_plan);
   const role = user.role || getRoleFromPlanId(savedPlan?.plan_id) || 'free';
+  const normalizedMobile = normalizeIndianMobileNumber(user.mobile || user.mobile_number || user.contact_number || '');
+  const normalizedMobileNumber = normalizeIndianMobileNumber(user.mobile_number || user.mobile || user.contact_number || '');
 
   return {
     ...user,
     // ✅ FIX: email hamesha lowercase save hogi
     email:               user.email ? user.email.trim().toLowerCase() : '',
     name:                user.name                || '',
-    mobile:              user.mobile              || user.contact_number || '',
+    mobile:              normalizedMobile,
     contact_number:      user.contact_number      || user.mobile_number || user.mobile || '',
     phone_number:        user.phone_number        || '',
-    mobile_number:       user.mobile_number       || user.mobile || user.contact_number || '',
+    mobile_number:       normalizedMobileNumber,
     state:               user.state               || '',
     district:            user.district            || '',
     taluka:              user.taluka              || '',
@@ -1159,6 +1177,7 @@ export const UserStore = {
     try {
       // ✅ FIX: Register karte waqt email lowercase karo
       const normalizedEmail = email ? email.trim().toLowerCase() : '';
+      const normalizedMobile = normalizeIndianMobileNumber(mobile);
 
       const users = await getUsersFromStorage();
 
@@ -1166,6 +1185,17 @@ export const UserStore = {
       const existing = users.find((u) => u.email === normalizedEmail);
       if (existing) {
         return { ok: false, message: 'This email is already registered!' };
+      }
+
+      if (!isValidIndianMobileNumber(normalizedMobile)) {
+        return { ok: false, message: 'Please enter a valid Indian mobile number.' };
+      }
+
+      const existingByMobile = users.find(
+        (u) => normalizeIndianMobileNumber(u.mobile || u.mobile_number || u.contact_number) === normalizedMobile
+      );
+      if (existingByMobile) {
+        return { ok: false, message: 'This mobile number is already registered!' };
       }
 
       const my_referral_code = await generateUniqueReferralCode(users);
@@ -1183,7 +1213,7 @@ export const UserStore = {
 
       const newUser = normalizeUser({
         name,
-        mobile,
+        mobile: normalizedMobile,
         email: normalizedEmail, // ✅ lowercase email save karo
         password,
         state,
@@ -1295,7 +1325,7 @@ export const UserStore = {
     try {
       const payload = {
         name: String(data.name || '').trim(),
-        mobile: String(data.mobile || '').trim(),
+        mobile: normalizeIndianMobileNumber(data.mobile || ''),
         email: String(data.email || '').trim().toLowerCase(),
         password: String(data.password || ''),
         referral_code_used: data.referral_code_used ? String(data.referral_code_used).trim() : '',
@@ -2207,10 +2237,27 @@ export const UserStore = {
         const state = await readEngagementFallback();
         const postId = String(itemId || '').trim();
         const list = Array.isArray(state.commentsByPost?.[postId]) ? state.commentsByPost[postId] : [];
-        state.commentsByPost[postId] = list.filter((c) => {
-          if (String(c.id) !== cidRaw) return true;
-          const ownerOk = email && String(c.author_email || '').trim().toLowerCase() === email;
-          return !ownerOk;
+        const targetComment = list.find((c) => String(c.id) === cidRaw);
+        const ownerOk = email && String(targetComment?.author_email || '').trim().toLowerCase() === email;
+        if (!targetComment || !ownerOk) return { ok: false, message: 'Unable to delete comment.' };
+
+        const idsToDelete = new Set([cidRaw]);
+        let changed = true;
+        while (changed) {
+          changed = false;
+          list.forEach((comment) => {
+            const parentId = String(comment?.parent_comment_id || '').trim();
+            const commentIdKey = String(comment?.id || '').trim();
+            if (parentId && idsToDelete.has(parentId) && !idsToDelete.has(commentIdKey)) {
+              idsToDelete.add(commentIdKey);
+              changed = true;
+            }
+          });
+        }
+
+        state.commentsByPost[postId] = list.filter((c) => !idsToDelete.has(String(c.id)));
+        idsToDelete.forEach((id) => {
+          if (state.commentLikesById?.[id]) delete state.commentLikesById[id];
         });
         await writeEngagementFallback(state);
         return { ok: true };
@@ -2226,7 +2273,35 @@ export const UserStore = {
       const ownerEmail = String(row?.user_email || '').trim().toLowerCase();
       if (!email || !ownerEmail || ownerEmail !== email) return { ok: false, message: 'Unable to delete comment.' };
 
-      await db.runAsync('UPDATE post_comments SET deleted = 1 WHERE id = ?', parsedId);
+      const rows = await db.getAllAsync(
+        'SELECT id, parent_comment_id FROM post_comments WHERE post_id = ? AND deleted = 0',
+        String(itemId || '').trim()
+      );
+      const idsToDelete = new Set([parsedId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        (rows || []).forEach((commentRow) => {
+          const commentIdValue = Number(commentRow?.id);
+          const parentIdValue = Number(commentRow?.parent_comment_id);
+          if (
+            Number.isFinite(commentIdValue)
+            && Number.isFinite(parentIdValue)
+            && idsToDelete.has(parentIdValue)
+            && !idsToDelete.has(commentIdValue)
+          ) {
+            idsToDelete.add(commentIdValue);
+            changed = true;
+          }
+        });
+      }
+
+      const deleteIds = Array.from(idsToDelete);
+      const placeholders = deleteIds.map(() => '?').join(',');
+      await db.runAsync(
+        `UPDATE post_comments SET deleted = 1 WHERE id IN (${placeholders})`,
+        deleteIds
+      );
       return { ok: true };
     } catch { return { ok: false, message: 'Unable to delete comment.' }; }
   },
@@ -2520,6 +2595,88 @@ export const UserStore = {
       await AsyncStorage.setItem(OTP_KEY, JSON.stringify(otpMap));
       return true;
     } catch { return false; }
+  },
+
+  followUser: async (targetUserEmail) => {
+    try {
+      const currentUser = await UserStore.getCurrentUser();
+      if (!currentUser) return { ok: false, message: 'Please login again.' };
+      if (currentUser.email === targetUserEmail) return { ok: false, message: 'Cannot follow yourself.' };
+
+      const targetUser = await UserStore.getUser(targetUserEmail);
+      if (!targetUser) return { ok: false, message: 'User not found.' };
+
+      // Add to current user's following list
+      const currentFollowing = Array.isArray(currentUser.following) ? currentUser.following : [];
+      if (currentFollowing.includes(targetUserEmail)) return { ok: false, message: 'Already following this user.' };
+
+      const updatedCurrentUser = await UserStore.updateUser(currentUser.email, {
+        following: [...currentFollowing, targetUserEmail]
+      });
+
+      // Add to target user's followers list
+      const targetFollowers = Array.isArray(targetUser.followers) ? targetUser.followers : [];
+      if (!targetFollowers.includes(currentUser.email)) {
+        await UserStore.updateUser(targetUserEmail, {
+          followers: [...targetFollowers, currentUser.email]
+        });
+      }
+
+      return { ok: true, message: 'Successfully followed user.' };
+    } catch (error) {
+      console.error('followUser error:', error);
+      return { ok: false, message: 'Unable to follow user.' };
+    }
+  },
+
+  unfollowUser: async (targetUserEmail) => {
+    try {
+      const currentUser = await UserStore.getCurrentUser();
+      if (!currentUser) return { ok: false, message: 'Please login again.' };
+
+      const targetUser = await UserStore.getUser(targetUserEmail);
+      if (!targetUser) return { ok: false, message: 'User not found.' };
+
+      // Remove from current user's following list
+      const currentFollowing = Array.isArray(currentUser.following) ? currentUser.following : [];
+      const updatedFollowing = currentFollowing.filter(email => email !== targetUserEmail);
+
+      const updatedCurrentUser = await UserStore.updateUser(currentUser.email, {
+        following: updatedFollowing
+      });
+
+      // Remove from target user's followers list
+      const targetFollowers = Array.isArray(targetUser.followers) ? targetUser.followers : [];
+      const updatedFollowers = targetFollowers.filter(email => email !== currentUser.email);
+
+      await UserStore.updateUser(targetUserEmail, {
+        followers: updatedFollowers
+      });
+
+      return { ok: true, message: 'Successfully unfollowed user.' };
+    } catch (error) {
+      console.error('unfollowUser error:', error);
+      return { ok: false, message: 'Unable to unfollow user.' };
+    }
+  },
+
+  getFollowStatus: async (targetUserEmail) => {
+    try {
+      const currentUser = await UserStore.getCurrentUser();
+      if (!currentUser) return { isFollowing: false, followersCount: 0, followingCount: 0 };
+
+      const targetUser = await UserStore.getUser(targetUserEmail);
+      if (!targetUser) return { isFollowing: false, followersCount: 0, followingCount: 0 };
+
+      const isFollowing = Array.isArray(currentUser.following) && currentUser.following.includes(targetUserEmail);
+      const followersCount = Array.isArray(targetUser.followers) ? targetUser.followers.length : 0;
+      const followingCount = Array.isArray(targetUser.following) ? targetUser.following.length : 0;
+
+      return { isFollowing, followersCount, followingCount };
+    } catch (error) {
+      console.error('getFollowStatus error:', error);
+      return { isFollowing: false, followersCount: 0, followingCount: 0 };
+    }
   },
 };
 

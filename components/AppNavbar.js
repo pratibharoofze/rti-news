@@ -178,11 +178,11 @@ function ProfileDropdown({ navigation }) {
     return (
       <TouchableOpacity
         style={styles.primaryActionButton}
-        onPress={() => navigation?.navigate?.('Register')}
+        onPress={() => navigation?.navigate?.('Login')}
         activeOpacity={0.88}
       >
         <Ionicons name="person-add-outline" size={16} color="#ffffff" />
-        <Text style={styles.primaryActionButtonText}>{copy.common.signUp}</Text>
+        <Text style={styles.primaryActionButtonText}>{copy.common.signIn}</Text>
       </TouchableOpacity>
     );
   }

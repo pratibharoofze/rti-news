@@ -183,15 +183,15 @@ export default function AppHeader({ navigation, compact = false }) {
           </TouchableOpacity>
         </View>
 
-        {/* Row 2: Language + SignUp */}
+        {/* Row 2: Language + SigInUp */}
         <View style={s.mobileRow2}>
           <LanguageSelector compact />
           <TouchableOpacity
-            style={s.signupBtn}
+            style={s.signInBtn}
             onPress={() => navigation?.navigate('Login')}
           >
-            <Text style={s.signupIcon}>{'👤'}</Text>
-            <Text style={s.signupText}>{'Sign Up'}</Text>
+            <Text style={s.signInIcon}>{'👤'}</Text>
+            <Text style={s.signInText}>{'Sign IN'}</Text>
           </TouchableOpacity>
         </View>
 

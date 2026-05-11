@@ -6,6 +6,7 @@ const CURRENT_USER_KEY = 'current_user_email';
 
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // ← NEW
 
   useEffect(() => {
     let mounted = true;
@@ -17,6 +18,8 @@ export function AuthProvider({ children }) {
       } catch {
         if (!mounted) return;
         setIsLoggedIn(false);
+      } finally {
+        if (mounted) setIsAuthLoading(false); // ← NEW: loading khatam
       }
     })();
     return () => { mounted = false; };
@@ -33,7 +36,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = () => setIsLoggedIn(true); // call this after successful login/register
+  const login = () => setIsLoggedIn(true);
 
   const logout = async () => {
     try {
@@ -42,7 +45,10 @@ export function AuthProvider({ children }) {
     setIsLoggedIn(false);
   };
 
-  const value = useMemo(() => ({ isLoggedIn, login, logout, refresh }), [isLoggedIn]);
+  const value = useMemo(
+    () => ({ isLoggedIn, isAuthLoading, login, logout, refresh }), // ← isAuthLoading add kiya
+    [isLoggedIn, isAuthLoading]
+  );
 
   return (
     <AuthContext.Provider value={value}>

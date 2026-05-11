@@ -1,205 +1,341 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 const DashboardStyles = StyleSheet.create({
+  // ───────────────── ROOT ─────────────────
   root: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    flexDirection: 'column',
+    backgroundColor: '#f8fafc',
   },
+
   content: {
     flex: 1,
   },
-  contentPadding: { padding: 16, paddingBottom: 32 },
 
-  // ── Welcome Banner ───────────────────────────────
+  contentPadding: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 90,
+  },
+
+  // ───────────────── WELCOME BANNER ─────────────────
   welcomeBanner: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 26,
     padding: 20,
-    marginBottom: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: '#e2e8f0',
+    shadowColor: '#1e293b',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
-  welcomeLeft: { flex: 1 },
-  welcomeGreeting: { fontSize: 12, color: '#64748b', marginBottom: 2 },
-  welcomeText: { fontSize: 22, color: '#0f172a', fontWeight: '800', marginBottom: 2 },
+
+  welcomeLeft: {
+    flex: 1,
+  },
+
+  welcomeGreeting: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748b',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+
+  welcomeText: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+
   welcomeNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    marginBottom: 4,
   },
+
   welcomeBadgeIcon: {
     marginTop: 2,
   },
-  welcomeSub: { fontSize: 12, color: '#475569', marginBottom: 4 },
-  welcomeBadge: {
-    backgroundColor: '#22c55e22',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#22c55e44',
-  },
-  welcomeBadgeText: { color: '#16a34a', fontSize: 11, fontWeight: '600' },
 
-  // ── Stats Row — 3 cards ──────────────────────────
+  welcomeSub: {
+    fontSize: 13,
+    color: '#475569',
+    marginTop: 6,
+  },
+
+  // ───────────────── STATS ─────────────────
   statsRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
+    justifyContent: 'space-between',
+    marginBottom: 18,
+    gap: 10,
   },
+
   statCard: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: 22,
+    paddingVertical: 18,
+    paddingHorizontal: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
+
   statIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 10,
   },
-  statValue: { fontSize: 15, fontWeight: '800', marginBottom: 2 },
-  statLabel: { fontSize: 9, color: '#64748b', fontWeight: '500', textAlign: 'center' },
 
-  // ── Filter ───────────────────────────────────────
-  filterScroll: { marginBottom: 6 },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+
+  statLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    textAlign: 'center',
+    fontWeight: '700',
+  },
+
+  // ───────────────── FILTER BUTTON ─────────────────
+  filterScroll: {
+    marginBottom: 10,
+  },
+
   filterBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 30,
     backgroundColor: '#ffffff',
-    marginRight: 8,
+    marginRight: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
+
   filterBtnActive: {
     backgroundColor: '#2563eb',
     borderColor: '#2563eb',
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
   },
-  filterText: { color: '#475569', fontSize: 12, fontWeight: '600' },
-  filterTextActive: { color: '#fff' },
 
-  // ── Section / Card ───────────────────────────────
+  filterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+
+  filterTextActive: {
+    color: '#ffffff',
+  },
+
+  // ───────────────── GENERIC CARD ─────────────────
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 6,
-  },
-  sectionText: {
-    fontSize: 13,
-    color: '#64748b',
-    lineHeight: 20,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
 
-  // ── Featured Card ────────────────────────────────
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+
+  sectionText: {
+    fontSize: 13,
+    lineHeight: 21,
+    color: '#64748b',
+  },
+
+  // ───────────────── FEATURED CARD ─────────────────
   featuredCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 18,
+    borderRadius: 24,
     padding: 18,
-    marginBottom: 12,
+    marginBottom: 16,
+    borderLeftWidth: 5,
+    borderLeftColor: '#6366f1',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderLeftWidth: 4,
-    borderLeftColor: '#6366f1',
+    shadowColor: '#6366f1',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
+
   featuredTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  featuredBadge: {
-    backgroundColor: '#f59e0b22',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: '#f59e0b44',
-  },
-  featuredBadgeText: { color: '#d97706', fontSize: 10, fontWeight: '700' },
-  featuredTitle: {
-    fontSize: 17,
-    color: '#0f172a',
-    fontWeight: '700',
-    lineHeight: 24,
     marginBottom: 12,
   },
+
+  featuredBadge: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+
+  featuredBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#d97706',
+  },
+
+  featuredTitle: {
+    fontSize: 18,
+    lineHeight: 26,
+    color: '#0f172a',
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+
   featuredFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  featuredMeta: { color: '#64748b', fontSize: 11 },
 
-  // ── News Cards ───────────────────────────────────
-  cardLeft: { flexDirection: 'row', gap: 12 },
-  catDot: { width: 3, borderRadius: 2, minHeight: 60 },
-  cardBody: { flex: 1 },
+  featuredMeta: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+
+  // ───────────────── NEWS CARD ─────────────────
+  cardLeft: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
+  catDot: {
+    width: 5,
+    borderRadius: 999,
+    minHeight: 64,
+  },
+
+  cardBody: {
+    flex: 1,
+  },
+
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 6,
   },
-  catLabel: { fontSize: 11, fontWeight: '700' },
-  cardTime: { fontSize: 10, color: '#64748b' },
-  newsTitle: {
-    fontSize: 14,
-    color: '#0f172a',
-    fontWeight: '600',
-    lineHeight: 20,
-    marginBottom: 8,
+
+  catLabel: {
+    fontSize: 11,
+    fontWeight: '900',
   },
+
+  cardTime: {
+    fontSize: 11,
+    color: '#94a3b8',
+  },
+
+  newsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 22,
+    color: '#0f172a',
+    marginBottom: 10,
+  },
+
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  readTime: { color: '#64748b', fontSize: 11 },
-  cardActions: { flexDirection: 'row', gap: 8 },
+
+  readTime: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+
+  cardActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+
   bookmarkBtn: {
-    width: 30, height: 30, borderRadius: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: '#eff6ff',
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   shareBtn: {
-    width: 30, height: 30, borderRadius: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: '#eff6ff',
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   catBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 30,
   },
-  catText: { fontSize: 11, fontWeight: '700' },
+
+  catText: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+
   readBtn: {
     backgroundColor: '#2563eb',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
   },
-  readBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  readBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
 });
 
 export default DashboardStyles;

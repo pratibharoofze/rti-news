@@ -57,13 +57,13 @@ const UserPublicProfileStyles = StyleSheet.create({
   },
   profileTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 14,
   },
   avatarWrap: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 136,
+    height: 136,
+    borderRadius: 68,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#f1f5f9',
@@ -71,18 +71,18 @@ const UserPublicProfileStyles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 126,
+    height: 126,
+    borderRadius: 63,
     backgroundColor: '#e2e8f0',
   },
   verifiedOnAvatar: {
     position: 'absolute',
-    right: 6,
-    bottom: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    right: 8,
+    bottom: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#16a34a',
     borderWidth: 2,
     borderColor: '#ffffff',
@@ -427,7 +427,6 @@ const UserPublicProfileStyles = StyleSheet.create({
     lineHeight: 26,
     marginBottom: 10,
   },
-  // ✅ feedDescription — ExpandableDescription ke liye
   feedDescription: {
     fontSize: 14,
     color: '#334155',
@@ -512,9 +511,14 @@ const UserPublicProfileStyles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  // Comment Modal Styles
   commentOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15,23,42,0.45)',
+    justifyContent: 'flex-end',
+  },
+  commentSheetContainer: {
+    flex: 1,
     justifyContent: 'flex-end',
   },
   commentSheet: {
@@ -537,6 +541,9 @@ const UserPublicProfileStyles = StyleSheet.create({
   },
   commentList: {
     marginBottom: 12,
+  },
+  commentListContent: {
+    paddingBottom: 20,
   },
   commentItem: {
     padding: 10,
@@ -654,7 +661,66 @@ const UserPublicProfileStyles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ✅ ExpandableDescription container
+  // Reply Styles
+  commentReplyForm: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+  },
+  commentReplyInput: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 12,
+    color: '#0f172a',
+    backgroundColor: '#f8fafc',
+    minHeight: 40,
+    maxHeight: 80,
+  },
+  commentReplyActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 8,
+  },
+  commentReplyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#2563eb',
+  },
+  commentReplyBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  commentCancelBtn: {
+    backgroundColor: '#f1f5f9',
+  },
+  commentCancelBtnText: {
+    color: '#64748b',
+  },
+  commentReplies: {
+    marginTop: 8,
+    paddingLeft: 16,
+    borderLeftWidth: 2,
+    borderLeftColor: '#e2e8f0',
+  },
+  commentReplyItem: {
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    backgroundColor: '#fafbfc',
+    marginBottom: 6,
+  },
+
+  // ExpandableDescription container
   expandableContainer: {
     marginBottom: 10,
   },

@@ -83,7 +83,6 @@ export default function PaymentScreen({ route, navigation }) {
     navigation.replace('Login');
   };
 
-  // ✅ Payment success ke baad common logic
   const onPaymentSuccess = async (paymentId, orderId, signature, order) => {
     const verifyResult = await UserStore.verifyPayment({
       payment_id: paymentId,
@@ -175,6 +174,33 @@ export default function PaymentScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={PaymentStyles.heroCard}>
+
+          {/* ✅ Back Button */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              marginBottom: 10,
+              paddingVertical: 4,
+              paddingHorizontal: 2,
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="arrow-left" size={18} color="#7c3aed" />
+            <Text
+              style={{
+                color: '#7c3aed',
+                fontSize: 14,
+                marginLeft: 5,
+                fontWeight: '600',
+              }}
+            >
+              Back
+            </Text>
+          </TouchableOpacity>
+
           <Text style={PaymentStyles.heroEyebrow}>In-App Payment</Text>
           <Text style={PaymentStyles.heroTitle}>Secure Payment</Text>
           <View style={PaymentStyles.ownerRow}>

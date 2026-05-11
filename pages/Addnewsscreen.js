@@ -194,7 +194,6 @@ export default function AddNewsScreen({ navigation }) {
   const plainToHtml = (text) => `<div>${escapeHtml(text).replace(/\n/g, '<br/>')}</div>`;
 
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [footerVisible, setFooterVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [userName, setUserName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -212,6 +211,7 @@ export default function AddNewsScreen({ navigation }) {
   const [mediaType, setMediaType] = useState('None');
   const [images, setImages] = useState([]);
   const [video, setVideo] = useState(null);
+  const [videoThumb, setVideoThumb] = useState(null);
   const [attachment, setAttachment] = useState(null);
   const [selectedState, setSelectedState] = useState('');
   const [statePickerVisible, setStatePickerVisible] = useState(false);
@@ -264,20 +264,13 @@ export default function AddNewsScreen({ navigation }) {
     return () => clearTimeout(timer);
   }, [navigation, showToast]);
 
-  const handleScroll = ({ nativeEvent }) => {
-    const { contentOffset, layoutMeasurement, contentSize } = nativeEvent;
-    setFooterVisible(contentOffset.y + layoutMeasurement.height >= contentSize.height - 8);
-  };
-
   const handleLogout = async () => {
     await UserStore.clearCurrentUser();
     navigation.replace('Login');
   };
 
   const ensureLibraryPermission = async () => {
-    if (Platform.OS === 'web') {
-      return true;
-    }
+    if (Platform.OS === 'web') return true;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       showToast('Gallery permission needed.', 'error');
@@ -329,14 +322,44 @@ export default function AddNewsScreen({ navigation }) {
     return true;
   };
 
+  const generateVideoThumbnail = (videoSrc) => {
+    return new Promise((resolve) => {
+      try {
+        const thumbVid = document.createElement('video');
+        thumbVid.src = videoSrc;
+        thumbVid.crossOrigin = 'anonymous';
+        thumbVid.muted = true;
+        thumbVid.preload = 'metadata';
+        thumbVid.addEventListener('loadedmetadata', () => {
+          thumbVid.currentTime = 0.5;
+        });
+        thumbVid.addEventListener('seeked', () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = thumbVid.videoWidth || 640;
+            canvas.height = thumbVid.videoHeight || 360;
+            canvas.getContext('2d').drawImage(thumbVid, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          } catch {
+            resolve(null);
+          }
+        });
+        thumbVid.addEventListener('error', () => resolve(null));
+        thumbVid.load();
+      } catch {
+        resolve(null);
+      }
+    });
+  };
+
   const pickImages = async () => {
     try {
       const ok = await ensureLibraryPermission();
       if (!ok) return;
 
-      const { images } = getImagePickerTypes();
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: images || undefined,
+      const { images: imageTypes } = getImagePickerTypes();
+      const imgPickResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: imageTypes || undefined,
         allowsMultipleSelection: true,
         base64: false,
         quality: 0.6,
@@ -346,26 +369,22 @@ export default function AddNewsScreen({ navigation }) {
         exif: false,
       });
 
-      if (!result.canceled && result.assets?.length) {
-        // Process images to prevent OOM - limit to 5 images max
+      if (!imgPickResult.canceled && imgPickResult.assets?.length) {
         const processedImages = [];
         const maxImages = 5;
 
-        for (let i = 0; i < Math.min(result.assets.length, maxImages); i++) {
-          const asset = result.assets[i];
-
-          // Check file size - skip if over 10MB
+        for (let i = 0; i < Math.min(imgPickResult.assets.length, maxImages); i++) {
+          const asset = imgPickResult.assets[i];
           if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
             showToast(`Image ${i + 1} is too large (max 10MB). Skipping.`, 'warning');
             continue;
           }
-
           processedImages.push(asset.uri);
         }
 
         if (processedImages.length > 0) {
           setImages((prev) => [...prev, ...processedImages]);
-          if (result.assets.length > maxImages) {
+          if (imgPickResult.assets.length > maxImages) {
             showToast(`Only first ${maxImages} images added.`, 'info');
           }
         }
@@ -383,28 +402,32 @@ export default function AddNewsScreen({ navigation }) {
   const pickVideo = async () => {
     try {
       if (Platform.OS === 'web') {
-        const result = await DocumentPicker.getDocumentAsync({
+        const webResult = await DocumentPicker.getDocumentAsync({
           type: 'video/*',
           multiple: false,
           copyToCacheDirectory: true,
         });
-        if (result.canceled) return;
+        if (webResult.canceled) return;
 
-        const asset = result.assets?.[0] || result;
+        const asset = webResult.assets?.[0] || webResult;
         if (!isVideoAsset(asset)) {
           showToast('Please select a video file.', 'error');
           return;
         }
 
-        // Check file size for web - max 50MB
         if (asset.size && asset.size > 50 * 1024 * 1024) {
           showToast('Video is too large (max 50MB).', 'error');
           return;
         }
 
         if (!validateVideoDuration(asset.duration)) return;
+
         const persisted = await storeWebUriToIdbMedia(asset.uri, { prefix: 'video', mimeType: asset.mimeType || '' });
         setVideo(persisted);
+
+        const thumb = await generateVideoThumbnail(persisted);
+        if (thumb) setVideoThumb(thumb);
+
         showToast('Video selected.', 'success');
         return;
       }
@@ -413,19 +436,18 @@ export default function AddNewsScreen({ navigation }) {
       if (!ok) return;
 
       const { videos } = getImagePickerTypes();
-      const result = await ImagePicker.launchImageLibraryAsync({
+      const nativeResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: videos || undefined,
         allowsMultipleSelection: false,
         base64: false,
         quality: 0.8,
-        videoMaxDuration: 60, // 1 minute max
+        videoMaxDuration: 60,
         allowsEditing: false,
       });
 
-      if (!result.canceled && result.assets?.[0]) {
-        const asset = result.assets[0];
+      if (!nativeResult.canceled && nativeResult.assets?.[0]) {
+        const asset = nativeResult.assets[0];
 
-        // Check file size - max 50MB
         if (asset.fileSize && asset.fileSize > 50 * 1024 * 1024) {
           showToast('Video is too large (max 50MB).', 'error');
           return;
@@ -474,35 +496,15 @@ export default function AddNewsScreen({ navigation }) {
     const subtitlePlain = htmlToPlain(subtitleHtml);
     const descriptionPlain = htmlToPlain(descriptionHtml);
 
-    if (!titlePlain) {
-      showToast('Title is required.', 'error');
-      return;
-    }
-    if (!descriptionPlain) {
-      showToast('Description is required.', 'error');
-      return;
-    }
-    if (!reportType) {
-      showToast('Please select a report type.', 'error');
-      return;
-    }
+    if (!titlePlain) { showToast('Title is required.', 'error'); return; }
+    if (!descriptionPlain) { showToast('Description is required.', 'error'); return; }
+    if (!reportType) { showToast('Please select a report type.', 'error'); return; }
+
     const stateValue = isSubscribedUser && locationState ? locationState : selectedState;
-    if (!stateValue) {
-      showToast('Please select a state.', 'error');
-      return;
-    }
-    if (mediaType === 'Image' && images.length === 0) {
-      showToast('Please upload at least one image.', 'error');
-      return;
-    }
-    if (mediaType === 'Video' && !video) {
-      showToast('Please upload a video.', 'error');
-      return;
-    }
-    if (mediaType === 'File' && !attachment) {
-      showToast('Please upload a file.', 'error');
-      return;
-    }
+    if (!stateValue) { showToast('Please select a state.', 'error'); return; }
+    if (mediaType === 'Image' && images.length === 0) { showToast('Please upload at least one image.', 'error'); return; }
+    if (mediaType === 'Video' && !video) { showToast('Please upload a video.', 'error'); return; }
+    if (mediaType === 'File' && !attachment) { showToast('Please upload a file.', 'error'); return; }
 
     setSaving(true);
     const user = await UserStore.getCurrentUser();
@@ -512,6 +514,32 @@ export default function AddNewsScreen({ navigation }) {
       return;
     }
 
+    const savedImages = mediaType === 'Image'
+      ? await Promise.all(
+        (Array.isArray(images) ? images : []).map((uri) => (
+          Platform.OS === 'web'
+            ? storeWebUriToIdbMedia(uri, { prefix: 'image', mimeType: 'image/jpeg' })
+            : persistToUploadsDir({ uri, subdir: 'images', fallbackExt: 'jpg' })
+        ))
+      )
+      : [];
+
+    const savedVideo = mediaType === 'Video' && video
+      ? (
+        Platform.OS === 'web'
+          ? await storeWebUriToIdbMedia(video, { prefix: 'video', mimeType: 'video/mp4' })
+          : await persistToUploadsDir({ uri: video, subdir: 'videos', fallbackExt: 'mp4' })
+      )
+      : null;
+
+    const savedVideoThumb = mediaType === 'Video' && videoThumb
+      ? (
+        Platform.OS === 'web'
+          ? await storeWebUriToIdbMedia(videoThumb, { prefix: 'image', mimeType: 'image/jpeg' })
+          : await persistToUploadsDir({ uri: videoThumb, subdir: 'images', fallbackExt: 'jpg' })
+      )
+      : '';
+
     const newsItem = {
       id: `news-${Date.now()}`,
       title: titlePlain,
@@ -520,16 +548,12 @@ export default function AddNewsScreen({ navigation }) {
       subtitle_html: subtitleHtml,
       description: descriptionHtml,
       mediaType,
-      images: mediaType === 'Image'
-        ? await Promise.all(
-          (Array.isArray(images) ? images : []).map((uri) =>
-            persistToUploadsDir({ uri, subdir: 'images', fallbackExt: 'jpg' })
-          )
-        )
-        : [],
-      video: mediaType === 'Video'
-        ? await persistToUploadsDir({ uri: video, subdir: 'videos', fallbackExt: 'mp4' })
-        : null,
+      images: savedImages,
+      video: savedVideo,
+      image: mediaType === 'Video' ? savedVideoThumb :
+             mediaType === 'Image' && savedImages.length > 0 ? savedImages[0] : '',
+      thumbnail: mediaType === 'Video' ? savedVideoThumb :
+             mediaType === 'Image' && savedImages.length > 0 ? savedImages[0] : '',
       file: mediaType === 'File' ? attachment : null,
       report_type: reportType,
       category: reportType || stateValue || 'General',
@@ -578,6 +602,7 @@ export default function AddNewsScreen({ navigation }) {
     setMediaType('None');
     setImages([]);
     setVideo(null);
+    setVideoThumb(null);
     setAttachment(null);
     setSelectedState('');
     titleHtmlRef.current = '';
@@ -591,7 +616,7 @@ export default function AddNewsScreen({ navigation }) {
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
-          routes: [{ name: 'Home' }],
+          routes: [{ name: 'News Feed' }],
         })
       );
     }, 800);
@@ -615,9 +640,26 @@ export default function AddNewsScreen({ navigation }) {
           contentContainerStyle={AddNewsStyles.scrollContent}
           keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
         >
+          {/* ✅ Back Arrow - heroCard ke upar, scroll ke andar */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              paddingVertical: 8,
+              paddingHorizontal: 4,
+              marginBottom: 6,
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Feather name="arrow-left" size={20} color="#0f172a" />
+            <Text style={{ marginLeft: 6, fontSize: 15, color: '#0f172a', fontWeight: '500' }}>
+              Back
+            </Text>
+          </TouchableOpacity>
+
           <View style={AddNewsStyles.heroCard}>
             <Text style={AddNewsStyles.heroEyebrow}>Publish</Text>
             <Text style={AddNewsStyles.heroTitle}>Add News</Text>
@@ -656,13 +698,7 @@ export default function AddNewsScreen({ navigation }) {
               <>
                 <RichToolbar
                   editor={titleEditorRef}
-                  actions={[
-                    actions.setBold,
-                    actions.setItalic,
-                    actions.setUnderline,
-                    actions.undo,
-                    actions.redo,
-                  ]}
+                  actions={[actions.setBold, actions.setItalic, actions.setUnderline, actions.undo, actions.redo]}
                   style={AddNewsStyles.richToolbar}
                   iconTint="#475569"
                   selectedIconTint="#7c3aed"
@@ -672,10 +708,7 @@ export default function AddNewsScreen({ navigation }) {
                   style={[AddNewsStyles.richEditor, titleExpanded && AddNewsStyles.richEditorExpanded]}
                   placeholder="Enter news title..."
                   initialContentHTML=""
-                  onChange={(html) => {
-                    titleHtmlRef.current = html;
-                    setTitle(htmlToPlain(html));
-                  }}
+                  onChange={(html) => { titleHtmlRef.current = html; setTitle(htmlToPlain(html)); }}
                   editorStyle={AddNewsStyles.richEditorInner}
                   useContainer={false}
                 />
@@ -686,41 +719,25 @@ export default function AddNewsScreen({ navigation }) {
               <Text style={AddNewsStyles.fieldLabel}>Sub Title</Text>
               {subtitle.length > 60 ? (
                 <TouchableOpacity onPress={() => setSubtitleExpanded((prev) => !prev)}>
-                  <Text style={AddNewsStyles.moreToggleText}>
-                    {subtitleExpanded ? 'Less' : 'More'}
-                  </Text>
+                  <Text style={AddNewsStyles.moreToggleText}>{subtitleExpanded ? 'Less' : 'More'}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
             <Text style={AddNewsStyles.fieldHint}>Optional short subtitle.</Text>
             {isWeb ? (
               <TextInput
-                style={[
-                  AddNewsStyles.webTextInput,
-                  { minHeight: 70 },
-                  { borderTopLeftRadius: 10, borderTopRightRadius: 10 },
-                  subtitleExpanded && { minHeight: 140 },
-                ]}
+                style={[AddNewsStyles.webTextInput, { minHeight: 70, borderTopLeftRadius: 10, borderTopRightRadius: 10 }, subtitleExpanded && { minHeight: 140 }]}
                 placeholder="Enter subtitle (optional)..."
                 placeholderTextColor="#94a3b8"
                 value={subtitle}
-                onChangeText={(text) => {
-                  setSubtitle(text);
-                  subtitleHtmlRef.current = plainToHtml(text);
-                }}
+                onChangeText={(text) => { setSubtitle(text); subtitleHtmlRef.current = plainToHtml(text); }}
                 multiline
               />
             ) : editorReady ? (
               <>
                 <RichToolbar
                   editor={subtitleEditorRef}
-                  actions={[
-                    actions.setBold,
-                    actions.setItalic,
-                    actions.setUnderline,
-                    actions.undo,
-                    actions.redo,
-                  ]}
+                  actions={[actions.setBold, actions.setItalic, actions.setUnderline, actions.undo, actions.redo]}
                   style={AddNewsStyles.richToolbar}
                   iconTint="#475569"
                   selectedIconTint="#7c3aed"
@@ -730,10 +747,7 @@ export default function AddNewsScreen({ navigation }) {
                   style={[AddNewsStyles.richEditor, subtitleExpanded && AddNewsStyles.richEditorExpanded]}
                   placeholder="Enter subtitle (optional)..."
                   initialContentHTML=""
-                  onChange={(html) => {
-                    subtitleHtmlRef.current = html;
-                    setSubtitle(htmlToPlain(html));
-                  }}
+                  onChange={(html) => { subtitleHtmlRef.current = html; setSubtitle(htmlToPlain(html)); }}
                   editorStyle={AddNewsStyles.richEditorInner}
                   useContainer={false}
                 />
@@ -744,36 +758,20 @@ export default function AddNewsScreen({ navigation }) {
               Description <Text style={AddNewsStyles.required}>*</Text>
             </Text>
             <Text style={AddNewsStyles.fieldHint}>Write the full report description.</Text>
-
             {isWeb ? (
               <TextInput
-                style={[
-                  AddNewsStyles.webTextInput,
-                  { minHeight: 220 },
-                  { borderTopLeftRadius: 10, borderTopRightRadius: 10 },
-                ]}
+                style={[AddNewsStyles.webTextInput, { minHeight: 220, borderTopLeftRadius: 10, borderTopRightRadius: 10 }]}
                 placeholder="Enter description..."
                 placeholderTextColor="#94a3b8"
                 value={descriptionText}
-                onChangeText={(text) => {
-                  setDescriptionText(text);
-                  descriptionHtmlRef.current = plainToHtml(text);
-                }}
+                onChangeText={(text) => { setDescriptionText(text); descriptionHtmlRef.current = plainToHtml(text); }}
                 multiline
               />
             ) : editorReady ? (
               <>
                 <RichToolbar
                   editor={descriptionEditorRef}
-                  actions={[
-                    actions.setBold,
-                    actions.setItalic,
-                    actions.setUnderline,
-                    actions.insertBulletsList,
-                    actions.insertOrderedList,
-                    actions.undo,
-                    actions.redo,
-                  ]}
+                  actions={[actions.setBold, actions.setItalic, actions.setUnderline, actions.insertBulletsList, actions.insertOrderedList, actions.undo, actions.redo]}
                   style={AddNewsStyles.richToolbar}
                   iconTint="#475569"
                   selectedIconTint="#7c3aed"
@@ -783,9 +781,7 @@ export default function AddNewsScreen({ navigation }) {
                   style={AddNewsStyles.richEditor}
                   placeholder="Enter description..."
                   initialContentHTML=""
-                  onChange={(html) => {
-                    descriptionHtmlRef.current = html;
-                  }}
+                  onChange={(html) => { descriptionHtmlRef.current = html; }}
                   editorStyle={AddNewsStyles.richEditorInner}
                   useContainer={false}
                 />
@@ -811,9 +807,7 @@ export default function AddNewsScreen({ navigation }) {
                 <View style={AddNewsStyles.locationLockHeader}>
                   <View>
                     <Text style={AddNewsStyles.locationLockTitle}>Location (Premium)</Text>
-                    <Text style={AddNewsStyles.locationLockSubtitle}>
-                      This is locked to your premium area.
-                    </Text>
+                    <Text style={AddNewsStyles.locationLockSubtitle}>This is locked to your premium area.</Text>
                   </View>
                   <View style={AddNewsStyles.locationLockBadge}>
                     <Text style={AddNewsStyles.locationLockBadgeText}>LOCKED</Text>
@@ -840,36 +834,15 @@ export default function AddNewsScreen({ navigation }) {
               {MEDIA_TYPES.map((type) => (
                 <TouchableOpacity
                   key={type}
-                  style={[
-                    AddNewsStyles.mediaToggleBtn,
-                    mediaType === type && AddNewsStyles.mediaToggleBtnActive,
-                  ]}
-                  onPress={() => {
-                    setMediaType(type);
-                    setImages([]);
-                    setVideo(null);
-                    setAttachment(null);
-                  }}
+                  style={[AddNewsStyles.mediaToggleBtn, mediaType === type && AddNewsStyles.mediaToggleBtnActive]}
+                  onPress={() => { setMediaType(type); setImages([]); setVideo(null); setAttachment(null); }}
                 >
                   <Feather
-                    name={
-                      type === 'Image'
-                        ? 'image'
-                        : type === 'Video'
-                          ? 'video'
-                          : type === 'File'
-                            ? 'paperclip'
-                            : 'slash'
-                    }
+                    name={type === 'Image' ? 'image' : type === 'Video' ? 'video' : type === 'File' ? 'paperclip' : 'slash'}
                     size={13}
                     color={mediaType === type ? '#7c3aed' : '#64748b'}
                   />
-                  <Text
-                    style={[
-                      AddNewsStyles.mediaToggleBtnText,
-                      mediaType === type && AddNewsStyles.mediaToggleBtnTextActive,
-                    ]}
-                  >
+                  <Text style={[AddNewsStyles.mediaToggleBtnText, mediaType === type && AddNewsStyles.mediaToggleBtnTextActive]}>
                     {type}
                   </Text>
                 </TouchableOpacity>
@@ -883,21 +856,12 @@ export default function AddNewsScreen({ navigation }) {
                 <View style={AddNewsStyles.mediaSection}>
                   <TouchableOpacity
                     style={[AddNewsStyles.mediaPickBtn]}
-                    onPress={() => {
-                      if (mediaType !== 'Image') {
-                        setMediaType('Image');
-                        setVideo(null);
-                        setAttachment(null);
-                      }
-                      pickImages();
-                    }}
+                    onPress={() => { if (mediaType !== 'Image') { setMediaType('Image'); setVideo(null); setAttachment(null); } pickImages(); }}
                     activeOpacity={0.85}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
                     <Feather name="image" size={16} color="#2563eb" />
-                    <Text style={AddNewsStyles.mediaPickBtnText}>
-                      {images.length > 0 ? 'Change Image' : 'Upload Image'}
-                    </Text>
+                    <Text style={AddNewsStyles.mediaPickBtnText}>{images.length > 0 ? 'Change Image' : 'Upload Image'}</Text>
                   </TouchableOpacity>
 
                   {images.length > 0 ? (
@@ -923,14 +887,7 @@ export default function AddNewsScreen({ navigation }) {
                 <View style={AddNewsStyles.mediaSection}>
                   <TouchableOpacity
                     style={[AddNewsStyles.mediaPickBtn, AddNewsStyles.videoPickBtn]}
-                    onPress={() => {
-                      if (mediaType !== 'Video') {
-                        setMediaType('Video');
-                        setImages([]);
-                        setAttachment(null);
-                      }
-                      pickVideo();
-                    }}
+                    onPress={() => { if (mediaType !== 'Video') { setMediaType('Video'); setImages([]); setAttachment(null); } pickVideo(); }}
                     activeOpacity={0.85}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
@@ -959,14 +916,7 @@ export default function AddNewsScreen({ navigation }) {
                 <View style={AddNewsStyles.mediaSection}>
                   <TouchableOpacity
                     style={[AddNewsStyles.mediaPickBtn, AddNewsStyles.filePickBtn]}
-                    onPress={() => {
-                      if (mediaType !== 'File') {
-                        setMediaType('File');
-                        setImages([]);
-                        setVideo(null);
-                      }
-                      pickFile();
-                    }}
+                    onPress={() => { if (mediaType !== 'File') { setMediaType('File'); setImages([]); setVideo(null); } pickFile(); }}
                     activeOpacity={0.85}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
@@ -979,9 +929,7 @@ export default function AddNewsScreen({ navigation }) {
                   {attachment ? (
                     <View style={AddNewsStyles.fileInfoRow}>
                       <Feather name="file-text" size={14} color="#0f766e" />
-                      <Text style={AddNewsStyles.fileInfoText} numberOfLines={1}>
-                        {attachment.name || 'attachment'}
-                      </Text>
+                      <Text style={AddNewsStyles.fileInfoText} numberOfLines={1}>{attachment.name || 'attachment'}</Text>
                       <TouchableOpacity style={AddNewsStyles.fileRemoveBtn} onPress={() => setAttachment(null)}>
                         <Feather name="x" size={12} color="#fff" />
                       </TouchableOpacity>
@@ -1011,9 +959,9 @@ export default function AddNewsScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
           </View>
-
-          <Footer visible={footerVisible} />
         </ScrollView>
+
+        <Footer />
       </KeyboardAvoidingView>
 
       <Sidebar
@@ -1040,4 +988,3 @@ export default function AddNewsScreen({ navigation }) {
     </View>
   );
 }
-

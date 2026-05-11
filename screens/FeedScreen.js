@@ -23,9 +23,10 @@ const SAMPLE_REEL_VIDEO_ALT2  = 'https://commondatastorage.googleapis.com/gtv-vi
 
 function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
-  if (url.startsWith('blob:') || url.startsWith('http://localhost')) return false;
-  if (url.startsWith('file://') || url.startsWith('content://') || url.startsWith('ph://') || url.startsWith('asset://')) return Platform.OS !== 'web';
-  if (url === '' || url === 'null' || url === 'undefined') return false;
+  if (url.startsWith('idb-media:')) return true;
+  // blob: URLs valid hain (resolved object URLs)
+  if (url.startsWith('blob:')) return true;  // ← CHANGE THIS
+  if (url.startsWith('http://localhost')) return false;
   return true;
 }
 
@@ -439,12 +440,77 @@ function UploadModal({ visible, onClose, onPost }) {
 }
 
 // Comments Modal
-function CommentsModal({ visible, onClose, post, comments, onAddComment }) {
+function CommentsModal({ visible, onClose, post, comments, onAddComment, onEditComment, onDeleteComment, onLikeComment }) {
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+  const [replyingToCommentId, setReplyingToCommentId] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const [currentUserName, setCurrentUserName] = useState(null);
   const { height: WH } = useWindowDimensions();
   const safeComments = Array.isArray(comments) ? comments : [];
+
+  // Get current user identity when modal opens
+  useEffect(() => {
+    if (visible) {
+      const getCurrentUser = async () => {
+        try {
+          const user = await UserStore.getCurrentUser();
+          if (user) {
+            if (user.email) {
+              setCurrentUserEmail(String(user.email).trim().toLowerCase());
+            }
+            const realName = String(user.name || user.full_name || user.username || user.email?.split('@')[0] || 'User');
+            setCurrentUserName(realName.trim());
+          }
+        } catch (error) {
+          console.error('Error getting current user:', error);
+        }
+      };
+      getCurrentUser();
+    }
+  }, [visible]);
   const totalCount = safeComments.reduce((sum, c) => sum + 1 + (Array.isArray(c.replies) ? c.replies.length : 0), 0);
+
+  const handleStartEdit = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentText(comment.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingCommentText('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCommentText.trim()) return;
+    if (onEditComment) {
+      await onEditComment(editingCommentId, editingCommentText.trim());
+    }
+    setEditingCommentId(null);
+    setEditingCommentText('');
+  };
+
+  const handleReplyComment = (commentId) => {
+    setReplyingToCommentId(commentId);
+    setReplyText('');
+  };
+
+  const handleCancelReply = () => {
+    setReplyingToCommentId(null);
+    setReplyText('');
+  };
+
+  const handleSubmitReply = async () => {
+    if (!replyText.trim()) return;
+    if (onAddComment) {
+      await onAddComment(replyText.trim(), replyingToCommentId);
+    }
+    setReplyingToCommentId(null);
+    setReplyText('');
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -461,34 +527,171 @@ function CommentsModal({ visible, onClose, post, comments, onAddComment }) {
           ) : null}
           <ScrollView style={{ maxHeight: WH * 0.42, marginBottom: 10 }} showsVerticalScrollIndicator={false}>
             {safeComments.length === 0 && <Text style={styles.noComments}>No comments yet. Be the first! 👇</Text>}
-            {safeComments.map((c) => (
-              <View key={c.id} style={styles.commentRow}>
-                <View style={styles.commentAvatar}><Text style={styles.commentAvatarText}>{String(c.user || 'U').charAt(0)}</Text></View>
-                <View style={styles.commentBubble}>
-                  <View style={styles.commentTopLine}>
-                    <Text style={styles.commentUser}>{c.user}</Text>
-                    <TouchableOpacity onPress={() => setReplyTo({ id: c.id, user: c.user })} activeOpacity={0.85}>
-                      <Text style={styles.commentReplyBtn}>Reply</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.commentText}>{c.text}</Text>
+            {safeComments.map((c) => {
+              const ownerMatch = (
+                (currentUserEmail && String(c.author_email || '').trim().toLowerCase() === currentUserEmail) ||
+                (currentUserName && String(c.user || c.author || '').trim().toLowerCase() === currentUserName.trim().toLowerCase())
+              );
+              const liked = Array.isArray(c.liked_by) && currentUserEmail && c.liked_by.includes(currentUserEmail);
 
-                  {Array.isArray(c.replies) && c.replies.length ? (
-                    <View style={styles.replyWrap}>
-                      {c.replies.map((r) => (
-                        <View key={r.id} style={styles.replyRow}>
-                          <View style={styles.replyAvatar}><Text style={styles.replyAvatarText}>{String(r.user || 'U').charAt(0)}</Text></View>
-                          <View style={styles.replyBubble}>
-                            <Text style={styles.replyUser}>{r.user}</Text>
-                            <Text style={styles.replyText}>{r.text}</Text>
-                          </View>
-                        </View>
-                      ))}
+              return (
+                <View key={c.id} style={styles.commentRow}>
+                  <View style={styles.commentAvatar}><Text style={styles.commentAvatarText}>{String(c.user || 'U').charAt(0)}</Text></View>
+                  <View style={styles.commentBubble}>
+                    <View style={styles.commentTopRow}>
+                      <Text style={styles.commentUser}>{c.user}</Text>
+                      <Text style={styles.commentDate}>{c.date || ''}{c.edited_at ? ' • Edited' : ''}</Text>
                     </View>
-                  ) : null}
+
+                    {editingCommentId === c.id ? (
+                      <TextInput
+                        style={styles.commentEditInput}
+                        value={editingCommentText}
+                        onChangeText={setEditingCommentText}
+                        multiline
+                      />
+                    ) : (
+                      <Text style={styles.commentText}>{c.text}</Text>
+                    )}
+
+                    <View style={styles.commentActionRow}>
+                      <TouchableOpacity
+                        style={[styles.commentActionBtn, liked && styles.commentActionBtnActive]}
+                        onPress={() => onLikeComment && onLikeComment(c.id)}
+                      >
+                        <Text style={[styles.commentActionText, liked && styles.commentActionTextActive]}>
+                          {liked ? '♥' : '♡'} {c.likes ? `(${c.likes})` : ''}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.commentActionBtn}
+                        onPress={() => handleReplyComment(c.id)}
+                      >
+                        <Text style={styles.commentActionText}>Reply</Text>
+                      </TouchableOpacity>
+
+                      {ownerMatch ? (
+                        editingCommentId === c.id ? (
+                          <>
+                            <TouchableOpacity style={styles.commentMiniBtn} onPress={handleSaveEdit}>
+                              <Text style={styles.commentMiniBtnText}>Save</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.commentMiniBtn} onPress={handleCancelEdit}>
+                              <Text style={styles.commentMiniBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <>
+                            <TouchableOpacity style={styles.commentMiniBtn} onPress={() => handleStartEdit(c)}>
+                              <Text style={styles.commentMiniBtnText}>Edit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.commentMiniBtn} onPress={() => onDeleteComment && onDeleteComment(c.id)}>
+                              <Text style={[styles.commentMiniBtnText, { color: '#ef4444' }]}>Delete</Text>
+                            </TouchableOpacity>
+                          </>
+                        )
+                      ) : null}
+                    </View>
+
+                    {/* Reply Form */}
+                    {replyingToCommentId === c.id && (
+                      <View style={styles.commentReplyForm}>
+                        <TextInput
+                          style={styles.commentReplyInput}
+                          placeholder="Write a reply..."
+                          placeholderTextColor="#94a3b8"
+                          value={replyText}
+                          onChangeText={setReplyText}
+                          multiline
+                        />
+                        <View style={styles.commentReplyActions}>
+                          <TouchableOpacity
+                            style={styles.commentReplyBtn}
+                            onPress={handleSubmitReply}
+                            disabled={!replyText.trim()}
+                          >
+                            <Text style={styles.commentReplyBtnText}>Reply</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.commentReplyBtn, styles.commentCancelBtn]}
+                            onPress={handleCancelReply}
+                          >
+                            <Text style={styles.commentCancelBtnText}>Cancel</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Replies */}
+                    {Array.isArray(c.replies) && c.replies.length > 0 && (
+                      <View style={styles.commentReplies}>
+                        {c.replies.map((reply) => {
+                          const replyOwnerMatch = (
+                            (currentUserEmail && String(reply.author_email || '').trim().toLowerCase() === currentUserEmail) ||
+                            (currentUserName && String(reply.user || reply.author || '').trim().toLowerCase() === currentUserName.trim().toLowerCase())
+                          );
+                          const replyLiked = Array.isArray(reply.liked_by) && currentUserEmail && reply.liked_by.includes(currentUserEmail);
+
+                          return (
+                            <View key={reply.id} style={styles.commentReplyItem}>
+                              <View style={styles.commentTopRow}>
+                                <Text style={styles.commentAuthor}>{reply.author || 'User'}</Text>
+                                <Text style={styles.commentDate}>{reply.date || ''}{reply.edited_at ? ' • Edited' : ''}</Text>
+                              </View>
+
+                              {editingCommentId === reply.id ? (
+                                <TextInput
+                                  style={styles.commentEditInput}
+                                  value={editingCommentText}
+                                  onChangeText={setEditingCommentText}
+                                  multiline
+                                />
+                              ) : (
+                                <Text style={styles.commentText}>{reply.text}</Text>
+                              )}
+
+                              <View style={styles.commentActionRow}>
+                                <TouchableOpacity
+                                  style={[styles.commentActionBtn, replyLiked && styles.commentActionBtnActive]}
+                                  onPress={() => onLikeComment && onLikeComment(reply.id)}
+                                >
+                                  <Text style={[styles.commentActionText, replyLiked && styles.commentActionTextActive]}>
+                                    {replyLiked ? '♥' : '♡'} {reply.likes ? `(${reply.likes})` : ''}
+                                  </Text>
+                                </TouchableOpacity>
+
+                                {replyOwnerMatch ? (
+                                  editingCommentId === reply.id ? (
+                                    <>
+                                      <TouchableOpacity style={styles.commentMiniBtn} onPress={handleSaveEdit}>
+                                        <Text style={styles.commentMiniBtnText}>Save</Text>
+                                      </TouchableOpacity>
+                                      <TouchableOpacity style={styles.commentMiniBtn} onPress={handleCancelEdit}>
+                                        <Text style={styles.commentMiniBtnText}>Cancel</Text>
+                                      </TouchableOpacity>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <TouchableOpacity style={styles.commentMiniBtn} onPress={() => handleStartEdit(reply)}>
+                                        <Text style={styles.commentMiniBtnText}>Edit</Text>
+                                      </TouchableOpacity>
+                                      <TouchableOpacity style={styles.commentMiniBtn} onPress={() => onDeleteComment && onDeleteComment(reply.id)}>
+                                        <Text style={[styles.commentMiniBtnText, { color: '#ef4444' }]}>Delete</Text>
+                                      </TouchableOpacity>
+                                    </>
+                                  )
+                                ) : null}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View style={styles.commentInputRow}>
@@ -584,7 +787,7 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, onDescript
 }
 
 // Reel Card
-function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription, onProfilePress, isActive, cardWidth, cardHeight, isMobileLayout }) {
+function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription, onProfilePress, onFollow, isActive, cardWidth, cardHeight, isMobileLayout }) {
   const safePost = post || {};
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [captionExpanded, setCaptionExpanded] = useState(false);
@@ -594,6 +797,9 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
   const [avatarError, setAvatarError] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
   const [resolvedMediaUri, setResolvedMediaUri] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
 
   const comments    = Array.isArray(safePost.comments) ? safePost.comments : [];
   const caption     = String(safePost.caption || '');
@@ -605,17 +811,96 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
   const time        = String(safePost.time || '');
   const verified    = Boolean(safePost.verified || safePost.author_is_premium || false);
   const postId      = String(safePost.id || '');
+  const authorEmail = String(safePost.createdBy || safePost.created_by || '').trim().toLowerCase();
   const shares      = Number(safePost.shares || 0);
+
+  // Check follow status and get current user email on mount
+  useEffect(() => {
+    const initializeComponent = async () => {
+      try {
+        // Get current user email
+        const currentUser = await UserStore.getCurrentUser();
+        if (currentUser && currentUser.email) {
+          setCurrentUserEmail(currentUser.email);
+        }
+
+        // Check follow status
+        if (authorEmail && onFollow) {
+          const status = await UserStore.getFollowStatus(authorEmail);
+          setIsFollowing(status.isFollowing);
+        }
+      } catch (error) {
+        console.error('Error initializing component:', error);
+      }
+    };
+    initializeComponent();
+  }, [authorEmail, onFollow]);
+
+  const handleFollowPress = async () => {
+    if (!authorEmail || followLoading) return;
+
+    try {
+      // Check if current user is trying to follow themselves
+      const currentUser = await UserStore.getCurrentUser();
+      if (currentUser && currentUser.email === authorEmail) {
+        Alert.alert('Cannot Follow', 'You cannot follow yourself.');
+        return;
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      Alert.alert('Error', 'Unable to verify user. Please try again.');
+      return;
+    }
+    
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await UserStore.unfollowUser(authorEmail);
+        setIsFollowing(false);
+      } else {
+        await UserStore.followUser(authorEmail);
+        setIsFollowing(true);
+      }
+    } catch (error) {
+      console.error('Error updating follow status:', error);
+      Alert.alert('Error', 'Unable to update follow status. Please try again.');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const safeAvatarUrl = useMemo(() =>
     !avatarError && isValidImageUrl(avatarUri) ? avatarUri : 'https://i.pravatar.cc/100?img=5',
     [avatarUri, avatarError]);
 
-  const safeThumbnailUrl = useMemo(() => {
-    const t = safePost?.thumbnail || safePost?.image;
-    return (!thumbnailError && isValidImageUrl(t)) ? t : `https://picsum.photos/400/700?random=${postId}`;
-  }, [safePost?.thumbnail, safePost?.image, thumbnailError, postId]);
+  const [resolvedThumbnailUrl, setResolvedThumbnailUrl] = useState(null);
 
+useEffect(() => {
+  let alive = true;
+  const t = safePost?.thumbnail || safePost?.image;
+  if (!t) { setResolvedThumbnailUrl(null); return; }
+  if (isIdbMediaUri(t)) {
+    resolveIdbMediaUriToObjectUrl(t).then((url) => {
+      if (alive && url) setResolvedThumbnailUrl(url);
+    });
+  } else {
+    setResolvedThumbnailUrl(t);
+  }
+  return () => { alive = false; };
+}, [safePost?.thumbnail, safePost?.image]);
+
+const safeThumbnailUrl = useMemo(() => {
+  const t = resolvedThumbnailUrl;
+  if (!thumbnailError && t && (
+    t.startsWith('blob:') || 
+    t.startsWith('https://') || 
+    t.startsWith('http://') ||
+    isValidImageUrl(t)
+  )) {
+    return t;
+  }
+  return `https://picsum.photos/400/700?random=${postId}`;
+}, [resolvedThumbnailUrl, thumbnailError, postId]);
   const mediaUri = String(safePost.media || '').trim();
 
   useEffect(() => {
@@ -773,16 +1058,30 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
             <Text style={styles.reelTagText}>{String(safePost.tag || '')}</Text>
           </View>
 
-          <TouchableOpacity style={styles.reelUserRow} onPress={() => onProfilePress(safePost)} activeOpacity={0.85}>
-            <Image source={{ uri: safeAvatarUrl }} style={styles.reelUserAvatar} onError={() => setAvatarError(true)} />
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={styles.reelUserName}>{userName}</Text>
-                {verified && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
+          <View style={styles.reelUserRow}>
+            <TouchableOpacity style={{ flexDirection: 'row', flex: 1, alignItems: 'center' }} onPress={() => onProfilePress(safePost)} activeOpacity={0.85}>
+              <Image source={{ uri: safeAvatarUrl }} style={styles.reelUserAvatar} onError={() => setAvatarError(true)} />
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.reelUserName}>{userName}</Text>
+                  {verified && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
+                </View>
+                <Text style={styles.reelUserRole}>{role} · {time}</Text>
               </View>
-              <Text style={styles.reelUserRole}>{role} · {time}</Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+            {authorEmail && currentUserEmail !== authorEmail && (
+              <TouchableOpacity
+                style={[styles.followBtn, isFollowing && styles.followBtnFollowing]}
+                onPress={handleFollowPress}
+                disabled={followLoading}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextFollowing]}>
+                  {followLoading ? '...' : (isFollowing ? 'Following' : 'Follow')}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={styles.reelLocationRow}>
             <Text style={styles.reelLocationIcon}>📍</Text>
@@ -827,6 +1126,7 @@ export default function FeedScreen({ navigation }) {
   const [descPost, setDescPost]         = useState(null);
   const [activeIndex, setActiveIndex]   = useState(0);
   const [currentUser, setCurrentUser]   = useState({ name: 'User', avatar: null });
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
   const isScreenFocused = useIsFocused();
 
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -877,9 +1177,23 @@ export default function FeedScreen({ navigation }) {
             ...p,
             comments: item.comments_list.map(c => ({
               id: String(c.id || ''),
-              user: String(c.author || 'User'),
+              user: String(c.author || c.user || 'User'),
+              author: String(c.author || c.user || 'User'),
+              author_email: String(c.user_email || c.author_email || '').trim().toLowerCase(),
               text: String(c.text || ''),
-              replies: Array.isArray(c.replies) ? c.replies : [],
+              replies: Array.isArray(c.replies)
+                ? c.replies.map(r => ({
+                    id: String(r.id || ''),
+                    user: String(r.author || r.user || 'User'),
+                    author: String(r.author || r.user || 'User'),
+                    author_email: String(r.user_email || r.author_email || '').trim().toLowerCase(),
+                    text: String(r.text || ''),
+                    likes: Number(r.likes || 0),
+                    liked_by: Array.isArray(r.liked_by) ? r.liked_by : [],
+                    date: String(r.date || ''),
+                    edited_at: r.edited_at || null,
+                  }))
+                : [],
             })),
             commentsCount: item.comments_list.length,
           }
@@ -896,25 +1210,125 @@ export default function FeedScreen({ navigation }) {
 
   const handleDescription = useCallback((id) => setDescPost(id), []);
 
-  const handleAddComment = useCallback(async (text) => {
+  const handleAddComment = useCallback(async (text, replyToId = null) => {
   const tempId = Date.now().toString();
-  const newComment = { id: tempId, user: currentUser.name, text };
+  const newComment = {
+    id: tempId,
+    user: currentUser.name,
+    author: currentUser.name,
+    author_email: currentUserEmail || '',
+    text,
+    date: new Date().toISOString().split('T')[0],
+    likes: 0,
+    liked_by: [],
+  };
 
   // Turant UI mein dikhao
   setPosts(prev =>
   prev.map(p => p.id === commentPost
-    ? { 
-        ...p, 
-        comments: [...(Array.isArray(p.comments) ? p.comments : []), newComment],
+    ? {
+        ...p,
+        comments: replyToId
+          ? p.comments.map(c => c.id === replyToId
+              ? { ...c, replies: [...(c.replies || []), newComment] }
+              : c
+            )
+          : [...(Array.isArray(p.comments) ? p.comments : []), newComment],
         commentsCount: (p.commentsCount ?? (Array.isArray(p.comments) ? p.comments.length : 0)) + 1,
       }
     : p)
 );
   // UserStore mein save karo
   try {
-    await UserStore.addNewsComment(commentPost, text);
+    if (replyToId) {
+      await UserStore.replyNewsComment(commentPost, replyToId, text);
+    } else {
+      await UserStore.addNewsComment(commentPost, text);
+    }
   } catch {}
 }, [commentPost, currentUser.name]);
+
+  const handleEditComment = useCallback(async (commentId, newText) => {
+    setPosts(prev =>
+      prev.map(p => ({
+        ...p,
+        comments: Array.isArray(p.comments) ? p.comments.map(c => {
+          if (c.id === commentId) return { ...c, text: newText, edited_at: new Date().toISOString() };
+          if (Array.isArray(c.replies)) {
+            return {
+              ...c,
+              replies: c.replies.map(r => r.id === commentId ? { ...r, text: newText, edited_at: new Date().toISOString() } : r)
+            };
+          }
+          return c;
+        }) : p.comments
+      }))
+    );
+    try {
+      await UserStore.editNewsComment(commentPost, commentId, newText);
+    } catch {}
+  }, [commentPost]);
+
+  const handleDeleteComment = useCallback(async (commentId) => {
+    setPosts(prev =>
+      prev.map(p => ({
+        ...p,
+        comments: Array.isArray(p.comments) ? p.comments.filter(c => {
+          if (c.id === commentId) return false;
+          if (Array.isArray(c.replies)) {
+            c.replies = c.replies.filter(r => r.id !== commentId);
+          }
+          return true;
+        }) : p.comments,
+        commentsCount: Math.max(0, (p.commentsCount ?? (Array.isArray(p.comments) ? p.comments.length : 0)) - 1)
+      }))
+    );
+    try {
+      await UserStore.deleteNewsComment(commentPost, commentId);
+    } catch {}
+  }, [commentPost]);
+
+  const handleLikeComment = useCallback(async (commentId) => {
+    setPosts(prev =>
+      prev.map(p => ({
+        ...p,
+        comments: Array.isArray(p.comments) ? p.comments.map(c => {
+          if (c.id === commentId) {
+            const liked = Array.isArray(c.liked_by) && c.liked_by.includes('current_user@example.com');
+            return {
+              ...c,
+              liked_by: liked
+                ? c.liked_by.filter(email => email !== 'current_user@example.com')
+                : [...(c.liked_by || []), 'current_user@example.com'],
+              likes: liked ? (c.likes || 0) - 1 : (c.likes || 0) + 1
+            };
+          }
+          if (Array.isArray(c.replies)) {
+            return {
+              ...c,
+              replies: c.replies.map(r => {
+                if (r.id === commentId) {
+                  const liked = Array.isArray(r.liked_by) && r.liked_by.includes('current_user@example.com');
+                  return {
+                    ...r,
+                    liked_by: liked
+                      ? r.liked_by.filter(email => email !== 'current_user@example.com')
+                      : [...(r.liked_by || []), 'current_user@example.com'],
+                    likes: liked ? (r.likes || 0) - 1 : (r.likes || 0) + 1
+                  };
+                }
+                return r;
+              })
+            };
+          }
+          return c;
+        }) : p.comments
+      }))
+    );
+    try {
+      await UserStore.likeNewsComment(commentPost, commentId);
+    } catch {}
+  }, [commentPost]);
   const handleNewPost = useCallback(({ caption, headline, tag }) => {
     const seed = Date.now();
     setPosts(prev => [{
@@ -963,6 +1377,9 @@ export default function FeedScreen({ navigation }) {
             const realName   = profileData.name || profileData.full_name || profileData.username || profileData.email?.split('@')[0] || 'User';
             const realAvatar = isValidImageUrl(profileData.avatar || profileData.profile_image) ? (profileData.avatar || profileData.profile_image) : null;
             setCurrentUser({ name: realName, avatar: realAvatar });
+            if (profileData.email) {
+              setCurrentUserEmail(String(profileData.email).trim().toLowerCase());
+            }
           }
 
           if (summary?.value?.items) {
@@ -972,13 +1389,12 @@ export default function FeedScreen({ navigation }) {
               avatar: isValidImageUrl(item.avatar) ? item.avatar : null,
               thumbnail: isValidImageUrl(item.thumbnail) ? item.thumbnail : null,
               image: isValidImageUrl(item.image) ? item.image : null,
-             comments: Array.isArray(item.comments) ? item.comments : [],
-comments: Array.isArray(item.comments) ? item.comments : [],
-commentsCount: Number(
-  item.commentsCount ??
-  item.comments_count ??
-  (Array.isArray(item.comments) ? item.comments.length : Number(item.comments ?? 0))
-),
+              comments: Array.isArray(item.comments) ? item.comments : [],
+              commentsCount: Number(
+                item.commentsCount ??
+                item.comments_count ??
+                (Array.isArray(item.comments) ? item.comments.length : Number(item.comments ?? 0))
+              ),
               likes: Number(item.likes) || 0, shares: Number(item.shares) || 0,
               liked: Boolean(item.liked), bookmarked: Boolean(item.bookmarked),
             }));
@@ -1027,6 +1443,7 @@ commentsCount: Number(
                     },
                   })
                 }
+                onFollow={true}
                 isActive={index === activeIndex && isScreenFocused}
                 cardWidth={cardWidth}
                 cardHeight={cardHeight}
@@ -1060,6 +1477,9 @@ commentsCount: Number(
   text: c.text || '',
 })) : []}
           onAddComment={handleAddComment}
+          onEditComment={handleEditComment}
+          onDeleteComment={handleDeleteComment}
+          onLikeComment={handleLikeComment}
         />
       )}
 

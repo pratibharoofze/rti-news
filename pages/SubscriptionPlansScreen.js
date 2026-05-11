@@ -210,9 +210,7 @@ function SeatSelectModal({
             {seatsToShow.map((seat) => {
               const isTaken = seat.status === 'taken';
               const isDisabled = seat.status === 'disabled';
-
               const isSelected = selectedSeatId === seat.id;
-
               const disabled = isTaken || isDisabled;
 
               const borderColor = isSelected
@@ -315,15 +313,10 @@ export default function SubscriptionPlansScreen({
   const { showToast, showPopup } = useToast();
 
   const [sidebarVisible, setSidebarVisible] = useState(false);
-
   const [loading, setLoading] = useState(true);
-
   const [seatSummary, setSeatSummary] = useState(null);
-
   const [selectedSeatId, setSelectedSeatId] = useState('');
-
   const [pendingPlan, setPendingPlan] = useState(null);
-
   const [seatModalOpen, setSeatModalOpen] = useState(false);
 
   const [subscriptionData, setSubscriptionData] = useState({
@@ -352,11 +345,9 @@ export default function SubscriptionPlansScreen({
     }
 
     setSubscriptionData(data);
-
     setSeatSummary(seatData || null);
 
     const seatId = seatData?.current_seat?.seat_id || '';
-
     setSelectedSeatId((prev) => prev || seatId);
   }, [navigation]);
 
@@ -374,11 +365,7 @@ export default function SubscriptionPlansScreen({
   const activeSeatId =
     seatSummary?.current_seat?.seat_id || '';
 
-  const navigateToPayment = (
-    plan,
-    stateName,
-    seatRoleIdToUse
-  ) => {
+  const navigateToPayment = (plan, stateName, seatRoleIdToUse) => {
     navigation.navigate('Payment', {
       order: {
         plan_id: plan.plan_id,
@@ -405,19 +392,13 @@ export default function SubscriptionPlansScreen({
             }),
         }
       );
-
       return;
     }
 
     setPendingPlan(plan);
 
     if (activeSeatId) {
-      navigateToPayment(
-        plan,
-        stateName,
-        activeSeatId
-      );
-
+      navigateToPayment(plan, stateName, activeSeatId);
       return;
     }
 
@@ -426,7 +407,6 @@ export default function SubscriptionPlansScreen({
 
   const handleLogout = async () => {
     await UserStore.clearCurrentUser();
-
     navigation.replace('Login');
   };
 
@@ -439,12 +419,37 @@ export default function SubscriptionPlansScreen({
       />
 
       <ScrollView
-        contentContainerStyle={
-          SubscriptionPlansStyles.scrollContent
-        }
+        contentContainerStyle={SubscriptionPlansStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View style={SubscriptionPlansStyles.heroCard}>
+
+          {/* ✅ Back Button — Dashboard Screen par navigate karega */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Dashboard')}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'flex-start',
+              marginBottom: 10,
+              paddingVertical: 4,
+              paddingHorizontal: 2,
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="arrow-left" size={18} color="#7c3aed" />
+            <Text
+              style={{
+                color: '#7c3aed',
+                fontSize: 14,
+                marginLeft: 5,
+                fontWeight: '600',
+              }}
+            >
+              Back
+            </Text>
+          </TouchableOpacity>
+
           <Text style={SubscriptionPlansStyles.heroEyebrow}>
             Plans
           </Text>
@@ -470,13 +475,9 @@ export default function SubscriptionPlansScreen({
           ) : (
             subscriptionData.plans.map((plan) => {
               const isActive =
-                subscriptionData.activePlan?.plan_id ===
-                plan.plan_id;
+                subscriptionData.activePlan?.plan_id === plan.plan_id;
 
-              const planRole =
-                UserStore.getRoleFromPlanId(
-                  plan.plan_id
-                );
+              const planRole = UserStore.getRoleFromPlanId(plan.plan_id);
 
               return (
                 <TouchableOpacity
@@ -486,33 +487,16 @@ export default function SubscriptionPlansScreen({
                   onPress={() => handleBuyPlan(plan)}
                   style={[
                     SubscriptionPlansStyles.planCard,
-                    isActive &&
-                      SubscriptionPlansStyles.planCardActive,
+                    isActive && SubscriptionPlansStyles.planCardActive,
                   ]}
                 >
-                  <View
-                    style={
-                      SubscriptionPlansStyles.planTopRow
-                    }
-                  >
-                    <View
-                      style={
-                        SubscriptionPlansStyles.planTitleWrap
-                      }
-                    >
-                      <Text
-                        style={
-                          SubscriptionPlansStyles.planName
-                        }
-                      >
+                  <View style={SubscriptionPlansStyles.planTopRow}>
+                    <View style={SubscriptionPlansStyles.planTitleWrap}>
+                      <Text style={SubscriptionPlansStyles.planName}>
                         {plan.plan_name}
                       </Text>
 
-                      <Text
-                        style={
-                          SubscriptionPlansStyles.planDuration
-                        }
-                      >
+                      <Text style={SubscriptionPlansStyles.planDuration}>
                         {plan.duration}
                       </Text>
                     </View>
@@ -520,47 +504,22 @@ export default function SubscriptionPlansScreen({
                     <RoleBadge role={planRole} />
                   </View>
 
-                  <Text
-                    style={
-                      SubscriptionPlansStyles.planPrice
-                    }
-                  >
+                  <Text style={SubscriptionPlansStyles.planPrice}>
                     ₹{plan.price}
                   </Text>
 
-                  {Array.isArray(plan.features) &&
-                    plan.features.length > 0 && (
-                      <View
-                        style={
-                          SubscriptionPlansStyles.featuresList
-                        }
-                      >
-                        {plan.features.map(
-                          (feature, idx) => (
-                            <View
-                              key={idx}
-                              style={
-                                SubscriptionPlansStyles.featureRow
-                              }
-                            >
-                              <Feather
-                                name="check"
-                                size={13}
-                                color="#16a34a"
-                              />
-
-                              <Text
-                                style={
-                                  SubscriptionPlansStyles.featureText
-                                }
-                              >
-                                {feature}
-                              </Text>
-                            </View>
-                          )
-                        )}
-                      </View>
-                    )}
+                  {Array.isArray(plan.features) && plan.features.length > 0 && (
+                    <View style={SubscriptionPlansStyles.featuresList}>
+                      {plan.features.map((feature, idx) => (
+                        <View key={idx} style={SubscriptionPlansStyles.featureRow}>
+                          <Feather name="check" size={13} color="#16a34a" />
+                          <Text style={SubscriptionPlansStyles.featureText}>
+                            {feature}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
 
                   {!isActive && (
                     <Text
@@ -600,18 +559,12 @@ export default function SubscriptionPlansScreen({
           if (!seatId || !pendingPlan) return;
 
           setSelectedSeatId(seatId);
-
           setSeatModalOpen(false);
 
           const selectedPlan = pendingPlan;
-
           setPendingPlan(null);
 
-          navigateToPayment(
-            selectedPlan,
-            stateName,
-            seatId
-          );
+          navigateToPayment(selectedPlan, stateName, seatId);
         }}
       />
     </View>

@@ -13,7 +13,7 @@ export const SIDEBAR_MENU_ITEMS = [
   { key: 'latest', labelKey: 'latestNews', fallbackLabel: 'Latest News', icon: 'flame-outline', accentColor: '#fb923c', surfaceColor: '#fff7ed' },
   { key: 'states', labelKey: 'news', fallbackLabel: 'News', icon: 'newspaper-outline', accentColor: '#ec4899', surfaceColor: '#fdf2f8' },
   { key: 'politics', labelKey: 'politics', fallbackLabel: 'Politics', icon: 'library-outline', accentColor: '#0ea5e9', surfaceColor: '#eff6ff' },
-  { key: 'elections', labelKey: 'elections', fallbackLabel: 'Elections', icon: 'ballot-outline', accentColor: '#22c55e', surfaceColor: '#effcf3' },
+  { key: 'elections', labelKey: 'elections', fallbackLabel: 'Elections', icon: 'checkbox-outline', accentColor: '#22c55e', surfaceColor: '#effcf3' },
   { key: 'viral', labelKey: 'viral', fallbackLabel: 'Viral', icon: 'megaphone-outline', accentColor: '#3b82f6', surfaceColor: '#eff6ff' },
   { key: 'astrology', labelKey: 'astrology', fallbackLabel: 'Astrology', icon: 'sparkles-outline', accentColor: '#8b5cf6', surfaceColor: '#f5f3ff' },
   { key: 'horoscope_hindi', labelKey: 'horoscopeHindi', fallbackLabel: 'Horoscope in Hindi', icon: 'moon-outline', accentColor: '#f43f5e', surfaceColor: '#fff1f2' },

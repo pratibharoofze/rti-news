@@ -8,7 +8,7 @@ const SITE_COPY = {
       rtiShort: 'RTI',
       laws: 'Important Laws',
       contact: 'Contact',
-      signUp: 'Sign Up',
+      signIn: 'Sign In',
       profile: 'Profile',
       dashboard: 'Dashboard',
       logout: 'Logout',

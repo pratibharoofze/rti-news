@@ -8,7 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import styles from '../styles/SidebarStyles';
 
 const menuItems = [
-  { label: 'Home',               icon: 'home-outline' },
+  // ✅ Home sirf web pe dikhega APK mein nahi
+  ...(Platform.OS === 'web' ? [{ label: 'Home', icon: 'home-outline' }] : []),
   { label: 'Dashboard',          icon: 'grid-outline' },
   { label: 'Profile',            icon: 'person-outline' },
   { label: 'My Network',         icon: 'people-outline' },

@@ -106,11 +106,14 @@ export default function AppNavigator() {
       onStateChange={persistNavigationState}
     >
       <Stack.Navigator
-        initialRouteName="Home"
+        initialRouteName={Platform.OS === 'web' ? 'Home' : 'Login'}
         screenOptions={{ headerShown: false }}
       >
+        
         {/* ── Public / Landing ── */}
-        <Stack.Screen name="Home"          component={HomeScreen} />
+{Platform.OS === 'web' && (
+  <Stack.Screen name="Home" component={HomeScreen} />
+)}
         <Stack.Screen name="About"         component={AboutScreen} />
         <Stack.Screen name="Contact"       component={ContactScreen} />
         <Stack.Screen name="WhatIsRTI"     component={WhatIsRTIScreen} />

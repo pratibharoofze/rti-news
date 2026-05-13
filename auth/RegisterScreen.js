@@ -619,7 +619,7 @@ export default function RegisterScreen({ navigation }) {
       setCurrentOtp(newOtp);
       await OTPService.sendSMS(mobile, newOtp);
       if (emailOk) await OTPService.sendEmail(normalizedEmail, newOtp);
-      showToast(`'OTP resent successfully!'! (Testing: ${newOtp})`, 'info');
+      showToast(`OTP resent successfully! (Testing: ${newOtp})`, 'info');
       return;
     }
 
@@ -809,16 +809,16 @@ export default function RegisterScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {mobileShowError && (
+              {mobileShowError ? (
                 <Text style={styles.errorText}>
                   Valid 10-digit Indian mobile number daalo (6-9 se shuru)
                 </Text>
-              )}
+              ) : null}
 
               {/* OTP send hone ka hint */}
               {mobileOk && !mobileVerified && (
                 <Text style={localStyles.otpHint}>
-                  '👆 Press "Send OTP" to verify your mobile number'
+                 {'👆 Press "Send OTP" to verify your mobile number'}
                 </Text>
               )}
             </View>
@@ -910,7 +910,7 @@ export default function RegisterScreen({ navigation }) {
                     ))}
                   </View>
                 ) : (
-                  <Text style={styles.helperText}>'Tip: Use something like \Rti@2026News`'`</Text>
+                  <Text style={styles.helperText}>{'Tip: Use something like Rti@2026News'}</Text>
                 )
               )}
             </View>
@@ -934,7 +934,7 @@ export default function RegisterScreen({ navigation }) {
                 </TouchableOpacity>
               </View>
               {confirm.length > 0 && password !== confirm ? (
-                <Text style={styles.errorText}>'Passwords do not match'</Text>
+                <Text style={styles.errorText}>{'Passwords do not match'}</Text>
               ) : null}
             </View>
 
@@ -945,7 +945,7 @@ export default function RegisterScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <View style={[localStyles.checkbox, termsAccepted && localStyles.checkboxChecked, termsTouched && !termsAccepted && localStyles.checkboxError]}>
-                {termsAccepted && <Ionicons name="checkmark" size={14} color="#fff" />}
+                {termsAccepted ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
               </View>
               <Text style={localStyles.termsText}>
                 I accept the <Text style={localStyles.termsLink}>Terms & Conditions</Text> and <Text style={localStyles.termsLink}>Privacy Policy</Text>
@@ -953,7 +953,7 @@ export default function RegisterScreen({ navigation }) {
             </TouchableOpacity>
             {termsTouched && !termsAccepted && (
               <Text style={[styles.errorText, { marginTop: 4, marginBottom: 6 }]}>
-                'Please accept the Terms & Conditions'
+                {'Please accept the Terms & Conditions'}
               </Text>
             )}
 
@@ -969,9 +969,7 @@ export default function RegisterScreen({ navigation }) {
 
             {/* Mobile verify nahi hua to hint */}
             {mobileOk && !mobileVerified && (
-              <Text style={localStyles.verifyHintBottom}>
-                ⚠️ Mobile verification is required to create account
-              </Text>
+              <Text style={localStyles.verifyHintBottom}>{'⚠️ Mobile verification is required to create account'}</Text>
             )}
 
             <TouchableOpacity style={styles.switchBtn} onPress={() => navigation.navigate('Login')}>

@@ -154,7 +154,7 @@ export default function ContactScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1 }}>
-      {isWeb && <AppNavbar navigation={navigation} activeScreen="Contact" />}
+      {isWeb ? <AppNavbar navigation={navigation} activeScreen="Contact" /> : null}
 
       <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
         {/* Smaller Hero Section - No Curves */}
@@ -260,7 +260,7 @@ export default function ContactScreen({ navigation }) {
                             <Text style={s.faqToggleText}>{isOpen ? '−' : '+'}</Text>
                           </View>
                         </View>
-                        {isOpen && <Text style={s.faqA}>{faq.a}</Text>}
+                        {isOpen ? <Text style={s.faqA}>{faq.a}</Text> : null}
                       </TouchableOpacity>
                     );
                   })}

@@ -5,6 +5,13 @@ const ProfileStyles = StyleSheet.create({
   bgOrbPrimary:   { position:'absolute', top:-70, left:-110, width:320, height:320, borderRadius:160, backgroundColor:'rgba(200,179,255,0.28)' },
   bgOrbSecondary: { position:'absolute', top:62, right:24, width:88, height:88, borderRadius:44, backgroundColor:'rgba(157,160,255,0.45)' },
   bgOrbTertiary:  { position:'absolute', bottom:118, right:-70, width:240, height:240, borderRadius:120, backgroundColor:'rgba(255,255,255,0.62)' },
+
+  // Top bar (Back + action icons)
+  topBar: { paddingHorizontal:16, paddingTop:12, paddingBottom:8, flexDirection:'row', alignItems:'center', justifyContent:'space-between' },
+  topBarBackBtn: { width:42, height:42, borderRadius:21, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.92)', borderWidth:1, borderColor:'rgba(226,232,240,0.9)', elevation:6 },
+  topBarActions: { flexDirection:'row', alignItems:'center', gap:8 },
+  topBarIconBtn: { width:40, height:40, borderRadius:20, alignItems:'center', justifyContent:'center', backgroundColor:'rgba(255,255,255,0.92)', borderWidth:1, borderColor:'rgba(226,232,240,0.9)', elevation:6 },
+
   scrollView:    { flex:1 },
   scrollContent: { paddingHorizontal:16, paddingTop:12, paddingBottom:200 },
   profileShell:  { gap:14 },
@@ -170,6 +177,12 @@ const ProfileStyles = StyleSheet.create({
   updateButton:     { backgroundColor:'#7d38ff' },
   actionButtonText: { color:'#fff', fontWeight:'800', fontSize:14 },
   loadingText:      { textAlign:'center', color:'#64748b', fontSize:12, marginTop:10 },
+
+  // Bottom app footer (Post News)
+  bottomShell: { backgroundColor:'transparent' },
+  bottomAppFooter: { paddingHorizontal:16, paddingTop:6, paddingBottom:12, backgroundColor:'rgba(236,234,247,0.98)' },
+  postNewsBtn: { borderRadius:16, paddingVertical:14, paddingHorizontal:16, backgroundColor:'#0f172a', flexDirection:'row', alignItems:'center', justifyContent:'center', gap:10, elevation:10 },
+  postNewsBtnText: { color:'#ffffff', fontSize:15, fontWeight:'900', letterSpacing:0.2 },
 });
 
 export default ProfileStyles;

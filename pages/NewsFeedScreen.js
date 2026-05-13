@@ -90,7 +90,7 @@ const FilterDropdown = ({ label, value, options, onSelect }) => {
           color={isActive ? '#fff' : '#64748b'}
         />
       </TouchableOpacity>
-      {open && (
+      {open ? (
         <View style={styles.dropdownList}>
           <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={false}>
             {options.map((opt) => (
@@ -102,12 +102,12 @@ const FilterDropdown = ({ label, value, options, onSelect }) => {
                 <Text style={[styles.dropdownItemText, value === opt && styles.dropdownItemTextActive]}>
                   {opt}
                 </Text>
-                {value === opt && <Feather name="check" size={12} color="#0f766e" />}
+                {value === opt ? <Feather name="check" size={12} color="#0f766e" /> : null}
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
-      )}
+      ) : null}
     </View>
   );
 };
@@ -475,7 +475,7 @@ export default function NewsFeedScreen({ navigation }) {
             </View>
           )}
 
-          {filterPanelVisible && (
+          {filterPanelVisible ? (
             <View style={styles.filterPanel}>
               <View style={styles.filterGroup}>
                 <Text style={styles.filterLabel}>📍  State</Text>
@@ -520,7 +520,7 @@ export default function NewsFeedScreen({ navigation }) {
                 </TouchableOpacity>
               )}
             </View>
-          )}
+          ) : null}
         </View>
 
         {/* News Feed */}

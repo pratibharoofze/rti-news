@@ -306,7 +306,7 @@ export default function SettingsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {loading && <Text style={styles.loadingText}>Loading settings...</Text>}
+        {loading ? <Text style={styles.loadingText}>Loading settings...</Text> : null}
       </ScrollView>
 
       <Footer activeTab={activeTab} onTabPress={setActiveTab} />

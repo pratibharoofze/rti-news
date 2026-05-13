@@ -510,7 +510,7 @@ export default function EPaperScreen({ navigation }) {
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
           >
-            {ready && (
+            {Boolean(ready) && (
               <>
                 {/* ── Title ── */}
                 <Text style={EPaperStyles.fieldLabel}>Title *</Text>
@@ -670,7 +670,7 @@ export default function EPaperScreen({ navigation }) {
                     {fVideo ? 'Change Video' : 'Pick Video (single)'}
                   </Text>
                 </TouchableOpacity>
-                {fVideo && (
+                {Boolean(fVideo) && (
                   <View style={EPaperStyles.videoStatusRow}>
                     <Feather name="check-circle" size={14} color="#16a34a" />
                     <Text style={EPaperStyles.videoStatusText}>Video selected</Text>
@@ -753,7 +753,7 @@ export default function EPaperScreen({ navigation }) {
               </View>
             )}
 
-            {viewItem.mediaType === 'Video' && viewItem.video && (
+            {viewItem.mediaType === 'Video' && Boolean(viewItem.video) && (
               <View style={[EPaperStyles.adminNoteBox, { marginTop: 12 }]}>
                 <Feather name="video" size={14} color="#7c3aed" />
                 <Text style={{ fontSize: 13, color: '#7c3aed', fontWeight: '700', flex: 1 }}>Video attached</Text>
@@ -866,7 +866,7 @@ export default function EPaperScreen({ navigation }) {
                   {(item.description || '').replace(/<[^>]*>/g, '')}
                 </Text>
 
-                {item.mediaType && item.mediaType !== 'None' && (
+                {Boolean(item.mediaType) && item.mediaType !== 'None' && (
                   <View style={EPaperStyles.mediaBadge}>
                     <Feather name={item.mediaType === 'Images' ? 'image' : 'video'} size={11} color="#2563eb" />
                     <Text style={EPaperStyles.mediaBadgeText}>

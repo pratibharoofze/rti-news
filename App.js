@@ -5,10 +5,12 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import AppNavigator from './navigation/AppNavigator';
 import { ToastProvider } from './components/ui/ToastProvider';
+import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';  // ← AuthProvider import karein
 
-SplashScreen.preventAutoHideAsync();
+// Avoid unhandled promise rejection on some platforms/configs.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -49,9 +51,11 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>  {/* ← AuthProvider yahan add karein */}
-        <ToastProvider>
-          <AppNavigator />
-        </ToastProvider>
+        <ErrorBoundary>
+          <ToastProvider>
+            <AppNavigator />
+          </ToastProvider>
+        </ErrorBoundary>
       </AuthProvider>
     </LanguageProvider>
   );

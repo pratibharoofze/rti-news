@@ -27,12 +27,12 @@ export default function NewsCard({ article }) {
       {/* Content */}
       <View style={s.content}>
         <Text style={s.title} numberOfLines={2}>{title}</Text>
-        {excerpt && (
+        {Boolean(excerpt) && (
           <Text style={s.excerpt} numberOfLines={2}>{excerpt}</Text>
         )}
         <View style={s.meta}>
           <Text style={s.date}>{date}</Text>
-          {author && (
+          {Boolean(author) && (
             <>
               <Text style={s.dot}> • </Text>
               <Text style={s.author}>{author}</Text>

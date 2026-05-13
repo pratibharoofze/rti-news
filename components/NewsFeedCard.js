@@ -9,6 +9,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { CATEGORY_COLOR_MAP, EDITORIAL_FONT_FAMILY } from '../constants/homeData';
 import { isValidImageUrl, buildPlaceholderImage, getLocalizedCategoryLabel, getLocalizedSeatLabel } from '../utils/storyHelpers';
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
+import { safePause, safePlay } from '../utils/videoPlayerSafe';
 import { UserStore } from '../store/UserStore';
 
 const DEFAULT_AVATAR_IMAGE = require('../assets/images/icon.png');
@@ -118,7 +119,7 @@ function CommentItem({
             <TouchableOpacity style={styles.commentActionBtn} onPress={() => onReply(comment.id)} activeOpacity={0.8}>
               <Text style={styles.commentActionText}>Reply</Text>
             </TouchableOpacity>
-            {isCurrentUser && (
+            {isCurrentUser ? (
               <>
                 <TouchableOpacity style={styles.commentActionBtn} onPress={() => onEdit(comment.id, comment.text)} activeOpacity={0.8}>
                   <Text style={styles.commentActionText}>Edit</Text>
@@ -127,11 +128,11 @@ function CommentItem({
                   <Text style={[styles.commentActionText, styles.commentDeleteText]}>Delete</Text>
                 </TouchableOpacity>
               </>
-            )}
+            ) : null}
           </View>
         )}
 
-        {isReplying && (
+        {isReplying ? (
           <View style={styles.commentReplyForm}>
             <TextInput
               style={styles.commentReplyInput}
@@ -151,7 +152,7 @@ function CommentItem({
               </TouchableOpacity>
             </View>
           </View>
-        )}
+        ) : null}
 
         {Array.isArray(comment.replies) && comment.replies.length > 0 && (
           <View style={styles.commentReplies}>
@@ -299,6 +300,7 @@ export default function NewsFeedCard({
   commonCopy,
   currentUser,
 }) {
+  const safeCopy = commonCopy || {};
   const isScreenFocused = useIsFocused();
   const cardRef = useRef(null); // FIX 2: card DOM ref (web only)
   const isCardVisible = useCardVisibility(cardRef, 0.3); // FIX 2: visibility hook
@@ -466,43 +468,46 @@ export default function NewsFeedCard({
 
   // ── FIX 2: Screen focus lost → pause ──
   useEffect(() => {
-    if (!isScreenFocused && player) {
-      player.pause();
+    if (!canPlayVideo) return;
+    if (!isScreenFocused) {
+      safePause(player);
       setVideoPaused(true);
       setShowVideoPoster(true);
     }
-  }, [isScreenFocused, player]);
+  }, [canPlayVideo, isScreenFocused, player]);
 
   // ── FIX 2: Card scroll se bahar gaya → pause ──
   useEffect(() => {
-    if (!isCardVisible && player && !videoPaused) {
-      player.pause();
+    if (!canPlayVideo) return;
+    if (!isCardVisible && !videoPaused) {
+      safePause(player);
       setVideoPaused(true);
       // Poster wapas dikhao taaki next time play button mile
       setShowVideoPoster(true);
     }
-  }, [isCardVisible, player, videoPaused]);
+  }, [canPlayVideo, isCardVisible, player, videoPaused]);
 
   // Reset when video changes
   useEffect(() => {
     setVideoPaused(true);
     setShowVideoPoster(true);
-    if (player) player.pause();
-  }, [effectiveVideoUri, player]);
+    if (canPlayVideo) safePause(player);
+  }, [canPlayVideo, effectiveVideoUri, player]);
 
   // Play/pause control
   useEffect(() => {
     if (!canPlayVideo || !player) return;
     if (videoPaused) {
-      player.pause();
+      safePause(player);
     } else {
-      Promise.resolve(player.play()).catch(() => setVideoPaused(true));
+      const ok = safePlay(player);
+      if (!ok) setVideoPaused(true);
     }
   }, [canPlayVideo, videoPaused, player]);
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => { if (player) player.pause(); };
+    return () => { safePause(player); };
   }, [player]);
 
   const handleVideoPress = () => {
@@ -847,14 +852,14 @@ export default function NewsFeedCard({
             <Text style={styles.storyDescriptionText}>{story.description}</Text>
           ) : null}
 
-          {hasExpandableContent && (
+          {hasExpandableContent ? (
             <TouchableOpacity style={styles.moreLessBtn} onPress={() => setIsDescExpanded((p) => !p)} activeOpacity={0.75}>
               <Text style={styles.moreLessBtnText}>
                 {isDescExpanded ? (commonCopy?.less || 'Less') : (commonCopy?.more || 'More')}
               </Text>
               <Ionicons name={isDescExpanded ? 'chevron-up' : 'chevron-down'} size={13} color="#e11d48" />
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
 
         {/* Category */}
@@ -883,7 +888,7 @@ export default function NewsFeedCard({
                 style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
                 contentFit="cover"
                 nativeControls={false}
-                allowsFullscreen={false}
+                fullscreenOptions={{ enabled: false }}
                 playsInline
                 onFirstFrameRender={() => setShowVideoPoster(false)}
               />
@@ -931,11 +936,11 @@ export default function NewsFeedCard({
           <View style={styles.storyStatsLeftGroup}>
             <View style={styles.storyStatItem}>
               <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={15} color={isLiked ? '#e11d48' : '#111827'} />
-              <Text style={styles.storyStatText}>{likesCount} {commonCopy.likes}</Text>
+             <Text style={styles.storyStatText}>{likesCount} {String(safeCopy.likes || '')}</Text>
             </View>
             <View style={styles.storyStatItem}>
               <Ionicons name="eye-outline" size={15} color="#111827" />
-              <Text style={styles.storyStatText}>{viewsCount} {commonCopy.views}</Text>
+              <Text style={styles.storyStatText}>{viewsCount} {String(commonCopy.views || '')}</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.storyPostLink} onPress={() => onOpenDetails(story)} activeOpacity={0.82}>
@@ -986,7 +991,7 @@ export default function NewsFeedCard({
         </View>
 
         {/* Comment Section */}
-        {showComments && (
+        {showComments ? (
           <View style={styles.commentSection}>
             <View style={styles.commentInputRow}>
               <View style={styles.commentUserAvatar}>
@@ -1045,12 +1050,12 @@ export default function NewsFeedCard({
               </View>
             )}
           </View>
-        )}
+        ) : null}
 
         {/* Bottom Meta */}
         <View style={styles.storyBottomMetaRow}>
           <Text style={styles.storyBottomMetaText}>
-            {commonCopy.comments} {commentsCount} | {commonCopy.shares} {sharesCount}
+            {String(safeCopy.comments || '')} {commentsCount} | {String(safeCopy.shares || '')} {sharesCount}
           </Text>
           <Text style={styles.storyBottomMetaText}>{story.date}</Text>
         </View>

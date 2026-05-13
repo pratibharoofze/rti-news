@@ -89,7 +89,7 @@ function LanguageSelector({ compact = false }) {
         <Text style={s.langChevron}>{open ? '▴' : '▾'}</Text>
       </TouchableOpacity>
 
-      {open && (
+      {open ? (
         <>
           <TouchableOpacity
             style={s.dropdownOverlay}
@@ -138,7 +138,7 @@ function LanguageSelector({ compact = false }) {
             </ScrollView>
           </View>
         </>
-      )}
+      ) : null}
     </View>
   );
 }

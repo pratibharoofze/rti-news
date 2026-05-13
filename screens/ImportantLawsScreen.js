@@ -71,7 +71,7 @@ export default function ImportantLawsScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1 }}>
-      {isWeb && <AppNavbar navigation={navigation} activeScreen="ImportantLaws" />}
+      {isWeb ? <AppNavbar navigation={navigation} activeScreen="ImportantLaws" /> : null}
 
       <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
         <View style={s.hero}>

@@ -223,7 +223,7 @@ export default function LiveStreamingScreen({ navigation }) {
                   {/* Top Row: title + status badge */}
                   <View style={LiveStreamingStyles.streamTopRow}>
                     <View style={LiveStreamingStyles.streamTitleWrap}>
-                      {isLive && <View style={LiveStreamingStyles.liveDotInline} />}
+                      {isLive ? <View style={LiveStreamingStyles.liveDotInline} /> : null}
                       <Text style={LiveStreamingStyles.streamTitle} numberOfLines={2}>
                         {item.stream_title}
                       </Text>
@@ -259,7 +259,7 @@ export default function LiveStreamingScreen({ navigation }) {
                       </Text>
                     </TouchableOpacity>
 
-                    {isLive && (
+                    {isLive ? (
                       <TouchableOpacity
                         style={[
                           LiveStreamingStyles.stopBtn,
@@ -273,7 +273,7 @@ export default function LiveStreamingScreen({ navigation }) {
                           {stoppingId === item.id ? 'Stopping...' : 'Stop'}
                         </Text>
                       </TouchableOpacity>
-                    )}
+                    ) : null}
                   </View>
                 </View>
               );

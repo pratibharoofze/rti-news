@@ -478,7 +478,7 @@ export default function DashboardScreen({ navigation, route }) {
         </View>
 
         {/* ── Rank Progress ── */}
-        {rankCfg.next && (
+        {Boolean(rankCfg.next) && (
           <View style={dashStyles.rankProgressCard}>
             <View style={dashStyles.rankProgressTop}>
               <View>
@@ -614,7 +614,7 @@ export default function DashboardScreen({ navigation, route }) {
       />
 
       {/* ── Subscription Modal ── */}
-      {showSubscriptionModal && (
+      {showSubscriptionModal ? (
         <View style={modalStyles.overlay}>
           <View style={modalStyles.modalContent}>
             <View style={modalStyles.modalHeader}>
@@ -654,7 +654,7 @@ export default function DashboardScreen({ navigation, route }) {
                   onPress={() => handlePlanPress(plan)}
                   activeOpacity={0.8}
                 >
-                  {plan.popular && (
+                  {plan.popular ? (
                     <View
                       style={[
                         modalStyles.popularBadge,
@@ -665,7 +665,7 @@ export default function DashboardScreen({ navigation, route }) {
                         MOST POPULAR
                       </Text>
                     </View>
-                  )}
+                  ) : null}
 
                   <View style={modalStyles.planHeader}>
                     <View>
@@ -721,7 +721,7 @@ export default function DashboardScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }

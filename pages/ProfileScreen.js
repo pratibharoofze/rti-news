@@ -8,13 +8,12 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useState } from 'react';
 import {
   Alert, Clipboard, Image, Platform,
+  Share,
   ScrollView, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AutoAppointmentLetterPreview from '../components/AppointmentLetterPreview';
-import Footer from '../components/Footer';
-import Header from '../components/Header';
+import AppNavbar from '../components/AppNavbar';
 import AutoIdCardPreview from '../components/IdCardPreview';
-import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import { UserStore } from '../store/UserStore';
 import ProfileStyles from '../styles/ProfileStyles';
@@ -667,7 +666,7 @@ function RankBadge({ referralCount }) {
       <Text style={ProfileStyles.rankIcon}>{rank.icon}</Text>
       <Text style={ProfileStyles.rankLabel}>{rank.label}</Text>
       <Text style={[ProfileStyles.rankValue, { color: rank.color }]}>{referralCount || 0}</Text>
-      {next && <Text style={ProfileStyles.rankSubtext}>{needed} more to {next.label}</Text>}
+      {next ? <Text style={ProfileStyles.rankSubtext}>{needed} more to {next.label}</Text> : null}
     </View>
   );
 }
@@ -729,7 +728,7 @@ function SavedProfileCard({ profile }) {
       </View>
       <View style={ProfileStyles.hintRow}> 
         <Feather name="info" size={12} color="#a0a8bf" /> 
-        <Text style={ProfileStyles.hintText}>Tap <Text style={ProfileStyles.hintBold}>Update Photo</Text> below to change your profile photo</Text> 
+        <Text style={ProfileStyles.hintText}>Tap <Text style={ProfileStyles.hintBold}>Edit Profile</Text> below to update your details</Text> 
       </View> 
     </View> 
   ); 
@@ -737,8 +736,6 @@ function SavedProfileCard({ profile }) {
 
 export default function ProfileScreen({ navigation }) { 
   const { showToast } = useToast(); 
-  const [sidebarVisible, setSidebarVisible] = useState(false); 
-  const [activeTab, setActiveTab] = useState('Profile'); 
   const [loading, setLoading] = useState(true); 
   const [saving, setSaving] = useState(false); 
   const [uploading, setUploading] = useState(false); 
@@ -778,6 +775,42 @@ export default function ProfileScreen({ navigation }) {
   const closeEdit = () => { setForm(savedProfile); setIsEditing(false); }; 
   const handleChange = (k, v) => setForm(p => ({ ...p, [k]: v })); 
   const hasDocumentSubscription = Boolean((isEditing ? form : savedProfile).is_subscribed); 
+
+  const handleGoHome = useCallback(() => {
+    navigation?.navigate?.('Home');
+  }, [navigation]);
+
+  const handleOpenSettings = useCallback(() => {
+    navigation?.navigate?.('Settings');
+  }, [navigation]);
+
+  const handleOpenNotifications = useCallback(() => {
+    navigation?.navigate?.('Notifications');
+  }, [navigation]);
+
+  const handleShareProfile = useCallback(async () => {
+    try {
+      const name = (savedProfile?.name || 'RTI News Member').trim();
+      const code = savedProfile?.referral_code || generateReferralCode(savedProfile?.email || '');
+      const message = `${name}\nReferral Code: ${code}\n\nRTI News App`;
+      await Share.share({ title: 'RTI News', message });
+    } catch {
+      // no-op
+    }
+  }, [savedProfile]);
+
+  const handlePostNews = useCallback(async () => {
+    const user = await UserStore.getCurrentUser();
+    if (!user) { navigation.replace('Login'); return; }
+    const isAdmin = user.role === 'admin';
+    const hasSubscription = UserStore.hasActiveSubscription(user);
+    if (!isAdmin && !hasSubscription) { showToast('Premium access required to add news.', 'error'); return; }
+    if (!isAdmin && hasSubscription && !user.location_complete) {
+      showToast('Select your location to activate premium services.', 'error');
+      navigation.navigate('StateSelect', { fromPremium: true }); return;
+    }
+    navigation.navigate('Add News');
+  }, [navigation, showToast]);
 
   const promptSubscriptionRequired = useCallback((documentLabel) => {
     Alert.alert(
@@ -1022,23 +1055,57 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const handleSave = async () => { 
-    // Restrict updates: users can only update their profile photo from this screen.
-    if (form.profile_image === savedProfile.profile_image) {
-      showToast('No photo changes to save.', 'info');
+  const handleSave = async () => {
+    const nextName = String(form.name || '').trim();
+    const nextVillage = String(form.village || '').trim();
+    const nextBio = String(form.bio || '').trim();
+    const nextContactRaw = String(form.contact_number || '').trim();
+    const nextContactDigits = nextContactRaw.replace(/\D/g, '');
+
+    if (!nextName) { showToast('Name is required.', 'error'); return; }
+    if (nextContactDigits && nextContactDigits.length !== 10) {
+      showToast('Enter a valid 10-digit mobile number.', 'error');
       return;
     }
-    setSaving(true); 
-    const updated = await UserStore.updateUser(form.email, { profile_image: form.profile_image }); 
-    setSaving(false); 
-    if (!updated) { showToast('Error saving profile.', 'error'); return; } 
-    const next = { ...savedProfile, profile_image: updated.profile_image || '' }; 
-    setSavedProfile(next); setForm(next); setIsEditing(false); 
-    setSuccessMessage('Photo updated successfully.'); 
-    setTimeout(() => setSuccessMessage(''), 3000); 
-  }; 
 
-  const handleLogout = async () => { await UserStore.clearCurrentUser(); navigation.replace('Login'); };
+    const updates = {
+      name: nextName,
+      village: nextVillage,
+      bio: nextBio,
+      contact_number: nextContactDigits || '',
+      profile_image: form.profile_image || '',
+    };
+
+    const hasChanges =
+      updates.name !== (savedProfile.name || '') ||
+      updates.village !== (savedProfile.village || '') ||
+      updates.bio !== (savedProfile.bio || '') ||
+      updates.contact_number !== (savedProfile.contact_number || '') ||
+      updates.profile_image !== (savedProfile.profile_image || '');
+
+    if (!hasChanges) { showToast('No changes to save.', 'info'); return; }
+
+    setSaving(true);
+    const updated = await UserStore.updateUser(form.email, updates);
+    setSaving(false);
+    if (!updated) { showToast('Error saving profile.', 'error'); return; }
+
+    const next = {
+      ...savedProfile,
+      ...updates,
+      name: updated.name || updates.name,
+      village: updated.village || updates.village,
+      bio: updated.bio || updates.bio,
+      contact_number: updated.contact_number || updates.contact_number,
+      profile_image: updated.profile_image || updates.profile_image,
+    };
+    setSavedProfile(next);
+    setForm(next);
+    setIsEditing(false);
+    setSuccessMessage('Profile updated successfully.');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
   const displayProfile = isEditing ? form : savedProfile;
   const referralCode = displayProfile.referral_code || generateReferralCode(displayProfile.email);
   const rank = getRank(displayProfile.referral_count || 0);
@@ -1046,7 +1113,28 @@ export default function ProfileScreen({ navigation }) {
   return (
     <View style={ProfileStyles.root}>
       <View style={ProfileStyles.bgOrbPrimary} /><View style={ProfileStyles.bgOrbSecondary} /><View style={ProfileStyles.bgOrbTertiary} />
-      <Header title="Profile" onMenuPress={() => setSidebarVisible(true)} onLogout={handleLogout} />
+
+      <View style={ProfileStyles.topBar}>
+        <TouchableOpacity style={ProfileStyles.topBarBackBtn} onPress={handleGoHome} activeOpacity={0.75}>
+          <Feather name="arrow-left" size={20} color="#0f172a" />
+        </TouchableOpacity>
+
+        <View style={ProfileStyles.topBarActions}>
+          <TouchableOpacity style={ProfileStyles.topBarIconBtn} onPress={openEdit} activeOpacity={0.75}>
+            <Feather name="edit-2" size={18} color="#0f172a" />
+          </TouchableOpacity>
+          <TouchableOpacity style={ProfileStyles.topBarIconBtn} onPress={handleOpenSettings} activeOpacity={0.75}>
+            <Feather name="settings" size={18} color="#0f172a" />
+          </TouchableOpacity>
+          <TouchableOpacity style={ProfileStyles.topBarIconBtn} onPress={handleOpenNotifications} activeOpacity={0.75}>
+            <Feather name="bell" size={18} color="#0f172a" />
+          </TouchableOpacity>
+          <TouchableOpacity style={ProfileStyles.topBarIconBtn} onPress={handleShareProfile} activeOpacity={0.75}>
+            <Feather name="share-2" size={18} color="#0f172a" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView style={ProfileStyles.scrollView} contentContainerStyle={ProfileStyles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={ProfileStyles.profileShell}>
           <View style={ProfileStyles.summaryCard}>
@@ -1082,7 +1170,7 @@ export default function ProfileScreen({ navigation }) {
               </View> 
               <View style={ProfileStyles.quickIconRow}> 
                 <TouchableOpacity style={ProfileStyles.quickIconButton} onPress={openEdit}> 
-                  <Feather name="camera" size={16} color="#ff7e85" /> 
+                  <Feather name="edit-2" size={16} color="#ff7e85" /> 
                 </TouchableOpacity> 
               </View> 
             </View> 
@@ -1099,8 +1187,8 @@ export default function ProfileScreen({ navigation }) {
             <View style={ProfileStyles.formCard}> 
               <View style={ProfileStyles.sectionHeaderRow}> 
                 <View style={{ flex: 1 }}> 
-                  <Text style={ProfileStyles.sectionHeading}>Update Photo</Text> 
-                  <Text style={ProfileStyles.sectionSubtitle}>You can only update your profile photo.</Text> 
+                  <Text style={ProfileStyles.sectionHeading}>Edit Profile</Text> 
+                  <Text style={ProfileStyles.sectionSubtitle}>Update your basic details and profile photo.</Text> 
                   {successMessage ? <Text style={ProfileStyles.successText}>{successMessage}</Text> : null} 
                 </View> 
                 <TouchableOpacity style={ProfileStyles.uploadPill} onPress={handlePickImage} disabled={uploading}> 
@@ -1108,6 +1196,76 @@ export default function ProfileScreen({ navigation }) {
                   <Text style={ProfileStyles.uploadPillText}>{uploading ? 'Opening...' : 'Photo'}</Text> 
                 </TouchableOpacity> 
               </View> 
+
+              <View style={ProfileStyles.fieldGrid}>
+                <View style={ProfileStyles.fullWidthGroup}>
+                  <Text style={ProfileStyles.inputLabel}>Full Name *</Text>
+                  <View style={ProfileStyles.inputWrap}>
+                    <Feather name="user" size={16} color="#8a94a6" />
+                    <TextInput
+                      style={ProfileStyles.input}
+                      value={form.name}
+                      onChangeText={(v) => handleChange('name', v)}
+                      placeholder="Enter your name"
+                      placeholderTextColor="#94a3b8"
+                    />
+                  </View>
+                </View>
+
+                <View style={ProfileStyles.fullWidthGroup}>
+                  <Text style={ProfileStyles.inputLabel}>Email</Text>
+                  <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
+                    <Feather name="mail" size={16} color="#8a94a6" />
+                    <TextInput style={[ProfileStyles.input, ProfileStyles.inputDisabled]} value={form.email} editable={false} />
+                  </View>
+                </View>
+
+                <View style={ProfileStyles.inputGroup}>
+                  <Text style={ProfileStyles.inputLabel}>Village</Text>
+                  <View style={ProfileStyles.inputWrap}>
+                    <Feather name="home" size={16} color="#8a94a6" />
+                    <TextInput
+                      style={ProfileStyles.input}
+                      value={form.village}
+                      onChangeText={(v) => handleChange('village', v)}
+                      placeholder="Village"
+                      placeholderTextColor="#94a3b8"
+                    />
+                  </View>
+                </View>
+
+                <View style={ProfileStyles.inputGroup}>
+                  <Text style={ProfileStyles.inputLabel}>Mobile Number</Text>
+                  <View style={ProfileStyles.inputWrap}>
+                    <Feather name="smartphone" size={16} color="#8a94a6" />
+                    <TextInput
+                      style={ProfileStyles.input}
+                      value={form.contact_number}
+                      onChangeText={(v) => handleChange('contact_number', v)}
+                      placeholder="10-digit mobile"
+                      placeholderTextColor="#94a3b8"
+                      keyboardType="phone-pad"
+                      maxLength={14}
+                    />
+                  </View>
+                </View>
+
+                <View style={ProfileStyles.fullWidthGroup}>
+                  <Text style={ProfileStyles.inputLabel}>Bio</Text>
+                  <View style={[ProfileStyles.inputWrap, ProfileStyles.textAreaWrap]}>
+                    <Feather name="file-text" size={16} color="#8a94a6" style={ProfileStyles.textAreaIcon} />
+                    <TextInput
+                      style={[ProfileStyles.input, ProfileStyles.textArea]}
+                      value={form.bio}
+                      onChangeText={(v) => handleChange('bio', v)}
+                      placeholder="Write something about you"
+                      placeholderTextColor="#94a3b8"
+                      multiline
+                    />
+                  </View>
+                </View>
+              </View>
+
               <View style={ProfileStyles.previewRow}> 
                 <Image source={form.profile_image ? { uri: form.profile_image } : DEFAULT_AVATAR} style={ProfileStyles.formPreviewAvatar} /> 
                 <View style={ProfileStyles.previewInfo}> 
@@ -1191,7 +1349,7 @@ export default function ProfileScreen({ navigation }) {
               </View> 
               <View style={ProfileStyles.formFooterRow}> 
                 <TouchableOpacity style={ProfileStyles.cancelButton} onPress={closeEdit}><Text style={ProfileStyles.cancelButtonText}>Cancel</Text></TouchableOpacity> 
-                <TouchableOpacity style={ProfileStyles.submitButton} onPress={handleSave} disabled={saving}><Text style={ProfileStyles.submitButtonText}>{saving ? 'Saving...' : 'Save Photo'}</Text></TouchableOpacity> 
+                <TouchableOpacity style={ProfileStyles.submitButton} onPress={handleSave} disabled={saving}><Text style={ProfileStyles.submitButtonText}>{saving ? 'Saving...' : 'Save'}</Text></TouchableOpacity> 
               </View> 
             </View> 
           ) : ( 
@@ -1207,15 +1365,31 @@ export default function ProfileScreen({ navigation }) {
             <Text style={ProfileStyles.actionTitle}>Actions</Text> 
             <View style={ProfileStyles.actionRow}> 
               <TouchableOpacity style={[ProfileStyles.actionButton, ProfileStyles.updateButton]} onPress={openEdit} disabled={saving}> 
-                <Feather name="camera" size={16} color="#fff" /><Text style={ProfileStyles.actionButtonText}>Update Photo</Text> 
+                <Feather name="edit-2" size={16} color="#fff" /><Text style={ProfileStyles.actionButtonText}>Edit Profile</Text> 
               </TouchableOpacity> 
             </View> 
           </View> 
         </View> 
       )} 
 
-      <Footer activeTab={activeTab} onTabPress={setActiveTab} />
-      <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} activeItem="Profile" />
+      {Platform.OS === 'android' ? (
+        <View style={ProfileStyles.bottomShell}>
+          <View style={ProfileStyles.bottomAppFooter}>
+            <TouchableOpacity style={ProfileStyles.postNewsBtn} onPress={handlePostNews} activeOpacity={0.85}>
+              <Feather name="plus-circle" size={18} color="#ffffff" />
+              <Text style={ProfileStyles.postNewsBtnText}>Post News</Text>
+            </TouchableOpacity>
+          </View>
+          <AppNavbar navigation={navigation} activeScreen="Profile" hideTopHeader={true} />
+        </View>
+      ) : (
+        <View style={ProfileStyles.bottomAppFooter}>
+          <TouchableOpacity style={ProfileStyles.postNewsBtn} onPress={handlePostNews} activeOpacity={0.85}>
+            <Feather name="plus-circle" size={18} color="#ffffff" />
+            <Text style={ProfileStyles.postNewsBtnText}>Post News</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

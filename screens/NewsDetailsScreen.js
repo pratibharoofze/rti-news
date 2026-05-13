@@ -21,6 +21,7 @@ import WebLayout from '../components/WebLayout';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { UserStore } from '../store/UserStore';
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
+import { safePause, safePlay } from '../utils/videoPlayerSafe';
 
 
 const IS_WEB = Platform.OS === 'web';
@@ -528,41 +529,44 @@ export default function NewsDetailsScreen({ route, navigation }) {
   
   const player = useVideoPlayer(canPlayVideo ? { uri: effectiveVideoUri } : null, (p) => {
     p.loop = false;
-    p.play();
-    setTimeout(() => { if (p) p.pause(); }, 0);
   });
 
   const handleVideoPress = useCallback(() => {
-    if (!player) return;
+    if (!canPlayVideo) return;
     if (isVideoPlaying) {
-      player.pause();
+      safePause(player);
       setIsVideoPlaying(false);
     } else {
-      player.play();
+      const ok = safePlay(player);
+      if (!ok) return;
       setIsVideoPlaying(true);
       setShowVideoPoster(false);
     }
-  }, [player, isVideoPlaying]);
+  }, [canPlayVideo, player, isVideoPlaying]);
 
   useEffect(() => {
+    if (!canPlayVideo) return;
     const unsubscribe = navigation.addListener('beforeRemove', () => {
-      if (player) { player.pause(); setIsVideoPlaying(false); }
+      safePause(player);
+      setIsVideoPlaying(false);
     });
     return unsubscribe;
-  }, [navigation, player]);
+  }, [canPlayVideo, navigation, player]);
 
   useEffect(() => {
+    if (!canPlayVideo) return;
     const unsubscribeBlur = navigation.addListener('blur', () => {
-      if (player) { player.pause(); setIsVideoPlaying(false); }
+      safePause(player);
+      setIsVideoPlaying(false);
     });
     const unsubscribeFocus = navigation.addListener('focus', () => {
       setShowVideoPoster(true);
     });
     return () => { unsubscribeBlur(); unsubscribeFocus(); };
-  }, [navigation, player]);
+  }, [canPlayVideo, navigation, player]);
 
   useEffect(() => {
-    return () => { if (player) player.pause(); };
+    return () => { safePause(player); };
   }, [player]);
 
   const handleNavigateToUserProfile = useCallback(() => {
@@ -852,7 +856,7 @@ export default function NewsDetailsScreen({ route, navigation }) {
                         style={styles.videoView}
                         contentFit="cover"
                         nativeControls={false}
-                        allowsFullscreen={true}
+                        fullscreenOptions={{ enabled: true }}
                         playsInline
                         onFirstFrameRender={() => { if (!isVideoPlaying) setShowVideoPoster(false); }}
                       />

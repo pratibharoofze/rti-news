@@ -402,7 +402,7 @@ export default function RTIPage({ navigation }) {
 
   const page = (
     <View style={{ flex: 1 }}>
-      {isWeb && <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" />}
+      {isWeb ? <AppNavbar navigation={navigation} activeScreen="WhatIsRTI" /> : null}
       <ScrollView 
         style={styles.container} 
         showsVerticalScrollIndicator={false}

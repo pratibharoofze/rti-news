@@ -12,6 +12,7 @@ import AppNavbar from '../components/AppNavbar';
 import WebLayout from '../components/WebLayout';
 import { UserStore } from '../store/UserStore';
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
+import { safePause, safePlay, safeSetMuted } from '../utils/videoPlayerSafe';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 const MOBILE_BREAKPOINT = 768;
@@ -253,7 +254,7 @@ function DescriptionModal({ visible, onClose, post, onShare }) {
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Text style={localDescStyles.userName}>{post.user}</Text>
-                {post.verified && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
+                {Boolean(post.verified) && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
               </View>
               <Text style={localDescStyles.userMeta}>{post.role} · {post.time}</Text>
             </View>
@@ -938,29 +939,33 @@ const safeThumbnailUrl = useMemo(() => {
   useEffect(() => { setCaptionExpanded(false); }, [postId]);
   
   // Apply muted state to player
-  useEffect(() => { if (!canPlayVideo) return; player.muted = muted; }, [canPlayVideo, muted, player]);
+  useEffect(() => {
+    if (!canPlayVideo) return;
+    safeSetMuted(player, muted);
+  }, [canPlayVideo, muted, player]);
   
   // Handle video playback based on active state
   useEffect(() => {
     if (!canPlayVideo) return;
     if (isActive && !paused) {
-      Promise.resolve(player.play()).catch(() => {
+      const ok = safePlay(player);
+      if (!ok) {
         setPaused(true);
         setShowPoster(true);
-      });
+      }
       return;
     }
-    player.pause();
+    safePause(player);
   }, [canPlayVideo, isActive, paused, player]);
 
   // Cleanup on unmount
-  useEffect(() => () => { if (player) player.pause(); }, [player]);
+  useEffect(() => () => { safePause(player); }, [player]);
 
   // Pause video when component is not active (for navigation)
   useEffect(() => {
     if (!canPlayVideo) return;
     if (!isActive) {
-      player.pause();
+      safePause(player);
       setPaused(true);
     }
   }, [isActive, canPlayVideo, player]);
@@ -999,11 +1004,12 @@ const safeThumbnailUrl = useMemo(() => {
             if (!canPlayVideo) return;
             if (paused) {
               setPaused(false);
-              Promise.resolve(player.play()).catch(() => { setPaused(true); });
+              const ok = safePlay(player);
+              if (!ok) setPaused(true);
               return;
             }
             setPaused(true);
-            player.pause();
+            safePause(player);
           }}
         >
           {canPlayVideo ? (
@@ -1013,7 +1019,7 @@ const safeThumbnailUrl = useMemo(() => {
                 style={StyleSheet.absoluteFill}
                 contentFit="cover"
                 nativeControls={false}
-                allowsFullscreen={false}
+                fullscreenOptions={{ enabled: false }}
                 playsInline
                 onFirstFrameRender={() => setShowPoster(false)}
               />
@@ -1028,11 +1034,11 @@ const safeThumbnailUrl = useMemo(() => {
 
         <View style={{ ...styles.reelOverlayBottom, pointerEvents: 'none' }} />
 
-        {paused && (
+        {paused ? (
           <View style={[styles.pausedOverlay, Platform.OS === 'web' ? { pointerEvents: 'none' } : null]}>
             <Text style={styles.pausedIcon}>||</Text>
           </View>
-        )}
+        ) : null}
 
         <View style={styles.reelTopBar}>
           <TouchableOpacity
@@ -1044,14 +1050,14 @@ const safeThumbnailUrl = useMemo(() => {
           </TouchableOpacity>
         </View>
 
-        {isMobileLayout && (
+        {isMobileLayout ? (
           <ActionColumn
             post={{ ...safePost, likes: Number(safePost.likes || 0), shares, comments, commentsCount: safePost.commentsCount ?? comments.length }}
             onLike={handleLikePress} onComment={onComment} onShare={onShare}
             onBookmark={onBookmark} onDescription={onDescription}
             scaleAnim={scaleAnim} isMobileLayout={true}
           />
-        )}
+        ) : null}
 
         <View style={[styles.reelBottom, { bottom: bottomBottom, right: bottomRight }]}>
           <View style={[styles.reelTagBadge, { backgroundColor: String(safePost.tagColor || '#16a34a') }]}>
@@ -1064,12 +1070,12 @@ const safeThumbnailUrl = useMemo(() => {
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Text style={styles.reelUserName}>{userName}</Text>
-                  {verified && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
+                  {Boolean(verified) ? <Text style={{ color: '#60a5fa', fontSize: 12 }}>{'\u2713'}</Text> : null}
                 </View>
                 <Text style={styles.reelUserRole}>{role} · {time}</Text>
               </View>
             </TouchableOpacity>
-            {authorEmail && currentUserEmail !== authorEmail && (
+            {authorEmail && currentUserEmail !== authorEmail ? (
               <TouchableOpacity
                 style={[styles.followBtn, isFollowing && styles.followBtnFollowing]}
                 onPress={handleFollowPress}
@@ -1080,7 +1086,7 @@ const safeThumbnailUrl = useMemo(() => {
                   {followLoading ? '...' : (isFollowing ? 'Following' : 'Follow')}
                 </Text>
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
 
           <View style={styles.reelLocationRow}>
@@ -1409,7 +1415,7 @@ export default function FeedScreen({ navigation }) {
 
   const page = (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-      {isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" hideTopHeader={true} />}
+      {isWebPlatform ? <AppNavbar navigation={navigation} activeScreen="Feed" hideTopHeader={true} /> : null}
 
       <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'flex-start' }}>
         <View style={{
@@ -1466,7 +1472,7 @@ export default function FeedScreen({ navigation }) {
 
       <UploadModal visible={uploadVisible} onClose={() => setUploadVisible(false)} onPost={handleNewPost} />
 
-      {activeCommentData && (
+      {activeCommentData ? (
         <CommentsModal
           visible={!!commentPost}
           onClose={() => setCommentPost(null)}
@@ -1481,7 +1487,7 @@ export default function FeedScreen({ navigation }) {
           onDeleteComment={handleDeleteComment}
           onLikeComment={handleLikeComment}
         />
-      )}
+      ) : null}
 
       <ShareModal
         visible={!!sharePost}
@@ -1502,3 +1508,4 @@ export default function FeedScreen({ navigation }) {
 
   return isWebPlatform ? <WebLayout>{page}</WebLayout> : page;
 }
+

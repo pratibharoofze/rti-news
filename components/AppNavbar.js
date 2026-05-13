@@ -1,15 +1,20 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   Image,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -23,19 +28,34 @@ const IS_WEB = Platform.OS === 'web';
 const DESKTOP_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
-  { labelKey: 'about', screen: 'About', icon: 'information-circle-outline' },
-  { labelKey: 'rti', screen: 'WhatIsRTI', icon: 'document-text-outline' },
-  { labelKey: 'laws', screen: 'ImportantLaws', icon: 'library-outline' },
   { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
+  { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
 ];
 
 const MOBILE_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
-  { labelKey: 'about', screen: 'About', icon: 'information-circle-outline' },
-  { labelKey: 'rtiShort', screen: 'WhatIsRTI', icon: 'document-text-outline' },
-  { labelKey: 'laws', screen: 'ImportantLaws', icon: 'library-outline' },
+  { labelKey: 'create', screen: '__create_menu__', icon: 'grid-outline' },
   { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
+  { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
+];
+
+// ── Create Menu Items ───────────────────────────────────────────────────────
+const CREATE_MENU_ITEMS = [
+  ...(IS_WEB ? [{ label: 'Home', icon: 'home-outline', screen: 'Home' }] : []),
+  { label: 'Dashboard',          icon: 'grid-outline',          screen: 'Dashboard' },
+  { label: 'Profile',            icon: 'person-outline',        screen: 'Profile' },
+  { label: 'My Network',         icon: 'people-outline',        screen: 'MyNetwork' },
+  { label: 'Wallet',             icon: 'wallet-outline',        screen: 'Wallet' },
+  { label: 'Withdraw',           icon: 'cash-outline',          screen: 'Withdraw' },
+  { label: 'Subscription Plans', icon: 'star-outline',          screen: 'SubscriptionPlans' },
+  { label: 'News Feed',          icon: 'newspaper-outline',     screen: 'Feed' },
+  { label: 'e-Paper',            icon: 'document-text-outline', screen: 'EPaper' },
+  { label: 'Live Streaming',     icon: 'radio-outline',         screen: 'LiveStreaming' },
+  { label: 'Certification',      icon: 'ribbon-outline',        screen: 'Certification' },
+  { label: 'Notifications',      icon: 'notifications-outline', screen: 'Notifications' },
+  { label: 'Settings',           icon: 'settings-outline',      screen: 'Settings' },
+  { label: 'Logout',             icon: 'log-out-outline',       screen: '__logout__', isDestructive: true },
 ];
 
 const LANGUAGE_OPTIONS = [
@@ -57,12 +77,240 @@ function blurActiveElement() {
   if (el && typeof el.blur === 'function') el.blur();
 }
 
-// ─── Hook: live window width ───────────────────────────────────────────────
 function useIsDesktop() {
   const { width } = useWindowDimensions();
   if (!IS_WEB) return false;
   return width >= 768;
 }
+
+// ─── Create Menu Drawer ────────────────────────────────────────────────────
+function CreateMenuDrawer({ visible, onClose, navigation, onLogout }) {
+  const insets = useSafeAreaInsets();
+  const slideAnim = useRef(new Animated.Value(400)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          damping: 22,
+          stiffness: 200,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 400,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible]);
+
+  const handleItemPress = (item) => {
+    onClose();
+    if (item.screen === '__logout__') {
+      onLogout?.();
+      return;
+    }
+    navigation?.navigate?.(item.screen);
+  };
+
+  if (!visible && !IS_WEB) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      {/* Backdrop */}
+      <Animated.View style={[drawerStyles.backdrop, { opacity: fadeAnim }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      </Animated.View>
+
+      {/* Sheet */}
+      <Animated.View
+        style={[
+          drawerStyles.sheet,
+          { paddingBottom: Math.max(insets.bottom, 16) },
+          { transform: [{ translateY: slideAnim }] },
+        ]}
+      >
+        {/* Handle */}
+        <View style={drawerStyles.handle} />
+
+        {/* Header */}
+        <View style={drawerStyles.sheetHeader}>
+          <Text style={drawerStyles.sheetTitle}>Quick Menu</Text>
+          <TouchableOpacity onPress={onClose} style={drawerStyles.closeBtn} activeOpacity={0.7}>
+            <Ionicons name="close" size={20} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Grid of items */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={drawerStyles.gridContainer}
+        >
+          {CREATE_MENU_ITEMS.map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              style={[
+                drawerStyles.gridItem,
+                item.isDestructive && drawerStyles.gridItemDestructive,
+              ]}
+              onPress={() => handleItemPress(item)}
+              activeOpacity={0.75}
+            >
+              <View
+                style={[
+                  drawerStyles.gridIconWrap,
+                  item.isDestructive && drawerStyles.gridIconWrapDestructive,
+                ]}
+              >
+                <Ionicons
+                  name={item.icon}
+                  size={22}
+                  color={item.isDestructive ? '#ef4444' : '#f97316'}
+                />
+              </View>
+              <Text
+                style={[
+                  drawerStyles.gridLabel,
+                  item.isDestructive && drawerStyles.gridLabelDestructive,
+                ]}
+                numberOfLines={2}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+const drawerStyles = StyleSheet.create({
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 10,
+    maxHeight: '85%',
+    ...Platform.select({
+      default: {
+        elevation: 24,
+        shadowColor: '#0f172a',
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 24,
+      },
+    }),
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#cbd5e1',
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+    letterSpacing: -0.3,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 10,
+  },
+  gridItem: {
+    width: '30%',
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    borderRadius: 12,
+    backgroundColor: '#fffbf7',
+    borderWidth: 1,
+    borderColor: '#fde8d0',
+    gap: 8,
+    minWidth: 90,
+  },
+  gridItemDestructive: {
+    backgroundColor: '#fff5f5',
+    borderColor: '#fecaca',
+  },
+  gridIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff7ed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridIconWrapDestructive: {
+    backgroundColor: '#fee2e2',
+  },
+  gridLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#334155',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  gridLabelDestructive: {
+    color: '#ef4444',
+  },
+});
 
 // ─── Language Selector ─────────────────────────────────────────────────────
 function NavbarLanguageSelector() {
@@ -96,7 +344,7 @@ function NavbarLanguageSelector() {
         />
       </TouchableOpacity>
 
-      {isOpen && (
+      {isOpen ? (
         <>
           <TouchableOpacity
             style={styles.overlay}
@@ -117,14 +365,14 @@ function NavbarLanguageSelector() {
                     <Text style={[styles.languageDropdownLabel, isActive && styles.languageDropdownLabelActive]}>
                       {item.label}
                     </Text>
-                    {isActive && <Ionicons name="checkmark-circle" size={16} color="#f97316" />}
+                    {isActive ? <Ionicons name="checkmark-circle" size={16} color="#f97316" /> : null}
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
           </View>
         </>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -136,7 +384,7 @@ function ProfileDropdown({ navigation }) {
   const [isOpen, setIsOpen] = useState(false);
   const [avatarUri, setAvatarUri] = useState('');
   const [avatarError, setAvatarError] = useState(false);
-  const [isReady, setIsReady] = useState(false); // ✅ auth check complete hua ya nahi
+  const [isReady, setIsReady] = useState(false);
   const copy = useMemo(() => getSiteCopy(language), [language]);
 
   useFocusEffect(
@@ -156,7 +404,7 @@ function ProfileDropdown({ navigation }) {
         } catch {
           if (!alive) return;
         } finally {
-          if (alive) setIsReady(true); // ✅ check complete — ab render karo
+          if (alive) setIsReady(true);
         }
       })();
       return () => { alive = false; };
@@ -171,7 +419,6 @@ function ProfileDropdown({ navigation }) {
     navigation?.navigate?.('Home');
   };
 
-  // ✅ Jab tak auth check complete nahi — kuch bhi mat dikhao (no blink)
   if (!isReady) return null;
 
   if (!isLoggedIn) {
@@ -205,7 +452,7 @@ function ProfileDropdown({ navigation }) {
         )}
       </TouchableOpacity>
 
-      {isOpen && (
+      {isOpen ? (
         <>
           <TouchableOpacity
             style={styles.overlay}
@@ -243,7 +490,7 @@ function ProfileDropdown({ navigation }) {
             </TouchableOpacity>
           </View>
         </>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -263,11 +510,10 @@ function NavbarBrand({ onPressHome, compact }) {
 
 // ─── Mobile Top Header ────────────────────────────────────────────────────
 function MobileTopHeader({ navigation, handleNavigate }) {
-  const { language } = useLanguage();
-  const copy = useMemo(() => getSiteCopy(language), [language]);
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.mobileTopHeader}>
+    <View style={[styles.mobileTopHeader, { paddingTop: insets.top + 8 }]}>
       <NavbarBrand onPressHome={() => handleNavigate('Home')} compact />
       <View style={styles.mobileTopHeaderActions}>
         <NavbarLanguageSelector />
@@ -277,15 +523,73 @@ function MobileTopHeader({ navigation, handleNavigate }) {
   );
 }
 
+// ─── Mobile Bottom Bar ────────────────────────────────────────────────────
+function MobileBottomBar({ activeScreen, handleNavigate, onCreatePress }) {
+  const insets = useSafeAreaInsets();
+  const { language } = useLanguage();
+  const copy = useMemo(() => getSiteCopy(language), [language]);
+  const bottomPad = Math.max(insets.bottom, 8);
+
+  return (
+    <View style={[styles.mobileBottomBar, { paddingBottom: bottomPad }]}>
+      {MOBILE_NAV_ITEMS.map((item) => {
+        const isCreateBtn = item.screen === '__create_menu__';
+        const isActive = !isCreateBtn && activeScreen === item.screen;
+
+        return (
+          <TouchableOpacity
+            key={item.screen}
+            style={styles.mobileTabButton}
+            onPress={() => isCreateBtn ? onCreatePress() : handleNavigate(item.screen)}
+            activeOpacity={0.8}
+          >
+            {isCreateBtn ? (
+              // Special pill-style create button
+              <View style={styles.createBtnWrap}>
+                <Ionicons name={item.icon} size={22} color="#ffffff" />
+              </View>
+            ) : (
+              <View style={[styles.mobileTabIconWrap, isActive && styles.mobileTabIconWrapActive]}>
+                <Ionicons
+                  name={item.icon}
+                  size={20}
+                  color={isActive ? '#f97316' : '#64748b'}
+                />
+              </View>
+            )}
+            <Text
+              style={[
+                styles.mobileTabLabel,
+                isActive && styles.mobileTabLabelActive,
+                isCreateBtn && styles.mobileTabLabelCreate,
+              ]}
+              numberOfLines={1}
+            >
+              {copy.common[item.labelKey] || item.labelKey}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 // ─── Main Export ──────────────────────────────────────────────────────────
 export default function AppNavbar({ activeScreen, navigation, hideTopHeader = false }) {
   const { language } = useLanguage();
+  const { logout } = useAuth();
   const copy = useMemo(() => getSiteCopy(language), [language]);
   const isDesktop = useIsDesktop();
+  const [createMenuVisible, setCreateMenuVisible] = useState(false);
 
   const handleNavigate = (screenName) => {
     blurActiveElement();
     navigation?.navigate?.(screenName);
+  };
+
+  const handleLogout = async () => {
+    await logout?.();
+    navigation?.navigate?.('Home');
   };
 
   if (!isDesktop) {
@@ -294,72 +598,75 @@ export default function AppNavbar({ activeScreen, navigation, hideTopHeader = fa
         {!hideTopHeader && (
           <MobileTopHeader navigation={navigation} handleNavigate={handleNavigate} />
         )}
-
-        <View style={styles.mobileBottomBar}>
-          {MOBILE_NAV_ITEMS.map((item) => {
-            const isActive = activeScreen === item.screen;
-            return (
-              <TouchableOpacity
-                key={item.screen}
-                style={styles.mobileTabButton}
-                onPress={() => handleNavigate(item.screen)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.mobileTabIconWrap, isActive && styles.mobileTabIconWrapActive]}>
-                  <Ionicons
-                    name={item.icon}
-                    size={20}
-                    color={isActive ? '#f97316' : '#64748b'}
-                  />
-                </View>
-                <Text
-                  style={[styles.mobileTabLabel, isActive && styles.mobileTabLabelActive]}
-                  numberOfLines={1}
-                >
-                  {copy.common[item.labelKey] || item.labelKey}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <MobileBottomBar
+          activeScreen={activeScreen}
+          handleNavigate={handleNavigate}
+          onCreatePress={() => setCreateMenuVisible(true)}
+        />
+        <CreateMenuDrawer
+          visible={createMenuVisible}
+          onClose={() => setCreateMenuVisible(false)}
+          navigation={navigation}
+          onLogout={handleLogout}
+        />
       </>
     );
   }
 
+  // ─── Desktop ───────────────────────────────────────────────────────────
   return (
-    <View style={styles.desktopNavbarShell}>
-      <View style={styles.desktopNavbarInner}>
-        <NavbarBrand onPressHome={() => handleNavigate('Home')} />
+    <>
+      <View style={styles.desktopNavbarShell}>
+        <View style={styles.desktopNavbarInner}>
+          <NavbarBrand onPressHome={() => handleNavigate('Home')} />
 
-        <View style={styles.desktopNavLinksRow}>
-          {DESKTOP_NAV_ITEMS.map((item) => {
-            const isActive = activeScreen === item.screen;
-            return (
-              <TouchableOpacity
-                key={item.screen}
-                style={[styles.desktopNavLink, isActive && styles.desktopNavLinkActive]}
-                onPress={() => handleNavigate(item.screen)}
-                activeOpacity={0.85}
-              >
-                <Ionicons
-                  name={item.icon}
-                  size={16}
-                  color={isActive ? '#f97316' : '#475569'}
-                />
-                <Text style={[styles.desktopNavLabel, isActive && styles.desktopNavLabelActive]}>
-                  {copy.common[item.labelKey] || item.labelKey}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+          <View style={styles.desktopNavLinksRow}>
+            {DESKTOP_NAV_ITEMS.map((item) => {
+              const isActive = activeScreen === item.screen;
+              return (
+                <TouchableOpacity
+                  key={item.screen}
+                  style={[styles.desktopNavLink, isActive && styles.desktopNavLinkActive]}
+                  onPress={() => handleNavigate(item.screen)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons
+                    name={item.icon}
+                    size={16}
+                    color={isActive ? '#f97316' : '#475569'}
+                  />
+                  <Text style={[styles.desktopNavLabel, isActive && styles.desktopNavLabelActive]}>
+                    {copy.common[item.labelKey] || item.labelKey}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
 
-        <View style={styles.desktopActionsRow}>
-          <NavbarLanguageSelector />
-          <ProfileDropdown navigation={navigation} />
+            {/* Desktop Create/Menu button */}
+            <TouchableOpacity
+              style={styles.desktopCreateBtn}
+              onPress={() => setCreateMenuVisible(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="grid-outline" size={16} color="#ffffff" />
+              <Text style={styles.desktopCreateBtnText}>Menu</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.desktopActionsRow}>
+            <NavbarLanguageSelector />
+            <ProfileDropdown navigation={navigation} />
+          </View>
         </View>
       </View>
-    </View>
+
+      <CreateMenuDrawer
+        visible={createMenuVisible}
+        onClose={() => setCreateMenuVisible(false)}
+        navigation={navigation}
+        onLogout={handleLogout}
+      />
+    </>
   );
 }
 
@@ -450,6 +757,20 @@ const styles = StyleSheet.create({
   desktopNavLabelActive: {
     color: '#f97316',
   },
+  desktopCreateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#f97316',
+  },
+  desktopCreateBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   desktopActionsRow: {
     flexShrink: 0,
     flexDirection: 'row',
@@ -467,7 +788,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingBottom: 8,
     ...Platform.select({
       web: {
         position: 'sticky',
@@ -643,7 +964,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#f1e5d3',
     paddingHorizontal: 6,
     paddingTop: 6,
-    paddingBottom: Platform.OS === 'ios' ? 26 : 8,
     ...Platform.select({
       web: {
         position: 'fixed',
@@ -669,6 +989,23 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingHorizontal: 2,
   },
+  createBtnWrap: {
+    width: 44,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#f97316',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      default: {
+        elevation: 4,
+        shadowColor: '#f97316',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.35,
+        shadowRadius: 6,
+      },
+    }),
+  },
   mobileTabIconWrap: {
     width: 40,
     height: 36,
@@ -690,4 +1027,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   mobileTabLabelActive: { color: '#f97316' },
+  mobileTabLabelCreate: { color: '#f97316' },
 });

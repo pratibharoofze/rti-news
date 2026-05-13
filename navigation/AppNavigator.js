@@ -79,6 +79,47 @@ export default function AppNavigator() {
   const [initialState, setInitialState] = useState();
   const [isNavStateReady, setIsNavStateReady] = useState(false);
 
+  // Render screens via an array so we don't accidentally render raw text nodes
+  // between JSX children (can trigger: "Text strings must be rendered within a <Text> component").
+  const stackScreens = [
+    { name: 'Home', component: HomeScreen },
+    { name: 'About', component: AboutScreen },
+    { name: 'Contact', component: ContactScreen },
+    { name: 'WhatIsRTI', component: WhatIsRTIScreen },
+    { name: 'ImportantLaws', component: ImportantLawsScreen },
+    { name: 'NewsDetails', component: NewsDetailsScreen },
+    { name: 'Feed', component: FeedScreen },
+    { name: 'Login', component: LoginScreen },
+    { name: 'Register', component: RegisterScreen },
+    { name: 'StateSelect', component: StateSelectScreen },
+    { name: 'DistrictSelect', component: DistrictSelectScreen },
+    { name: 'TalukaSelect', component: TalukaSelectScreen },
+    { name: 'ForgotPassword', component: ForgotPasswordScreen },
+    { name: 'Otp', component: OtpScreen },
+    { name: 'ResetPassword', component: ResetPasswordScreen },
+    { name: 'Dashboard', component: DashboardScreen },
+    { name: 'Profile', component: ProfileScreen },
+    { name: 'My Network', component: MyNetworkScreen },
+    { name: 'Wallet', component: WalletScreen },
+    { name: 'Withdraw', component: WithdrawScreen },
+    { name: 'Subscription Plans', component: SubscriptionPlansScreen },
+    { name: 'News Feed', component: NewsFeedScreen },
+    { name: 'Add News', component: AddNewsScreen },
+    { name: 'e-Paper', component: EPaperScreen },
+    { name: 'Live Streaming', component: LiveStreamingScreen },
+    { name: 'Start Live', component: LiveBroadcastScreen },
+    { name: 'Certification', component: CertificationScreen },
+    { name: 'Notifications', component: NotificationsScreen },
+    { name: 'Settings', component: SettingsScreen },
+    { name: 'ViewMember', component: ViewMemberScreen },
+    { name: 'EditMember', component: EditMemberScreen },
+    { name: 'UserProfile', component: UserPublicProfileScreen },
+    { name: 'Payment', component: PaymentScreen },
+    { name: 'AttemptQuiz', component: AttemptQuizScreen },
+    { name: 'QuizResult', component: QuizResultScreen },
+    { name: 'CertificatePreview', component: CertificatePreviewScreen },
+  ];
+
   useEffect(() => {
     let alive = true;
 
@@ -101,59 +142,13 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer
-      initialState={initialState}
-      onStateChange={persistNavigationState}
-    >
-      <Stack.Navigator
-        initialRouteName={Platform.OS === 'web' ? 'Home' : 'Login'}
-        screenOptions={{ headerShown: false }}
-      >
-        
-        {/* ── Public / Landing ── */}
-{Platform.OS === 'web' && (
-  <Stack.Screen name="Home" component={HomeScreen} />
-)}
-        <Stack.Screen name="About"         component={AboutScreen} />
-        <Stack.Screen name="Contact"       component={ContactScreen} />
-        <Stack.Screen name="WhatIsRTI"     component={WhatIsRTIScreen} />
-        <Stack.Screen name="ImportantLaws" component={ImportantLawsScreen} />
-        <Stack.Screen name="NewsDetails"   component={NewsDetailsScreen} />
-        <Stack.Screen name="Feed"          component={FeedScreen} />
-
-        {/* ── Auth ── */}
-        <Stack.Screen name="Login"          component={LoginScreen} />
-        <Stack.Screen name="Register"       component={RegisterScreen} />
-        <Stack.Screen name="StateSelect"    component={StateSelectScreen} />
-        <Stack.Screen name="DistrictSelect" component={DistrictSelectScreen} />
-        <Stack.Screen name="TalukaSelect"   component={TalukaSelectScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="Otp"            component={OtpScreen} />
-        <Stack.Screen name="ResetPassword"  component={ResetPasswordScreen} />
-
-        {/* ── App Screens ── */}
-        <Stack.Screen name="Dashboard"          component={DashboardScreen} />
-        <Stack.Screen name="Profile"            component={ProfileScreen} />
-        <Stack.Screen name="My Network"         component={MyNetworkScreen} />
-        <Stack.Screen name="Wallet"             component={WalletScreen} />
-        <Stack.Screen name="Withdraw"           component={WithdrawScreen} />
-        <Stack.Screen name="Subscription Plans" component={SubscriptionPlansScreen} />
-        <Stack.Screen name="News Feed"          component={NewsFeedScreen} />
-        <Stack.Screen name="Add News"           component={AddNewsScreen} />
-        <Stack.Screen name="e-Paper"            component={EPaperScreen} />
-        <Stack.Screen name="Live Streaming"     component={LiveStreamingScreen} />
-        <Stack.Screen name="Start Live"         component={LiveBroadcastScreen} />
-        <Stack.Screen name="Certification"      component={CertificationScreen} />
-        <Stack.Screen name="Notifications"      component={NotificationsScreen} />
-        <Stack.Screen name="Settings"           component={SettingsScreen} />
-        <Stack.Screen name="ViewMember"         component={ViewMemberScreen} />
-        <Stack.Screen name="EditMember"         component={EditMemberScreen} />
-        <Stack.Screen name="UserProfile"        component={UserPublicProfileScreen} />
-        <Stack.Screen name="Payment"            component={PaymentScreen} />
-        <Stack.Screen name="AttemptQuiz"        component={AttemptQuizScreen} />
-        <Stack.Screen name="QuizResult"         component={QuizResultScreen} />
-        <Stack.Screen name="CertificatePreview" component={CertificatePreviewScreen} />
+    <NavigationContainer initialState={initialState} onStateChange={persistNavigationState}>
+      <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
+        {stackScreens.map(({ name, component }) => (
+          <Stack.Screen key={name} name={name} component={component} />
+        ))}
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+

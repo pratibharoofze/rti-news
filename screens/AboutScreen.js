@@ -119,7 +119,7 @@ export default function AboutScreen({ navigation }) {
   return (
     <View style={{ flex: 1 }}>
       {/* Web pe TOP navbar */}
-      {isWeb && <AppNavbar navigation={navigation} activeScreen="About" />}
+      {isWeb ? <AppNavbar navigation={navigation} activeScreen="About" /> : null}
 
       <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
         {/* ── Hero ── */}

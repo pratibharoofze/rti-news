@@ -113,7 +113,7 @@ export default function Sidebar({ visible, onClose, onItemPress, activeItem = 'D
                     {item.label}
                   </Text>
 
-                  {isActive && !isLogout && <View style={styles.activeIndicator} />}
+                  {isActive && !isLogout ? <View style={styles.activeIndicator} /> : null}
                 </TouchableOpacity>
               );
             })}

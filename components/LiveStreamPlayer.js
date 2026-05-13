@@ -30,7 +30,7 @@ export default function LiveStreamPlayer({ streamUrl, onError }) {
       style={LiveStreamingStyles.videoPlayer}
       contentFit="contain"
       nativeControls
-      allowsFullscreen
+      fullscreenOptions={{ enabled: true }}
       onMountError={onError}
     />
   );

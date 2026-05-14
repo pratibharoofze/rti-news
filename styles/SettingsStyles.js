@@ -1,115 +1,106 @@
 import { StyleSheet } from 'react-native';
 
 const SettingsStyles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 96,
-  },
-  heroCard: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#dbeafe',
-    borderRadius: 22,
-    padding: 20,
-    marginBottom: 16,
-    boxShadow: '0px 10px 18px rgba(15, 23, 42, 0.05)',
-    elevation: 3,
-  },
-  heroEyebrow: {
-    fontSize: 12,
-    color: '#2563eb',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontSize: 26,
-    lineHeight: 34,
-    color: '#0f172a',
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#475569',
-  },
-  ownerRow: {
-    marginTop: 16,
+  root: { flex: 1, backgroundColor: '#f8fafc' },
+
+  // ── Header ──
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  ownerBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#eff6ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ownerInfo: {
-    flex: 1,
-  },
-  ownerName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  ownerEmail: {
-    marginTop: 3,
-    fontSize: 12,
-    color: '#64748b',
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    color: '#0f172a',
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  sectionText: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#64748b',
-    marginBottom: 14,
-  },
-  summaryRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
-  summaryLabel: {
-    fontSize: 13,
-    color: '#475569',
-    fontWeight: '600',
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  summaryValue: {
-    fontSize: 13,
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '800',
     color: '#0f172a',
-    fontWeight: '700',
   },
-  inputGroup: {
+
+  // ── Scroll ──
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
+
+  // ── Section Header ──
+  sectionHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
+
+  // ── Card ──
+  card: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    overflow: 'hidden',
+  },
+
+  // ── List Item ──
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f8fafc',
+    gap: 14,
+  },
+  itemDestructive: {
+    backgroundColor: '#fff5f5',
+  },
+  itemEmoji: {
+    fontSize: 20,
+    width: 28,
+    textAlign: 'center',
+  },
+  itemLabel: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: '500',
+  },
+  itemLabelDestructive: {
+    color: '#ef4444',
+  },
+
+  // ── Inline Location Card ──
+  inlineCard: {
+    marginHorizontal: 12,
+    marginTop: 4,
+    backgroundColor: '#eff6ff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    padding: 16,
+  },
+  inlineCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1d4ed8',
     marginBottom: 12,
   },
+
+  // ── Inputs ──
+  inputGroup: { marginBottom: 12 },
   inputLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -119,35 +110,51 @@ const SettingsStyles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: '#f8fafc',
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: '#0f172a',
     fontSize: 14,
   },
-  saveButton: {
+
+  // ── Dropdown ──
+  dropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 14,
+    minHeight: 48,
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0f172a',
+  },
+  placeholder: {
+    color: '#94a3b8',
+  },
+
+  // ── Save Button ──
+  saveBtn: {
     marginTop: 4,
     backgroundColor: '#2563eb',
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
   },
-  saveButtonText: {
+  saveBtnText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '800',
-  },
-  loadingText: {
-    fontSize: 13,
-    color: '#64748b',
+    fontWeight: '700',
   },
 });
 
 export default SettingsStyles;
-
-
-

@@ -15,10 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Footer from '../components/Footer';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import { UserStore } from '../store/UserStore';
 import styles from '../styles/CertificatePreviewStyles';
@@ -289,9 +287,9 @@ President Bhartiya Mahiti Adhikar<span class="small"> (All India RTI News Work)<
 
 export default function CertificatePreviewScreen({ navigation, route }) {
   const { showToast } = useToast();
+  const insets = useSafeAreaInsets();
   const { result } = route.params || {};
 
-  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [downloading, setDownloading]       = useState(false);
   const [currentUser, setCurrentUser]       = useState(null);
   const [webHtml, setWebHtml]               = useState('');
@@ -394,11 +392,6 @@ export default function CertificatePreviewScreen({ navigation, route }) {
       return () => { mounted = false; };
     }, [navigation, result])
   );
-
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
 
   const userName = currentUser?.name || result?.user_name || 'Participant';
   const issueDate = result?.date || new Date().toLocaleDateString('en-IN');
@@ -551,11 +544,18 @@ export default function CertificatePreviewScreen({ navigation, route }) {
 
   return (
     <View style={styles.root}>
-      <Header
-        title="Certificate"
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+      {/* Back Button Header */}
+      <View style={[styles.customHeader, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Certificate Preview</Text>
+        <View style={styles.headerPlaceholder} />
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.contentContainer}
@@ -634,7 +634,6 @@ export default function CertificatePreviewScreen({ navigation, route }) {
               <Image source={GOLD_LATTER} style={styles.goldLatter} resizeMode="contain" />
 
               {/* ── SIGNATORY ── */}
-              {/* ── SIGNATORY ── */}
               <Text style={styles.signatoryName}>Hon. Mr. {userName}</Text>
               <Text style={styles.signatoryRole}>
                 Chief Editor / Owner / Publisher / All India{'\n'}
@@ -693,25 +692,9 @@ export default function CertificatePreviewScreen({ navigation, route }) {
               {downloading ? 'Generating PDF...' : 'Download Certificate (PDF)'}
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.actionBtnAlt]}
-            onPress={() => navigation.goBack()}
-          >
-            <Feather name="arrow-left" size={18} color="#fff" />
-            <Text style={styles.actionBtnText}>Back to Result</Text>
-          </TouchableOpacity>
         </View>
 
       </ScrollView>
-
-      <Footer />
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem="Certification"
-      />
     </View>
   );
 }

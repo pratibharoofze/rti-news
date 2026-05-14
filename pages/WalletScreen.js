@@ -1,9 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ScrollView, Text, View, TouchableOpacity, TextInput } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import WalletStyles from '../styles/WalletStyles';
 import { UserStore } from '../store/UserStore';
@@ -12,12 +10,9 @@ const PAGE_SIZE = 10;
 
 export default function WalletScreen({ navigation }) {
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab]           = useState('Home');
   const [loading, setLoading]               = useState(true);
   const [currentUser, setCurrentUser]       = useState(null);
-
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage]       = useState(1);
 
   const [summary, setSummary] = useState({
     total_balance: 0,
@@ -52,23 +47,15 @@ export default function WalletScreen({ navigation }) {
     }, [loadWallet])
   );
 
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
-
   const latestTransaction = useMemo(
-    () =>
-      summary.transactions.length
-        ? summary.transactions[0]
-        : null,
+    () => summary.transactions.length ? summary.transactions[0] : null,
     [summary.transactions]
   );
 
   const typeColor = (type) =>
     type === 'credit' ? WalletStyles.creditValue : WalletStyles.debitValue;
 
-  // ── Pagination Logic ──
+  // ── Pagination ──
   const totalRecords = summary.transactions.length;
   const totalPages   = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
 
@@ -82,7 +69,6 @@ export default function WalletScreen({ navigation }) {
     setCurrentPage(page);
   };
 
-  // Page numbers to show (max 5 buttons)
   const pageNumbers = useMemo(() => {
     const pages = [];
     let start = Math.max(1, currentPage - 2);
@@ -94,18 +80,42 @@ export default function WalletScreen({ navigation }) {
 
   return (
     <View style={WalletStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+
+      {/* ── Top Bar with Back Button ── */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#ffffff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e2e8f0',
+      }}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('QuickMenu')}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+        >
+          <Feather name="arrow-left" size={20} color="#1d4ed8" />
+          <Text style={{ color: '#1d4ed8', fontSize: 15, fontWeight: '700' }}>Back</Text>
+        </TouchableOpacity>
+
+        <Text style={{
+          flex: 1,
+          textAlign: 'center',
+          fontSize: 17,
+          fontWeight: '800',
+          color: '#0f172a',
+          marginRight: 52,
+        }}>
+          Wallet
+        </Text>
+      </View>
 
       <ScrollView
         style={WalletStyles.scrollView}
         contentContainerStyle={WalletStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
         {/* Metrics */}
         <View style={WalletStyles.metricsGrid}>
           <View style={[WalletStyles.metricCard, WalletStyles.balanceCard]}>
@@ -169,9 +179,8 @@ export default function WalletScreen({ navigation }) {
           )}
         </View>
 
-        {/* ── Wallet Records DataTable ── */}
+        {/* Wallet Records */}
         <View style={WalletStyles.card}>
-          {/* Header row */}
           <View style={WalletStyles.tableTopRow}>
             <Text style={WalletStyles.sectionTitle}>Wallet Records</Text>
             <Text style={WalletStyles.recordCount}>
@@ -185,65 +194,42 @@ export default function WalletScreen({ navigation }) {
             <Text style={WalletStyles.emptyText}>No wallet records found.</Text>
           ) : (
             <>
-              {/* Table */}
               <View style={WalletStyles.tableWrap}>
-                {/* Table Header */}
                 <View style={WalletStyles.tableHeader}>
-                  <Text style={[WalletStyles.tableHeaderText, WalletStyles.colAmount]}>
-                    Amount
-                  </Text>
-                  <Text style={[WalletStyles.tableHeaderText, WalletStyles.colType]}>
-                    Type
-                  </Text>
-                  <Text style={[WalletStyles.tableHeaderText, WalletStyles.colSource]}>
-                    Source
-                  </Text>
-                  <Text style={[WalletStyles.tableHeaderText, WalletStyles.colDate]}>
-                    Date
-                  </Text>
+                  <Text style={[WalletStyles.tableHeaderText, WalletStyles.colAmount]}>Amount</Text>
+                  <Text style={[WalletStyles.tableHeaderText, WalletStyles.colType]}>Type</Text>
+                  <Text style={[WalletStyles.tableHeaderText, WalletStyles.colSource]}>Source</Text>
+                  <Text style={[WalletStyles.tableHeaderText, WalletStyles.colDate]}>Date</Text>
                 </View>
 
-                {/* Table Rows */}
                 {pagedTransactions.map((item, index) => (
                   <View
                     key={item.id ?? index}
                     style={[
                       WalletStyles.tableRow,
                       index % 2 === 0 && WalletStyles.tableRowEven,
-                      index === pagedTransactions.length - 1 &&
-                        WalletStyles.tableRowLast,
+                      index === pagedTransactions.length - 1 && WalletStyles.tableRowLast,
                     ]}
                   >
                     <View style={WalletStyles.colAmount}>
                       <Text style={typeColor(item.type)}>₹{item.amount}</Text>
                     </View>
-
                     <View style={WalletStyles.colType}>
-                      <View
-                        style={[
-                          WalletStyles.typePill,
-                          item.type === 'credit'
-                            ? WalletStyles.typePillCredit
-                            : WalletStyles.typePillDebit,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            WalletStyles.typePillText,
-                            item.type === 'credit'
-                              ? WalletStyles.typePillTextCredit
-                              : WalletStyles.typePillTextDebit,
-                          ]}
-                        >
+                      <View style={[
+                        WalletStyles.typePill,
+                        item.type === 'credit' ? WalletStyles.typePillCredit : WalletStyles.typePillDebit,
+                      ]}>
+                        <Text style={[
+                          WalletStyles.typePillText,
+                          item.type === 'credit' ? WalletStyles.typePillTextCredit : WalletStyles.typePillTextDebit,
+                        ]}>
                           {item.type === 'credit' ? 'Credit' : 'Debit'}
                         </Text>
                       </View>
                     </View>
-
                     <View style={WalletStyles.colSource}>
                       <Text style={WalletStyles.rowSecondary}>{item.source}</Text>
                     </View>
-
                     <View style={WalletStyles.colDate}>
                       <Text style={WalletStyles.rowSecondary}>{item.date}</Text>
                     </View>
@@ -251,100 +237,52 @@ export default function WalletScreen({ navigation }) {
                 ))}
               </View>
 
-              {/* ── Pagination ── */}
+              {/* Pagination */}
               <View style={WalletStyles.paginationWrap}>
-                {/* Info text */}
                 <Text style={WalletStyles.paginationInfo}>
-                  Showing{' '}
-                  {Math.min((currentPage - 1) * PAGE_SIZE + 1, totalRecords)}–
+                  Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, totalRecords)}–
                   {Math.min(currentPage * PAGE_SIZE, totalRecords)} of {totalRecords}
                 </Text>
 
-                {/* Controls */}
                 <View style={WalletStyles.paginationControls}>
-                  {/* First */}
                   <TouchableOpacity
-                    style={[
-                      WalletStyles.pageBtn,
-                      currentPage === 1 && WalletStyles.pageBtnDisabled,
-                    ]}
-                    onPress={() => goToPage(1)}
-                    disabled={currentPage === 1}
+                    style={[WalletStyles.pageBtn, currentPage === 1 && WalletStyles.pageBtnDisabled]}
+                    onPress={() => goToPage(1)} disabled={currentPage === 1}
                   >
-                    <Feather
-                      name="chevrons-left"
-                      size={14}
-                      color={currentPage === 1 ? '#cbd5e1' : '#475569'}
-                    />
+                    <Feather name="chevrons-left" size={14} color={currentPage === 1 ? '#cbd5e1' : '#475569'} />
                   </TouchableOpacity>
 
-                  {/* Prev */}
                   <TouchableOpacity
-                    style={[
-                      WalletStyles.pageBtn,
-                      currentPage === 1 && WalletStyles.pageBtnDisabled,
-                    ]}
-                    onPress={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1}
+                    style={[WalletStyles.pageBtn, currentPage === 1 && WalletStyles.pageBtnDisabled]}
+                    onPress={() => goToPage(currentPage - 1)} disabled={currentPage === 1}
                   >
-                    <Feather
-                      name="chevron-left"
-                      size={14}
-                      color={currentPage === 1 ? '#cbd5e1' : '#475569'}
-                    />
+                    <Feather name="chevron-left" size={14} color={currentPage === 1 ? '#cbd5e1' : '#475569'} />
                   </TouchableOpacity>
 
-                  {/* Page numbers */}
                   {pageNumbers.map((page) => (
                     <TouchableOpacity
                       key={page}
-                      style={[
-                        WalletStyles.pageBtn,
-                        page === currentPage && WalletStyles.pageBtnActive,
-                      ]}
+                      style={[WalletStyles.pageBtn, page === currentPage && WalletStyles.pageBtnActive]}
                       onPress={() => goToPage(page)}
                     >
-                      <Text
-                        style={[
-                          WalletStyles.pageBtnText,
-                          page === currentPage && WalletStyles.pageBtnTextActive,
-                        ]}
-                      >
+                      <Text style={[WalletStyles.pageBtnText, page === currentPage && WalletStyles.pageBtnTextActive]}>
                         {page}
                       </Text>
                     </TouchableOpacity>
                   ))}
 
-                  {/* Next */}
                   <TouchableOpacity
-                    style={[
-                      WalletStyles.pageBtn,
-                      currentPage === totalPages && WalletStyles.pageBtnDisabled,
-                    ]}
-                    onPress={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    style={[WalletStyles.pageBtn, currentPage === totalPages && WalletStyles.pageBtnDisabled]}
+                    onPress={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}
                   >
-                    <Feather
-                      name="chevron-right"
-                      size={14}
-                      color={currentPage === totalPages ? '#cbd5e1' : '#475569'}
-                    />
+                    <Feather name="chevron-right" size={14} color={currentPage === totalPages ? '#cbd5e1' : '#475569'} />
                   </TouchableOpacity>
 
-                  {/* Last */}
                   <TouchableOpacity
-                    style={[
-                      WalletStyles.pageBtn,
-                      currentPage === totalPages && WalletStyles.pageBtnDisabled,
-                    ]}
-                    onPress={() => goToPage(totalPages)}
-                    disabled={currentPage === totalPages}
+                    style={[WalletStyles.pageBtn, currentPage === totalPages && WalletStyles.pageBtnDisabled]}
+                    onPress={() => goToPage(totalPages)} disabled={currentPage === totalPages}
                   >
-                    <Feather
-                      name="chevrons-right"
-                      size={14}
-                      color={currentPage === totalPages ? '#cbd5e1' : '#475569'}
-                    />
+                    <Feather name="chevrons-right" size={14} color={currentPage === totalPages ? '#cbd5e1' : '#475569'} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -352,8 +290,6 @@ export default function WalletScreen({ navigation }) {
           )}
         </View>
       </ScrollView>
-
-      <Footer activeTab={activeTab} onTabPress={setActiveTab} />
 
       <Sidebar
         visible={sidebarVisible}
@@ -363,5 +299,3 @@ export default function WalletScreen({ navigation }) {
     </View>
   );
 }
-
-

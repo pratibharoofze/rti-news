@@ -507,13 +507,15 @@ export default function HomeScreen({ navigation, route }) {
     <>
       <View style={styles.pageBodyShell}>
         <View style={[styles.pageBodyInner, isCompactLayout && styles.pageBodyInnerCompact]}>
-          <View style={[styles.sidebarStickyWrapper, isCompactLayout && styles.sidebarStickyWrapperCompact]}>
-            <NewsMenuSidebar activeMenuKey={selectedMenuKey} onSelectMenu={handleMenuSelection} isCompactLayout={isCompactLayout} commonCopy={commonCopy} />
-          </View>
+          {!isMobileLayout && (
+  <View style={[styles.sidebarStickyWrapper, isCompactLayout && styles.sidebarStickyWrapperCompact]}>
+    <NewsMenuSidebar activeMenuKey={selectedMenuKey} onSelectMenu={handleMenuSelection} isCompactLayout={isCompactLayout} commonCopy={commonCopy} />
+  </View>
+)}
           <View style={[styles.workspaceShell, isCompactLayout && styles.workspaceShellCompact]}>
-            {isCompactLayout && shouldShowRightRail ? (
-              <View style={[styles.utilityStickyWrapper, styles.utilityStickyWrapperCompact]}>{utilityPanel}</View>
-            ) : null}
+            {isCompactLayout && shouldShowRightRail && !isMobileLayout ? (
+  <View style={[styles.utilityStickyWrapper, styles.utilityStickyWrapperCompact]}>{utilityPanel}</View>
+) : null}
             <View style={[styles.feedColumnShell, isCompactLayout && styles.feedColumnShellCompact]}>
               <View style={[styles.feedColumn, viewMode === 'states' && styles.feedColumnStatesView]}>
                 {viewMode === 'states' ? (

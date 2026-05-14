@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
   root: {
@@ -8,6 +8,45 @@ export default StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 110,
+  },
+
+  // ── Custom Header ──
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    ...Platform.select({
+      web: {
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+      },
+      default: {
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+    }),
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+    borderRadius: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  headerPlaceholder: {
+    width: 40,
   },
 
   // ── Hero ──

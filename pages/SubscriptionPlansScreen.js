@@ -9,10 +9,6 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
-
 import { useToast } from '../components/ui/ToastProvider';
 import SubscriptionPlansStyles from '../styles/SubscriptionPlansStyles';
 import { UserStore } from '../store/UserStore';
@@ -312,7 +308,6 @@ export default function SubscriptionPlansScreen({
 }) {
   const { showToast, showPopup } = useToast();
 
-  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [seatSummary, setSeatSummary] = useState(null);
   const [selectedSeatId, setSelectedSeatId] = useState('');
@@ -327,7 +322,6 @@ export default function SubscriptionPlansScreen({
     currentRoleLabel: 'Free Member',
   });
 
-  const moduleName = 'Subscription Plans';
 
   const loadPlans = useCallback(async () => {
     setLoading(true);
@@ -375,7 +369,6 @@ export default function SubscriptionPlansScreen({
         seat_role_id: seatRoleIdToUse,
       },
     });
-  };
 
   const handleBuyPlan = (plan) => {
     if (!stateName) {
@@ -405,18 +398,23 @@ export default function SubscriptionPlansScreen({
     setSeatModalOpen(true);
   };
 
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
   };
 
   return (
     <View style={SubscriptionPlansStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+      <TouchableOpacity
+        onPress={() => navigation.navigate('QuickMenu')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 6,
+        }}
+      >
+        <Feather name="arrow-left" size={20} color="#1d4ed8" />
+        <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '600' }}>Back</Text>
+      </TouchableOpacity>
 
       <ScrollView
         contentContainerStyle={SubscriptionPlansStyles.scrollContent}
@@ -424,31 +422,6 @@ export default function SubscriptionPlansScreen({
       >
         <View style={SubscriptionPlansStyles.heroCard}>
 
-          {/* ✅ Back Button — Dashboard Screen par navigate karega */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Dashboard')}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-              marginBottom: 10,
-              paddingVertical: 4,
-              paddingHorizontal: 2,
-            }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Feather name="arrow-left" size={18} color="#7c3aed" />
-            <Text
-              style={{
-                color: '#7c3aed',
-                fontSize: 14,
-                marginLeft: 5,
-                fontWeight: '600',
-              }}
-            >
-              Back
-            </Text>
-          </TouchableOpacity>
 
           <Text style={SubscriptionPlansStyles.heroEyebrow}>
             Plans
@@ -539,14 +512,6 @@ export default function SubscriptionPlansScreen({
           )}
         </View>
       </ScrollView>
-
-      <Footer />
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem={moduleName}
-      />
 
       <SeatSelectModal
         visible={seatModalOpen}

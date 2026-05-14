@@ -28,6 +28,7 @@ const IS_WEB = Platform.OS === 'web';
 const DESKTOP_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
+  {labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true},
   { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
   { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
 ];
@@ -35,27 +36,9 @@ const DESKTOP_NAV_ITEMS = [
 const MOBILE_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
-  { labelKey: 'create', screen: '__create_menu__', icon: 'grid-outline' },
+  {labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true},
   { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
   { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
-];
-
-// ── Create Menu Items ───────────────────────────────────────────────────────
-const CREATE_MENU_ITEMS = [
-  ...(IS_WEB ? [{ label: 'Home', icon: 'home-outline', screen: 'Home' }] : []),
-  { label: 'Dashboard',          icon: 'grid-outline',          screen: 'Dashboard' },
-  { label: 'Profile',            icon: 'person-outline',        screen: 'Profile' },
-  { label: 'My Network',         icon: 'people-outline',        screen: 'MyNetwork' },
-  { label: 'Wallet',             icon: 'wallet-outline',        screen: 'Wallet' },
-  { label: 'Withdraw',           icon: 'cash-outline',          screen: 'Withdraw' },
-  { label: 'Subscription Plans', icon: 'star-outline',          screen: 'SubscriptionPlans' },
-  { label: 'News Feed',          icon: 'newspaper-outline',     screen: 'Feed' },
-  { label: 'e-Paper',            icon: 'document-text-outline', screen: 'EPaper' },
-  { label: 'Live Streaming',     icon: 'radio-outline',         screen: 'LiveStreaming' },
-  { label: 'Certification',      icon: 'ribbon-outline',        screen: 'Certification' },
-  { label: 'Notifications',      icon: 'notifications-outline', screen: 'Notifications' },
-  { label: 'Settings',           icon: 'settings-outline',      screen: 'Settings' },
-  { label: 'Logout',             icon: 'log-out-outline',       screen: '__logout__', isDestructive: true },
 ];
 
 const LANGUAGE_OPTIONS = [
@@ -82,235 +65,6 @@ function useIsDesktop() {
   if (!IS_WEB) return false;
   return width >= 768;
 }
-
-// ─── Create Menu Drawer ────────────────────────────────────────────────────
-function CreateMenuDrawer({ visible, onClose, navigation, onLogout }) {
-  const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(400)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          damping: 22,
-          stiffness: 200,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 400,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
-
-  const handleItemPress = (item) => {
-    onClose();
-    if (item.screen === '__logout__') {
-      onLogout?.();
-      return;
-    }
-    navigation?.navigate?.(item.screen);
-  };
-
-  if (!visible && !IS_WEB) return null;
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      {/* Backdrop */}
-      <Animated.View style={[drawerStyles.backdrop, { opacity: fadeAnim }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-      </Animated.View>
-
-      {/* Sheet */}
-      <Animated.View
-        style={[
-          drawerStyles.sheet,
-          { paddingBottom: Math.max(insets.bottom, 16) },
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        {/* Handle */}
-        <View style={drawerStyles.handle} />
-
-        {/* Header */}
-        <View style={drawerStyles.sheetHeader}>
-          <Text style={drawerStyles.sheetTitle}>Quick Menu</Text>
-          <TouchableOpacity onPress={onClose} style={drawerStyles.closeBtn} activeOpacity={0.7}>
-            <Ionicons name="close" size={20} color="#64748b" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Grid of items */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={drawerStyles.gridContainer}
-        >
-          {CREATE_MENU_ITEMS.map((item) => (
-            <TouchableOpacity
-              key={item.label}
-              style={[
-                drawerStyles.gridItem,
-                item.isDestructive && drawerStyles.gridItemDestructive,
-              ]}
-              onPress={() => handleItemPress(item)}
-              activeOpacity={0.75}
-            >
-              <View
-                style={[
-                  drawerStyles.gridIconWrap,
-                  item.isDestructive && drawerStyles.gridIconWrapDestructive,
-                ]}
-              >
-                <Ionicons
-                  name={item.icon}
-                  size={22}
-                  color={item.isDestructive ? '#ef4444' : '#f97316'}
-                />
-              </View>
-              <Text
-                style={[
-                  drawerStyles.gridLabel,
-                  item.isDestructive && drawerStyles.gridLabelDestructive,
-                ]}
-                numberOfLines={2}
-              >
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </Animated.View>
-    </Modal>
-  );
-}
-
-const drawerStyles = StyleSheet.create({
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
-  },
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 10,
-    maxHeight: '85%',
-    ...Platform.select({
-      default: {
-        elevation: 24,
-        shadowColor: '#0f172a',
-        shadowOffset: { width: 0, height: -8 },
-        shadowOpacity: 0.18,
-        shadowRadius: 24,
-      },
-    }),
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#cbd5e1',
-    alignSelf: 'center',
-    marginBottom: 8,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  sheetTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-    letterSpacing: -0.3,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    paddingTop: 16,
-    paddingBottom: 8,
-    gap: 10,
-  },
-  gridItem: {
-    width: '30%',
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-    borderRadius: 12,
-    backgroundColor: '#fffbf7',
-    borderWidth: 1,
-    borderColor: '#fde8d0',
-    gap: 8,
-    minWidth: 90,
-  },
-  gridItemDestructive: {
-    backgroundColor: '#fff5f5',
-    borderColor: '#fecaca',
-  },
-  gridIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#fff7ed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gridIconWrapDestructive: {
-    backgroundColor: '#fee2e2',
-  },
-  gridLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#334155',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  gridLabelDestructive: {
-    color: '#ef4444',
-  },
-});
 
 // ─── Language Selector ─────────────────────────────────────────────────────
 function NavbarLanguageSelector() {
@@ -469,15 +223,6 @@ function ProfileDropdown({ navigation }) {
               <Text style={styles.profileDropdownText}>{copy.common.profile}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.profileDropdownItem}
-              onPress={() => { setIsOpen(false); navigation?.navigate?.('Dashboard'); }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="grid-outline" size={18} color="#475569" />
-              <Text style={styles.profileDropdownText}>{copy.common.dashboard}</Text>
-            </TouchableOpacity>
-
             <View style={styles.dropdownDivider} />
 
             <TouchableOpacity
@@ -524,7 +269,7 @@ function MobileTopHeader({ navigation, handleNavigate }) {
 }
 
 // ─── Mobile Bottom Bar ────────────────────────────────────────────────────
-function MobileBottomBar({ activeScreen, handleNavigate, onCreatePress }) {
+function MobileBottomBar({ activeScreen, handleNavigate }) {
   const insets = useSafeAreaInsets();
   const { language } = useLanguage();
   const copy = useMemo(() => getSiteCopy(language), [language]);
@@ -533,35 +278,26 @@ function MobileBottomBar({ activeScreen, handleNavigate, onCreatePress }) {
   return (
     <View style={[styles.mobileBottomBar, { paddingBottom: bottomPad }]}>
       {MOBILE_NAV_ITEMS.map((item) => {
-        const isCreateBtn = item.screen === '__create_menu__';
-        const isActive = !isCreateBtn && activeScreen === item.screen;
+        const isActive = activeScreen === item.screen;
 
         return (
           <TouchableOpacity
             key={item.screen}
             style={styles.mobileTabButton}
-            onPress={() => isCreateBtn ? onCreatePress() : handleNavigate(item.screen)}
+            onPress={() => handleNavigate(item.screen)}
             activeOpacity={0.8}
           >
-            {isCreateBtn ? (
-              // Special pill-style create button
-              <View style={styles.createBtnWrap}>
-                <Ionicons name={item.icon} size={22} color="#ffffff" />
-              </View>
-            ) : (
-              <View style={[styles.mobileTabIconWrap, isActive && styles.mobileTabIconWrapActive]}>
-                <Ionicons
-                  name={item.icon}
-                  size={20}
-                  color={isActive ? '#f97316' : '#64748b'}
-                />
-              </View>
-            )}
+            <View style={[styles.mobileTabIconWrap, isActive && styles.mobileTabIconWrapActive]}>
+              <Ionicons
+                name={item.icon}
+                size={20}
+                color={isActive ? '#f97316' : '#64748b'}
+              />
+            </View>
             <Text
               style={[
                 styles.mobileTabLabel,
                 isActive && styles.mobileTabLabelActive,
-                isCreateBtn && styles.mobileTabLabelCreate,
               ]}
               numberOfLines={1}
             >
@@ -577,19 +313,12 @@ function MobileBottomBar({ activeScreen, handleNavigate, onCreatePress }) {
 // ─── Main Export ──────────────────────────────────────────────────────────
 export default function AppNavbar({ activeScreen, navigation, hideTopHeader = false }) {
   const { language } = useLanguage();
-  const { logout } = useAuth();
   const copy = useMemo(() => getSiteCopy(language), [language]);
   const isDesktop = useIsDesktop();
-  const [createMenuVisible, setCreateMenuVisible] = useState(false);
 
   const handleNavigate = (screenName) => {
     blurActiveElement();
     navigation?.navigate?.(screenName);
-  };
-
-  const handleLogout = async () => {
-    await logout?.();
-    navigation?.navigate?.('Home');
   };
 
   if (!isDesktop) {
@@ -601,13 +330,6 @@ export default function AppNavbar({ activeScreen, navigation, hideTopHeader = fa
         <MobileBottomBar
           activeScreen={activeScreen}
           handleNavigate={handleNavigate}
-          onCreatePress={() => setCreateMenuVisible(true)}
-        />
-        <CreateMenuDrawer
-          visible={createMenuVisible}
-          onClose={() => setCreateMenuVisible(false)}
-          navigation={navigation}
-          onLogout={handleLogout}
         />
       </>
     );
@@ -641,16 +363,6 @@ export default function AppNavbar({ activeScreen, navigation, hideTopHeader = fa
                 </TouchableOpacity>
               );
             })}
-
-            {/* Desktop Create/Menu button */}
-            <TouchableOpacity
-              style={styles.desktopCreateBtn}
-              onPress={() => setCreateMenuVisible(true)}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="grid-outline" size={16} color="#ffffff" />
-              <Text style={styles.desktopCreateBtnText}>Menu</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.desktopActionsRow}>
@@ -659,19 +371,11 @@ export default function AppNavbar({ activeScreen, navigation, hideTopHeader = fa
           </View>
         </View>
       </View>
-
-      <CreateMenuDrawer
-        visible={createMenuVisible}
-        onClose={() => setCreateMenuVisible(false)}
-        navigation={navigation}
-        onLogout={handleLogout}
-      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  // ── Desktop Navbar ──────────────────────────────────────────────────────
   desktopNavbarShell: {
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
@@ -757,20 +461,6 @@ const styles = StyleSheet.create({
   desktopNavLabelActive: {
     color: '#f97316',
   },
-  desktopCreateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#f97316',
-  },
-  desktopCreateBtnText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
   desktopActionsRow: {
     flexShrink: 0,
     flexDirection: 'row',
@@ -778,8 +468,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 8,
   },
-
-  // ── Mobile Top Header ───────────────────────────────────────────────────
   mobileTopHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -810,8 +498,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-
-  // ── Shared overlay ──────────────────────────────────────────────────────
   overlay: {
     ...Platform.select({
       web: {
@@ -831,8 +517,6 @@ const styles = StyleSheet.create({
     }),
     zIndex: 1198,
   },
-
-  // ── Language Selector ───────────────────────────────────────────────────
   languageSelectorWrap: {
     position: 'relative',
     zIndex: 1200,
@@ -886,8 +570,6 @@ const styles = StyleSheet.create({
   languageDropdownItemActive: { backgroundColor: '#fff7ed' },
   languageDropdownLabel: { color: '#1e293b', fontSize: 13, fontWeight: '700' },
   languageDropdownLabelActive: { color: '#f97316' },
-
-  // ── Profile Dropdown ────────────────────────────────────────────────────
   profileDropdownWrap: {
     position: 'relative',
     zIndex: 1200,
@@ -941,8 +623,6 @@ const styles = StyleSheet.create({
   logoutItem: { marginBottom: 4 },
   logoutText: { color: '#ef4444' },
   dropdownDivider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 4 },
-
-  // ── Primary Action Button ───────────────────────────────────────────────
   primaryActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -953,8 +633,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f97316',
   },
   primaryActionButtonText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
-
-  // ── Mobile Bottom Bar ────────────────────────────────────────────────────
   mobileBottomBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -989,23 +667,6 @@ const styles = StyleSheet.create({
     gap: 3,
     paddingHorizontal: 2,
   },
-  createBtnWrap: {
-    width: 44,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#f97316',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      default: {
-        elevation: 4,
-        shadowColor: '#f97316',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.35,
-        shadowRadius: 6,
-      },
-    }),
-  },
   mobileTabIconWrap: {
     width: 40,
     height: 36,
@@ -1027,5 +688,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   mobileTabLabelActive: { color: '#f97316' },
-  mobileTabLabelCreate: { color: '#f97316' },
 });

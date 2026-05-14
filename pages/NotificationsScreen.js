@@ -2,17 +2,12 @@ import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import styles from '../styles/NotificationsStyles';
 import { UserStore } from '../store/UserStore';
 
 export default function NotificationsScreen({ navigation }) {
   const { showToast } = useToast();
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('Home');
   const [loading, setLoading] = useState(true);
   const [notificationData, setNotificationData] = useState({
     currentUser: null,
@@ -20,7 +15,6 @@ export default function NotificationsScreen({ navigation }) {
     unreadCount: 0,
     readCount: 0,
   });
-  const moduleName = 'Notifications';
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -53,18 +47,21 @@ export default function NotificationsScreen({ navigation }) {
     loadNotifications();
   };
 
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
-
   return (
     <View style={styles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+      <TouchableOpacity
+        onPress={() => navigation.navigate('QuickMenu')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 6,
+        }}
+      >
+        <Feather name="arrow-left" size={20} color="#1d4ed8" />
+        <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '600' }}>Back</Text>
+      </TouchableOpacity>
 
       <ScrollView
         style={styles.scrollView}
@@ -133,14 +130,6 @@ export default function NotificationsScreen({ navigation }) {
           )}
         </View>
       </ScrollView>
-
-      <Footer activeTab={activeTab} onTabPress={setActiveTab} />
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem={moduleName}
-      />
     </View>
   );
 }

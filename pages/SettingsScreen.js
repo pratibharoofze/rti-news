@@ -1,61 +1,16 @@
 import React, { useCallback, useState } from 'react';
 import {
-  FlatList, Modal, ScrollView, StyleSheet,
-  Text, TextInput, TouchableOpacity, View,
+  FlatList, Linking, Modal, ScrollView, StyleSheet, Switch,
+  Text, TextInput, TouchableOpacity, View, Platform,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
-import styles from '../styles/SettingsStyles';
+import s from '../styles/SettingsStyles';
 import { UserStore } from '../store/UserStore';
-import { INDIAN_STATES, getDistricts, getTalukas } from './locationData'; 
+import { INDIAN_STATES, getDistricts, getTalukas } from './locationData';
 
-// ── Dropdown Modal (same as Register) ────────────────────────────────────────
-function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
-  const [search, setSearch] = useState('');
-  const filtered = items.filter(i => i.toLowerCase().includes(search.toLowerCase()));
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={dropStyles.overlay} activeOpacity={1} onPress={onClose} />
-      <View style={dropStyles.sheet}>
-        <View style={dropStyles.handle} />
-        <Text style={dropStyles.title}>{title}</Text>
-        <View style={dropStyles.searchWrap}>
-          <Ionicons name="search-outline" size={16} color="#2563eb" />
-          <TextInput
-            style={dropStyles.searchInput}
-            placeholder="Search..."
-            placeholderTextColor="#94a3b8"
-            value={search}
-            onChangeText={setSearch}
-          />
-        </View>
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[dropStyles.item, selected === item && dropStyles.itemSelected]}
-              onPress={() => { onSelect(item); onClose(); setSearch(''); }}
-            >
-              <Text style={[dropStyles.itemText, selected === item && dropStyles.itemTextSelected]}>
-                {item}
-              </Text>
-              {selected === item && <Ionicons name="checkmark-circle" size={18} color="#2563eb" />}
-            </TouchableOpacity>
-          )}
-          style={{ maxHeight: 340 }}
-        />
-      </View>
-    </Modal>
-  );
-}
-
+// ── Dropdown Modal ────────────────────────────────────────────────────────────
 const dropStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
@@ -81,40 +36,98 @@ const dropStyles = StyleSheet.create({
   itemTextSelected: { color: '#2563eb', fontWeight: '700' },
 });
 
-// ── Main Screen ───────────────────────────────────────────────────────────────
-const initialForm = { language: 'English', password: '' };
+function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
+  const [search, setSearch] = useState('');
+  const filtered = items.filter(i => i.toLowerCase().includes(search.toLowerCase()));
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={dropStyles.overlay} activeOpacity={1} onPress={onClose} />
+      <View style={dropStyles.sheet}>
+        <View style={dropStyles.handle} />
+        <Text style={dropStyles.title}>{title}</Text>
+        <View style={dropStyles.searchWrap}>
+          <Ionicons name="search-outline" size={16} color="#2563eb" />
+          <TextInput
+            style={dropStyles.searchInput}
+            placeholder="Search..."
+            placeholderTextColor="#94a3b8"
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[dropStyles.item, selected === item && dropStyles.itemSelected]}
+              onPress={() => { onSelect(item); onClose(); setSearch(''); }}
+            >
+              <Text style={[dropStyles.itemText, selected === item && dropStyles.itemTextSelected]}>{item}</Text>
+              {selected === item && <Ionicons name="checkmark-circle" size={18} color="#2563eb" />}
+            </TouchableOpacity>
+          )}
+          style={{ maxHeight: 340 }}
+        />
+      </View>
+    </Modal>
+  );
+}
 
+// ── Settings Row Item ─────────────────────────────────────────────────────────
+function SettingsItem({ emoji, label, onPress, isToggle, toggleValue, onToggleChange, isDestructive }) {
+  return (
+    <TouchableOpacity
+      style={[s.item, isDestructive && s.itemDestructive]}
+      onPress={onPress}
+      activeOpacity={isToggle ? 1 : 0.6}
+    >
+      <Text style={s.itemEmoji}>{emoji}</Text>
+      <Text style={[s.itemLabel, isDestructive && s.itemLabelDestructive]}>{label}</Text>
+      {isToggle ? (
+        <Switch
+          value={toggleValue}
+          onValueChange={onToggleChange}
+          trackColor={{ false: '#e2e8f0', true: '#bfdbfe' }}
+          thumbColor={toggleValue ? '#2563eb' : '#94a3b8'}
+        />
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color={isDestructive ? '#ef4444' : '#cbd5e1'} />
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// ── Section Header ────────────────────────────────────────────────────────────
+function SectionHeader({ title }) {
+  return <Text style={s.sectionHeader}>{title}</Text>;
+}
+
+// ── Main Screen ───────────────────────────────────────────────────────────────
 export default function SettingsScreen({ navigation }) {
   const { showToast } = useToast();
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('Home');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]               = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
-  const [settingsData, setSettingsData] = useState({ currentUser: null, settings: initialForm });
-  const [form, setForm] = useState(initialForm);
+  const [settingsData, setSettingsData]   = useState({ currentUser: null, settings: { language: 'English', password: '' } });
+  const [form, setForm]                   = useState({ language: 'English', password: '' });
 
-  // Location state
-  const [locState, setLocState]       = useState('');
-  const [locDistrict, setLocDistrict] = useState('');
-  const [locTaluka, setLocTaluka]     = useState('');
-  const [stateModal, setStateModal]   = useState(false);
+  const [dataSaver, setDataSaver]       = useState(false);
+  const [disableMedia, setDisableMedia] = useState(false);
+
+  const [locState, setLocState]           = useState('');
+  const [locDistrict, setLocDistrict]     = useState('');
+  const [locTaluka, setLocTaluka]         = useState('');
+  const [stateModal, setStateModal]       = useState(false);
   const [districtModal, setDistrictModal] = useState(false);
-  const [talukaModal, setTalukaModal] = useState(false);
-
-  const moduleName = 'Settings';
+  const [talukaModal, setTalukaModal]     = useState(false);
+  const [locationCardVisible, setLocationCardVisible] = useState(false);
 
   const loadSettings = useCallback(async () => {
-    setLoading(true);
     const data = await UserStore.getSettingsSummary();
-    setLoading(false);
-
     if (!data) { navigation.replace('Login'); return; }
-
     setSettingsData(data);
     setForm({ language: data.settings.language || 'English', password: '' });
-
-    // Load current location values from user
     const user = data.currentUser;
     setLocState(user?.state || '');
     setLocDistrict(user?.district || '');
@@ -123,23 +136,24 @@ export default function SettingsScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { loadSettings(); }, [loadSettings]));
 
-  const handleChange = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const districtList = locState ? getDistricts(locState) : [];
+  const talukaList   = locDistrict ? getTalukas(locState, locDistrict) : [];
 
-  // State change — reset district and taluka
-  const handleStateChange = (val) => {
-    setLocState(val);
-    setLocDistrict('');
-    setLocTaluka('');
+  const handleStateChange    = (val) => { setLocState(val); setLocDistrict(''); setLocTaluka(''); };
+  const handleDistrictChange = (val) => { setLocDistrict(val); setLocTaluka(''); };
+
+  const handleSaveLocation = async () => {
+    if (!locState) { showToast('Please select your state.', 'error'); return; }
+    setSavingLocation(true);
+    const result = await UserStore.updateUser(settingsData.currentUser.email, {
+      state: locState, district: locDistrict, taluka: locTaluka,
+    });
+    setSavingLocation(false);
+    if (!result) { showToast('Unable to update location.', 'error'); return; }
+    showToast('Location updated! ✅', 'success');
+    setLocationCardVisible(false);
+    loadSettings();
   };
-
-  // District change — reset taluka
-  const handleDistrictChange = (val) => {
-    setLocDistrict(val);
-    setLocTaluka('');
-  };
-
-  const districtList = locState ? getDistricts(locState) : []; 
-  const talukaList   = locDistrict ? getTalukas(locState, locDistrict) : []; 
 
   const handleSave = async () => {
     if (!form.language.trim()) { showToast('Language is required.', 'error'); return; }
@@ -147,190 +161,156 @@ export default function SettingsScreen({ navigation }) {
     const result = await UserStore.updateSettings({ language: form.language.trim(), password: form.password });
     setSaving(false);
     if (!result.ok) { showToast(result.message, 'error'); return; }
-    showToast('Settings updated successfully.', 'success');
-    loadSettings();
-  };
-
-  // Save location to user profile
-  const handleSaveLocation = async () => { 
-    if (!locState) { showToast('Please select your state.', 'error'); return; } 
-    if (districtList.length > 0 && !locDistrict) { showToast('Please select your district.', 'error'); return; } 
-    if (locDistrict && talukaList.length > 0 && !locTaluka) { showToast('Please select your taluka.', 'error'); return; } 
- 
-    setSavingLocation(true); 
-    const user = settingsData.currentUser;
-    const result = await UserStore.updateUser(user.email, {
-      state: locState,
-      district: locDistrict,
-      taluka: locTaluka,
-    });
-    setSavingLocation(false);
-
-    if (!result) { showToast('Unable to update location.', 'error'); return; }
-    showToast('Location updated successfully! ✅', 'success');
+    showToast('Settings updated!', 'success');
     loadSettings();
   };
 
   const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
+    await UserStore.clearCurrentUser?.();
+    navigation.replace('Home');
   };
 
-  const user = settingsData.currentUser;
+  // ── Apni details yahan daalo ──────────────────────────────────────────────
+  const WHATSAPP_NUMBER  = '919999999999'; // 91XXXXXXXXXX
+  const COMPANY_EMAIL    = 'support@yourcompany.com';
+  const PLAY_STORE_ID    = 'com.yourcompany.rtiapp'; // Apna package name daalo
+
+  const handleWhatsappJoin = () => {
+    Linking.openURL(`https://wa.me/${WHATSAPP_NUMBER}`).catch(() =>
+      showToast('WhatsApp open nahi hua. Check karo.', 'error')
+    );
+  };
+
+  const handleContactCompany = () => {
+    Linking.openURL(
+      `https://mail.google.com/mail/?view=cm&fs=1&to=${COMPANY_EMAIL}&su=Support%20Request`
+    ).catch(() => showToast('Gmail open nahi hua. Check karo.', 'error'));
+  };
+
+  const handleRateApp = () => {
+    // Android: pehle Play Store app try karo, nahi hai toh browser mein kholo
+    // iOS: App Store khulega
+    const androidUrl = `market://details?id=${PLAY_STORE_ID}`;
+    const androidFallback = `https://play.google.com/store/apps/details?id=${PLAY_STORE_ID}`;
+    const iosUrl = `itms-apps://itunes.apple.com/app/id${PLAY_STORE_ID}`;
+
+    if (Platform.OS === 'ios') {
+      Linking.openURL(iosUrl).catch(() =>
+        showToast('App Store open nahi hua.', 'error')
+      );
+    } else {
+      Linking.openURL(androidUrl).catch(() =>
+        Linking.openURL(androidFallback).catch(() =>
+          showToast('Play Store open nahi hua.', 'error')
+        )
+      );
+    }
+  };
+
+  const nav = (screen) => navigation.navigate(screen);
 
   return (
-    <View style={styles.root}>
-      <Header title={moduleName} onMenuPress={() => setSidebarVisible(true)} onLogout={handleLogout} />
+    <View style={s.root}>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.heroCard}>
-          <Text style={styles.heroEyebrow}>Live Settings</Text>
-          <Text style={styles.heroTitle}>Current User Preferences</Text>
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={s.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={22} color="#0f172a" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Settings</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* ── Account ── */}
+        <SectionHeader title="Account" />
+        <View style={s.card}>
+          <SettingsItem emoji="📍" label="Change Location"                   onPress={() => setLocationCardVisible(v => !v)} />
+          <SettingsItem emoji="🧑‍💼" label="Reporter Registration"             onPress={() => nav('Register')} />
+          <SettingsItem emoji="📢" label="Advertise"                          onPress={() => nav('Advertise')} />
+          <SettingsItem emoji="✅" label="Purchase blue tick"                 onPress={() => nav('PurchaseBlueTick')} />
+          <SettingsItem emoji="📱" label="My subscriptions"                   onPress={() => nav('Subscription Plans')} />
+          <SettingsItem emoji="🔄" label="Refund policy"                      onPress={() => nav('RefundPolicy')} />
+          <SettingsItem emoji="💬" label="Join on Whatsapp"                   onPress={handleWhatsappJoin} />
+          <SettingsItem emoji="💰" label="My earnings"                        onPress={() => nav('MyEarnings')} />
+          <SettingsItem emoji="👤" label="Update account and profile details" onPress={() => nav('Profile')} />
         </View>
 
-        {/* ── Current Settings Summary ── */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Current Settings</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Language</Text>
-            <Text style={styles.summaryValue}>{settingsData.settings.language}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>State</Text>
-            <Text style={styles.summaryValue}>{user?.state || '—'}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>District</Text>
-            <Text style={styles.summaryValue}>{user?.district || '—'}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Taluka</Text>
-            <Text style={styles.summaryValue}>{user?.taluka || '—'}</Text>
-          </View>
-        </View>
-
-        {/* ── Location Update Card ── */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Update Location</Text>
-          <Text style={[styles.sectionText, { marginBottom: 14 }]}>
-            Change your State, District, and Taluka here.
-          </Text>
-
-          {/* State */}
-          <View style={localStyles.inputGroup}>
-            <Text style={localStyles.inputLabel}>State</Text>
-            <TouchableOpacity style={localStyles.dropdown} onPress={() => setStateModal(true)} activeOpacity={0.8}>
-              <Ionicons name="location-outline" size={18} color="#2563eb" />
-              <Text style={[localStyles.dropdownText, !locState && localStyles.placeholder]}>
-                {locState || 'Select state'}
-              </Text>
-              <Ionicons name="chevron-down-outline" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-          </View>
-
-          {/* District */} 
-          {districtList.length > 0 && ( 
-            <View style={localStyles.inputGroup}> 
-              <Text style={localStyles.inputLabel}>District</Text> 
-              <TouchableOpacity style={localStyles.dropdown} onPress={() => setDistrictModal(true)} activeOpacity={0.8}> 
-                <Ionicons name="business-outline" size={18} color="#2563eb" /> 
-                <Text style={[localStyles.dropdownText, !locDistrict && localStyles.placeholder]}> 
-                  {locDistrict || 'Select district'} 
-                </Text> 
-                <Ionicons name="chevron-down-outline" size={18} color="#94a3b8" /> 
-              </TouchableOpacity> 
-            </View> 
-          )} 
-
-          {/* Taluka */}
-          {locDistrict !== '' && talukaList.length > 0 && (
-            <View style={localStyles.inputGroup}>
-              <Text style={localStyles.inputLabel}>Taluka</Text>
-              <TouchableOpacity style={localStyles.dropdown} onPress={() => setTalukaModal(true)} activeOpacity={0.8}>
-                <Ionicons name="map-outline" size={18} color="#2563eb" />
-                <Text style={[localStyles.dropdownText, !locTaluka && localStyles.placeholder]}>
-                  {locTaluka || 'Select taluka'}
-                </Text>
+        {/* Change Location Inline Card */}
+        {locationCardVisible && (
+          <View style={s.inlineCard}>
+            <Text style={s.inlineCardTitle}>Change Location</Text>
+            <View style={s.inputGroup}>
+              <Text style={s.inputLabel}>State</Text>
+              <TouchableOpacity style={s.dropdown} onPress={() => setStateModal(true)} activeOpacity={0.8}>
+                <Ionicons name="location-outline" size={18} color="#2563eb" />
+                <Text style={[s.dropdownText, !locState && s.placeholder]}>{locState || 'Select state'}</Text>
                 <Ionicons name="chevron-down-outline" size={18} color="#94a3b8" />
               </TouchableOpacity>
             </View>
-          )}
+            {districtList.length > 0 && (
+              <View style={s.inputGroup}>
+                <Text style={s.inputLabel}>District</Text>
+                <TouchableOpacity style={s.dropdown} onPress={() => setDistrictModal(true)} activeOpacity={0.8}>
+                  <Ionicons name="business-outline" size={18} color="#2563eb" />
+                  <Text style={[s.dropdownText, !locDistrict && s.placeholder]}>{locDistrict || 'Select district'}</Text>
+                  <Ionicons name="chevron-down-outline" size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </View>
+            )}
+            {locDistrict !== '' && talukaList.length > 0 && (
+              <View style={s.inputGroup}>
+                <Text style={s.inputLabel}>Taluka</Text>
+                <TouchableOpacity style={s.dropdown} onPress={() => setTalukaModal(true)} activeOpacity={0.8}>
+                  <Ionicons name="map-outline" size={18} color="#2563eb" />
+                  <Text style={[s.dropdownText, !locTaluka && s.placeholder]}>{locTaluka || 'Select taluka'}</Text>
+                  <Ionicons name="chevron-down-outline" size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </View>
+            )}
+            <TouchableOpacity style={s.saveBtn} onPress={handleSaveLocation} disabled={savingLocation}>
+              <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
+              <Text style={s.saveBtnText}>{savingLocation ? 'Saving...' : 'Save Location'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-          <TouchableOpacity
-            style={[styles.saveButton, { backgroundColor: '#16a34a' }]}
-            onPress={handleSaveLocation}
-            disabled={savingLocation}
-          >
-            <Ionicons name="location-outline" size={16} color="#fff" />
-            <Text style={styles.saveButtonText}>
-              {savingLocation ? 'Saving...' : 'Update Location'}
-            </Text>
-          </TouchableOpacity>
+        {/* ── Preferences ── */}
+        <SectionHeader title="Preferences" />
+        <View style={s.card}>
+          <SettingsItem emoji="🌐" label="Change Language"         onPress={() => nav('ChangeLanguage')} />
+          <SettingsItem emoji="🚫" label="People you blocked"      onPress={() => nav('BlockedUsers')} />
+          <SettingsItem emoji="⭐" label="Get Famous On The Shuru" onPress={() => nav('GetFamous')} />
         </View>
 
-        {/* ── General Settings Card ── */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Update Settings</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Language</Text>
-            <TextInput
-              style={styles.input}
-              value={form.language}
-              onChangeText={(text) => handleChange('language', text)}
-              placeholder="Enter language"
-              placeholderTextColor="#94a3b8"
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>New Password</Text>
-            <TextInput
-              style={styles.input}
-              value={form.password}
-              onChangeText={(text) => handleChange('password', text)}
-              placeholder="Enter new password"
-              placeholderTextColor="#94a3b8"
-              secureTextEntry
-            />
-          </View>
-
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
-            <Feather name="save" size={16} color="#ffffff" />
-            <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Update Settings'}</Text>
-          </TouchableOpacity>
+        {/* ── About & Support ── */}
+        <SectionHeader title="About & Support" />
+        <View style={s.card}>
+          <SettingsItem emoji="⭐" label="Rate this app"                 onPress={handleRateApp} />
+          <SettingsItem emoji="📞" label="Contact our company"           onPress={handleContactCompany} />
+          <SettingsItem emoji="🔗" label="Refer your family and friends" onPress={() => nav('Refer')} />
+          <SettingsItem emoji="🔒" label="Privacy Policy"                onPress={() => nav('PrivacyPolicy')} />
+          <SettingsItem emoji="📄" label="Terms & Conditions"            onPress={() => nav('TermsConditions')} />
         </View>
 
-        {loading ? <Text style={styles.loadingText}>Loading settings...</Text> : null}
+        {/* ── Account Actions ── */}
+        <SectionHeader title="Account Actions" />
+        <View style={s.card}>
+          <SettingsItem emoji="🗑️" label="Delete Account"         onPress={() => nav('DeleteAccount')} isDestructive />
+          <SettingsItem emoji="0️⃣" label="Disable Media Encoding"  isToggle toggleValue={disableMedia} onToggleChange={setDisableMedia} />
+          <SettingsItem emoji="🚪" label="Logout Account"          onPress={handleLogout} isDestructive />
+        </View>
+
       </ScrollView>
 
-      <Footer activeTab={activeTab} onTabPress={setActiveTab} />
-      <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} activeItem={moduleName} />
-
       {/* Modals */}
-      <DropdownModal visible={stateModal} title="Select State" items={INDIAN_STATES}
-        selected={locState} onSelect={handleStateChange} onClose={() => setStateModal(false)} />
+      <DropdownModal visible={stateModal}    title="Select State"    items={INDIAN_STATES}
+        selected={locState}    onSelect={handleStateChange}    onClose={() => setStateModal(false)} />
       <DropdownModal visible={districtModal} title="Select District" items={districtList}
         selected={locDistrict} onSelect={handleDistrictChange} onClose={() => setDistrictModal(false)} />
-      <DropdownModal visible={talukaModal} title="Select Taluka" items={talukaList}
-        selected={locTaluka} onSelect={setLocTaluka} onClose={() => setTalukaModal(false)} />
+      <DropdownModal visible={talukaModal}   title="Select Taluka"   items={talukaList}
+        selected={locTaluka}   onSelect={setLocTaluka}         onClose={() => setTalukaModal(false)} />
     </View>
   );
 }
-
-const localStyles = StyleSheet.create({
-  inputGroup: { marginBottom: 12 },
-  inputLabel: { fontSize: 12, fontWeight: '700', color: '#475569', marginBottom: 6 },
-  dropdown: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 14,
-    backgroundColor: '#f8fafc', paddingHorizontal: 14, minHeight: 48,
-  },
-  dropdownText: { flex: 1, fontSize: 14, color: '#0f172a' },
-  placeholder: { color: '#94a3b8' },
-});

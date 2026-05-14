@@ -19,7 +19,7 @@ import TalukaSelectScreen from '../auth/TalukaSelectScreen';
 import ForgotPasswordScreen from '../auth/ForgotPasswordScreen';
 import OtpScreen from '../auth/OtpScreen';
 import ResetPasswordScreen from '../auth/ResetPasswordScreen';
-import DashboardScreen from '../pages/DashboardScreen';
+// import DashboardScreen from '../pages/DashboardScreen';
 import ProfileScreen from '../pages/ProfileScreen';
 import MyNetworkScreen from '../pages/MyNetworkScreen';
 import WalletScreen from '../pages/WalletScreen';
@@ -40,6 +40,8 @@ import AttemptQuizScreen from '../pages/AttemptQuizScreen';
 import QuizResultScreen from '../pages/QuizResultScreen';
 import CertificatePreviewScreen from '../pages/CertificatePreviewScreen';
 import UserPublicProfileScreen from '../pages/UserPublicProfileScreen';
+import QuickMenuScreen from '../screens/QuickMenuScreen';
+import ReferScreen from '../screens/ReferScreen';
 
 const Stack = createNativeStackNavigator();
 const NAVIGATION_STATE_KEY = 'rti-news-navigation-state';
@@ -97,7 +99,7 @@ export default function AppNavigator() {
     { name: 'ForgotPassword', component: ForgotPasswordScreen },
     { name: 'Otp', component: OtpScreen },
     { name: 'ResetPassword', component: ResetPasswordScreen },
-    { name: 'Dashboard', component: DashboardScreen },
+    // { name: 'Dashboard', component: DashboardScreen },
     { name: 'Profile', component: ProfileScreen },
     { name: 'My Network', component: MyNetworkScreen },
     { name: 'Wallet', component: WalletScreen },
@@ -118,6 +120,8 @@ export default function AppNavigator() {
     { name: 'AttemptQuiz', component: AttemptQuizScreen },
     { name: 'QuizResult', component: QuizResultScreen },
     { name: 'CertificatePreview', component: CertificatePreviewScreen },
+    { name: 'QuickMenu', component: QuickMenuScreen },
+    { name: 'Refer', component: ReferScreen },
   ];
 
   useEffect(() => {

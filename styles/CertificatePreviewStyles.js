@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 const DARK_GOLD = '#8b6914';
 const RED       = '#b00000';
@@ -6,12 +6,56 @@ const RED       = '#b00000';
 export default StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#e4d7b8',
+    backgroundColor: '#ffffff',
   },
 
   contentContainer: {
     padding: 12,
     paddingBottom: 120,
+  },
+
+  /* ─────────────────────────────
+     CUSTOM HEADER
+  ───────────────────────────── */
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    ...Platform.select({
+      web: {
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+      },
+      default: {
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+    }),
+  },
+  
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+    borderRadius: 8,
+  },
+  
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  
+  headerPlaceholder: {
+    width: 40,
   },
 
   templateCard: {

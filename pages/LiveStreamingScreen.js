@@ -7,9 +7,6 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
 import LiveStreamPlayer from '../components/LiveStreamPlayer';
 import { useToast } from '../components/ui/ToastProvider';
 import LiveStreamingStyles from '../styles/LiveStreamingStyles';
@@ -18,8 +15,6 @@ import { UserStore } from '../store/UserStore';
 export default function LiveStreamingScreen({ navigation }) {
   const { showToast } = useToast();
 
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab]           = useState('Home');
   const [loading, setLoading]               = useState(true);
   const [stoppingId, setStoppingId]         = useState(null);
   const [currentStreamId, setCurrentStreamId] = useState(null);
@@ -37,7 +32,6 @@ export default function LiveStreamingScreen({ navigation }) {
   });
   const currentStream = streamData.items.find((stream) => stream.id === currentStreamId) || null;
 
-  const moduleName = 'Live Streaming';
 
   // ── Load data ──
   const loadStreams = useCallback(async () => {
@@ -72,10 +66,6 @@ export default function LiveStreamingScreen({ navigation }) {
     }, [loadStreams])
   );
 
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
 
   // ── Play: open YouTube link ──
   const handlePlay = async (item) => {
@@ -127,11 +117,19 @@ export default function LiveStreamingScreen({ navigation }) {
 
   return (
     <View style={LiveStreamingStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+      <TouchableOpacity
+        onPress={() => navigation.navigate('QuickMenu')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 6,
+        }}
+      >
+        <Feather name="arrow-left" size={20} color="#1d4ed8" />
+        <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '600' }}>Back</Text>
+      </TouchableOpacity>
 
       <ScrollView
         style={LiveStreamingStyles.scrollView}
@@ -285,14 +283,6 @@ export default function LiveStreamingScreen({ navigation }) {
           )}
         </View>
       </ScrollView>
-
-      <Footer activeTab={activeTab} onTabPress={setActiveTab} />
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem={moduleName}
-      />
     </View>
   );
 }

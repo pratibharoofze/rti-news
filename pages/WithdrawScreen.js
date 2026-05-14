@@ -8,16 +8,11 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import WithdrawStyles from '../styles/WithdrawStyles';
 import { UserStore } from '../store/UserStore';
 
-// ─────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────
 const PAGE_SIZE = 10;
 
 const initialForm = {
@@ -29,39 +24,33 @@ const initialForm = {
   upi_id:         '',
 };
 
-// Validation helpers
 const IFSC_REGEX    = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 const ACCOUNT_REGEX = /^\d{9,18}$/;
 
 function validateForm(form) {
   const errors = {};
-
   if (!form.amount.trim()) {
     errors.amount = 'Amount is required.';
   } else if (isNaN(form.amount) || Number(form.amount) <= 0) {
     errors.amount = 'Enter a valid amount greater than 0.';
   }
-
   if (form.payment_mode === 'bank') {
     if (!form.bank_name.trim()) {
       errors.bank_name = 'Bank name is required.';
     } else if (form.bank_name.trim().length < 3) {
       errors.bank_name = 'Enter a valid bank name (min 3 chars).';
     }
-
     if (!form.account_number.trim()) {
       errors.account_number = 'Account number is required.';
     } else if (!ACCOUNT_REGEX.test(form.account_number.trim())) {
       errors.account_number = 'Account number must be 9–18 digits only.';
     }
-
     if (!form.ifsc.trim()) {
       errors.ifsc = 'IFSC code is required.';
     } else if (!IFSC_REGEX.test(form.ifsc.trim().toUpperCase())) {
       errors.ifsc = 'Invalid IFSC (e.g. SBIN0001234).';
     }
   }
-
   if (form.payment_mode === 'upi') {
     if (!form.upi_id.trim()) {
       errors.upi_id = 'UPI ID is required.';
@@ -69,18 +58,13 @@ function validateForm(form) {
       errors.upi_id = 'Enter a valid UPI ID (e.g. name@upi).';
     }
   }
-
   return errors;
 }
 
-// ─────────────────────────────────────────
-// Screen
-// ─────────────────────────────────────────
 export default function WithdrawScreen({ navigation }) {
   const { showToast } = useToast();
 
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab]           = useState('Home');
   const [loading, setLoading]               = useState(true);
   const [submitting, setSubmitting]         = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -88,7 +72,6 @@ export default function WithdrawScreen({ navigation }) {
   const [form, setForm]     = useState(initialForm);
   const [errors, setErrors] = useState({});
 
-  // DataTable state
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -100,12 +83,10 @@ export default function WithdrawScreen({ navigation }) {
 
   const moduleName = 'Withdraw';
 
-  // ── Load data ──
   const loadWithdraw = useCallback(async () => {
     setLoading(true);
     const data = await UserStore.getWithdrawSummary();
     setLoading(false);
-
     if (!data) {
       navigation.replace('Login');
       return;
@@ -125,7 +106,6 @@ export default function WithdrawScreen({ navigation }) {
     navigation.replace('Login');
   };
 
-  // ── Form handlers ──
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: null }));
@@ -137,7 +117,6 @@ export default function WithdrawScreen({ navigation }) {
       setErrors(validationErrors);
       return;
     }
-
     setSubmitting(true);
     const payload = {
       amount:       form.amount,
@@ -150,23 +129,19 @@ export default function WithdrawScreen({ navigation }) {
           }
         : { upi_id: form.upi_id.trim() }),
     };
-
     const result = await UserStore.createWithdrawRequest(payload);
     setSubmitting(false);
-
     if (!result.ok) {
       showToast(result.message, 'error');
       return;
     }
-
     setForm(initialForm);
     setErrors({});
     setSuccessMessage('Withdrawal request submitted successfully.');
-    setTimeout(() => setSuccessMessage(''), 3000); // Clear after 3 seconds
+    setTimeout(() => setSuccessMessage(''), 3000);
     loadWithdraw();
   };
 
-  // ── DataTable logic ──
   const filteredRequests = useMemo(() => {
     if (!searchQuery.trim()) return withdrawData.requests;
     const q = searchQuery.toLowerCase();
@@ -205,7 +180,6 @@ export default function WithdrawScreen({ navigation }) {
     setCurrentPage(page);
   };
 
-  // ── Status badge ──
   const statusStyle = (status) => {
     switch (status?.toLowerCase()) {
       case 'approved': return WithdrawStyles.statusApproved;
@@ -223,11 +197,21 @@ export default function WithdrawScreen({ navigation }) {
 
   return (
     <View style={WithdrawStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+
+      {/* ── Back Arrow Button ── */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('QuickMenu')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 6,
+        }}
+      >
+        <Feather name="arrow-left" size={20} color="#1d4ed8" />
+        <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '600' }}>Back</Text>
+      </TouchableOpacity>
 
       <ScrollView
         style={WithdrawStyles.scrollView}
@@ -257,13 +241,10 @@ export default function WithdrawScreen({ navigation }) {
           <Text style={WithdrawStyles.successText}>{successMessage}</Text>
         ) : null}
 
-        {/* ══════════════════════════════════════
-            WITHDRAW REQUEST FORM
-        ══════════════════════════════════════ */}
+        {/* ── Withdraw Form ── */}
         <View style={WithdrawStyles.card}>
           <Text style={WithdrawStyles.sectionTitle}>Withdraw Request Form</Text>
 
-          {/* Amount */}
           <View style={WithdrawStyles.inputGroup}>
             <Text style={WithdrawStyles.inputLabel}>Amount (₹)</Text>
             <TextInput
@@ -279,15 +260,11 @@ export default function WithdrawScreen({ navigation }) {
             ) : null}
           </View>
 
-          {/* Payment Mode Toggle */}
           <View style={WithdrawStyles.inputGroup}>
             <Text style={WithdrawStyles.inputLabel}>Payment Mode</Text>
             <View style={WithdrawStyles.modeRow}>
               <TouchableOpacity
-                style={[
-                  WithdrawStyles.modeBtn,
-                  form.payment_mode === 'bank' && WithdrawStyles.modeBtnActive,
-                ]}
+                style={[WithdrawStyles.modeBtn, form.payment_mode === 'bank' && WithdrawStyles.modeBtnActive]}
                 onPress={() => { handleChange('payment_mode', 'bank'); setErrors({}); }}
               >
                 <Feather name="home" size={14} color={form.payment_mode === 'bank' ? '#fff' : '#64748b'} />
@@ -295,12 +272,8 @@ export default function WithdrawScreen({ navigation }) {
                   Bank Transfer
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                style={[
-                  WithdrawStyles.modeBtn,
-                  form.payment_mode === 'upi' && WithdrawStyles.modeBtnActive,
-                ]}
+                style={[WithdrawStyles.modeBtn, form.payment_mode === 'upi' && WithdrawStyles.modeBtnActive]}
                 onPress={() => { handleChange('payment_mode', 'upi'); setErrors({}); }}
               >
                 <Feather name="smartphone" size={14} color={form.payment_mode === 'upi' ? '#fff' : '#64748b'} />
@@ -311,10 +284,8 @@ export default function WithdrawScreen({ navigation }) {
             </View>
           </View>
 
-          {/* ── Bank Fields ── */}
           {form.payment_mode === 'bank' && (
             <>
-              {/* Bank Name */}
               <View style={WithdrawStyles.inputGroup}>
                 <Text style={WithdrawStyles.inputLabel}>Bank Name</Text>
                 <TextInput
@@ -329,7 +300,6 @@ export default function WithdrawScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {/* Account Number */}
               <View style={WithdrawStyles.inputGroup}>
                 <Text style={WithdrawStyles.inputLabel}>Account Number</Text>
                 <TextInput
@@ -346,15 +316,12 @@ export default function WithdrawScreen({ navigation }) {
                 ) : null}
               </View>
 
-              {/* IFSC Code */}
               <View style={WithdrawStyles.inputGroup}>
                 <Text style={WithdrawStyles.inputLabel}>IFSC Code</Text>
                 <TextInput
                   style={[WithdrawStyles.input, errors.ifsc && WithdrawStyles.inputError]}
                   value={form.ifsc}
-                  onChangeText={(v) =>
-                    handleChange('ifsc', v.toUpperCase().replace(/[^A-Z0-9]/g, ''))
-                  }
+                  onChangeText={(v) => handleChange('ifsc', v.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                   placeholder="e.g. SBIN0001234"
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="characters"
@@ -371,7 +338,6 @@ export default function WithdrawScreen({ navigation }) {
             </>
           )}
 
-          {/* ── UPI Field ── */}
           {form.payment_mode === 'upi' && (
             <View style={WithdrawStyles.inputGroup}>
               <Text style={WithdrawStyles.inputLabel}>UPI ID</Text>
@@ -389,7 +355,6 @@ export default function WithdrawScreen({ navigation }) {
             </View>
           )}
 
-          {/* Submit Button */}
           <TouchableOpacity
             style={[WithdrawStyles.submitButton, submitting && WithdrawStyles.submitButtonDisabled]}
             onPress={handleSubmit}
@@ -402,11 +367,8 @@ export default function WithdrawScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* ══════════════════════════════════════
-            WITHDRAWAL STATUS — DataTable
-        ══════════════════════════════════════ */}
+        {/* ── Withdrawal Status DataTable ── */}
         <View style={WithdrawStyles.card}>
-          {/* Header */}
           <View style={WithdrawStyles.tableTopRow}>
             <Text style={WithdrawStyles.sectionTitle}>Withdrawal Status</Text>
             <Text style={WithdrawStyles.recordCount}>
@@ -420,7 +382,6 @@ export default function WithdrawScreen({ navigation }) {
             <Text style={WithdrawStyles.emptyText}>No withdrawal requests found.</Text>
           ) : (
             <>
-              {/* Search Bar */}
               <View style={WithdrawStyles.searchWrap}>
                 <Feather name="search" size={15} color="#94a3b8" />
                 <TextInput
@@ -441,7 +402,6 @@ export default function WithdrawScreen({ navigation }) {
                 <Text style={WithdrawStyles.emptyText}>No records match your search.</Text>
               ) : (
                 <>
-                  {/* Request Cards */}
                   {pagedRequests.map((item, index) => (
                     <View
                       key={item.id ?? index}
@@ -475,22 +435,19 @@ export default function WithdrawScreen({ navigation }) {
                           <View style={WithdrawStyles.requestMetaRow}>
                             <Feather name="home" size={12} color="#94a3b8" />
                             <Text style={WithdrawStyles.requestMeta}>
-                              Bank:{' '}
-                              <Text style={WithdrawStyles.requestMetaBold}>{item.bank_name}</Text>
+                              Bank: <Text style={WithdrawStyles.requestMetaBold}>{item.bank_name}</Text>
                             </Text>
                           </View>
                           <View style={WithdrawStyles.requestMetaRow}>
                             <Feather name="hash" size={12} color="#94a3b8" />
                             <Text style={WithdrawStyles.requestMeta}>
-                              Account:{' '}
-                              <Text style={WithdrawStyles.requestMetaBold}>{item.account_number}</Text>
+                              Account: <Text style={WithdrawStyles.requestMetaBold}>{item.account_number}</Text>
                             </Text>
                           </View>
                           <View style={WithdrawStyles.requestMetaRow}>
                             <Feather name="tag" size={12} color="#94a3b8" />
                             <Text style={WithdrawStyles.requestMeta}>
-                              IFSC:{' '}
-                              <Text style={WithdrawStyles.requestMetaBold}>{item.ifsc}</Text>
+                              IFSC: <Text style={WithdrawStyles.requestMetaBold}>{item.ifsc}</Text>
                             </Text>
                           </View>
                         </>
@@ -498,8 +455,7 @@ export default function WithdrawScreen({ navigation }) {
                         <View style={WithdrawStyles.requestMetaRow}>
                           <Feather name="smartphone" size={12} color="#94a3b8" />
                           <Text style={WithdrawStyles.requestMeta}>
-                            UPI ID:{' '}
-                            <Text style={WithdrawStyles.requestMetaBold}>{item.upi_id}</Text>
+                            UPI ID: <Text style={WithdrawStyles.requestMetaBold}>{item.upi_id}</Text>
                           </Text>
                         </View>
                       )}
@@ -510,14 +466,12 @@ export default function WithdrawScreen({ navigation }) {
                     </View>
                   ))}
 
-                  {/* Pagination */}
                   <View style={WithdrawStyles.paginationWrap}>
                     <Text style={WithdrawStyles.paginationInfo}>
                       Showing{' '}
                       {Math.min((currentPage - 1) * PAGE_SIZE + 1, totalRecords)}–
                       {Math.min(currentPage * PAGE_SIZE, totalRecords)} of {totalRecords}
                     </Text>
-
                     <View style={WithdrawStyles.paginationControls}>
                       <TouchableOpacity
                         style={[WithdrawStyles.pageBtn, currentPage === 1 && WithdrawStyles.pageBtnDisabled]}
@@ -525,14 +479,12 @@ export default function WithdrawScreen({ navigation }) {
                       >
                         <Feather name="chevrons-left" size={13} color={currentPage === 1 ? '#cbd5e1' : '#475569'} />
                       </TouchableOpacity>
-
                       <TouchableOpacity
                         style={[WithdrawStyles.pageBtn, currentPage === 1 && WithdrawStyles.pageBtnDisabled]}
                         onPress={() => goToPage(currentPage - 1)} disabled={currentPage === 1}
                       >
                         <Feather name="chevron-left" size={13} color={currentPage === 1 ? '#cbd5e1' : '#475569'} />
                       </TouchableOpacity>
-
                       {pageNumbers.map((page) => (
                         <TouchableOpacity
                           key={page}
@@ -544,14 +496,12 @@ export default function WithdrawScreen({ navigation }) {
                           </Text>
                         </TouchableOpacity>
                       ))}
-
                       <TouchableOpacity
                         style={[WithdrawStyles.pageBtn, currentPage === totalPages && WithdrawStyles.pageBtnDisabled]}
                         onPress={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}
                       >
                         <Feather name="chevron-right" size={13} color={currentPage === totalPages ? '#cbd5e1' : '#475569'} />
                       </TouchableOpacity>
-
                       <TouchableOpacity
                         style={[WithdrawStyles.pageBtn, currentPage === totalPages && WithdrawStyles.pageBtnDisabled]}
                         onPress={() => goToPage(totalPages)} disabled={currentPage === totalPages}
@@ -567,7 +517,6 @@ export default function WithdrawScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      <Footer />
       <Sidebar
         visible={sidebarVisible}
         onClose={() => setSidebarVisible(false)}

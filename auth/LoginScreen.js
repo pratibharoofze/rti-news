@@ -114,7 +114,7 @@ export default function LoginScreen({ navigation }) {
       if (hasPremium && !user.location_complete) {
         safeReplace('StateSelect', { fromPremium: true });
       } else {
-        safeReplace('Dashboard', { userName: user.name });
+        safeReplace('Home');
       }
     } catch (_err) {
       // Keep a console trace for debugging (especially on web) but show a generic message in UI.

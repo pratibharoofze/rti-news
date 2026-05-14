@@ -17,9 +17,6 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import VideoPreview from '../components/VideoPreview';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import AddNewsStyles from '../styles/Addnewsstyles';
 import { UserStore } from '../store/UserStore';
@@ -193,7 +190,6 @@ export default function AddNewsScreen({ navigation }) {
 
   const plainToHtml = (text) => `<div>${escapeHtml(text).replace(/\n/g, '<br/>')}</div>`;
 
-  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [userName, setUserName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -224,8 +220,6 @@ export default function AddNewsScreen({ navigation }) {
   const descriptionEditorRef = useRef(null);
   const descriptionHtmlRef = useRef('');
   const [editorReady, setEditorReady] = useState(false);
-
-  const moduleName = 'Add News';
 
   useEffect(() => {
     const init = async () => {
@@ -624,13 +618,6 @@ export default function AddNewsScreen({ navigation }) {
 
   return (
     <View style={AddNewsStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-        userName={userName}
-      />
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -641,7 +628,6 @@ export default function AddNewsScreen({ navigation }) {
           keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
         >
-          {/* ✅ Back Arrow - heroCard ke upar, scroll ke andar */}
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={{
@@ -960,15 +946,7 @@ export default function AddNewsScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </ScrollView>
-
-        <Footer />
       </KeyboardAvoidingView>
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem={moduleName}
-      />
 
       {(!isSubscribedUser || isAdmin) && (
         <StatePickerModal

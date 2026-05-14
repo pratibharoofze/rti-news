@@ -17,9 +17,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import EPaperStyles from '../styles/EPaperStyles';
 import { UserStore } from '../store/UserStore';
@@ -150,10 +147,7 @@ export default function EPaperScreen({ navigation }) {
 
   const plainToHtml = (text) => `<div>${escapeHtml(text).replace(/\n/g, '<br/>')}</div>`;
 
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [footerVisible, setFooterVisible]   = useState(false);
   const [loading, setLoading]               = useState(true);
-  const [userName, setUserName]             = useState('');
   const [currentUser, setCurrentUser]       = useState(null);
   const [isAdmin, setIsAdmin]               = useState(false);
 
@@ -177,12 +171,11 @@ export default function EPaperScreen({ navigation }) {
   const [viewItem, setViewItem] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
 
-  const moduleName = 'E-Paper';
 
   const showSuccess = (msg) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(''), 3000);
-  };
+  };                          // ← Yeh closing brace add karo
 
   // ── Load ──────────────────────────────────
   const loadData = useCallback(async () => {
@@ -190,7 +183,6 @@ export default function EPaperScreen({ navigation }) {
     const user = await UserStore.getCurrentUser();
     if (!user) { navigation.replace('Login'); return; }
     setCurrentUser(user);
-    setUserName(user.name || 'User');
     setIsAdmin(user.role === 'admin');
 
     const data = await UserStore.getEPaperSummary();
@@ -206,15 +198,7 @@ export default function EPaperScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const handleScroll = ({ nativeEvent }) => {
-    const { contentOffset, layoutMeasurement, contentSize } = nativeEvent;
-    setFooterVisible(contentOffset.y + layoutMeasurement.height >= contentSize.height - 8);
-  };
 
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
 
   // ── Form helpers ──────────────────────────
   const openAddForm = () => {
@@ -781,12 +765,19 @@ export default function EPaperScreen({ navigation }) {
   // ─────────────────────────────────────────────
   return (
     <View style={EPaperStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-        userName={userName}
-      />
+      <TouchableOpacity
+        onPress={() => navigation.navigate('QuickMenu')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 6,
+        }}
+      >
+        <Feather name="arrow-left" size={20} color="#1d4ed8" />
+        <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '600' }}>Back</Text>
+      </TouchableOpacity>
 
       {successMsg ? (
         <View style={EPaperStyles.successOverlay}>
@@ -801,8 +792,6 @@ export default function EPaperScreen({ navigation }) {
         style={EPaperStyles.scrollView}
         contentContainerStyle={EPaperStyles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
       >
         {/* Hero */}
         <View style={EPaperStyles.heroCard}>
@@ -935,15 +924,7 @@ export default function EPaperScreen({ navigation }) {
             ))
           )}
         </View>
-
-        <Footer visible={footerVisible} />
       </ScrollView>
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem={moduleName}
-      />
 
 
       <FormModal visible={formVisible} editItemValue={editItem} />

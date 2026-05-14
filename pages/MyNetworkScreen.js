@@ -8,8 +8,6 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import Sidebar from '../components/Sidebar';
 import PremiumBadge from '../components/PremiumBadge';
 import MyNetworkStyles from '../styles/MyNetworkStyles';
@@ -19,7 +17,6 @@ const PAGE_SIZE = 10;
 
 export default function MyNetworkScreen({ navigation }) {
   const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab]           = useState('Home');
   const [networkData, setNetworkData]       = useState(null);
   const [loading, setLoading]               = useState(true);
   const [searchQuery, setSearchQuery]       = useState('');
@@ -68,9 +65,9 @@ export default function MyNetworkScreen({ navigation }) {
   }, [allRows, searchQuery]);
 
   // ── Pagination ──
-  const totalPages  = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
-  const safePage    = Math.min(currentPage, totalPages);
-  const pagedRows   = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const safePage   = Math.min(currentPage, totalPages);
+  const pagedRows  = filteredRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleSearch = (text) => {
     setSearchQuery(text);
@@ -92,11 +89,21 @@ export default function MyNetworkScreen({ navigation }) {
 
   return (
     <View style={MyNetworkStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+
+      {/* ── Back Arrow Button ── */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('QuickMenu')}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          gap: 6,
+        }}
+      >
+        <Feather name="arrow-left" size={20} color="#1d4ed8" />
+        <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '600' }}>Back</Text>
+      </TouchableOpacity>
 
       <ScrollView
         style={MyNetworkStyles.scrollView}
@@ -234,7 +241,7 @@ export default function MyNetworkScreen({ navigation }) {
                       </Text>
                     </View>
 
-                    {/* Action — View only, no Edit */}
+                    {/* Action */}
                     <View style={MyNetworkStyles.colAction}>
                       <TouchableOpacity
                         style={MyNetworkStyles.viewBtn}
@@ -251,7 +258,6 @@ export default function MyNetworkScreen({ navigation }) {
 
               {/* ── Pagination ── */}
               <View style={MyNetworkStyles.paginationWrap}>
-                {/* Prev */}
                 <TouchableOpacity
                   style={[
                     MyNetworkStyles.pageBtn,
@@ -267,7 +273,6 @@ export default function MyNetworkScreen({ navigation }) {
                   />
                 </TouchableOpacity>
 
-                {/* Page numbers */}
                 {pageNumbers.map((page) => (
                   <TouchableOpacity
                     key={page}
@@ -288,7 +293,6 @@ export default function MyNetworkScreen({ navigation }) {
                   </TouchableOpacity>
                 ))}
 
-                {/* Next */}
                 <TouchableOpacity
                   style={[
                     MyNetworkStyles.pageBtn,
@@ -318,7 +322,6 @@ export default function MyNetworkScreen({ navigation }) {
             </Text>
           )}
         </View>
-        <Footer activeTab={activeTab} onTabPress={setActiveTab} />
       </ScrollView>
 
       <Sidebar

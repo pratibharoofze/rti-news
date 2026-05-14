@@ -8,18 +8,16 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToast } from '../components/ui/ToastProvider';
 import { UserStore } from '../store/UserStore';
 import QuizResultStyles from '../styles/QuizResultStyles';
 
 export default function QuizResultScreen({ navigation, route }) {
   const { showToast } = useToast();
+  const insets = useSafeAreaInsets();
   const { result } = route.params || {};
 
-  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [savedPath, setSavedPath] = useState('');
   const [hasSubscription, setHasSubscription] = useState(false);
@@ -35,11 +33,6 @@ export default function QuizResultScreen({ navigation, route }) {
     loadSubscription();
     return () => { mounted = false; };
   }, []);
-
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
 
   const promptSubscriptionRequired = () => {
     Alert.alert(
@@ -167,11 +160,18 @@ export default function QuizResultScreen({ navigation, route }) {
 
   return (
     <View style={QuizResultStyles.root}>
-      <Header
-        title="Quiz Result"
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+      {/* Custom Header with Back Button */}
+      <View style={[QuizResultStyles.customHeader, { paddingTop: insets.top + 12 }]}>
+        <TouchableOpacity 
+          style={QuizResultStyles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={QuizResultStyles.headerTitle}>Quiz Result</Text>
+        <View style={QuizResultStyles.headerPlaceholder} />
+      </View>
 
       <ScrollView
         contentContainerStyle={QuizResultStyles.scrollContent}
@@ -252,14 +252,6 @@ export default function QuizResultScreen({ navigation, route }) {
           </View>
         )}
       </ScrollView>
-
-      <Footer />
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem="Certification"
-      />
     </View>
   );
 }

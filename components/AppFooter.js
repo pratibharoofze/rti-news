@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -79,6 +80,9 @@ function FooterInlineLinks({ items, onPress }) {
 }
 
 export default function AppFooter({ navigation }) {
+  const { width } = useWindowDimensions();
+  if (Platform.OS !== 'web' || width < 768) return null;
+  
   const { language } = useLanguage();
   const copy = getSiteCopy(language);
 

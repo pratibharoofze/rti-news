@@ -226,7 +226,7 @@ export default function SettingsScreen({ navigation }) {
         {/* ── Account ── */}
         <SectionHeader title="Account" />
         <View style={s.card}>
-          <SettingsItem emoji="📍" label="Change Location"                   onPress={() => setLocationCardVisible(v => !v)} />
+          <SettingsItem emoji="📍" label="Change Location" onPress={() => nav('ChangeLocation')} />
           <SettingsItem emoji="🧑‍💼" label="Reporter Registration"             onPress={() => nav('Register')} />
           <SettingsItem emoji="📢" label="Advertise"                          onPress={() => nav('Advertise')} />
           <SettingsItem emoji="✅" label="Purchase blue tick"                 onPress={() => nav('PurchaseBlueTick')} />

@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,18 +16,16 @@ const IS_WEB = Platform.OS === 'web';
 
 const MENU_ITEMS = [
   ...(IS_WEB ? [{ label: 'Home', icon: 'home-outline', screen: 'Home' }] : []),
-  { label: 'Profile',            icon: 'person-outline',        screen: 'Profile' },
-  { label: 'My Network',         icon: 'people-outline',        screen: 'My Network' },
-  { label: 'Wallet',             icon: 'wallet-outline',        screen: 'Wallet' },
-  { label: 'Withdraw',           icon: 'cash-outline',          screen: 'Withdraw' },
-  { label: 'Subscription Plans', icon: 'star-outline',          screen: 'SubscriptionPlans' },
-  // { label: 'News Feed',          icon: 'newspaper-outline',     screen: 'Feed' },
-   { label: 'e-Paper', icon: 'document-text-outline', screen: 'e-Paper' },
-  { label: 'Live Streaming', icon: 'radio-outline', screen: 'Live Streaming' }, 
-  { label: 'Certification',      icon: 'ribbon-outline',        screen: 'Certification' },
-  { label: 'Notifications',      icon: 'notifications-outline', screen: 'Notifications' },
-  // { label: 'Settings',           icon: 'settings-outline',      screen: 'Settings' },
-  // { label: 'Logout',             icon: 'log-out-outline',       screen: '__logout__', isDestructive: true },
+  { label: 'Profile', icon: 'person-outline', screen: 'Profile' },
+  { label: 'News Feed', icon: 'newspaper-outline', screen: 'News Feed' }, // ✅ Added space to match navigation
+  { label: 'My Network', icon: 'people-outline', screen: 'My Network' }, // ✅ Added space
+  { label: 'Wallet', icon: 'wallet-outline', screen: 'Wallet' },
+  { label: 'Withdraw', icon: 'cash-outline', screen: 'Withdraw' },
+  { label: 'Subscription Plans', icon: 'star-outline', screen: 'Subscription Plans' }, // ✅ Added space
+  { label: 'e-Paper', icon: 'document-text-outline', screen: 'e-Paper' }, // ✅ Exact match
+  { label: 'Live Streaming', icon: 'radio-outline', screen: 'Live Streaming' }, // ✅ Exact match
+  { label: 'Certification', icon: 'ribbon-outline', screen: 'Certification' },
+  { label: 'Notifications', icon: 'notifications-outline', screen: 'Notifications' },
 ];
 
 export default function QuickMenuScreen({ navigation }) {
@@ -34,12 +33,24 @@ export default function QuickMenuScreen({ navigation }) {
   const { logout } = useAuth();
 
   const handlePress = async (item) => {
-    if (item.screen === '__logout__') {
-      await logout?.();
-      navigation.navigate('Home');
-      return;
+    try {
+      if (item.screen === '__logout__') {
+        await logout?.();
+        navigation.navigate('Home');
+        return;
+      }
+      
+      // Navigate to the screen with exact name matching
+      console.log('Navigating to:', item.screen);
+      navigation.navigate(item.screen);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert(
+        'Coming Soon',
+        `${item.label} screen is being developed and will be available soon!`,
+        [{ text: 'OK' }]
+      );
     }
-    navigation.navigate(item.screen);
   };
 
   return (
@@ -48,7 +59,7 @@ export default function QuickMenuScreen({ navigation }) {
       {/* ── Header ── */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => navigation.goBack()}
           style={styles.backBtn}
           activeOpacity={0.7}
         >

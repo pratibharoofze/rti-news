@@ -5,9 +5,40 @@ export default StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
+
+  // ── New Top Bar ──
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topBarTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  topBarSpacer: {
+    width: 38, // balances the back button so title stays centered
+  },
+
+  // ── Existing styles (unchanged) ──
   scrollContent: {
     padding: 16,
-    paddingBottom: 110,
+    paddingBottom: 32,
   },
   heroCard: {
     backgroundColor: '#ffffff',

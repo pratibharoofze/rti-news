@@ -29,7 +29,8 @@ const DESKTOP_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
   {labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true},
-  { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
+  { labelKey: 'advertise', screen: 'Advertise', icon: 'megaphone-outline', isAdvertiseBtn: true }, // ✅
+  // { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
   { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
 ];
 
@@ -37,7 +38,8 @@ const MOBILE_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
   {labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true},
-  { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
+  { labelKey: 'advertise', screen: 'Advertise', icon: 'megaphone-outline', isAdvertiseBtn: true }, // ✅
+  // { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
   { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
 ];
 
@@ -311,7 +313,7 @@ function MobileBottomBar({ activeScreen, handleNavigate }) {
 }
 
 // ─── Main Export ──────────────────────────────────────────────────────────
-export default function AppNavbar({ activeScreen, navigation, hideTopHeader = false }) {
+export default function AppNavbar({ activeScreen, navigation, hideTopHeader = false, hideBottomBar = false }) {
   const { language } = useLanguage();
   const copy = useMemo(() => getSiteCopy(language), [language]);
   const isDesktop = useIsDesktop();
@@ -327,10 +329,12 @@ export default function AppNavbar({ activeScreen, navigation, hideTopHeader = fa
         {!hideTopHeader && (
           <MobileTopHeader navigation={navigation} handleNavigate={handleNavigate} />
         )}
+        {!hideBottomBar && (
         <MobileBottomBar
           activeScreen={activeScreen}
           handleNavigate={handleNavigate}
         />
+      )}
       </>
     );
   }

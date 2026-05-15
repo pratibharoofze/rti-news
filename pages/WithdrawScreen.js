@@ -22,6 +22,7 @@ const initialForm = {
   account_number: '',
   ifsc:           '',
   upi_id:         '',
+  transferFull:   false,
 };
 
 const IFSC_REGEX    = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -111,6 +112,16 @@ export default function WithdrawScreen({ navigation }) {
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: null }));
   };
 
+  const handleTransferFull = () => {
+    const newVal = !form.transferFull;
+    setForm((prev) => ({
+      ...prev,
+      transferFull: newVal,
+      amount: newVal ? String(withdrawData.available_balance) : '',
+    }));
+    if (errors.amount) setErrors((prev) => ({ ...prev, amount: null }));
+  };
+
   const handleSubmit = async () => {
     const validationErrors = validateForm(form);
     if (Object.keys(validationErrors).length > 0) {
@@ -195,22 +206,22 @@ export default function WithdrawScreen({ navigation }) {
     }
   };
 
+  // Mask account number like image: XXXXXXXXXX8745
+  const maskAccount = (acc) => {
+    if (!acc || acc.length <= 4) return acc;
+    return 'X'.repeat(acc.length - 4) + acc.slice(-4);
+  };
+
   return (
     <View style={WithdrawStyles.root}>
 
       {/* ── Back Arrow Button ── */}
       <TouchableOpacity
         onPress={() => navigation.navigate('QuickMenu')}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          gap: 6,
-        }}
+        style={WithdrawStyles.backBtn}
       >
-        <Feather name="arrow-left" size={20} color="#1d4ed8" />
-        <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '600' }}>Back</Text>
+        <Feather name="arrow-left" size={20} color="#e8603c" />
+        <Text style={WithdrawStyles.backBtnText}>Back</Text>
       </TouchableOpacity>
 
       <ScrollView
@@ -221,13 +232,13 @@ export default function WithdrawScreen({ navigation }) {
       >
         {/* ── Hero ── */}
         <View style={WithdrawStyles.heroCard}>
-          <Text style={WithdrawStyles.heroEyebrow}>Withdraw</Text>
-          <Text style={WithdrawStyles.heroTitle}>Request Withdrawal</Text>
+          <Text style={WithdrawStyles.heroEyebrow}>Earnings</Text>
+          <Text style={WithdrawStyles.heroTitle}>Withdraw Earnings</Text>
         </View>
 
         {/* ── Available Balance ── */}
         <View style={WithdrawStyles.balanceCard}>
-          <Feather name="credit-card" size={20} color="#1d4ed8" />
+          <Feather name="credit-card" size={22} color="#e8603c" />
           <View style={WithdrawStyles.balanceInfo}>
             <Text style={WithdrawStyles.balanceLabel}>Available Balance</Text>
             <Text style={WithdrawStyles.balanceValue}>
@@ -241,18 +252,42 @@ export default function WithdrawScreen({ navigation }) {
           <Text style={WithdrawStyles.successText}>{successMessage}</Text>
         ) : null}
 
-        {/* ── Withdraw Form ── */}
+        {/* ── WITHDRAW EARNING Card (image style) ── */}
         <View style={WithdrawStyles.card}>
-          <Text style={WithdrawStyles.sectionTitle}>Withdraw Request Form</Text>
+          <Text style={WithdrawStyles.sectionTitle}>WITHDRAW EARNING</Text>
 
+          {/* Transfer Mode + Account (image top meta row) */}
+          <View style={WithdrawStyles.withdrawMetaRow}>
+            <View style={WithdrawStyles.withdrawMetaItem}>
+              <Text style={WithdrawStyles.withdrawMetaLabel}>Transfer mode</Text>
+              <Text style={WithdrawStyles.withdrawMetaValue}>
+                {form.payment_mode === 'upi' ? 'UPI' : 'Bank'}
+              </Text>
+            </View>
+            {form.payment_mode === 'bank' && form.account_number ? (
+              <View style={WithdrawStyles.withdrawMetaItem}>
+                <Text style={WithdrawStyles.withdrawMetaLabel}>Acc number</Text>
+                <Text style={WithdrawStyles.withdrawMetaValue}>
+                  {maskAccount(form.account_number)}
+                </Text>
+              </View>
+            ) : form.payment_mode === 'upi' && form.upi_id ? (
+              <View style={WithdrawStyles.withdrawMetaItem}>
+                <Text style={WithdrawStyles.withdrawMetaLabel}>UPI ID</Text>
+                <Text style={WithdrawStyles.withdrawMetaValue}>{form.upi_id}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Amount Input */}
           <View style={WithdrawStyles.inputGroup}>
-            <Text style={WithdrawStyles.inputLabel}>Amount (₹)</Text>
+            <Text style={WithdrawStyles.inputLabel}>Enter amount</Text>
             <TextInput
               style={[WithdrawStyles.input, errors.amount && WithdrawStyles.inputError]}
               value={form.amount}
               onChangeText={(v) => handleChange('amount', v)}
-              placeholder="Enter amount"
-              placeholderTextColor="#94a3b8"
+              placeholder="₹0"
+              placeholderTextColor="#ccc"
               keyboardType="numeric"
             />
             {errors.amount ? (
@@ -260,6 +295,15 @@ export default function WithdrawScreen({ navigation }) {
             ) : null}
           </View>
 
+          {/* Transfer full amount checkbox */}
+          <TouchableOpacity style={WithdrawStyles.checkRow} onPress={handleTransferFull}>
+            <View style={[WithdrawStyles.checkBox, form.transferFull && WithdrawStyles.checkBoxActive]}>
+              {form.transferFull && <Feather name="check" size={11} color="#fff" />}
+            </View>
+            <Text style={WithdrawStyles.checkLabel}>Transfer full amount</Text>
+          </TouchableOpacity>
+
+          {/* Payment Mode Toggle */}
           <View style={WithdrawStyles.inputGroup}>
             <Text style={WithdrawStyles.inputLabel}>Payment Mode</Text>
             <View style={WithdrawStyles.modeRow}>
@@ -267,7 +311,7 @@ export default function WithdrawScreen({ navigation }) {
                 style={[WithdrawStyles.modeBtn, form.payment_mode === 'bank' && WithdrawStyles.modeBtnActive]}
                 onPress={() => { handleChange('payment_mode', 'bank'); setErrors({}); }}
               >
-                <Feather name="home" size={14} color={form.payment_mode === 'bank' ? '#fff' : '#64748b'} />
+                <Feather name="home" size={14} color={form.payment_mode === 'bank' ? '#fff' : '#888'} />
                 <Text style={[WithdrawStyles.modeBtnText, form.payment_mode === 'bank' && WithdrawStyles.modeBtnTextActive]}>
                   Bank Transfer
                 </Text>
@@ -276,7 +320,7 @@ export default function WithdrawScreen({ navigation }) {
                 style={[WithdrawStyles.modeBtn, form.payment_mode === 'upi' && WithdrawStyles.modeBtnActive]}
                 onPress={() => { handleChange('payment_mode', 'upi'); setErrors({}); }}
               >
-                <Feather name="smartphone" size={14} color={form.payment_mode === 'upi' ? '#fff' : '#64748b'} />
+                <Feather name="smartphone" size={14} color={form.payment_mode === 'upi' ? '#fff' : '#888'} />
                 <Text style={[WithdrawStyles.modeBtnText, form.payment_mode === 'upi' && WithdrawStyles.modeBtnTextActive]}>
                   UPI
                 </Text>
@@ -293,7 +337,7 @@ export default function WithdrawScreen({ navigation }) {
                   value={form.bank_name}
                   onChangeText={(v) => handleChange('bank_name', v)}
                   placeholder="e.g. State Bank of India"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#ccc"
                 />
                 {errors.bank_name ? (
                   <Text style={WithdrawStyles.errorText}>{errors.bank_name}</Text>
@@ -307,7 +351,7 @@ export default function WithdrawScreen({ navigation }) {
                   value={form.account_number}
                   onChangeText={(v) => handleChange('account_number', v.replace(/\D/g, ''))}
                   placeholder="9–18 digit account number"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#ccc"
                   keyboardType="numeric"
                   maxLength={18}
                 />
@@ -323,7 +367,7 @@ export default function WithdrawScreen({ navigation }) {
                   value={form.ifsc}
                   onChangeText={(v) => handleChange('ifsc', v.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                   placeholder="e.g. SBIN0001234"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#ccc"
                   autoCapitalize="characters"
                   maxLength={11}
                 />
@@ -346,7 +390,7 @@ export default function WithdrawScreen({ navigation }) {
                 value={form.upi_id}
                 onChangeText={(v) => handleChange('upi_id', v)}
                 placeholder="e.g. name@upi"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor="#ccc"
                 autoCapitalize="none"
               />
               {errors.upi_id ? (
@@ -360,7 +404,7 @@ export default function WithdrawScreen({ navigation }) {
             onPress={handleSubmit}
             disabled={submitting}
           >
-            <Feather name="arrow-up-circle" size={16} color="#fff" />
+            <Feather name="arrow-up-circle" size={17} color="#fff" />
             <Text style={WithdrawStyles.submitButtonText}>
               {submitting ? 'Submitting...' : 'Submit Request'}
             </Text>
@@ -383,17 +427,17 @@ export default function WithdrawScreen({ navigation }) {
           ) : (
             <>
               <View style={WithdrawStyles.searchWrap}>
-                <Feather name="search" size={15} color="#94a3b8" />
+                <Feather name="search" size={15} color="#ccc" />
                 <TextInput
                   style={WithdrawStyles.searchInput}
                   value={searchQuery}
                   onChangeText={(v) => { setSearchQuery(v); setCurrentPage(1); }}
                   placeholder="Search by amount, bank, status…"
-                  placeholderTextColor="#94a3b8"
+                  placeholderTextColor="#ccc"
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => { setSearchQuery(''); setCurrentPage(1); }}>
-                    <Feather name="x" size={15} color="#94a3b8" />
+                    <Feather name="x" size={15} color="#ccc" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -421,7 +465,7 @@ export default function WithdrawScreen({ navigation }) {
                       </View>
 
                       <View style={WithdrawStyles.requestMetaRow}>
-                        <Feather name="credit-card" size={12} color="#94a3b8" />
+                        <Feather name="credit-card" size={12} color="#ccc" />
                         <Text style={WithdrawStyles.requestMeta}>
                           Mode:{' '}
                           <Text style={WithdrawStyles.requestMetaBold}>
@@ -433,19 +477,22 @@ export default function WithdrawScreen({ navigation }) {
                       {item.payment_mode === 'bank' ? (
                         <>
                           <View style={WithdrawStyles.requestMetaRow}>
-                            <Feather name="home" size={12} color="#94a3b8" />
+                            <Feather name="home" size={12} color="#ccc" />
                             <Text style={WithdrawStyles.requestMeta}>
                               Bank: <Text style={WithdrawStyles.requestMetaBold}>{item.bank_name}</Text>
                             </Text>
                           </View>
                           <View style={WithdrawStyles.requestMetaRow}>
-                            <Feather name="hash" size={12} color="#94a3b8" />
+                            <Feather name="hash" size={12} color="#ccc" />
                             <Text style={WithdrawStyles.requestMeta}>
-                              Account: <Text style={WithdrawStyles.requestMetaBold}>{item.account_number}</Text>
+                              Account:{' '}
+                              <Text style={WithdrawStyles.requestMetaBold}>
+                                {maskAccount(item.account_number)}
+                              </Text>
                             </Text>
                           </View>
                           <View style={WithdrawStyles.requestMetaRow}>
-                            <Feather name="tag" size={12} color="#94a3b8" />
+                            <Feather name="tag" size={12} color="#ccc" />
                             <Text style={WithdrawStyles.requestMeta}>
                               IFSC: <Text style={WithdrawStyles.requestMetaBold}>{item.ifsc}</Text>
                             </Text>
@@ -453,7 +500,7 @@ export default function WithdrawScreen({ navigation }) {
                         </>
                       ) : (
                         <View style={WithdrawStyles.requestMetaRow}>
-                          <Feather name="smartphone" size={12} color="#94a3b8" />
+                          <Feather name="smartphone" size={12} color="#ccc" />
                           <Text style={WithdrawStyles.requestMeta}>
                             UPI ID: <Text style={WithdrawStyles.requestMetaBold}>{item.upi_id}</Text>
                           </Text>
@@ -477,13 +524,13 @@ export default function WithdrawScreen({ navigation }) {
                         style={[WithdrawStyles.pageBtn, currentPage === 1 && WithdrawStyles.pageBtnDisabled]}
                         onPress={() => goToPage(1)} disabled={currentPage === 1}
                       >
-                        <Feather name="chevrons-left" size={13} color={currentPage === 1 ? '#cbd5e1' : '#475569'} />
+                        <Feather name="chevrons-left" size={13} color={currentPage === 1 ? '#ddd' : '#666'} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[WithdrawStyles.pageBtn, currentPage === 1 && WithdrawStyles.pageBtnDisabled]}
                         onPress={() => goToPage(currentPage - 1)} disabled={currentPage === 1}
                       >
-                        <Feather name="chevron-left" size={13} color={currentPage === 1 ? '#cbd5e1' : '#475569'} />
+                        <Feather name="chevron-left" size={13} color={currentPage === 1 ? '#ddd' : '#666'} />
                       </TouchableOpacity>
                       {pageNumbers.map((page) => (
                         <TouchableOpacity
@@ -500,13 +547,13 @@ export default function WithdrawScreen({ navigation }) {
                         style={[WithdrawStyles.pageBtn, currentPage === totalPages && WithdrawStyles.pageBtnDisabled]}
                         onPress={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}
                       >
-                        <Feather name="chevron-right" size={13} color={currentPage === totalPages ? '#cbd5e1' : '#475569'} />
+                        <Feather name="chevron-right" size={13} color={currentPage === totalPages ? '#ddd' : '#666'} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[WithdrawStyles.pageBtn, currentPage === totalPages && WithdrawStyles.pageBtnDisabled]}
                         onPress={() => goToPage(totalPages)} disabled={currentPage === totalPages}
                       >
-                        <Feather name="chevrons-right" size={13} color={currentPage === totalPages ? '#cbd5e1' : '#475569'} />
+                        <Feather name="chevrons-right" size={13} color={currentPage === totalPages ? '#ddd' : '#666'} />
                       </TouchableOpacity>
                     </View>
                   </View>

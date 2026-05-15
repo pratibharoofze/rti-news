@@ -234,69 +234,124 @@ const localShareStyles = StyleSheet.create({
 });
 
 // Description Modal
-function DescriptionModal({ visible, onClose, post, onShare }) {
+function DescriptionModal({ visible, onClose, post, onShare, onAddComment, currentUser }) {
+  const [text, setText] = useState('');
+  const { height: WH } = useWindowDimensions();
   if (!post) return null;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={localDescStyles.overlay}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-        <View style={localDescStyles.sheet}>
-          <View style={localDescStyles.handle} />
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
+      <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+        {/* Top area — tap to close */}
+        <TouchableOpacity
+          style={{ flex: 0.42, backgroundColor: 'transparent' }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
 
-          <View style={[localDescStyles.tagBadge, { backgroundColor: post.tagColor || '#16a34a' }]}>
-            <Text style={localDescStyles.tagText}>{post.tag}</Text>
-          </View>
+        {/* Bottom Sheet */}
+        <View style={{
+          flex: 0.58,
+          backgroundColor: '#1a1a2e',
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          paddingBottom: 16,
+        }}>
+          {/* Handle */}
+          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)', alignSelf: 'center', marginTop: 10, marginBottom: 14 }} />
 
-          <Text style={localDescStyles.headline}>{post.headline}</Text>
-
-          <View style={localDescStyles.userRow}>
-            <Image source={{ uri: post.avatar || 'https://i.pravatar.cc/100?img=5' }} style={localDescStyles.avatar} />
+          {/* User Row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10 }}>
+            <Image
+              source={{ uri: post.avatar || 'https://i.pravatar.cc/100?img=5' }}
+              style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: '#f97316', marginRight: 10 }}
+            />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={localDescStyles.userName}>{post.user}</Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>{post.user}</Text>
                 {Boolean(post.verified) && <Text style={{ color: '#60a5fa', fontSize: 12 }}>✓</Text>}
               </View>
-              <Text style={localDescStyles.userMeta}>{post.role} · {post.time}</Text>
+              <Text style={{ color: '#94a3b8', fontSize: 11 }}>{post.role} · {post.time}</Text>
             </View>
+            <TouchableOpacity
+              style={{ backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#fff', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6 }}
+              onPress={onShare}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Share</Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={localDescStyles.locRow}>
-            <Text>📍 </Text>
-            <Text style={localDescStyles.locText}>{post.location}</Text>
-          </View>
-
-          <ScrollView style={localDescStyles.captionScroll} showsVerticalScrollIndicator={false}>
-            <Text style={localDescStyles.caption}>{post.caption}</Text>
-            {post.fullDescription ? (
-              <Text style={localDescStyles.fullDesc}>{post.fullDescription}</Text>
+          {/* Caption */}
+          <View style={{ paddingHorizontal: 16, marginBottom: 10 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.88)', fontSize: 13, lineHeight: 20 }}>
+              <Text style={{ fontWeight: '800' }}>{post.user} </Text>
+              {post.caption}
+            </Text>
+            {post.location ? (
+              <Text style={{ color: '#f97316', fontSize: 11, fontWeight: '600', marginTop: 4 }}>📍 {post.location}</Text>
             ) : null}
+          </View>
+
+          {/* Divider */}
+          <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: 16, marginBottom: 10 }} />
+
+          {/* Comments list */}
+          <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} showsVerticalScrollIndicator={false}>
+            {Array.isArray(post.comments) && post.comments.length === 0 && (
+              <Text style={{ color: '#475569', fontSize: 13, textAlign: 'center', marginVertical: 16 }}>No comments yet. Be the first! 👇</Text>
+            )}
+            {Array.isArray(post.comments) && post.comments.map((c) => (
+              <View key={c.id} style={{ flexDirection: 'row', marginBottom: 14, alignItems: 'flex-start' }}>
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#f97316', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                  <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{String(c.user || 'U').charAt(0)}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#f1f5f9', fontSize: 13, lineHeight: 18 }}>
+                    <Text style={{ fontWeight: '800' }}>{c.user} </Text>
+                    {c.text}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
+                    <Text style={{ color: '#64748b', fontSize: 11 }}>{c.date || ''}</Text>
+                    <TouchableOpacity><Text style={{ color: '#64748b', fontSize: 11, fontWeight: '700' }}>Reply</Text></TouchableOpacity>
+                  </View>
+                </View>
+                <View style={{ alignItems: 'center', marginLeft: 8 }}>
+                  <Text style={{ color: '#fff', fontSize: 16 }}>♡</Text>
+                  <Text style={{ color: '#64748b', fontSize: 10 }}>{c.likes || ''}</Text>
+                </View>
+              </View>
+            ))}
           </ScrollView>
 
-          <View style={localDescStyles.statsRow}>
-            <View style={localDescStyles.statItem}>
-              <Text style={localDescStyles.statNum}>{post.likes >= 1000 ? (post.likes / 1000).toFixed(1) + 'K' : post.likes}</Text>
-              <Text style={localDescStyles.statLabel}>Likes</Text>
+          {/* Comment Input */}
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', gap: 10 }}>
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#f97316', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: '800' }}>{String(currentUser?.name || 'U').charAt(0)}</Text>
+              </View>
+              <TextInput
+                style={{
+                  flex: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.08)',
+                  borderRadius: 20, paddingHorizontal: 14, fontSize: 13, color: '#f1f5f9',
+                  borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+                }}
+                placeholder={`Add a comment for ${post.user}...`}
+                placeholderTextColor="#64748b"
+                value={text}
+                onChangeText={setText}
+              />
+              <TouchableOpacity
+                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#f97316', alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => {
+                  if (!text.trim()) return;
+                  onAddComment?.(text.trim());
+                  setText('');
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 16 }}>➤</Text>
+              </TouchableOpacity>
             </View>
-            <View style={localDescStyles.statDivider} />
-            <View style={localDescStyles.statItem}>
-              <Text style={localDescStyles.statNum}>{Array.isArray(post.comments) ? post.comments.length : 0}</Text>
-              <Text style={localDescStyles.statLabel}>Comments</Text>
-            </View>
-            <View style={localDescStyles.statDivider} />
-            <View style={localDescStyles.statItem}>
-              <Text style={localDescStyles.statNum}>{post.shares >= 1000 ? (post.shares / 1000).toFixed(1) + 'K' : post.shares}</Text>
-              <Text style={localDescStyles.statLabel}>Shares</Text>
-            </View>
-          </View>
-
-          <View style={localDescStyles.actionRow}>
-            <TouchableOpacity style={localDescStyles.shareBtn} onPress={() => { onClose(); onShare(post.id); }} activeOpacity={0.85}>
-              <Text style={localDescStyles.shareBtnText}>📤 Share This Story</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={localDescStyles.closeBtn} onPress={onClose} activeOpacity={0.85}>
-              <Text style={localDescStyles.closeBtnText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </View>
     </Modal>
@@ -980,7 +1035,7 @@ const safeThumbnailUrl = useMemo(() => {
 
   const videoWidth = isMobileLayout ? cardWidth : Math.min(cardWidth - 100, 430);
 
-  const navbarH   = Platform.OS === 'ios' ? 82 : 60;
+  const navbarH   = Platform.OS === 'ios' ? 60 : 56;
   const safeBot   = Platform.OS === 'ios' ? 34 : 0;
   const bottomBottom = isMobileLayout ? (navbarH + safeBot + 12) : 28;
   const bottomRight  = isMobileLayout ? 76 : 14;
@@ -1140,10 +1195,10 @@ export default function FeedScreen({ navigation }) {
   const isMobileLayout  = windowWidth <= MOBILE_BREAKPOINT;
   const isWebPlatform   = Platform.OS === 'web';
 
-  const NAVBAR_H      = Platform.OS === 'ios' ? 82 : 60;
-  const WEB_TOPNAV_H  = 60;
-  const cardHeight    = isWebPlatform ? windowHeight - WEB_TOPNAV_H : windowHeight - NAVBAR_H;
-  const cardWidth     = isMobileLayout ? windowWidth : Math.min(windowWidth * 0.65, 560);
+  const NAVBAR_H = Platform.OS === 'ios' ? 60 : 56;
+const WEB_TOPNAV_H = 60;
+const cardHeight = isWebPlatform ? windowHeight - WEB_TOPNAV_H : windowHeight - 65;
+const cardWidth = isMobileLayout ? windowWidth : Math.min(windowWidth * 0.65, 560);
 
  const handleLike = useCallback(async (id) => {
   setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p));
@@ -1496,13 +1551,21 @@ export default function FeedScreen({ navigation }) {
       />
 
       <DescriptionModal
-        visible={!!descPost}
-        onClose={() => setDescPost(null)}
-        post={activeDescData}
-        onShare={(id) => { setDescPost(null); handleShare(id); }}
-      />
+  visible={!!descPost}
+  onClose={() => setDescPost(null)}
+  post={activeDescData}
+  onShare={() => { setDescPost(null); handleShare(descPost); }}
+  onAddComment={handleAddComment}
+  currentUser={currentUser}
+/>
 
-      {!isWebPlatform && <AppNavbar navigation={navigation} activeScreen="Feed" hideTopHeader={true} />}
+      {!isWebPlatform && (
+  <AppNavbar 
+    navigation={navigation} 
+    activeScreen="Feed" 
+    hideTopHeader={true} 
+  />
+)}
     </View>
   );
 

@@ -12,6 +12,90 @@ const NewsFeedStyles = StyleSheet.create({
     padding: 16,
     paddingBottom: 96,
   },
+  
+  // ─── Custom Header Styles (New) ──────────────────────────────────
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  headerAddButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+
+  // ─── Edit/Delete Button Row (New) ────────────────────────────────
+  editDeleteRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    gap: 12,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 6,
+    gap: 6,
+  },
+  editButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#2563eb',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#fef2f2',
+    borderRadius: 6,
+    gap: 6,
+  },
+  deleteButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#ef4444',
+  },
+
+  // ─── Edit Modal Input Styles (New) ───────────────────────────────
+  editInput: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0f172a',
+    marginBottom: 12,
+    backgroundColor: '#f8fafc',
+  },
+
+  // ─── Hero Card ───────────────────────────────────────────────────
   heroCard: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -860,5 +944,3 @@ const NewsFeedStyles = StyleSheet.create({
 });
 
 export default NewsFeedStyles;
-
-

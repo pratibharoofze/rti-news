@@ -1,15 +1,12 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import {
   Image, Linking, Modal, Platform, ScrollView, Share,
-  Text, TextInput, TouchableOpacity, View,
+  Text, TextInput, TouchableOpacity, View, Alert
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
 import VideoPreview from '../components/VideoPreview';
 import PremiumBadge from '../components/PremiumBadge';
 import { useToast } from '../components/ui/ToastProvider';
@@ -112,10 +109,122 @@ const FilterDropdown = ({ label, value, options, onSelect }) => {
   );
 };
 
+// ─── Edit News Modal Component ───────────────────────────────────
+const EditNewsModal = ({ visible, newsItem, onClose, onUpdate, showToast }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    subtitle: '',
+    description: '',
+    category: '',
+    state: '',
+    district: '',
+    taluka: '',
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (newsItem) {
+      setFormData({
+        title: newsItem.title || '',
+        subtitle: newsItem.subtitle || '',
+        description: newsItem.description || '',
+        category: newsItem.category || '',
+        state: newsItem.state || '',
+        district: newsItem.district || '',
+        taluka: newsItem.taluka || '',
+      });
+    }
+  }, [newsItem]);
+
+  const handleUpdate = async () => {
+    if (!formData.title.trim()) {
+      showToast('Title is required', 'error');
+      return;
+    }
+    setLoading(true);
+    const result = await UserStore.updateNewsFeedItem(newsItem.id, formData);
+    setLoading(false);
+    if (result.ok) {
+      showToast('News updated successfully', 'success');
+      onUpdate();
+      onClose();
+    } else {
+      showToast(result.message || 'Update failed', 'error');
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.commentOverlay}>
+        <View style={[styles.commentSheet, { maxHeight: '90%' }]}>
+          <View style={styles.commentHeader}>
+            <Text style={styles.commentTitle}>Edit News</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Feather name="x" size={20} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+            <TextInput
+              style={styles.editInput}
+              placeholder="Title *"
+              value={formData.title}
+              onChangeText={(text) => setFormData({ ...formData, title: text })}
+            />
+            <TextInput
+              style={styles.editInput}
+              placeholder="Subtitle"
+              value={formData.subtitle}
+              onChangeText={(text) => setFormData({ ...formData, subtitle: text })}
+            />
+            <TextInput
+              style={[styles.editInput, { minHeight: 100 }]}
+              placeholder="Description"
+              value={formData.description}
+              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              multiline
+            />
+            <TextInput
+              style={styles.editInput}
+              placeholder="Category"
+              value={formData.category}
+              onChangeText={(text) => setFormData({ ...formData, category: text })}
+            />
+            <TextInput
+              style={styles.editInput}
+              placeholder="State"
+              value={formData.state}
+              onChangeText={(text) => setFormData({ ...formData, state: text })}
+            />
+            <TextInput
+              style={styles.editInput}
+              placeholder="District"
+              value={formData.district}
+              onChangeText={(text) => setFormData({ ...formData, district: text })}
+            />
+            <TextInput
+              style={styles.editInput}
+              placeholder="Taluka"
+              value={formData.taluka}
+              onChangeText={(text) => setFormData({ ...formData, taluka: text })}
+            />
+            <TouchableOpacity
+              style={[styles.addNewsButton, { marginTop: 16, opacity: loading ? 0.6 : 1 }]}
+              onPress={handleUpdate}
+              disabled={loading}
+            >
+              <Feather name="check-circle" size={16} color="#ffffff" />
+              <Text style={styles.addNewsButtonText}>{loading ? 'Updating...' : 'Update News'}</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 // ─── Main Screen ───────────────────────────────────────────────────
 export default function NewsFeedScreen({ navigation }) {
   const { showToast } = useToast();
-  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const [commentModalVisible, setCommentModalVisible] = useState(false);
@@ -125,6 +234,8 @@ export default function NewsFeedScreen({ navigation }) {
   const [editingCommentText, setEditingCommentText] = useState('');
   const [expandedItems, setExpandedItems] = useState({});
   const [filterPanelVisible, setFilterPanelVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingNewsItem, setEditingNewsItem] = useState(null);
 
   const [filterState, setFilterState] = useState('All');
   const [filterDistrict, setFilterDistrict] = useState('');
@@ -281,6 +392,34 @@ export default function NewsFeedScreen({ navigation }) {
     loadNewsFeed();
   };
 
+  const handleEdit = (item) => {
+    setEditingNewsItem(item);
+    setEditModalVisible(true);
+  };
+
+  const handleDelete = async (item) => {
+    Alert.alert(
+      'Delete News',
+      'Are you sure you want to delete this news item? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await UserStore.deleteNewsFeedItem(item.id);
+            if (result.ok) {
+              showToast('News deleted successfully', 'success');
+              loadNewsFeed();
+            } else {
+              showToast(result.message || 'Delete failed', 'error');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const openComments = async (item) => {
     setActiveCommentItem(item);
     setCommentText('');
@@ -364,10 +503,26 @@ export default function NewsFeedScreen({ navigation }) {
   };
 
   const displayedItems = applyUIFilters(newsData.items);
+  const currentUser = newsData.currentUser;
+  const canEditDelete = (item) => {
+    if (!currentUser) return false;
+    const isAdmin = currentUser.role === 'admin';
+    const isOwner = item.createdBy === currentUser.email;
+    return isAdmin || isOwner;
+  };
 
   return (
     <View style={styles.root}>
-      <Header title={moduleName} onMenuPress={() => setSidebarVisible(true)} onLogout={handleLogout} />
+      {/* Header with Back Button */}
+      <View style={styles.customHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Feather name="arrow-left" size={24} color="#0f766e" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{moduleName}</Text>
+        <TouchableOpacity onPress={handleAddNews} style={styles.headerAddButton}>
+          <Feather name="plus-circle" size={24} color="#0f766e" />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -380,10 +535,6 @@ export default function NewsFeedScreen({ navigation }) {
           <Text style={styles.heroEyebrow}>Live News</Text>
           <Text style={styles.heroTitle}>Current News Feed Records</Text>
           <Text style={styles.heroSubtitle}>Manage published updates and create a new article from here.</Text>
-          <TouchableOpacity style={styles.addNewsButton} onPress={handleAddNews}>
-            <Feather name="plus-circle" size={16} color="#ffffff" />
-            <Text style={styles.addNewsButtonText}>Add News</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Metrics */}
@@ -593,7 +744,21 @@ export default function NewsFeedScreen({ navigation }) {
                   );
                 })()}
 
-                {/* ✅ FIX: idb-media images ko ResolvedImage se dikhao */}
+                {/* Edit and Delete Buttons */}
+                {canEditDelete(item) && (
+                  <View style={styles.editDeleteRow}>
+                    <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(item)}>
+                      <Feather name="edit-2" size={14} color="#2563eb" />
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteButton} onPress={() => handleDelete(item)}>
+                      <Feather name="trash-2" size={14} color="#ef4444" />
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Images */}
                 {item.images?.length ? (
                   <View style={styles.mediaPreviewWrap}>
                     <Text style={styles.mediaLabel}>Upload Image</Text>
@@ -679,8 +844,17 @@ export default function NewsFeedScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      <Footer />
-      <Sidebar visible={sidebarVisible} onClose={() => setSidebarVisible(false)} activeItem={moduleName} />
+      {/* Edit News Modal */}
+      <EditNewsModal
+        visible={editModalVisible}
+        newsItem={editingNewsItem}
+        onClose={() => {
+          setEditModalVisible(false);
+          setEditingNewsItem(null);
+        }}
+        onUpdate={loadNewsFeed}
+        showToast={showToast}
+      />
 
       {/* Comments Modal */}
       <Modal visible={commentModalVisible} transparent animationType="slide" onRequestClose={() => setCommentModalVisible(false)}>

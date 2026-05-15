@@ -52,9 +52,6 @@ export default function WalletScreen({ navigation }) {
     [summary.transactions]
   );
 
-  const typeColor = (type) =>
-    type === 'credit' ? WalletStyles.creditValue : WalletStyles.debitValue;
-
   // ── Pagination ──
   const totalRecords = summary.transactions.length;
   const totalPages   = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
@@ -82,33 +79,20 @@ export default function WalletScreen({ navigation }) {
     <View style={WalletStyles.root}>
 
       {/* ── Top Bar with Back Button ── */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
-      }}>
+      <View style={WalletStyles.topBar}>
         <TouchableOpacity
           onPress={() => navigation.navigate('QuickMenu')}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          style={WalletStyles.backButton}
         >
-          <Feather name="arrow-left" size={20} color="#1d4ed8" />
-          <Text style={{ color: '#1d4ed8', fontSize: 15, fontWeight: '700' }}>Back</Text>
+          <Feather name="arrow-left" size={20} color="#f97316" />
+          <Text style={WalletStyles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
-        <Text style={{
-          flex: 1,
-          textAlign: 'center',
-          fontSize: 17,
-          fontWeight: '800',
-          color: '#0f172a',
-          marginRight: 52,
-        }}>
+        <Text style={WalletStyles.headerTitle}>
           Wallet
         </Text>
+        
+        <View style={{ width: 52 }} />
       </View>
 
       <ScrollView
@@ -116,41 +100,45 @@ export default function WalletScreen({ navigation }) {
         contentContainerStyle={WalletStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Metrics */}
-        <View style={WalletStyles.metricsGrid}>
-          <View style={[WalletStyles.metricCard, WalletStyles.balanceCard]}>
-            <Feather name="credit-card" size={20} color="#1d4ed8" />
-            <Text style={WalletStyles.metricLabel}>Total Balance</Text>
-            <Text style={WalletStyles.metricValue}>₹{summary.total_balance}</Text>
-            <Text style={WalletStyles.metricHint}>Available balance</Text>
+        {/* Main Balance Card - Hero */}
+        <View style={WalletStyles.balanceHeroCard}>
+          <View style={WalletStyles.balanceIconWrap}>
+            <Feather name="wallet" size={28} color="#f97316" />
+          </View>
+          <Text style={WalletStyles.balanceLabel}>Total Balance</Text>
+          <Text style={WalletStyles.balanceAmount}>₹{summary.total_balance.toLocaleString()}</Text>
+          <Text style={WalletStyles.balanceHint}>Available balance in wallet</Text>
+        </View>
+
+        {/* Credit/Debit Stats Row */}
+        <View style={WalletStyles.statsRow}>
+          <View style={[WalletStyles.statCard, WalletStyles.creditStatCard]}>
+            <View style={WalletStyles.statIconWrap}>
+              <Feather name="arrow-down-circle" size={22} color="#ffffff" />
+            </View>
+            <Text style={WalletStyles.statLabel}>Total Credit</Text>
+            <Text style={WalletStyles.statValue}>₹{summary.total_credit.toLocaleString()}</Text>
           </View>
 
-          <View style={WalletStyles.metricRow}>
-            <View style={[WalletStyles.metricCardHalf, WalletStyles.creditCard]}>
-              <Feather name="arrow-down-circle" size={18} color="#16a34a" />
-              <Text style={WalletStyles.metricLabel}>Total Credit</Text>
-              <Text style={[WalletStyles.metricValue, WalletStyles.creditValue]}>
-                ₹{summary.total_credit}
-              </Text>
+          <View style={[WalletStyles.statCard, WalletStyles.debitStatCard]}>
+            <View style={WalletStyles.statIconWrap}>
+              <Feather name="arrow-up-circle" size={22} color="#ffffff" />
             </View>
-
-            <View style={[WalletStyles.metricCardHalf, WalletStyles.debitCard]}>
-              <Feather name="arrow-up-circle" size={18} color="#dc2626" />
-              <Text style={WalletStyles.metricLabel}>Total Debit</Text>
-              <Text style={[WalletStyles.metricValue, WalletStyles.debitValue]}>
-                ₹{summary.total_debit}
-              </Text>
-            </View>
+            <Text style={WalletStyles.statLabel}>Total Debit</Text>
+            <Text style={WalletStyles.statValue}>₹{summary.total_debit.toLocaleString()}</Text>
           </View>
         </View>
 
-        {/* Latest Transaction */}
+        {/* Latest Transaction Card */}
         <View style={WalletStyles.card}>
-          <Text style={WalletStyles.sectionTitle}>Latest Transaction</Text>
+          <View style={WalletStyles.cardHeader}>
+            <Feather name="clock" size={18} color="#f97316" />
+            <Text style={WalletStyles.cardTitle}>Latest Transaction</Text>
+          </View>
 
           {latestTransaction ? (
             <View style={WalletStyles.latestCard}>
-              <View style={WalletStyles.latestTopRow}>
+              <View style={WalletStyles.latestHeader}>
                 <View style={WalletStyles.sourceBadge}>
                   <Text style={WalletStyles.sourceBadgeText}>
                     {latestTransaction.source}
@@ -159,18 +147,20 @@ export default function WalletScreen({ navigation }) {
                 <Text style={WalletStyles.latestDate}>{latestTransaction.date}</Text>
               </View>
 
-              <View style={WalletStyles.latestAmountRow}>
+              <View style={WalletStyles.latestDetails}>
                 <View>
                   <Text style={WalletStyles.latestLabel}>Amount</Text>
-                  <Text style={typeColor(latestTransaction.type)}>
-                    ₹{latestTransaction.amount}
+                  <Text style={latestTransaction.type === 'credit' ? WalletStyles.latestCreditAmount : WalletStyles.latestDebitAmount}>
+                    ₹{latestTransaction.amount.toLocaleString()}
                   </Text>
                 </View>
                 <View>
                   <Text style={WalletStyles.latestLabel}>Type</Text>
-                  <Text style={typeColor(latestTransaction.type)}>
-                    {latestTransaction.type === 'credit' ? '▲ Credit' : '▼ Debit'}
-                  </Text>
+                  <View style={latestTransaction.type === 'credit' ? WalletStyles.latestCreditBadge : WalletStyles.latestDebitBadge}>
+                    <Text style={latestTransaction.type === 'credit' ? WalletStyles.latestCreditText : WalletStyles.latestDebitText}>
+                      {latestTransaction.type === 'credit' ? 'Credit' : 'Debit'}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </View>
@@ -179,12 +169,16 @@ export default function WalletScreen({ navigation }) {
           )}
         </View>
 
-        {/* Wallet Records */}
+        {/* Transaction History Card */}
         <View style={WalletStyles.card}>
-          <View style={WalletStyles.tableTopRow}>
-            <Text style={WalletStyles.sectionTitle}>Wallet Records</Text>
-            <Text style={WalletStyles.recordCount}>
-              {totalRecords} record{totalRecords !== 1 ? 's' : ''}
+          <View style={WalletStyles.cardHeader}>
+            <Feather name="list" size={18} color="#f97316" />
+            <Text style={WalletStyles.cardTitle}>Transaction History</Text>
+          </View>
+          
+          <View style={WalletStyles.statsBadge}>
+            <Text style={WalletStyles.statsBadgeText}>
+              {totalRecords} Transaction{totalRecords !== 1 ? 's' : ''}
             </Text>
           </View>
 
@@ -195,6 +189,7 @@ export default function WalletScreen({ navigation }) {
           ) : (
             <>
               <View style={WalletStyles.tableWrap}>
+                {/* Header */}
                 <View style={WalletStyles.tableHeader}>
                   <Text style={[WalletStyles.tableHeaderText, WalletStyles.colAmount]}>Amount</Text>
                   <Text style={[WalletStyles.tableHeaderText, WalletStyles.colType]}>Type</Text>
@@ -202,17 +197,19 @@ export default function WalletScreen({ navigation }) {
                   <Text style={[WalletStyles.tableHeaderText, WalletStyles.colDate]}>Date</Text>
                 </View>
 
+                {/* Rows */}
                 {pagedTransactions.map((item, index) => (
                   <View
                     key={item.id ?? index}
                     style={[
                       WalletStyles.tableRow,
                       index % 2 === 0 && WalletStyles.tableRowEven,
-                      index === pagedTransactions.length - 1 && WalletStyles.tableRowLast,
                     ]}
                   >
                     <View style={WalletStyles.colAmount}>
-                      <Text style={typeColor(item.type)}>₹{item.amount}</Text>
+                      <Text style={item.type === 'credit' ? WalletStyles.amountCredit : WalletStyles.amountDebit}>
+                        ₹{item.amount.toLocaleString()}
+                      </Text>
                     </View>
                     <View style={WalletStyles.colType}>
                       <View style={[
@@ -228,10 +225,10 @@ export default function WalletScreen({ navigation }) {
                       </View>
                     </View>
                     <View style={WalletStyles.colSource}>
-                      <Text style={WalletStyles.rowSecondary}>{item.source}</Text>
+                      <Text style={WalletStyles.rowText}>{item.source}</Text>
                     </View>
                     <View style={WalletStyles.colDate}>
-                      <Text style={WalletStyles.rowSecondary}>{item.date}</Text>
+                      <Text style={WalletStyles.rowText}>{item.date}</Text>
                     </View>
                   </View>
                 ))}
@@ -240,23 +237,25 @@ export default function WalletScreen({ navigation }) {
               {/* Pagination */}
               <View style={WalletStyles.paginationWrap}>
                 <Text style={WalletStyles.paginationInfo}>
-                  Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, totalRecords)}–
+                  Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, totalRecords)} –{' '}
                   {Math.min(currentPage * PAGE_SIZE, totalRecords)} of {totalRecords}
                 </Text>
 
                 <View style={WalletStyles.paginationControls}>
                   <TouchableOpacity
                     style={[WalletStyles.pageBtn, currentPage === 1 && WalletStyles.pageBtnDisabled]}
-                    onPress={() => goToPage(1)} disabled={currentPage === 1}
+                    onPress={() => goToPage(1)} 
+                    disabled={currentPage === 1}
                   >
-                    <Feather name="chevrons-left" size={14} color={currentPage === 1 ? '#cbd5e1' : '#475569'} />
+                    <Feather name="chevrons-left" size={14} color={currentPage === 1 ? '#fed7aa' : '#f97316'} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[WalletStyles.pageBtn, currentPage === 1 && WalletStyles.pageBtnDisabled]}
-                    onPress={() => goToPage(currentPage - 1)} disabled={currentPage === 1}
+                    onPress={() => goToPage(currentPage - 1)} 
+                    disabled={currentPage === 1}
                   >
-                    <Feather name="chevron-left" size={14} color={currentPage === 1 ? '#cbd5e1' : '#475569'} />
+                    <Feather name="chevron-left" size={14} color={currentPage === 1 ? '#fed7aa' : '#f97316'} />
                   </TouchableOpacity>
 
                   {pageNumbers.map((page) => (
@@ -273,16 +272,18 @@ export default function WalletScreen({ navigation }) {
 
                   <TouchableOpacity
                     style={[WalletStyles.pageBtn, currentPage === totalPages && WalletStyles.pageBtnDisabled]}
-                    onPress={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}
+                    onPress={() => goToPage(currentPage + 1)} 
+                    disabled={currentPage === totalPages}
                   >
-                    <Feather name="chevron-right" size={14} color={currentPage === totalPages ? '#cbd5e1' : '#475569'} />
+                    <Feather name="chevron-right" size={14} color={currentPage === totalPages ? '#fed7aa' : '#f97316'} />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[WalletStyles.pageBtn, currentPage === totalPages && WalletStyles.pageBtnDisabled]}
-                    onPress={() => goToPage(totalPages)} disabled={currentPage === totalPages}
+                    onPress={() => goToPage(totalPages)} 
+                    disabled={currentPage === totalPages}
                   >
-                    <Feather name="chevrons-right" size={14} color={currentPage === totalPages ? '#cbd5e1' : '#475569'} />
+                    <Feather name="chevrons-right" size={14} color={currentPage === totalPages ? '#fed7aa' : '#f97316'} />
                   </TouchableOpacity>
                 </View>
               </View>

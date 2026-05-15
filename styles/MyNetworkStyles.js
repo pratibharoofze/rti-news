@@ -4,175 +4,181 @@ const MyNetworkStyles = StyleSheet.create({
   // ── Root ──
   root: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 110,
   },
 
-  // ── Hero ──
-  heroCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 14,
-    elevation: 4,
-  },
-  heroEyebrow: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#2563eb',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-
-  // ── Metrics ──
+  // ── Metrics Cards ──
   metricsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 14,
+    gap: 12,
+    marginBottom: 20,
   },
   metricCard: {
     flex: 1,
-    borderRadius: 18,
-    paddingVertical: 16,
+    borderRadius: 20,
+    paddingVertical: 18,
     paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  metricPrimary: { backgroundColor: '#dbeafe' },
-  metricAccent:  { backgroundColor: '#dcfce7' },
+  metricPrimary: { 
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  metricAccent: {  
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
   metricValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 4,
+    color: '#000000',
+    marginBottom: 6,
   },
   metricLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
+    fontWeight: '600',
+    color: '#000000',
+    letterSpacing: 0.3,
   },
 
-  // ── Card ──
+  // ── Main Card ──
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 14,
-    elevation: 3,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 12,
+    color: '#000000',
+    marginBottom: 16,
   },
 
-  // ── Search bar ──
+  // ── Search Bar ──
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 10,
+    gap: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#fed7aa',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
   },
   searchInput: {
     flex: 1,
-    fontSize: 13,
-    color: '#0f172a',
+    fontSize: 14,
+    color: '#000000',
     paddingVertical: 0,
+    fontWeight: '500',
   },
 
-  // ── Results info ──
+  // ── Results Info ──
   resultsInfo: {
-    fontSize: 11,
-    color: '#94a3b8',
-    marginBottom: 10,
+    fontSize: 12,
+    color: '#000000',
+    marginBottom: 12,
     fontWeight: '600',
+    backgroundColor: '#fff7ed',
+    padding: 8,
+    borderRadius: 12,
+    textAlign: 'center',
   },
 
-  // ── Table ──
+  // ── Table Styles ──
   tableWrap: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#fed7aa',
+    borderRadius: 18,
     overflow: 'hidden',
-    marginBottom: 14,
+    marginBottom: 16,
+    backgroundColor: '#ffffff',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 11,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f0fdf4',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#bbf7d0',
     alignItems: 'center',
   },
   headerCell: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#334155',
+    color: '#000000',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 11,
-    paddingHorizontal: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#fef3c7',
     alignItems: 'center',
     backgroundColor: '#ffffff',
   },
   tableRowEven: {
-    backgroundColor: '#fafafa',
+    backgroundColor: '#fffaf5',
   },
   currentUserRow: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#f0fdf4',
+    borderLeftWidth: 3,
+    borderLeftColor: '#22c55e',
   },
 
-  // ── Column widths ──
+  // ── Column Widths ──
   colUser: {
     flex: 1.4,
-    paddingRight: 6,
+    paddingRight: 8,
   },
   colReferred: {
     flex: 1.2,
-    paddingRight: 6,
+    paddingRight: 8,
   },
   colLevel: {
-    width: 48,
+    width: 55,
     alignItems: 'center',
   },
   colCommission: {
-    width: 66,
+    width: 75,
     alignItems: 'center',
   },
   colAction: {
-    width: 36,
+    width: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  // ── Cell text ──
+  // ── Cell Content ──
   rowTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#000000',
   },
   rowTitleWrap: {
     flexDirection: 'row',
@@ -183,51 +189,58 @@ const MyNetworkStyles = StyleSheet.create({
     marginTop: 1,
   },
   rowSubText: {
-    marginTop: 2,
+    marginTop: 4,
     fontSize: 10,
-    color: '#64748b',
+    color: '#000000',
+    fontWeight: '500',
   },
   rowText: {
     fontSize: 12,
-    color: '#334155',
+    color: '#000000',
+    fontWeight: '500',
   },
 
-  // ── Level badge ──
+  // ── Level Badge ──
   levelBadge: {
-    minWidth: 36,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: '#eff6ff',
+    minWidth: 40,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: '#fff7ed',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
   },
   currentLevelBadge: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#f0fdf4',
+    borderColor: '#86efac',
   },
   levelBadgeText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#1d4ed8',
+    color: '#000000',
   },
   currentLevelBadgeText: {
-    color: '#1e40af',
+    color: '#000000',
   },
 
-  // ── Commission ──
+  // ── Commission Text ──
   commissionText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#16a34a',
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#000000',
   },
 
-  // ── View button only ──
+  // ── Action Button ──
   viewBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: '#eff6ff',
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#fff7ed',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
   },
 
   // ── Pagination ──
@@ -235,50 +248,69 @@ const MyNetworkStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 10,
   },
   pageBtn: {
-    minWidth: 34,
-    height: 34,
-    borderRadius: 10,
+    minWidth: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 8,
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
   },
   pageBtnActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#f97316',
+    borderColor: '#f97316',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   pageBtnDisabled: {
     opacity: 0.4,
   },
   pageBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#334155',
+    color: '#000000',
   },
   pageBtnTextActive: {
     color: '#ffffff',
   },
   pageInfo: {
-    fontSize: 11,
-    color: '#94a3b8',
+    fontSize: 12,
+    color: '#000000',
+    textAlign: 'center',
+    fontWeight: '600',
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'center',
+  },
+
+  // ── Status States ──
+  loadingText: {
+    fontSize: 14,
+    color: '#000000',
+    paddingVertical: 20,
     textAlign: 'center',
     fontWeight: '600',
   },
-
-  // ── States ──
-  loadingText: {
-    fontSize: 13,
-    color: '#64748b',
-    paddingVertical: 8,
-  },
   emptyText: {
-    fontSize: 13,
-    color: '#94a3b8',
-    paddingVertical: 8,
+    fontSize: 14,
+    color: '#000000',
+    paddingVertical: 30,
     textAlign: 'center',
+    fontWeight: '500',
+    backgroundColor: '#fff7ed',
+    borderRadius: 16,
+    marginTop: 10,
   },
 });
 

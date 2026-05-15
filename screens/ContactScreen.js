@@ -154,7 +154,7 @@ export default function ContactScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1 }}>
-      {isWeb ? <AppNavbar navigation={navigation} activeScreen="Contact" /> : null}
+      <AppNavbar navigation={navigation} activeScreen="Contact" />
 
       <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
         {/* Smaller Hero Section - No Curves */}
@@ -326,10 +326,10 @@ export default function ContactScreen({ navigation }) {
           </View>
         </View>
 
-        <AppFooter navigation={navigation} />
+        {isWeb ? <AppFooter navigation={navigation} /> : null}
       </ScrollView>
 
-      {!isWeb && <AppNavbar navigation={navigation} activeScreen="Contact" />}
+      
     </View>
   );
 }

@@ -392,7 +392,7 @@ export default function HomeScreen({ navigation, route }) {
     }
   };
 
-  // ── News feed logic (unchanged) ───────────────────────────────────────────
+  // ── News feed logic ───────────────────────────────────────────────────────
   const allStories = useMemo(() => {
     const manualStories = DEMO_STORIES.map((item, index) => normalizeStoryItem(item, index)).filter(Boolean);
     return dedupeStories([...liveStories, ...manualStories]);
@@ -507,15 +507,16 @@ export default function HomeScreen({ navigation, route }) {
     <>
       <View style={styles.pageBodyShell}>
         <View style={[styles.pageBodyInner, isCompactLayout && styles.pageBodyInnerCompact]}>
+          {/* Sidebar: sirf desktop non-mobile layout me */}
           {!isMobileLayout && (
-  <View style={[styles.sidebarStickyWrapper, isCompactLayout && styles.sidebarStickyWrapperCompact]}>
-    <NewsMenuSidebar activeMenuKey={selectedMenuKey} onSelectMenu={handleMenuSelection} isCompactLayout={isCompactLayout} commonCopy={commonCopy} />
-  </View>
-)}
+            <View style={[styles.sidebarStickyWrapper, isCompactLayout && styles.sidebarStickyWrapperCompact]}>
+              <NewsMenuSidebar activeMenuKey={selectedMenuKey} onSelectMenu={handleMenuSelection} isCompactLayout={isCompactLayout} commonCopy={commonCopy} />
+            </View>
+          )}
           <View style={[styles.workspaceShell, isCompactLayout && styles.workspaceShellCompact]}>
             {isCompactLayout && shouldShowRightRail && !isMobileLayout ? (
-  <View style={[styles.utilityStickyWrapper, styles.utilityStickyWrapperCompact]}>{utilityPanel}</View>
-) : null}
+              <View style={[styles.utilityStickyWrapper, styles.utilityStickyWrapperCompact]}>{utilityPanel}</View>
+            ) : null}
             <View style={[styles.feedColumnShell, isCompactLayout && styles.feedColumnShellCompact]}>
               <View style={[styles.feedColumn, viewMode === 'states' && styles.feedColumnStatesView]}>
                 {viewMode === 'states' ? (
@@ -551,18 +552,48 @@ export default function HomeScreen({ navigation, route }) {
     </>
   );
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // ANDROID / MOBILE LAYOUT FIX
+  //
+  // Structure:
+  //   screenShell (flex: 1)
+  //   ├── AppNavbar  →  hideBottomBar={true}   → sirf TOP header (Logo + Language + Profile)
+  //   ├── ScrollView →  flex: 1                → scroll karne wala content
+  //   └── AppNavbar  →  hideTopHeader={true}   → sirf BOTTOM tabs (Home, Feed, Create, Contact, Profile)
+  //
+  // Web pe sirf ek hi AppNavbar render hoga.
+  // ─────────────────────────────────────────────────────────────────────────
+
   const page = (
     <View style={styles.screenShell}>
-      {IS_WEB ? <AppNavbar navigation={navigation} activeScreen="Home" /> : null}
-      {!IS_WEB && <AppNavbar navigation={navigation} activeScreen="Home" hideTopHeader={false} />}
+
+      {/* ── TOP HEADER: Logo + Language Selector + Profile Icon ── */}
+      <AppNavbar
+        navigation={navigation}
+        activeScreen="Home"
+        hideBottomBar={true}
+      />
+
+      {/* ── SCROLLABLE CONTENT ── */}
       <ScrollView
         style={styles.pageScrollView}
-        contentContainerStyle={[styles.pageScrollContent, !IS_WEB && styles.pageScrollContentWithMobileNav]}
+        contentContainerStyle={[
+  styles.pageScrollContent,
+  isMobileLayout && styles.pageScrollContentWithMobileNav,
+]}
         showsVerticalScrollIndicator={false}
       >
         {pageContent}
       </ScrollView>
-      {!IS_WEB && <AppNavbar navigation={navigation} activeScreen="Home" hideTopHeader={true} />}
+
+      {/* ── BOTTOM NAV TABS: Home, Feed, Create, Contact, Profile ── */}
+      {isMobileLayout && (
+  <AppNavbar
+    navigation={navigation}
+    activeScreen="Home"
+    hideTopHeader={true}
+  />
+)}
 
       {/* ── Seat Select Modal ── */}
       <SeatSelectModal
@@ -582,6 +613,7 @@ export default function HomeScreen({ navigation, route }) {
         onPlanPress={handlePlanPress}
         onClose={() => { setShowSubscriptionModal(false); setPendingPlan(null); }}
       />
+
     </View>
   );
 
@@ -589,28 +621,78 @@ export default function HomeScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  screenShell: { flex: 1, backgroundColor: '#edf1f4' },
-  pageScrollView: { flex: 1 },
-  pageScrollContent: { paddingTop: 0, paddingBottom: 24 },
-  pageScrollContentWithMobileNav: { paddingBottom: 160 },
-  pageBodyShell: { paddingHorizontal: 0, paddingTop: 0, marginTop: -1, backgroundColor: '#edf1f4' },
-  pageBodyInner: { maxWidth: 1360, width: '100%', alignSelf: 'center', flexDirection: 'row', alignItems: 'flex-start', gap: 0 },
+  screenShell: {
+    flex: 1,
+    backgroundColor: '#edf1f4',
+    // IMPORTANT: flexDirection column (default) — top header, scroll content, bottom nav
+    // Teen elements stack hote hain vertically
+  },
+  pageScrollView: {
+    flex: 1, // Baaki saari height le lo top header aur bottom nav ke baad
+  },
+  pageScrollContent: {
+    paddingTop: 0,
+    paddingBottom: 24,
+  },
+  // Android me bottom nav bar ke upar content overlap na ho
+  pageScrollContentWithMobileNav: {
+    paddingBottom: 90,
+  },
+  pageBodyShell: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    marginTop: -1,
+    backgroundColor: '#edf1f4',
+  },
+  pageBodyInner: {
+    maxWidth: 1360,
+    width: '100%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 0,
+  },
   pageBodyInnerCompact: { flexDirection: 'column' },
-  sidebarStickyWrapper: { width: 252, ...Platform.select({ web: { position: 'sticky', top: DESKTOP_STICKY_TOP_OFFSET, alignSelf: 'flex-start' } }) },
+  sidebarStickyWrapper: {
+    width: 252,
+    ...Platform.select({ web: { position: 'sticky', top: DESKTOP_STICKY_TOP_OFFSET, alignSelf: 'flex-start' } }),
+  },
   sidebarStickyWrapperCompact: { width: '100%', position: 'relative' },
-  workspaceShell: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 0, paddingHorizontal: 0 },
+  workspaceShell: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 0,
+    paddingHorizontal: 0,
+  },
   workspaceShellCompact: { width: '100%', flexDirection: 'column', paddingHorizontal: 12, gap: 12 },
   feedColumnShell: { flex: 1, minWidth: 0, alignItems: 'center', paddingHorizontal: 12 },
   feedColumnShellCompact: { width: '100%' },
   feedColumn: { width: '100%', minWidth: 0, maxWidth: 560, paddingBottom: 24 },
   feedColumnStatesView: { maxWidth: 840 },
-  utilityStickyWrapper: { width: 320, ...Platform.select({ web: { position: 'sticky', top: DESKTOP_STICKY_TOP_OFFSET, alignSelf: 'flex-start' } }) },
+  utilityStickyWrapper: {
+    width: 320,
+    ...Platform.select({ web: { position: 'sticky', top: DESKTOP_STICKY_TOP_OFFSET, alignSelf: 'flex-start' } }),
+  },
   utilityStickyWrapperCompact: { width: '100%', position: 'relative' },
   sectionSearchRow: { marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   sectionSearchRowCompact: { flexDirection: 'column', alignItems: 'stretch' },
-  sectionSearchField: { flex: 1, minHeight: 42, borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe3ee', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sectionSearchInput: { flex: 1, fontSize: 13, color: '#0f172a', ...Platform.select({ web: { outlineStyle: 'none' } }) },
-  sectionResetButton: { minHeight: 42, borderRadius: 18, paddingHorizontal: 14, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fdba74', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionSearchField: {
+    flex: 1, minHeight: 42, borderRadius: 18, backgroundColor: '#ffffff',
+    borderWidth: 1, borderColor: '#dbe3ee', paddingHorizontal: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  sectionSearchInput: {
+    flex: 1, fontSize: 13, color: '#0f172a',
+    ...Platform.select({ web: { outlineStyle: 'none' } }),
+  },
+  sectionResetButton: {
+    minHeight: 42, borderRadius: 18, paddingHorizontal: 14,
+    backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fdba74',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
   sectionResetButtonText: { color: '#f97316', fontSize: 12, fontWeight: '800' },
   storyCardsStack: { gap: 12 },
 });

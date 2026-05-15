@@ -42,6 +42,11 @@ import CertificatePreviewScreen from '../pages/CertificatePreviewScreen';
 import UserPublicProfileScreen from '../pages/UserPublicProfileScreen';
 import QuickMenuScreen from '../screens/QuickMenuScreen';
 import ReferScreen from '../screens/ReferScreen';
+import ChangeLocationScreen from '../screens/ChangeLocationScreen';
+import AdvertiseScreen from '../screens/AdvertiseScreen';
+import ChoosePlanScreen from '../screens/ChoosePlanScreen';
+import PurchaseBlueTickScreen from '../screens/PurchaseBlueTickScreen';
+
 
 const Stack = createNativeStackNavigator();
 const NAVIGATION_STATE_KEY = 'rti-news-navigation-state';
@@ -122,6 +127,10 @@ export default function AppNavigator() {
     { name: 'CertificatePreview', component: CertificatePreviewScreen },
     { name: 'QuickMenu', component: QuickMenuScreen },
     { name: 'Refer', component: ReferScreen },
+    { name: 'ChangeLocation', component: ChangeLocationScreen },
+    { name: 'Advertise', component: AdvertiseScreen },
+    { name: 'ChoosePlan', component: ChoosePlanScreen },
+    { name: 'PurchaseBlueTick', component: PurchaseBlueTickScreen },
   ];
 
   useEffect(() => {

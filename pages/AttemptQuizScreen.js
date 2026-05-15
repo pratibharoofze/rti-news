@@ -6,11 +6,9 @@ import {
   View,
   TouchableOpacity,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import { UserStore } from '../store/UserStore';
 import AttemptQuizStyles from '../styles/AttemptQuizStyles';
@@ -19,8 +17,6 @@ export default function AttemptQuizScreen({ navigation, route }) {
   const { showToast } = useToast();
   const { quiz } = route.params || {};
 
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('Home');
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -73,18 +69,19 @@ export default function AttemptQuizScreen({ navigation, route }) {
     });
   };
 
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
-
   return (
-    <View style={AttemptQuizStyles.root}>
-      <Header
-        title="Attempt Quiz"
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+    <SafeAreaView style={AttemptQuizStyles.root}>
+      {/* Top Bar with Back Arrow */}
+      <View style={AttemptQuizStyles.topBar}>
+        <TouchableOpacity
+          style={AttemptQuizStyles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <Feather name="arrow-left" size={20} color="#0f172a" />
+        </TouchableOpacity>
+        <Text style={AttemptQuizStyles.topBarTitle}>Attempt Quiz</Text>
+        <View style={AttemptQuizStyles.topBarSpacer} />
+      </View>
 
       <ScrollView
         contentContainerStyle={AttemptQuizStyles.scrollContent}
@@ -176,15 +173,6 @@ export default function AttemptQuizScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <Footer activeTab={activeTab} onTabPress={setActiveTab} />
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem="Certification"
-      />
-    </View>
+    </SafeAreaView>
   );
 }
-

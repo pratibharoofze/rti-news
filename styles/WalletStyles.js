@@ -4,193 +4,307 @@ export default StyleSheet.create({
   // ── Root ──
   root: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     paddingBottom: 110,
   },
 
-  // ── Hero Card ──
-  heroCard: {
+  // ── Top Bar ──
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: '#ffffff',
-    borderRadius: 22,
-    padding: 20,
-    marginBottom: 14,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#fef3c7',
   },
-  heroEyebrow: {
-    fontSize: 12,
-    color: '#2563eb',
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backButtonText: {
+    color: '#000000',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: '800',
+    color: '#000000',
+  },
+
+  // ── Balance Hero Card ──
+  balanceHeroCard: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 28,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  balanceIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  balanceLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#000000',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  balanceAmount: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  balanceHint: {
+    fontSize: 11,
+    color: '#000000',
+    fontWeight: '500',
   },
 
-  // ── Metrics Grid ──
-  metricsGrid: {
-    gap: 10,
-    marginBottom: 14,
-  },
-  metricCard: {
-    borderRadius: 18,
-    padding: 18,
-    gap: 6,
-  },
-  metricRow: {
+  // ── Stats Row ──
+  statsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
+    marginBottom: 20,
   },
-  metricCardHalf: {
+  statCard: {
     flex: 1,
-    borderRadius: 18,
-    padding: 16,
-    gap: 6,
-  },
-  balanceCard: {
-    backgroundColor: '#eff6ff',
-  },
-  creditCard: {
-    backgroundColor: '#f0fdf4',
-  },
-  debitCard: {
-    backgroundColor: '#fef2f2',
-  },
-  metricLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  metricValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  metricHint: {
-    fontSize: 11,
-    color: '#94a3b8',
-  },
-
-  // ── Card ──
-  card: {
-    backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 16,
-    marginBottom: 14,
-    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowRadius: 8,
+    elevation: 3,
   },
-
-  // ── Table Top Row (title + count) ──
-  tableTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  recordCount: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontWeight: '600',
-  },
-
-  // ── Latest Transaction Card ──
-  latestCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 14,
-    padding: 14,
+  creditStatCard: {
+    backgroundColor: '#f0fdf4',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#bbf7d0',
   },
-  latestTopRow: {
+  debitStatCard: {
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  statIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  creditStatCard: {
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  debitStatCard: {
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#000000',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#000000',
+  },
+
+  // ── Card Common ──
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#000000',
+  },
+
+  // ── Stats Badge ──
+  statsBadge: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  statsBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#000000',
+  },
+
+  // ── Latest Transaction ──
+  latestCard: {
+    backgroundColor: '#fffaf5',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  latestHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sourceBadge: {
-    backgroundColor: '#eff6ff',
-    borderRadius: 999,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
   },
   sourceBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#2563eb',
+    color: '#000000',
     textTransform: 'capitalize',
   },
   latestDate: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#000000',
+    fontWeight: '500',
   },
-  latestAmountRow: {
+  latestDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   latestLabel: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: '#000000',
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 6,
     textTransform: 'uppercase',
+  },
+  latestCreditAmount: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  latestDebitAmount: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  latestCreditBadge: {
+    backgroundColor: '#f0fdf4',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  latestDebitBadge: {
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  latestCreditText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  latestDebitText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#000000',
   },
 
   // ── Transaction Table ──
   tableWrap: {
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
+    borderColor: '#fed7aa',
+    borderRadius: 16,
     overflow: 'hidden',
+    marginTop: 4,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#f0fdf4',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#bbf7d0',
     alignItems: 'center',
   },
   tableHeaderText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#475569',
+    color: '#000000',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#fef3c7',
     backgroundColor: '#ffffff',
   },
   tableRowEven: {
-    backgroundColor: '#f8fafc',
-  },
-  tableRowLast: {
-    borderBottomWidth: 0,
+    backgroundColor: '#fffaf5',
   },
 
   // ── Table Columns ──
@@ -198,106 +312,111 @@ export default StyleSheet.create({
     flex: 1,
   },
   colType: {
-    flex: 1,
+    flex: 0.9,
     alignItems: 'flex-start',
   },
   colSource: {
-    flex: 1.2,
+    flex: 1.3,
   },
   colDate: {
-    flex: 1.2,
+    flex: 1.1,
     alignItems: 'flex-end',
+  },
+
+  // ── Amount Text ──
+  amountCredit: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  amountDebit: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#000000',
   },
 
   // ── Type Pill ──
   typePill: {
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     alignSelf: 'flex-start',
   },
   typePillCredit: {
-    backgroundColor: '#dcfce7',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
   },
   typePillDebit: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
   },
   typePillText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   typePillTextCredit: {
-    color: '#16a34a',
+    color: '#000000',
   },
   typePillTextDebit: {
-    color: '#dc2626',
+    color: '#000000',
   },
 
-  rowSecondary: {
+  // ── Row Text ──
+  rowText: {
     fontSize: 12,
-    color: '#64748b',
-  },
-
-  // ── Amount Colors ──
-  creditValue: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#16a34a',
-  },
-  debitValue: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#dc2626',
+    color: '#000000',
+    fontWeight: '500',
   },
 
   // ── Pagination ──
   paginationWrap: {
-    marginTop: 14,
-    gap: 10,
+    marginTop: 20,
+    gap: 12,
   },
   paginationInfo: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#000000',
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'center',
   },
   paginationControls: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     flexWrap: 'wrap',
   },
   pageBtn: {
-    minWidth: 34,
-    height: 34,
-    borderRadius: 8,
+    minWidth: 36,
+    height: 36,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#fed7aa',
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
+    paddingHorizontal: 8,
   },
   pageBtnActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+    backgroundColor: '#f97316',
+    borderColor: '#f97316',
   },
   pageBtnDisabled: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#f1f5f9',
-    elevation: 0,
-    shadowOpacity: 0,
+    backgroundColor: '#fff7ed',
+    borderColor: '#fef3c7',
+    opacity: 0.6,
   },
   pageBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569',
+    color: '#000000',
   },
   pageBtnTextActive: {
     color: '#ffffff',
@@ -305,13 +424,19 @@ export default StyleSheet.create({
 
   // ── States ──
   loadingText: {
-    fontSize: 13,
-    color: '#64748b',
+    fontSize: 14,
+    color: '#000000',
+    paddingVertical: 20,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   emptyText: {
-    fontSize: 13,
-    color: '#94a3b8',
+    fontSize: 14,
+    color: '#000000',
+    paddingVertical: 30,
     textAlign: 'center',
-    paddingVertical: 8,
+    fontWeight: '500',
+    backgroundColor: '#fff7ed',
+    borderRadius: 16,
   },
 });

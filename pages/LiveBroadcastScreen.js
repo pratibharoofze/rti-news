@@ -1,11 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import Constants from 'expo-constants';
-import { ScrollView, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
+import { SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, UIManager, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import Sidebar from '../components/Sidebar';
 import RtmpBroadcaster from '../components/RtmpBroadcaster';
 import { useToast } from '../components/ui/ToastProvider';
 import LiveStreamingStyles from '../styles/LiveStreamingStyles';
@@ -27,8 +24,6 @@ const hasNativePublisher =
 
 export default function LiveBroadcastScreen({ navigation }) {
   const { showToast } = useToast();
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('Home');
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -37,8 +32,6 @@ export default function LiveBroadcastScreen({ navigation }) {
     ingest_url: DEFAULT_RTMP_URL,
     stream_key: DEFAULT_STREAM_KEY,
   });
-
-  const moduleName = 'Start Live';
 
   useFocusEffect(
     useCallback(() => {
@@ -54,11 +47,6 @@ export default function LiveBroadcastScreen({ navigation }) {
     if (!key) return ingest;
     return ingest.endsWith(`/${key}`) ? ingest : `${ingest.replace(/\/+$/, '')}/${key}`;
   }, [form.ingest_url, form.stream_key]);
-
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
 
   const updateField = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -119,12 +107,18 @@ export default function LiveBroadcastScreen({ navigation }) {
   };
 
   return (
-    <View style={LiveStreamingStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
+    <SafeAreaView style={LiveStreamingStyles.root}>
+      {/* Top Bar with Back Arrow */}
+      <View style={LiveStreamingStyles.topBar}>
+        <TouchableOpacity
+          style={LiveStreamingStyles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <Feather name="arrow-left" size={20} color="#0f172a" />
+        </TouchableOpacity>
+        <Text style={LiveStreamingStyles.topBarTitle}>Start Live</Text>
+        <View style={LiveStreamingStyles.topBarSpacer} />
+      </View>
 
       <ScrollView
         style={LiveStreamingStyles.scrollView}
@@ -247,14 +241,6 @@ export default function LiveBroadcastScreen({ navigation }) {
           </View>
         </View>
       </ScrollView>
-
-      <Footer activeTab={activeTab} onTabPress={setActiveTab} />
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem="Live Streaming"
-      />
-    </View>
+    </SafeAreaView>
   );
 }

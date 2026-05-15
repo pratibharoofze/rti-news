@@ -96,13 +96,16 @@ export default function MyNetworkScreen({ navigation }) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          gap: 6,
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          gap: 8,
+          backgroundColor: '#fff7ed',
+          borderBottomWidth: 1,
+          borderBottomColor: '#fed7aa',
         }}
       >
-        <Feather name="arrow-left" size={20} color="#1d4ed8" />
-        <Text style={{ color: '#1d4ed8', fontSize: 14, fontWeight: '600' }}>Back</Text>
+        <Feather name="arrow-left" size={20} color="#f97316" />
+        <Text style={{ color: '#000000', fontSize: 14, fontWeight: '700' }}>Back to Menu</Text>
       </TouchableOpacity>
 
       <ScrollView
@@ -110,13 +113,7 @@ export default function MyNetworkScreen({ navigation }) {
         contentContainerStyle={MyNetworkStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero ── */}
-        <View style={MyNetworkStyles.heroCard}>
-          <Text style={MyNetworkStyles.heroEyebrow}>Overview</Text>
-          <Text style={MyNetworkStyles.heroTitle}>My Network</Text>
-        </View>
-
-        {/* ── Metrics ── */}
+        {/* ── Metrics Row (without Hero Card) ── */}
         <View style={MyNetworkStyles.metricsRow}>
           <View style={[MyNetworkStyles.metricCard, MyNetworkStyles.metricPrimary]}>
             <Text style={MyNetworkStyles.metricValue}>
@@ -138,18 +135,18 @@ export default function MyNetworkScreen({ navigation }) {
 
           {/* ── Search bar ── */}
           <View style={MyNetworkStyles.searchWrap}>
-            <Feather name="search" size={15} color="#64748b" />
+            <Feather name="search" size={16} color="#f97316" />
             <TextInput
               style={MyNetworkStyles.searchInput}
               placeholder="Search by name, ID, level..."
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor="#999999"
               value={searchQuery}
               onChangeText={handleSearch}
               autoCapitalize="none"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => handleSearch('')}>
-                <Feather name="x" size={15} color="#94a3b8" />
+                <Feather name="x" size={16} color="#f97316" />
               </TouchableOpacity>
             )}
           </View>
@@ -158,7 +155,7 @@ export default function MyNetworkScreen({ navigation }) {
           {!loading && (
             <Text style={MyNetworkStyles.resultsInfo}>
               Showing {pagedRows.length} of {filteredRows.length} records
-              {searchQuery ? ` for "${searchQuery}"` : ''}
+              {searchQuery ? ` matching "${searchQuery}"` : ''}
             </Text>
           )}
 
@@ -215,7 +212,7 @@ export default function MyNetworkScreen({ navigation }) {
                     {/* Referred By */}
                     <View style={MyNetworkStyles.colReferred}>
                       <Text style={MyNetworkStyles.rowText} numberOfLines={1}>
-                        {row.referred_by}
+                        {row.referred_by || '—'}
                       </Text>
                     </View>
 
@@ -237,7 +234,7 @@ export default function MyNetworkScreen({ navigation }) {
                     {/* Commission */}
                     <View style={MyNetworkStyles.colCommission}>
                       <Text style={MyNetworkStyles.commissionText}>
-                        ₹{row.commission ?? '0'}
+                        ₹{row.commission?.toLocaleString() ?? '0'}
                       </Text>
                     </View>
 
@@ -249,7 +246,7 @@ export default function MyNetworkScreen({ navigation }) {
                           navigation.navigate('ViewMember', { member: row })
                         }
                       >
-                        <Feather name="eye" size={14} color="#2563eb" />
+                        <Feather name="eye" size={14} color="#f97316" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -269,7 +266,7 @@ export default function MyNetworkScreen({ navigation }) {
                   <Feather
                     name="chevron-left"
                     size={16}
-                    color={safePage === 1 ? '#cbd5e1' : '#2563eb'}
+                    color={safePage === 1 ? '#fed7aa' : '#f97316'}
                   />
                 </TouchableOpacity>
 
@@ -304,7 +301,7 @@ export default function MyNetworkScreen({ navigation }) {
                   <Feather
                     name="chevron-right"
                     size={16}
-                    color={safePage === totalPages ? '#cbd5e1' : '#2563eb'}
+                    color={safePage === totalPages ? '#fed7aa' : '#f97316'}
                   />
                 </TouchableOpacity>
               </View>

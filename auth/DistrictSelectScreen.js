@@ -17,15 +17,7 @@ import { UserStore } from '../store/UserStore';
 import { getDistricts } from '../pages/locationData';
 import styles from '../styles/RegisterStyles';
 
-// ── Dropdown Modal ─────────────────────────────────────────────
-function DropdownModal({
-  visible,
-  title,
-  items,
-  selected,
-  onSelect,
-  onClose,
-}) {
+function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
   const [search, setSearch] = useState('');
 
   const filtered = items.filter((i) =>
@@ -33,44 +25,28 @@ function DropdownModal({
   );
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        style={dropStyles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={dropStyles.overlay} activeOpacity={1} onPress={onClose} />
 
       <View style={dropStyles.sheet}>
         <View style={dropStyles.handle} />
 
-        <Text style={dropStyles.title}>
-          {title}
-        </Text>
+        <Text style={dropStyles.title}>{title}</Text>
 
-        {/* Search Box */}
         <View style={dropStyles.searchWrap}>
-          <Ionicons
-            name="search-outline"
-            size={16}
-            color="#a78bfa"
-          />
-
+          <Ionicons name="search-outline" size={16} color="#e8732a" />
           <TextInput
             style={dropStyles.searchInput}
             value={search}
             onChangeText={setSearch}
+            placeholder="Search district..."
+            placeholderTextColor="#b0a898"
             autoCorrect={false}
             autoCapitalize="none"
-            selectionColor="#a78bfa"
+            selectionColor="#e8732a"
           />
         </View>
 
-        {/* District List */}
         <FlatList
           data={filtered}
           keyExtractor={(item) => item}
@@ -78,33 +54,14 @@ function DropdownModal({
           style={{ maxHeight: 320 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[
-                dropStyles.item,
-                selected === item &&
-                  dropStyles.itemSelected,
-              ]}
-              onPress={() => {
-                onSelect(item);
-                onClose();
-                setSearch('');
-              }}
+              style={[dropStyles.item, selected === item && dropStyles.itemSelected]}
+              onPress={() => { onSelect(item); onClose(); setSearch(''); }}
             >
-              <Text
-                style={[
-                  dropStyles.itemText,
-                  selected === item &&
-                    dropStyles.itemTextSelected,
-                ]}
-              >
+              <Text style={[dropStyles.itemText, selected === item && dropStyles.itemTextSelected]}>
                 {item}
               </Text>
-
               {selected === item && (
-                <Ionicons
-                  name="checkmark-circle"
-                  size={18}
-                  color="#a78bfa"
-                />
+                <Ionicons name="checkmark-circle" size={18} color="#e8732a" />
               )}
             </TouchableOpacity>
           )}
@@ -117,155 +74,113 @@ function DropdownModal({
 const dropStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(180,170,160,0.5)',
   },
-
   sheet: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#1a1329',
+    bottom: 0, left: 0, right: 0,
+    backgroundColor: '#ece7e0',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 20,
     paddingBottom: 36,
-    borderWidth: 1,
-    borderColor: 'rgba(196,181,253,0.16)',
+    shadowColor: '#b8afa6',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 16,
   },
-
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#4b3579',
+    backgroundColor: '#c8c0b8',
     borderRadius: 99,
     alignSelf: 'center',
     marginBottom: 14,
   },
-
   title: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#faf5ff',
+    color: '#2d2a26',
     marginBottom: 12,
     textAlign: 'center',
   },
-
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#120d1d',
-    borderWidth: 1,
-    borderColor: '#302246',
+    backgroundColor: '#ece7e0',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
     marginBottom: 10,
+    shadowColor: '#b8afa6',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#f5f3ff',
-    borderWidth: 0,
-    outlineStyle: 'none',
+    color: '#2d2a26',
     paddingVertical: 0,
+    ...(Platform.OS === 'web' && { outlineStyle: 'none' }),
   },
-
   item: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 11,
     paddingHorizontal: 14,
     borderRadius: 12,
-    marginBottom: 4,
+    marginBottom: 3,
   },
-
   itemSelected: {
-    backgroundColor:
-      'rgba(124,58,237,0.18)',
+    backgroundColor: 'rgba(232,115,42,0.12)',
   },
-
   itemText: {
     fontSize: 14,
-    color: '#ddd6fe',
+    color: '#4a4540',
     fontWeight: '500',
   },
-
   itemTextSelected: {
-    color: '#c4b5fd',
+    color: '#e8732a',
     fontWeight: '700',
   },
 });
 
-export default function DistrictSelectScreen({
-  navigation,
-  route,
-}) {
-  const {
-    selectedState,
-    fromPremium,
-    needsCreateUser,
-  } = route.params || {};
+export default function DistrictSelectScreen({ navigation, route }) {
+  const { selectedState, fromPremium, needsCreateUser } = route.params || {};
+  const preselectedDistrict = route?.params?.preselectedDistrict;
 
-  const preselectedDistrict =
-    route?.params?.preselectedDistrict;
-
-  const [district, setDistrict] = useState(
-    preselectedDistrict
-      ? String(preselectedDistrict)
-      : ''
-  );
-
-  const [districtModal, setDistrictModal] =
-    useState(false);
-
-  const [districtTouched, setDistrictTouched] =
-    useState(false);
-
+  const [district, setDistrict] = useState(preselectedDistrict ? String(preselectedDistrict) : '');
+  const [districtModal, setDistrictModal] = useState(false);
+  const [districtTouched, setDistrictTouched] = useState(false);
   const allowLeaveRef = useRef(false);
 
   useEffect(() => {
     if (!preselectedDistrict) return;
-
     setDistrict(String(preselectedDistrict));
   }, [preselectedDistrict]);
 
   useEffect(() => {
-    const unsubscribe =
-      navigation.addListener(
-        'beforeRemove',
-        (e) => {
-          if (allowLeaveRef.current) {
-            return;
-          }
-
-          const targetRoute =
-            e.data.action.payload?.name;
-
-          if (targetRoute === 'TalukaSelect') {
-            return;
-          }
-
-          e.preventDefault();
-        }
-      );
-
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (allowLeaveRef.current) return;
+      const targetRoute = e.data.action.payload?.name;
+      if (targetRoute === 'TalukaSelect') return;
+      e.preventDefault();
+    });
     return unsubscribe;
   }, [navigation]);
 
-  const districtList = selectedState
-    ? getDistricts(selectedState)
-    : [];
+  const districtList = selectedState ? getDistricts(selectedState) : [];
 
   const handleNext = async () => {
     if (!district.trim()) {
       setDistrictTouched(true);
       return;
     }
-
     navigation.replace('TalukaSelect', {
       selectedState,
       selectedDistrict: district.trim(),
@@ -276,7 +191,6 @@ export default function DistrictSelectScreen({
 
   const handleClose = () => {
     allowLeaveRef.current = true;
-
     navigation.replace('StateSelect', {
       fromPremium,
       needsCreateUser,
@@ -288,18 +202,11 @@ export default function DistrictSelectScreen({
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : undefined
-      }
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.root}>
         <View style={[styles.glow, styles.glowTop]} />
-
-        <View
-          style={[styles.glow, styles.glowBottom]}
-        />
+        <View style={[styles.glow, styles.glowBottom]} />
 
         <ScrollView
           contentContainerStyle={styles.formScroll}
@@ -310,185 +217,87 @@ export default function DistrictSelectScreen({
           <View style={styles.formContainer}>
             {/* Back Button */}
             <TouchableOpacity
-              style={[
-                styles.closeButton,
-                {
-                  width: 'auto',
-                  paddingHorizontal: 10,
-                },
-              ]}
+              style={[styles.closeButton, { width: 'auto', paddingHorizontal: 10 }]}
               onPress={handleClose}
               activeOpacity={0.7}
             >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <Ionicons
-                  name="arrow-back-outline"
-                  size={18}
-                  color="#94a3b8"
-                />
-
-                <Text
-                  style={{
-                    color: '#94a3b8',
-                    fontWeight: '800',
-                    fontSize: 13,
-                  }}
-                >
-                  Back
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="arrow-back-outline" size={18} color="#8a8078" />
+                <Text style={{ color: '#8a8078', fontWeight: '800', fontSize: 13 }}>Back</Text>
               </View>
             </TouchableOpacity>
 
             <View style={styles.topAccent} />
 
-            <View style={styles.logoCircle}>
-              <Ionicons
-                name="business-outline"
-                size={24}
-                color="#faf5ff"
-              />
-            </View>
-
-            <Text style={styles.brandName}>
-              RTI News
-            </Text>
-
+            {/* Header — label + title + state info, no logo/icon */}
             <View style={styles.headerBlock}>
-              <View style={styles.formIconWrap}>
-                <Ionicons
-                  name="map-outline"
-                  size={18}
-                  color="#c4b5fd"
-                />
-              </View>
-
-              <Text style={styles.welcomeBack}>
-                Setup Location
-              </Text>
-
-              <Text style={styles.formTitle}>
-                Select Your District
-              </Text>
-
-              <Text style={styles.formSubtitle}>
-                State: {selectedState}
-              </Text>
+              <Text style={styles.welcomeBack}>Setup Location</Text>
+              <Text style={styles.formTitle}>Select Your District</Text>
+              {selectedState ? (
+                <Text style={localStyles.locationInfo}>{selectedState}</Text>
+              ) : null}
             </View>
 
             {/* District Dropdown */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
-                District{' '}
-                <Text style={styles.required}>
-                  *
-                </Text>
+                District <Text style={styles.required}>*</Text>
               </Text>
 
               {districtList.length > 0 ? (
                 <TouchableOpacity
                   style={[
                     styles.inputWrap,
-                    districtTouched &&
-                      !district.trim() &&
-                      styles.inputWrapError,
+                    districtTouched && !district.trim() && styles.inputWrapError,
                   ]}
-                  onPress={() =>
-                    setDistrictModal(true)
-                  }
+                  onPress={() => setDistrictModal(true)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons
-                    name="business-outline"
-                    size={18}
-                    color="#a78bfa"
-                  />
-
-                  <Text
-                    style={[
-                      styles.input,
-                      !district && {
-                        color: '#64748b',
-                      },
-                    ]}
-                  >
-                    {district ||
-                      'Select your district'}
+                  <Ionicons name="business-outline" size={16} color="#a09890" />
+                  <Text style={[styles.input, !district && { color: '#b0a898' }]}>
+                    {district || 'Select your district'}
                   </Text>
-
-                  <Ionicons
-                    name="chevron-down-outline"
-                    size={18}
-                    color="#a78bfa"
-                  />
+                  <Ionicons name="chevron-down-outline" size={16} color="#a09890" />
                 </TouchableOpacity>
               ) : (
                 <View
                   style={[
                     styles.inputWrap,
-                    districtTouched &&
-                      !district.trim() &&
-                      styles.inputWrapError,
+                    districtTouched && !district.trim() && styles.inputWrapError,
                   ]}
                 >
-                  <Ionicons
-                    name="business-outline"
-                    size={18}
-                    color="#a78bfa"
-                  />
-
+                  <Ionicons name="business-outline" size={16} color="#a09890" />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your district"
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor="#b0a898"
                     value={district}
                     onChangeText={(t) => {
                       setDistrict(t);
-
-                      if (!districtTouched) {
-                        setDistrictTouched(true);
-                      }
+                      if (!districtTouched) setDistrictTouched(true);
                     }}
-                    onBlur={() =>
-                      setDistrictTouched(true)
-                    }
+                    onBlur={() => setDistrictTouched(true)}
                   />
                 </View>
               )}
 
-              {districtTouched &&
-              !district.trim() ? (
-                <Text style={styles.errorText}>
-                  Please select or enter your
-                  district
-                </Text>
+              {districtTouched && !district.trim() ? (
+                <Text style={styles.errorText}>Please select or enter your district</Text>
               ) : null}
             </View>
 
             {/* Next Button */}
             <TouchableOpacity
-              style={styles.submitBtn}
+              style={[styles.submitBtn, !district.trim() && styles.submitBtnDisabled]}
               onPress={handleNext}
+              disabled={!district.trim()}
             >
-              <Text style={styles.submitBtnText}>
-                Next
-              </Text>
-
-              <Ionicons
-                name="arrow-forward"
-                size={18}
-                color="#ffffff"
-              />
+              <Text style={styles.submitBtnText}>Next</Text>
+              <Ionicons name="arrow-forward" size={18} color="#ffffff" />
             </TouchableOpacity>
           </View>
         </ScrollView>
 
-        {/* District Dropdown Modal */}
         {districtList.length > 0 && (
           <DropdownModal
             visible={districtModal}
@@ -499,12 +308,20 @@ export default function DistrictSelectScreen({
               setDistrict(next);
               setDistrictTouched(true);
             }}
-            onClose={() =>
-              setDistrictModal(false)
-            }
+            onClose={() => setDistrictModal(false)}
           />
         )}
       </View>
     </KeyboardAvoidingView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  locationInfo: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#a09890',
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+});

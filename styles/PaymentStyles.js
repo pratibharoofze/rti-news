@@ -4,7 +4,7 @@ const PaymentStyles = StyleSheet.create({
   // ── Root ──
   root: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#fff8f2',
   },
   scrollView: {
     flex: 1,
@@ -21,11 +21,13 @@ const PaymentStyles = StyleSheet.create({
     padding: 20,
     marginBottom: 14,
     elevation: 3,
-    boxShadow: '0px 8px 18px rgba(15, 23, 42, 0.06)',
+    boxShadow: '0px 8px 18px rgba(217, 95, 0, 0.08)',
+    borderWidth: 1,
+    borderColor: '#ffe0c2',
   },
   heroEyebrow: {
     fontSize: 12,
-    color: '#2563eb',
+    color: '#d95f00',
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -34,7 +36,7 @@ const PaymentStyles = StyleSheet.create({
   heroTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
     marginBottom: 12,
   },
   ownerRow: {
@@ -46,7 +48,7 @@ const PaymentStyles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#fff3e8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -54,12 +56,12 @@ const PaymentStyles = StyleSheet.create({
   ownerName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
   },
   ownerEmail: {
     marginTop: 2,
     fontSize: 12,
-    color: '#64748b',
+    color: '#888888',
   },
 
   // ── Order Card ──
@@ -69,9 +71,9 @@ const PaymentStyles = StyleSheet.create({
     padding: 20,
     marginBottom: 14,
     elevation: 4,
-    boxShadow: '0px 10px 24px rgba(37, 99, 235, 0.10)',
+    boxShadow: '0px 10px 24px rgba(217, 95, 0, 0.10)',
     borderWidth: 1.5,
-    borderColor: '#dbeafe',
+    borderColor: '#ffe0c2',
   },
   orderHeader: {
     flexDirection: 'row',
@@ -83,7 +85,7 @@ const PaymentStyles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 16,
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#fff3e8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -93,16 +95,16 @@ const PaymentStyles = StyleSheet.create({
   orderPlanName: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
   },
   orderIdText: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#888888',
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#ffe5cc',
     marginBottom: 16,
   },
   amountRow: {
@@ -114,17 +116,17 @@ const PaymentStyles = StyleSheet.create({
   amountLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#888888',
   },
   amountValue: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#2563eb',
+    color: '#d95f00',
   },
 
   // ── Pay Button ──
   payBtn: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#d95f00',
     borderRadius: 16,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -149,16 +151,16 @@ const PaymentStyles = StyleSheet.create({
   },
   paymentBadgeText: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: '#aaaaaa',
     fontWeight: '600',
   },
   testHelperCard: {
     marginTop: 14,
     borderRadius: 16,
     padding: 14,
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#fff3e8',
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: '#ffd4a8',
     gap: 6,
   },
   testHelperHeader: {
@@ -170,7 +172,7 @@ const PaymentStyles = StyleSheet.create({
   testHelperTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1e3a8a',
+    color: '#a84400',
   },
   testHelperText: {
     fontSize: 12,
@@ -179,7 +181,7 @@ const PaymentStyles = StyleSheet.create({
   },
   testHelperValue: {
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#d95f00',
   },
 
   // ── No Order Card ──
@@ -206,23 +208,25 @@ const PaymentStyles = StyleSheet.create({
     padding: 16,
     marginBottom: 14,
     elevation: 3,
-    boxShadow: '0px 6px 16px rgba(15, 23, 42, 0.05)',
+    boxShadow: '0px 6px 16px rgba(217, 95, 0, 0.06)',
+    borderWidth: 1,
+    borderColor: '#ffe5cc',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
     marginBottom: 14,
   },
 
   // ── History Card ──
   historyCard: {
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#ffe5cc',
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
-    backgroundColor: '#fafafa',
+    backgroundColor: '#fff9f5',
   },
   historyTopRow: {
     flexDirection: 'row',
@@ -233,7 +237,7 @@ const PaymentStyles = StyleSheet.create({
   historyAmount: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
   },
   historyMetaRow: {
     flexDirection: 'row',
@@ -243,7 +247,7 @@ const PaymentStyles = StyleSheet.create({
   },
   historyMeta: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#888888',
   },
   historyMetaBold: {
     fontWeight: '700',
@@ -277,14 +281,14 @@ const PaymentStyles = StyleSheet.create({
     gap: 6,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#fff3e8',
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: '#ffd4a8',
   },
   viewStatusBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2563eb',
+    color: '#d95f00',
   },
 
   // ── Modal ──
@@ -309,7 +313,7 @@ const PaymentStyles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
   },
   modalStatusWrap: {
     alignItems: 'center',
@@ -334,17 +338,17 @@ const PaymentStyles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#fff3e8',
   },
   modalInfoLabel: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#888888',
     fontWeight: '600',
   },
   modalInfoValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0f172a',
+    color: '#1a1a1a',
     maxWidth: '60%',
     textAlign: 'right',
   },
@@ -352,11 +356,11 @@ const PaymentStyles = StyleSheet.create({
   // ── States ──
   loadingText: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#888888',
   },
   emptyText: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#aaaaaa',
     textAlign: 'center',
     paddingVertical: 8,
   },

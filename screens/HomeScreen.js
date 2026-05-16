@@ -623,7 +623,7 @@ export default function HomeScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   screenShell: {
     flex: 1,
-    backgroundColor: '#edf1f4',
+    backgroundColor: '#ffffff',
     // IMPORTANT: flexDirection column (default) — top header, scroll content, bottom nav
     // Teen elements stack hote hain vertically
   },
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 0,
     marginTop: -1,
-    backgroundColor: '#edf1f4',
+    backgroundColor: '#ffffff',
   },
   pageBodyInner: {
     maxWidth: 1360,

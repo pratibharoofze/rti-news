@@ -3,291 +3,604 @@ import { Platform, StyleSheet } from 'react-native';
 const RegisterStyles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0f0a1e',
+    backgroundColor: '#f5f5f5',
   },
 
   scrollView: {
     flex: 1,
   },
 
-  glow: {
-    position: 'absolute',
-    borderRadius: 999,
-    pointerEvents: 'none',
-  },
-  glowTop: {
-    width: 220,
-    height: 220,
-    top: -70,
-    left: -40,
-    backgroundColor: 'rgba(124, 58, 237, 0.1)',
-  },
-  glowBottom: {
-    width: 180,
-    height: 180,
-    bottom: 50,
-    right: -40,
-    backgroundColor: 'rgba(168, 85, 247, 0.08)',
-  },
-
-  // ✅ FIX: justifyContent:'center' HATAYA
-  // Yahi white space ka cause tha — center karne ke liye
-  // ScrollView apni height double kar leta tha mobile browser mein
   formScroll: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingTop: 32,
-    paddingBottom: 32,
+    paddingHorizontal: 6,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
 
   formContainer: {
     width: '100%',
     maxWidth: 620,
-    backgroundColor: '#1a1329',
-    borderRadius: 28,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.16)',
-    elevation: 10,
-    overflow: 'hidden',
-    position: 'relative', // Added for absolute positioning of close button
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 16,
+    paddingTop: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
+    alignItems: 'stretch',
   },
 
-  // Close button styling
   closeButton: {
     position: 'absolute',
     top: 12,
-    right: 12,
+    left: 12,
     zIndex: 10,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  topAccent: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: 5,
-    backgroundColor: '#8b5cf6',
-  },
-  brandLogoWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    overflow: 'hidden',
+  // Unused
+  topAccent: { display: 'none' },
+  brandLogoWrap: { display: 'none' },
+  brandLogo: { display: 'none' },
+  formIconWrap: { display: 'none' },
+  formSubtitle: { display: 'none' },
+
+  iconCircleWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#fde8ec',
+    justifyContent: 'center',
+    alignItems: 'center',
     alignSelf: 'center',
-    marginTop: 0,
-    marginBottom: 12,
-    backgroundColor: '#120d1d',
+    marginBottom: 8,
+    marginTop: 2,
   },
-  brandLogo: {
-    width: 120,
-    height: 120,
-  },
+
   headerBlock: {
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  formIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: 'rgba(168, 85, 247, 0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  welcomeBack: {
-    fontSize: 13,
-    color: '#c4b5fd',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  formTitle: {
-    fontSize: 27,
-    fontWeight: '800',
-    color: '#faf5ff',
-    marginBottom: 2,
-  },
-  formSubtitle: {
-    fontSize: 14,
-    color: '#a78bfa',
-    textAlign: 'center',
-    lineHeight: 18,
+    marginBottom: 12,
   },
 
-  // ── Back Button ──
+  welcomeBack: {
+    fontSize: 10,
+    color: '#e8284a',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+
+  formTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111111',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+
+  pageSubtitle: {
+    fontSize: 12,
+    color: '#999999',
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+
   backButtonContainer: {
     alignSelf: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 6,
   },
+
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(168, 85, 247, 0.12)',
-  },
-  backButtonText: {
-    fontSize: 14,
-    color: '#c4b5fd',
-    fontWeight: '600',
-    marginLeft: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: 9,
+    backgroundColor: '#f0f0f0',
   },
 
-  // ── Input ──
-  inputGroup: {
-    marginBottom: 10,
+  backButtonText: {
+    fontSize: 12,
+    color: '#333333',
+    fontWeight: '600',
+    marginLeft: 4,
   },
+
+  inputGroup: {
+    marginBottom: 8,
+  },
+
   inputLabel: {
-    fontSize: 13,
-    color: '#ddd6fe',
-    marginBottom: 6,
+    fontSize: 11,
+    color: '#555555',
+    marginBottom: 4,
     fontWeight: '600',
   },
+
   required: {
-    color: '#f87171',
+    color: '#e8284a',
     fontWeight: '800',
   },
+
   optional: {
-    color: '#64748b',
+    color: '#bbbbbb',
     fontWeight: '500',
-    fontSize: 11,
+    fontSize: 10,
   },
+
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#120d1d',
-    borderWidth: 1,
-    borderColor: '#302246',
-    borderRadius: 16,
+    gap: 8,
+    backgroundColor: '#f7f7f7',
+    borderWidth: 1.5,
+    borderColor: '#eeeeee',
+    borderRadius: 12,
     paddingHorizontal: 14,
-    minHeight: 48,
+    minHeight: 42,
   },
+
   input: {
     flex: 1,
-    fontSize: 14,
-    color: '#f5f3ff',
+    fontSize: 13,
+    color: '#111111',
     paddingVertical: 0,
-    // ✅ FIX: browser default focus outline hatao
     ...(Platform.OS === 'web' && {
       outlineStyle: 'none',
     }),
   },
 
-  // ── Subscription Cards ──
   inputWrapError: {
-    borderColor: 'rgba(248,113,113,0.75)',
+    borderColor: '#dc2626',
+    backgroundColor: 'rgba(220, 38, 38, 0.03)',
   },
+
   errorText: {
-    marginTop: 6,
-    color: '#f87171',
-    fontSize: 12,
+    marginTop: 3,
+    color: '#dc2626',
+    fontSize: 10,
     fontWeight: '600',
   },
+
   passwordHintsBox: {
-    marginTop: 8,
-    backgroundColor: 'rgba(2,6,23,0.25)',
+    marginTop: 5,
+    backgroundColor: '#fafafa',
+    borderRadius: 10,
+    padding: 8,
     borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.12)',
-    borderRadius: 14,
-    padding: 12,
+    borderColor: '#eeeeee',
   },
+
   helperTitle: {
-    color: '#ddd6fe',
-    fontSize: 12,
+    color: '#555555',
+    fontSize: 10,
     fontWeight: '800',
-    marginBottom: 8,
+    marginBottom: 5,
     letterSpacing: 0.2,
   },
+
   hintRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    gap: 6,
+    marginBottom: 3,
   },
+
   helperText: {
-    color: '#94a3b8',
-    fontSize: 12,
+    color: '#bbbbbb',
+    fontSize: 10,
     fontWeight: '600',
   },
+
   helperTextOk: {
-    color: '#22c55e',
+    color: '#2e8b57',
   },
 
   subRow: {
     flexDirection: 'row',
     gap: 8,
   },
+
   subCard: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 14,
+    gap: 4,
+    paddingVertical: 8,
     paddingHorizontal: 6,
-    backgroundColor: '#120d1d',
+    backgroundColor: '#f7f7f7',
+    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#302246',
-    borderRadius: 16,
+    borderColor: '#eeeeee',
     position: 'relative',
   },
+
   subCardText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#999999',
     textAlign: 'center',
   },
+
   subDot: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
+    top: 5,
+    right: 5,
+    width: 7,
+    height: 7,
     borderRadius: 4,
   },
 
-  // ── Submit ──
   submitBtn: {
-    backgroundColor: '#7c3aed',
-    borderRadius: 16,
-    minHeight: 50,
-    paddingHorizontal: 18,
+    backgroundColor: '#e8284a',
+    borderRadius: 50,
+    minHeight: 46,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    marginTop: 6,
-    elevation: 8,
+    gap: 8,
+    marginTop: 4,
+    shadowColor: '#e8284a',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
   },
+
   submitBtnDisabled: {
-    opacity: 0.55,
+    opacity: 0.5,
   },
+
   submitBtnText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: '700',
     fontSize: 15,
   },
+
   switchBtn: {
     marginTop: 10,
     alignItems: 'center',
   },
+
   switchText: {
-    color: '#a78bfa',
+    color: '#999999',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+
+  switchLink: {
+    color: '#111111',
+    fontWeight: '700',
+  },
+});
+
+// Toast Styles
+export const toastStyles = StyleSheet.create({
+  toast: {
+    position: 'absolute',
+    top: '40%',
+    alignSelf: 'center',
+    width: '85%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    zIndex: 9999,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    backgroundColor: '#ffffff',
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  message: {
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+    color: '#111111',
+  },
+});
+
+// OTP Modal Styles
+export const otpStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 16,
+  },
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#fde8ec',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111111',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#999999',
+    textAlign: 'center',
+    marginBottom: 3,
+  },
+  sentTo: {
+    fontSize: 13,
+    color: '#e8284a',
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  devNote: {
+    fontSize: 11,
+    color: '#e8284a',
+    backgroundColor: 'rgba(232,40,74,0.08)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginTop: 10,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  digitRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 22,
+  },
+  digitBox: {
+    width: 46,
+    height: 54,
+    borderRadius: 12,
+    backgroundColor: '#f7f7f7',
+    borderWidth: 1.5,
+    borderColor: '#eeeeee',
+    color: '#111111',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  digitBoxFilled: {
+    backgroundColor: '#e8284a',
+    borderColor: '#e8284a',
+    color: '#ffffff',
+  },
+  verifyBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#e8284a',
+    borderRadius: 50,
+    paddingVertical: 14,
+    marginBottom: 14,
+    shadowColor: '#e8284a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  verifyBtnDisabled: {
+    opacity: 0.45,
+  },
+  verifyBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  resendRow: {
+    marginBottom: 12,
+  },
+  resendTimer: {
+    color: '#bbbbbb',
     fontSize: 13,
     textAlign: 'center',
   },
-  switchLink: {
-    color: '#ddd6fe',
+  resendLink: {
+    color: '#e8284a',
+    fontSize: 13,
     fontWeight: '700',
+    textDecorationLine: 'underline',
+    textAlign: 'center',
+  },
+  closeBtn: {
+    paddingVertical: 8,
+  },
+  closeBtnText: {
+    color: '#bbbbbb',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+});
+
+// Dropdown Modal Styles
+export const dropStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    paddingBottom: 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 16,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#dddddd',
+    borderRadius: 99,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111111',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f7f7f7',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#eeeeee',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111111',
+  },
+  item: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginBottom: 3,
+  },
+  itemSelected: {
+    backgroundColor: 'rgba(232,40,74,0.08)',
+  },
+  itemText: {
+    fontSize: 14,
+    color: '#444444',
+    fontWeight: '500',
+  },
+  itemTextSelected: {
+    color: '#e8284a',
+    fontWeight: '700',
+  },
+});
+
+// Local Styles
+export const localStyles = StyleSheet.create({
+  inputWrapVerified: {
+    borderColor: 'rgba(46,139,87,0.5)',
+  },
+  verifiedBadge: {
+    color: '#2e8b57',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  sendOtpBtn: {
+    backgroundColor: '#e8284a',
+    borderRadius: 50,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    shadowColor: '#e8284a',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  sendOtpBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  otpHint: {
+    marginTop: 4,
+    fontSize: 10,
+    color: '#e8284a',
+    fontWeight: '600',
+  },
+  verifyHintBottom: {
+    textAlign: 'center',
+    marginTop: 6,
+    fontSize: 10,
+    color: '#e8284a',
+    fontWeight: '600',
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: '#f7f7f7',
+    borderWidth: 1.5,
+    borderColor: '#dddddd',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#e8284a',
+    borderColor: '#e8284a',
+  },
+  checkboxError: {
+    borderColor: '#dc2626',
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#999999',
+    lineHeight: 16,
+  },
+  termsLink: {
+    color: '#e8284a',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });
 

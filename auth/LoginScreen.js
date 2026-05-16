@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  Image,
   View,
   Text,
   TextInput,
@@ -15,10 +14,6 @@ import { UserStore } from '../store/UserStore';
 import { useAuth } from '../contexts/AuthContext';
 import LoginStyles from '../styles/LoginStyles';
 
-const CERTIFICATE_LOGO = require('../assets/images/certificate_logo.jpg');
-
-// ✅ FIX: Web pe html, body, #root ka background dark karo
-// Taaki white space visible na ho
 if (Platform.OS === 'web') {
   try {
     if (typeof document !== 'undefined') {
@@ -117,8 +112,6 @@ export default function LoginScreen({ navigation }) {
         safeReplace('Home');
       }
     } catch (_err) {
-      // Keep a console trace for debugging (especially on web) but show a generic message in UI.
-      // eslint-disable-next-line no-console
       console.warn('Login error:', _err);
       setLoading(false);
       const msg = _err?.message ? String(_err.message) : '';
@@ -130,7 +123,7 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleClose = () => {
-    navigation.navigate('Home'); // Navigate to Home screen
+    navigation.navigate('Home');
   };
 
   return (
@@ -152,9 +145,10 @@ export default function LoginScreen({ navigation }) {
           bounces={false}
         >
           <View style={LoginStyles.formContainer}>
-            {/* Close Button - X icon */}
-            <TouchableOpacity 
-              style={LoginStyles.closeButton} 
+
+            {/* Close Button */}
+            <TouchableOpacity
+              style={LoginStyles.closeButton}
               onPress={handleClose}
               activeOpacity={0.7}
             >
@@ -163,20 +157,11 @@ export default function LoginScreen({ navigation }) {
 
             <View style={LoginStyles.topAccent} />
 
-            <View style={LoginStyles.brandLogoWrap}>
-              <Image source={CERTIFICATE_LOGO} style={LoginStyles.brandLogo} resizeMode="cover" />
-            </View>
-
-            <View style={LoginStyles.headerBlock}>
-              <View style={LoginStyles.formIconWrap}>
-                <Ionicons name="shield-checkmark-outline" size={18} color="#7dd3fc" />
-              </View>
-              <Text style={LoginStyles.welcomeBack}>Welcome back</Text>
-              <Text style={LoginStyles.formTitle}>Sign In</Text>
-              <Text style={LoginStyles.formSubtitle}>
-                Sign in to continue your newsroom workspace
-              </Text>
-            </View>
+            {/* Page Title (like OTP screen "Enter Your OTP" bold heading) */}
+            <Text style={LoginStyles.pageTitle}>Sign In</Text>
+            <Text style={LoginStyles.pageSubtitle}>
+              Please enter your credentials to continue
+            </Text>
 
             {errors.general ? (
               <View style={LoginStyles.generalErrorBox}>
@@ -268,6 +253,7 @@ export default function LoginScreen({ navigation }) {
                 <Text style={LoginStyles.switchLink}>Sign Up</Text>
               </Text>
             </TouchableOpacity>
+
           </View>
         </ScrollView>
       </View>

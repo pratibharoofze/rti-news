@@ -94,7 +94,7 @@ export default function QuickMenuScreen({ navigation }) {
               <Ionicons
                 name={item.icon}
                 size={22}
-                color={item.isDestructive ? '#ef4444' : '#f97316'}
+                color={item.isDestructive ? '#e8284a' : '#e8284a'}
               />
             </View>
 
@@ -190,6 +190,6 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   labelDestructive: {
-    color: '#ef4444',
+    color: '#e8284a',
   },
 });

@@ -28,18 +28,16 @@ const IS_WEB = Platform.OS === 'web';
 const DESKTOP_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
-  {labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true},
-  { labelKey: 'advertise', screen: 'Advertise', icon: 'megaphone-outline', isAdvertiseBtn: true }, // ✅
-  // { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
+  { labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true },
+  { labelKey: 'advertise', screen: 'Advertise', icon: 'megaphone-outline', isAdvertiseBtn: true },
   { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
 ];
 
 const MOBILE_NAV_ITEMS = [
   { labelKey: 'home', screen: 'Home', icon: 'home-outline' },
   { labelKey: 'feed', screen: 'Feed', icon: 'newspaper-outline' },
-  {labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true},
-  { labelKey: 'advertise', screen: 'Advertise', icon: 'megaphone-outline', isAdvertiseBtn: true }, // ✅
-  // { labelKey: 'contact', screen: 'Contact', icon: 'call-outline' },
+  { labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true },
+  { labelKey: 'advertise', screen: 'Advertise', icon: 'megaphone-outline', isAdvertiseBtn: true },
   { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
 ];
 
@@ -72,11 +70,29 @@ function useIsDesktop() {
 function NavbarLanguageSelector() {
   const { language, changeLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const triggerRef = useRef(null);
 
   const selectedLanguage = useMemo(
     () => LANGUAGE_OPTIONS.find((item) => item.code === language) || LANGUAGE_OPTIONS[0],
     [language]
   );
+
+  const openDropdown = () => {
+    if (IS_WEB) {
+      setIsOpen(true);
+      return;
+    }
+    // Android/iOS: measure trigger button position to place Modal correctly
+    triggerRef.current?.measure((fx, fy, width, height, px, py) => {
+      const screenWidth = Dimensions.get('window').width;
+      setDropdownPos({
+        top: py + height + 4,
+        right: screenWidth - px - width,
+      });
+      setIsOpen(true);
+    });
+  };
 
   const handleSelect = async (code) => {
     await changeLanguage(code);
@@ -84,11 +100,33 @@ function NavbarLanguageSelector() {
     setIsOpen(false);
   };
 
+  const dropdownContent = (
+    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      {LANGUAGE_OPTIONS.map((item) => {
+        const isActive = item.code === selectedLanguage.code;
+        return (
+          <TouchableOpacity
+            key={item.code}
+            style={[styles.languageDropdownItem, isActive && styles.languageDropdownItemActive]}
+            onPress={() => handleSelect(item.code)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.languageDropdownLabel, isActive && styles.languageDropdownLabelActive]}>
+              {item.label}
+            </Text>
+            {isActive ? <Ionicons name="checkmark-circle" size={16} color="#e8284a" /> : null}
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+
   return (
     <View style={styles.languageSelectorWrap}>
       <TouchableOpacity
+        ref={triggerRef}
         style={styles.utilityPillButton}
-        onPress={() => setIsOpen((v) => !v)}
+        onPress={openDropdown}
         activeOpacity={0.85}
       >
         <Ionicons name="globe-outline" size={16} color="#0f172a" />
@@ -100,35 +138,46 @@ function NavbarLanguageSelector() {
         />
       </TouchableOpacity>
 
-      {isOpen ? (
-        <>
+      {IS_WEB ? (
+        // Web: use absolute positioning as before
+        isOpen ? (
+          <>
+            <TouchableOpacity
+              style={styles.webOverlay}
+              activeOpacity={1}
+              onPress={() => { blurActiveElement(); setIsOpen(false); }}
+            />
+            <View style={styles.languageDropdownCard}>
+              {dropdownContent}
+            </View>
+          </>
+        ) : null
+      ) : (
+        // Android/iOS: use Modal to escape parent clipping
+        <Modal
+          visible={isOpen}
+          transparent
+          animationType="none"
+          onRequestClose={() => setIsOpen(false)}
+          statusBarTranslucent
+        >
           <TouchableOpacity
-            style={styles.overlay}
+            style={styles.modalBackdrop}
             activeOpacity={1}
-            onPress={() => { blurActiveElement(); setIsOpen(false); }}
-          />
-          <View style={styles.languageDropdownCard}>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {LANGUAGE_OPTIONS.map((item) => {
-                const isActive = item.code === selectedLanguage.code;
-                return (
-                  <TouchableOpacity
-                    key={item.code}
-                    style={[styles.languageDropdownItem, isActive && styles.languageDropdownItemActive]}
-                    onPress={() => handleSelect(item.code)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.languageDropdownLabel, isActive && styles.languageDropdownLabelActive]}>
-                      {item.label}
-                    </Text>
-                    {isActive ? <Ionicons name="checkmark-circle" size={16} color="#f97316" /> : null}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </>
-      ) : null}
+            onPress={() => setIsOpen(false)}
+          >
+            <View
+              style={[
+                styles.languageDropdownCard,
+                styles.modalDropdownCard,
+                { top: dropdownPos.top, right: dropdownPos.right },
+              ]}
+            >
+              {dropdownContent}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -138,9 +187,11 @@ function ProfileDropdown({ navigation }) {
   const { language } = useLanguage();
   const { isLoggedIn, logout, refresh } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const [avatarUri, setAvatarUri] = useState('');
   const [avatarError, setAvatarError] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const triggerRef = useRef(null);
   const copy = useMemo(() => getSiteCopy(language), [language]);
 
   useFocusEffect(
@@ -167,6 +218,21 @@ function ProfileDropdown({ navigation }) {
     }, [refresh])
   );
 
+  const openDropdown = () => {
+    if (IS_WEB) {
+      setIsOpen(true);
+      return;
+    }
+    triggerRef.current?.measure((fx, fy, width, height, px, py) => {
+      const screenWidth = Dimensions.get('window').width;
+      setDropdownPos({
+        top: py + height + 4,
+        right: screenWidth - px - width,
+      });
+      setIsOpen(true);
+    });
+  };
+
   const handleLogout = async () => {
     await logout();
     setIsOpen(false);
@@ -190,11 +256,36 @@ function ProfileDropdown({ navigation }) {
     );
   }
 
+  const dropdownContent = (
+    <>
+      <TouchableOpacity
+        style={styles.profileDropdownItem}
+        onPress={() => { setIsOpen(false); navigation?.navigate?.('Profile'); }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="person-outline" size={18} color="#475569" />
+        <Text style={styles.profileDropdownText}>{copy.common.profile}</Text>
+      </TouchableOpacity>
+
+      <View style={styles.dropdownDivider} />
+
+      <TouchableOpacity
+        style={[styles.profileDropdownItem, styles.logoutItem]}
+        onPress={handleLogout}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="log-out-outline" size={18} color="#e8284a" />
+        <Text style={[styles.profileDropdownText, styles.logoutText]}>{copy.common.logout}</Text>
+      </TouchableOpacity>
+    </>
+  );
+
   return (
     <View style={styles.profileDropdownWrap}>
       <TouchableOpacity
+        ref={triggerRef}
         style={styles.profileIconButton}
-        onPress={() => setIsOpen((v) => !v)}
+        onPress={openDropdown}
         activeOpacity={0.85}
       >
         {avatarUri && !avatarError ? (
@@ -204,40 +295,48 @@ function ProfileDropdown({ navigation }) {
             onError={() => setAvatarError(true)}
           />
         ) : (
-          <Ionicons name="person-circle-outline" size={32} color="#f97316" />
+          <Ionicons name="person-circle-outline" size={32} color="#e8284a" />
         )}
       </TouchableOpacity>
 
-      {isOpen ? (
-        <>
+      {IS_WEB ? (
+        isOpen ? (
+          <>
+            <TouchableOpacity
+              style={styles.webOverlay}
+              activeOpacity={1}
+              onPress={() => { blurActiveElement(); setIsOpen(false); }}
+            />
+            <View style={styles.profileDropdownCard}>
+              {dropdownContent}
+            </View>
+          </>
+        ) : null
+      ) : (
+        <Modal
+          visible={isOpen}
+          transparent
+          animationType="none"
+          onRequestClose={() => setIsOpen(false)}
+          statusBarTranslucent
+        >
           <TouchableOpacity
-            style={styles.overlay}
+            style={styles.modalBackdrop}
             activeOpacity={1}
-            onPress={() => { blurActiveElement(); setIsOpen(false); }}
-          />
-          <View style={styles.profileDropdownCard}>
-            <TouchableOpacity
-              style={styles.profileDropdownItem}
-              onPress={() => { setIsOpen(false); navigation?.navigate?.('Profile'); }}
-              activeOpacity={0.7}
+            onPress={() => setIsOpen(false)}
+          >
+            <View
+              style={[
+                styles.profileDropdownCard,
+                styles.modalDropdownCard,
+                { top: dropdownPos.top, right: dropdownPos.right },
+              ]}
             >
-              <Ionicons name="person-outline" size={18} color="#475569" />
-              <Text style={styles.profileDropdownText}>{copy.common.profile}</Text>
-            </TouchableOpacity>
-
-            <View style={styles.dropdownDivider} />
-
-            <TouchableOpacity
-              style={[styles.profileDropdownItem, styles.logoutItem]}
-              onPress={handleLogout}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-              <Text style={[styles.profileDropdownText, styles.logoutText]}>{copy.common.logout}</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      ) : null}
+              {dropdownContent}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -281,7 +380,6 @@ function MobileBottomBar({ activeScreen, handleNavigate }) {
     <View style={[styles.mobileBottomBar, { paddingBottom: bottomPad }]}>
       {MOBILE_NAV_ITEMS.map((item) => {
         const isActive = activeScreen === item.screen;
-
         return (
           <TouchableOpacity
             key={item.screen}
@@ -293,14 +391,11 @@ function MobileBottomBar({ activeScreen, handleNavigate }) {
               <Ionicons
                 name={item.icon}
                 size={20}
-                color={isActive ? '#f97316' : '#64748b'}
+                color={isActive ? '#e8284a' : '#64748b'}
               />
             </View>
             <Text
-              style={[
-                styles.mobileTabLabel,
-                isActive && styles.mobileTabLabelActive,
-              ]}
+              style={[styles.mobileTabLabel, isActive && styles.mobileTabLabelActive]}
               numberOfLines={1}
             >
               {copy.common[item.labelKey] || item.labelKey}
@@ -330,52 +425,47 @@ export default function AppNavbar({ activeScreen, navigation, hideTopHeader = fa
           <MobileTopHeader navigation={navigation} handleNavigate={handleNavigate} />
         )}
         {!hideBottomBar && (
-        <MobileBottomBar
-          activeScreen={activeScreen}
-          handleNavigate={handleNavigate}
-        />
-      )}
+          <MobileBottomBar activeScreen={activeScreen} handleNavigate={handleNavigate} />
+        )}
       </>
     );
   }
 
   // ─── Desktop ───────────────────────────────────────────────────────────
   return (
-    <>
-      <View style={styles.desktopNavbarShell}>
-        <View style={styles.desktopNavbarInner}>
-          <NavbarBrand onPressHome={() => handleNavigate('Home')} />
+    <View style={styles.desktopNavbarShell}>
+      <View style={styles.desktopNavbarInner}>
+        <NavbarBrand onPressHome={() => handleNavigate('Home')} />
 
-          <View style={styles.desktopNavLinksRow}>
-            {DESKTOP_NAV_ITEMS.map((item) => {
-              const isActive = activeScreen === item.screen;
-              return (
-                <TouchableOpacity
-                  key={item.screen}
-                  style={[styles.desktopNavLink, isActive && styles.desktopNavLinkActive]}
-                  onPress={() => handleNavigate(item.screen)}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons
-                    name={item.icon}
-                    size={16}
-                    color={isActive ? '#f97316' : '#475569'}
-                  />
-                  <Text style={[styles.desktopNavLabel, isActive && styles.desktopNavLabelActive]}>
-                    {copy.common[item.labelKey] || item.labelKey}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+        <View style={styles.desktopNavLinksRow}>
+          {DESKTOP_NAV_ITEMS.map((item) => {
+            const isActive = activeScreen === item.screen;
+            return (
+              <TouchableOpacity
+                key={item.screen}
+                style={[styles.desktopNavLink, isActive && styles.desktopNavLinkActive]}
+                onPress={() => handleNavigate(item.screen)}
+                activeOpacity={0.85}
+              >
+                <Ionicons
+                  name={item.icon}
+                  size={16}
+                  color={isActive ? '#e8284a' : '#475569'}
+                />
+                <Text style={[styles.desktopNavLabel, isActive && styles.desktopNavLabelActive]}>
+                  {copy.common[item.labelKey] || item.labelKey}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-          <View style={styles.desktopActionsRow}>
-            <NavbarLanguageSelector />
-            <ProfileDropdown navigation={navigation} />
-          </View>
+        <View style={styles.desktopActionsRow}>
+          <NavbarLanguageSelector />
+          <ProfileDropdown navigation={navigation} />
         </View>
       </View>
-    </>
+    </View>
   );
 }
 
@@ -455,7 +545,7 @@ const styles = StyleSheet.create({
   },
   desktopNavLinkActive: {
     backgroundColor: '#fff7ed',
-    borderColor: '#fdba74',
+    borderColor: '#e8284a',
   },
   desktopNavLabel: {
     color: '#334155',
@@ -463,7 +553,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   desktopNavLabelActive: {
-    color: '#f97316',
+    color: '#e8284a',
   },
   desktopActionsRow: {
     flexShrink: 0,
@@ -502,25 +592,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  overlay: {
-    ...Platform.select({
-      web: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      },
-      default: {
-        position: 'absolute',
-        width: 9999,
-        height: 9999,
-        top: -9999,
-        left: -9999,
-      },
-    }),
+
+  // ─── Web overlay (for web absolute dropdowns) ──────────────────────────
+  webOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 1198,
   },
+
+  // ─── Modal backdrop (for Android/iOS Modal dropdowns) ─────────────────
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+
+  // ─── Shared dropdown card ──────────────────────────────────────────────
   languageSelectorWrap: {
     position: 'relative',
     zIndex: 1200,
@@ -542,6 +631,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   languageDropdownCard: {
+    // Web: absolute positioning
     position: 'absolute',
     top: 44,
     right: 0,
@@ -556,13 +646,18 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: { boxShadow: '0 18px 38px rgba(15, 23, 42, 0.16)' },
       default: {
-        elevation: 16,
+        elevation: 20,
         shadowColor: '#0f172a',
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.14,
+        shadowOpacity: 0.18,
         shadowRadius: 24,
       },
     }),
+  },
+  // Override for Modal-based (Android/iOS): position absolute inside modal
+  modalDropdownCard: {
+    position: 'absolute',
+    // top & right set dynamically via measure()
   },
   languageDropdownItem: {
     paddingHorizontal: 16,
@@ -573,7 +668,8 @@ const styles = StyleSheet.create({
   },
   languageDropdownItemActive: { backgroundColor: '#fff7ed' },
   languageDropdownLabel: { color: '#1e293b', fontSize: 13, fontWeight: '700' },
-  languageDropdownLabelActive: { color: '#f97316' },
+  languageDropdownLabelActive: { color: '#e8284a' },
+
   profileDropdownWrap: {
     position: 'relative',
     zIndex: 1200,
@@ -608,10 +704,10 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: { boxShadow: '0 18px 38px rgba(15, 23, 42, 0.16)' },
       default: {
-        elevation: 16,
+        elevation: 20,
         shadowColor: '#0f172a',
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.14,
+        shadowOpacity: 0.18,
         shadowRadius: 24,
       },
     }),
@@ -625,7 +721,7 @@ const styles = StyleSheet.create({
   },
   profileDropdownText: { color: '#1e293b', fontSize: 13, fontWeight: '600' },
   logoutItem: { marginBottom: 4 },
-  logoutText: { color: '#ef4444' },
+  logoutText: { color: '#e8284a' },
   dropdownDivider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 4 },
   primaryActionButton: {
     flexDirection: 'row',
@@ -634,7 +730,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 3,
-    backgroundColor: '#f97316',
+    backgroundColor: '#e8284a',
   },
   primaryActionButtonText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
   mobileBottomBar: {
@@ -683,7 +779,7 @@ const styles = StyleSheet.create({
   },
   mobileTabIconWrapActive: {
     backgroundColor: '#fff7ed',
-    borderColor: '#fdba74',
+    borderColor: '#e8284a',
   },
   mobileTabLabel: {
     color: '#64748b',
@@ -691,5 +787,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  mobileTabLabelActive: { color: '#f97316' },
+  mobileTabLabelActive: { color: '#e8284a' },
 });

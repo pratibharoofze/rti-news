@@ -164,7 +164,7 @@ export default function AppHeader({ navigation, compact = false }) {
   if (IS_MOBILE) {
     return (
       <View style={[s.root, androidPad]}>
-        {/* Row 1: Logo + Title - dono tap karne pe Home jayega */}
+        {/* Row 1: Logo + Title */}
         <View style={s.mobileRow1}>
           <TouchableOpacity onPress={() => navigation?.navigate('Home')}>
             <Image
@@ -183,7 +183,7 @@ export default function AppHeader({ navigation, compact = false }) {
           </TouchableOpacity>
         </View>
 
-        {/* Row 2: Language + SigInUp */}
+        {/* Row 2: Language + SignIn */}
         <View style={s.mobileRow2}>
           <LanguageSelector compact />
           <TouchableOpacity
@@ -210,7 +210,6 @@ export default function AppHeader({ navigation, compact = false }) {
   return (
     <View style={[s.root, androidPad]}>
       <View style={s.utilityBar}>
-        {/* Logo - tap karne pe Home jayega */}
         <TouchableOpacity
           onPress={() => navigation?.navigate('Home')}
           style={s.logoWrap}
@@ -222,12 +221,11 @@ export default function AppHeader({ navigation, compact = false }) {
           />
         </TouchableOpacity>
 
-        {/* Title - Tiranga Colors with Shadow Effect */}
         <TouchableOpacity onPress={() => navigation?.navigate('Home')}>
           <View style={s.titleContainer}>
-            <Text style={s.centerTitleSaffron}>भारतीय</Text>
-            <Text style={s.centerTitleWhite}>माहिती</Text>
-            <Text style={s.centerTitleGreen}>अधिकार</Text>
+            <Text style={s.centerTitleSaffron}>{'भारतीय'}</Text>
+            <Text style={s.centerTitleWhite}>{'माहिती'}</Text>
+            <Text style={s.centerTitleGreen}>{'अधिकार'}</Text>
           </View>
         </TouchableOpacity>
 
@@ -295,6 +293,19 @@ const s = StyleSheet.create({
     zIndex: 1000,
   },
 
+  // ── Sign In Button (mobile) — FIX: ye styles missing thi ──
+  signInBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#f97316',
+    borderRadius: 20,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  signInIcon: { fontSize: 12 },
+  signInText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+
   // ── Desktop ──
   utilityBar: {
     backgroundColor: '#fff',
@@ -314,8 +325,7 @@ const s = StyleSheet.create({
     width: 85,
     height: 85,
   },
-  
-  // Tiranga Title Container
+
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -325,7 +335,7 @@ const s = StyleSheet.create({
   centerTitleSaffron: {
     fontSize: 54,
     fontWeight: '900',
-    color: '#FF9933', // Saffron - Top color of Indian flag
+    color: '#FF9933',
     letterSpacing: 1,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
@@ -343,13 +353,13 @@ const s = StyleSheet.create({
   centerTitleGreen: {
     fontSize: 54,
     fontWeight: '900',
-    color: '#138808', // Green - Bottom color of Indian flag
+    color: '#138808',
     letterSpacing: 1,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
-  
+
   rightGroup: {
     position: 'absolute',
     right: 12,
@@ -439,7 +449,7 @@ const s = StyleSheet.create({
   langItemCheck: { fontSize: 14, color: '#f97316', fontWeight: '900' },
   noResult: { textAlign: 'center', padding: 16, color: '#bbb', fontSize: 13 },
 
-  // ── Signup ──
+  // ── Signup (desktop) ──
   signupBtn: {
     flexDirection: 'row',
     alignItems: 'center',

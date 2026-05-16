@@ -7,14 +7,24 @@ import AppNavigator from './navigation/AppNavigator';
 import { ToastProvider } from './components/ui/ToastProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './contexts/LanguageContext';
-import { AuthProvider } from './contexts/AuthContext';  // ← AuthProvider import karein
+import { AuthProvider } from './contexts/AuthContext';
 
 // Avoid unhandled promise rejection on some platforms/configs.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+/// 🔴 TEXT ERROR DETECTOR
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('Text strings must be rendered')) {
+    console.log('\n🔴🔴🔴 TEXT ERROR CAUGHT! 🔴🔴🔴');
+    console.log('ARG1:', args[1]);
+    console.log('ARG2:', args[2]);
+    console.log('ARG3:', JSON.stringify(args[3]));
+  }
+  originalConsoleError(...args);
+};
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    // public/fonts/ folder se load — web aur native dono pe kaam karta hai
     'Ionicons':               require('./public/fonts/Ionicons.ttf'),
     'MaterialIcons':          require('./public/fonts/MaterialIcons.ttf'),
     'FontAwesome':            require('./public/fonts/FontAwesome.ttf'),
@@ -35,7 +45,6 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS !== 'web') return undefined;
     if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
-    // Height update ab index.html ka script handle karta hai
     try {
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
@@ -50,7 +59,7 @@ export default function App() {
 
   return (
     <LanguageProvider>
-      <AuthProvider>  {/* ← AuthProvider yahan add karein */}
+      <AuthProvider>
         <ErrorBoundary>
           <ToastProvider>
             <AppNavigator />

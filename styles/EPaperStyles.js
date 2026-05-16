@@ -1,17 +1,45 @@
 import { StyleSheet } from 'react-native';
 
-const EPaperStyles = StyleSheet.create({
-  // ── Root ──
-  root:          { flex: 1, backgroundColor: '#f8fafc' },
-  scrollView:    { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 110 },
+// ─────────────────────────────────────────────────────────────────────────────
+//  COLOUR TOKENS  (inspired by the task-manager UI in the reference image)
+//  Primary Orange : #F97316
+//  Green Accent   : #22C55E
+//  Warm White     : #FFFBF5  (page bg)
+//  Surface White  : #FFFFFF  (cards)
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // ── Success Overlay ──
+const C = {
+  orange:      '#F97316',
+  orangeLight: '#FEF0E6',
+  orangeMid:   '#FDBA74',
+  green:       '#22C55E',
+  greenLight:  '#DCFCE7',
+  greenMid:    '#86EFAC',
+  white:       '#FFFFFF',
+  pageBg:      '#FFFBF5',
+  surface:     '#F9F5F0',
+  textDark:    '#1A1A1A',
+  textMid:     '#555555',
+  textMuted:   '#9CA3AF',
+  border:      '#EDE9E1',
+  red:         '#EF4444',
+  redLight:    '#FEE2E2',
+};
+
+const EPaperStyles = StyleSheet.create({
+
+  // ── Root ──────────────────────────────────────────────────────────────────
+  root:          { flex: 1, backgroundColor: C.pageBg },
+  scrollView:    { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 110 },
+
+  // ── Success Toast ─────────────────────────────────────────────────────────
   successOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingTop: 60,
     zIndex: 999,
     pointerEvents: 'none',
   },
@@ -19,76 +47,131 @@ const EPaperStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: C.greenLight,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
+    borderColor: C.greenMid,
     borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    elevation: 8,
-    maxWidth: '82%',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    elevation: 6,
+    maxWidth: '85%',
   },
   successBoxText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#16a34a',
+    color: '#15803D',
     flexShrink: 1,
   },
 
-  // ── Hero ──
+  // ── Hero Card ─────────────────────────────────────────────────────────────
   heroCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 22,
-    padding: 20,
-    marginBottom: 14,
-    elevation: 3,
+    backgroundColor: C.orange,
+    borderRadius: 28,
+    paddingVertical: 26,
+    paddingHorizontal: 22,
+    marginBottom: 16,
+    marginTop: 4,
+    elevation: 0,
   },
   heroEyebrow: {
     fontSize: 11,
-    color: '#2563eb',
-    fontWeight: '800',
+    color: '#FFD7B5',
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: C.white,
+    marginBottom: 6,
+    letterSpacing: -0.5,
+    lineHeight: 34,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: '#FFE4CC',
+    fontWeight: '500',
+    lineHeight: 19,
+  },
+
+  // ── Metrics Row ───────────────────────────────────────────────────────────
+  metricsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  metricCard: {
+    flex: 1,
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.border,
+    elevation: 0,
+  },
+  metricPrimary:   { borderTopWidth: 3, borderTopColor: C.orange },
+  metricSecondary: { borderTopWidth: 3, borderTopColor: C.green },
+  metricAccent:    { borderTopWidth: 3, borderTopColor: C.orangeMid },
+  metricValue: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: C.textDark,
     marginBottom: 4,
   },
-  heroTitle:    { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 6 },
-  heroSubtitle: { fontSize: 12, color: '#64748b' },
+  metricLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
 
-  // ── Metrics ──
-  metricsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  metricCard:  { flex: 1, borderRadius: 18, paddingVertical: 16, paddingHorizontal: 10, alignItems: 'center' },
-  metricPrimary:   { backgroundColor: '#dbeafe' },
-  metricSecondary: { backgroundColor: '#ede9fe' },
-  metricAccent:    { backgroundColor: '#fef9c3' },
-  metricValue: { fontSize: 24, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
-  metricLabel: { fontSize: 11, fontWeight: '700', color: '#475569' },
-
-  // ── Add Button ──
+  // ── Add Button ────────────────────────────────────────────────────────────
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#7c3aed',
-    borderRadius: 14,
-    paddingVertical: 13,
-    marginBottom: 14,
-    elevation: 3,
-  },
-  addBtnText: { fontSize: 14, fontWeight: '800', color: '#ffffff' },
-
-  // ── Card ──
-  card:         { backgroundColor: '#ffffff', borderRadius: 20, padding: 16, marginBottom: 14, elevation: 3 },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 14 },
-
-  // ── Paper Card ──
-  paperCard: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    backgroundColor: C.green,
     borderRadius: 18,
-    padding: 14,
-    marginBottom: 12,
-    backgroundColor: '#fafafa',
+    paddingVertical: 15,
+    marginBottom: 16,
+    elevation: 0,
+  },
+  addBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: C.white,
+    letterSpacing: 0.2,
+  },
+
+  // ── Section Card ──────────────────────────────────────────────────────────
+  card: {
+    backgroundColor: C.white,
+    borderRadius: 24,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+    elevation: 0,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: C.textDark,
+    marginBottom: 14,
+  },
+
+  // ── Paper Card ────────────────────────────────────────────────────────────
+  paperCard: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 10,
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.border,
+    elevation: 0,
   },
   paperTopRow: {
     flexDirection: 'row',
@@ -96,60 +179,83 @@ const EPaperStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  publishDate:  { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
-  paperTitle:   { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 5, lineHeight: 21 },
-  paperDesc:    { fontSize: 12, color: '#64748b', marginBottom: 8, lineHeight: 18 },
+  publishDate: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: '600',
+  },
+  paperTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: C.textDark,
+    marginBottom: 6,
+    lineHeight: 22,
+  },
+  paperDesc: {
+    fontSize: 12,
+    color: C.textMid,
+    marginBottom: 10,
+    lineHeight: 19,
+  },
 
-  // ── Media Badge ──
+  // ── Media Badge ───────────────────────────────────────────────────────────
   mediaBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#eff6ff',
+    backgroundColor: C.orangeLight,
     alignSelf: 'flex-start',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: C.orangeMid,
   },
-  mediaBadgeText: { fontSize: 11, fontWeight: '700', color: '#2563eb' },
+  mediaBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#C2410C',
+  },
 
-  // ── Stats ──
+  // ── Stats ─────────────────────────────────────────────────────────────────
   statsRow: { flexDirection: 'row', gap: 14, marginBottom: 10 },
   statItem:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  statText:  { fontSize: 12, fontWeight: '700', color: '#475569' },
+  statText:  { fontSize: 12, fontWeight: '600', color: C.textMid },
 
-  // ── Action Buttons ──
+  // ── Action Buttons ────────────────────────────────────────────────────────
   actionRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   actionBtn: {
     flex: 1,
-    minWidth: 60,
+    minWidth: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: '#eff6ff',
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: C.orangeLight,
+    borderWidth: 1,
+    borderColor: '#FDDCB5',
   },
-  actionBtnText:       { fontSize: 11, fontWeight: '700', color: '#2563eb' },
-  actionBtnTextPurple: { color: '#7c3aed' },
-  actionBtnTextCyan:   { color: '#0891b2' },
+  actionBtnText:       { fontSize: 11, fontWeight: '700', color: '#C2410C' },
+  actionBtnTextPurple: { color: '#16A34A' },
+  actionBtnTextCyan:   { color: '#EA580C' },
 
-  // ── States ──
-  loadingText: { fontSize: 13, color: '#64748b' },
-  emptyText:   { fontSize: 13, color: '#94a3b8', textAlign: 'center', paddingVertical: 10 },
+  // ── States ────────────────────────────────────────────────────────────────
+  loadingText: { fontSize: 13, color: C.textMuted, textAlign: 'center', paddingVertical: 12 },
+  emptyText:   { fontSize: 13, color: C.textMuted, textAlign: 'center', paddingVertical: 16 },
 
-  // ── Modal Header ──
+  // ── Modal Header ──────────────────────────────────────────────────────────
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    backgroundColor: C.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    elevation: 2,
+    borderBottomColor: C.border,
+    elevation: 0,
   },
   modalHeaderSide: {
     width: 72,
@@ -161,31 +267,63 @@ const EPaperStyles = StyleSheet.create({
     paddingTop: 12,
   },
   modalCloseBtn:    { padding: 6 },
-  modalHeaderTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', flex: 1, textAlign: 'center' },
-  modalSaveBtn:     { backgroundColor: '#7c3aed', borderRadius: 14, paddingHorizontal: 20, paddingVertical: 10, marginTop: 14, elevation: 4, shadowColor: '#7c3aed', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
-  modalSaveBtnText: { fontSize: 13, fontWeight: '800', color: '#ffffff' },
+  modalHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: C.textDark,
+    flex: 1,
+    textAlign: 'center',
+  },
+  modalSaveBtn: {
+    backgroundColor: C.orange,
+    borderRadius: 16,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    marginTop: 14,
+    elevation: 0,
+  },
+  modalSaveBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: C.white,
+  },
 
-  // ── Form Modal Content ──
-  modalContent: { padding: 16, paddingBottom: 60 },
-  fieldLabel:   { fontSize: 13, fontWeight: '800', color: '#0f172a', marginBottom: 2 },
-  fieldHint:    { fontSize: 11, color: '#94a3b8', marginBottom: 8 },
+  // ── Form Modal Content ────────────────────────────────────────────────────
+  modalContent: {
+    padding: 16,
+    paddingBottom: 60,
+    backgroundColor: C.pageBg,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: C.textDark,
+    marginBottom: 2,
+  },
+  fieldHint: {
+    fontSize: 11,
+    color: C.textMuted,
+    marginBottom: 8,
+  },
+
+  // ── State Selector ────────────────────────────────────────────────────────
   stateSelector: {
     marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
+    borderColor: C.border,
+    borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 14,
-    backgroundColor: '#ffffff',
+    backgroundColor: C.white,
   },
   stateSelectorText: {
     flex: 1,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0f172a',
+    color: C.textDark,
   },
   stateChip: {
     marginTop: 8,
@@ -193,26 +331,26 @@ const EPaperStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#eef2ff',
+    backgroundColor: C.greenLight,
     borderWidth: 1,
-    borderColor: '#c7d2fe',
+    borderColor: C.greenMid,
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 5,
   },
   stateChipText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#4338ca',
+    color: '#15803D',
   },
 
-  // ── RichEditor ──
+  // ── Rich Editor ───────────────────────────────────────────────────────────
   richToolbar: {
-    backgroundColor: '#f1f5f9',
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: C.border,
     borderBottomWidth: 0,
     height: 44,
   },
@@ -220,79 +358,79 @@ const EPaperStyles = StyleSheet.create({
     minHeight: 80,
     maxHeight: 120,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: C.border,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
     marginBottom: 4,
-    backgroundColor: '#ffffff',
+    backgroundColor: C.white,
     overflow: 'hidden',
   },
   richEditorDesc: {
     minHeight: 160,
     maxHeight: 280,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: C.border,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderBottomLeftRadius: 14,
+    borderBottomRightRadius: 14,
     marginBottom: 4,
-    backgroundColor: '#ffffff',
+    backgroundColor: C.white,
     overflow: 'hidden',
   },
-  // passed as editorStyle prop (plain object, not StyleSheet)
   richEditorInner: {
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
+    backgroundColor: C.white,
+    color: C.textDark,
     fontSize: 14,
-    placeholderColor: '#94a3b8',
-    contentCSSText: 'font-family: sans-serif; padding: 8px; line-height: 1.6;',
+    placeholderColor: C.textMuted,
+    contentCSSText: 'font-family: sans-serif; padding: 10px; line-height: 1.6;',
   },
 
-  // ── Media Type Toggle ──
+  // ── Media Toggle ──────────────────────────────────────────────────────────
   mediaToggleRow: { flexDirection: 'row', gap: 8, marginBottom: 14, marginTop: 6 },
   mediaToggleBtn: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: C.white,
   },
-  mediaToggleBtnActive:     { borderColor: '#7c3aed', backgroundColor: '#ede9fe' },
-  mediaToggleBtnText:       { fontSize: 12, fontWeight: '700', color: '#64748b' },
-  mediaToggleBtnTextActive: { color: '#7c3aed' },
+  mediaToggleBtnActive:     { borderColor: C.orange, backgroundColor: C.orangeLight },
+  mediaToggleBtnText:       { fontSize: 12, fontWeight: '700', color: C.textMuted },
+  mediaToggleBtnTextActive: { color: '#C2410C' },
 
+  // ── Media Showcase Card ───────────────────────────────────────────────────
   mediaShowcaseCard: {
     marginTop: 20,
     marginBottom: 8,
     borderRadius: 24,
     padding: 18,
-    backgroundColor: '#fff7ed',
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: '#fdba74',
-    elevation: 4,
+    borderColor: C.border,
+    elevation: 0,
   },
   mediaShowcaseEyebrow: {
     fontSize: 11,
-    color: '#ea580c',
+    color: C.orange,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     marginBottom: 4,
   },
   mediaShowcaseTitle: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#7c2d12',
+    color: C.textDark,
     marginBottom: 6,
   },
   mediaShowcaseSubtitle: {
     fontSize: 12,
-    color: '#9a3412',
+    color: C.textMid,
     lineHeight: 18,
     marginBottom: 14,
   },
@@ -309,42 +447,42 @@ const EPaperStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: '#ffedd5',
+    backgroundColor: C.orangeLight,
     borderWidth: 1,
-    borderColor: '#fdba74',
+    borderColor: C.orangeMid,
   },
   mediaInfoPillAlt: {
-    backgroundColor: '#f5f3ff',
-    borderColor: '#d8b4fe',
+    backgroundColor: C.greenLight,
+    borderColor: C.greenMid,
   },
   mediaInfoPillText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#c2410c',
+    color: '#C2410C',
   },
   mediaInfoPillAltText: {
-    color: '#6d28d9',
+    color: '#16A34A',
   },
-  // Media Section
+
+  // ── Media Section ─────────────────────────────────────────────────────────
   mediaSection: {
-    marginBottom: 14,
+    marginBottom: 12,
     borderRadius: 18,
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    elevation: 2,
+    borderColor: C.border,
   },
   mediaSectionCaption: {
     fontSize: 11,
-    color: '#64748b',
+    color: C.textMuted,
     lineHeight: 16,
     marginBottom: 8,
   },
   mediaSectionTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0f172a',
+    color: C.textDark,
     marginBottom: 10,
   },
   mediaPickBtn: {
@@ -353,20 +491,23 @@ const EPaperStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1.5,
-    borderColor: '#2563eb',
+    borderColor: C.orange,
     borderStyle: 'dashed',
     borderRadius: 16,
     paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: '#eff6ff',
+    backgroundColor: C.orangeLight,
   },
-  mediaPickBtnText: { fontSize: 13, fontWeight: '800', color: '#2563eb' },
+  mediaPickBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#C2410C',
+  },
   videoPickBtn: {
-    borderColor: '#7c3aed',
-    backgroundColor: '#f5f3ff',
+    borderColor: C.green,
+    backgroundColor: C.greenLight,
   },
   videoPickBtnText: {
-    color: '#7c3aed',
+    color: '#16A34A',
   },
   videoStatusRow: {
     flexDirection: 'row',
@@ -376,62 +517,61 @@ const EPaperStyles = StyleSheet.create({
   },
   videoStatusText: {
     fontSize: 12,
-    color: '#16a34a',
+    color: '#16A34A',
     fontWeight: '700',
   },
 
-  // State Modal
+  // ── State Picker Modal ────────────────────────────────────────────────────
   stateModalOverlay: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
+    top: 0, right: 0, bottom: 0, left: 0,
     justifyContent: 'center',
     padding: 18,
     zIndex: 1000,
   },
   stateModalBackdrop: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    top: 0, right: 0, bottom: 0, left: 0,
+    backgroundColor: 'rgba(26, 26, 26, 0.35)',
   },
   stateModalBox: {
     maxHeight: '80%',
-    backgroundColor: '#ffffff',
-    borderRadius: 18,
-    padding: 16,
+    backgroundColor: C.white,
+    borderRadius: 24,
+    padding: 18,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
   },
   stateModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   stateModalTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: C.textDark,
   },
   stateSearchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
+    borderColor: C.border,
+    borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginBottom: 12,
-    backgroundColor: '#f8fafc',
+    backgroundColor: C.surface,
   },
   stateSearchInput: {
     flex: 1,
     fontSize: 13,
-    color: '#0f172a',
+    color: C.textDark,
     padding: 0,
   },
   stateItem: {
@@ -441,28 +581,40 @@ const EPaperStyles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 12,
-    marginBottom: 6,
-    backgroundColor: '#f8fafc',
+    marginBottom: 4,
+    backgroundColor: C.surface,
   },
   stateItemActive: {
-    backgroundColor: '#ede9fe',
+    backgroundColor: C.greenLight,
   },
   stateItemText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: C.textMid,
   },
   stateItemTextActive: {
-    color: '#6d28d9',
+    color: '#16A34A',
   },
-  // ── Image Thumbs ──
-  imageThumbContainer: { position: 'relative', marginRight: 8, borderRadius: 10, overflow: 'hidden' },
-  imageThumb:          { width: 96, height: 96, borderRadius: 14, borderWidth: 2, borderColor: '#ffffff' },
+
+  // ── Image Thumbs ──────────────────────────────────────────────────────────
+  imageThumbContainer: {
+    position: 'relative',
+    marginRight: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  imageThumb: {
+    width: 96,
+    height: 96,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: C.orangeMid,
+  },
   imageRemoveBtn: {
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#dc2626',
+    backgroundColor: C.red,
     borderRadius: 999,
     width: 18,
     height: 18,
@@ -470,46 +622,58 @@ const EPaperStyles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // ── Admin Note ──
+  // ── Admin Note ────────────────────────────────────────────────────────────
   adminNoteBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#fefce8',
+    backgroundColor: C.greenLight,
     borderWidth: 1,
-    borderColor: '#fde68a',
-    borderRadius: 10,
+    borderColor: C.greenMid,
+    borderRadius: 14,
     padding: 12,
-    marginTop: 8,
+    marginTop: 10,
   },
-  adminNoteText: { flex: 1, fontSize: 12, color: '#92400e', fontWeight: '600', lineHeight: 18 },
+  adminNoteText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#15803D',
+    fontWeight: '600',
+    lineHeight: 18,
+  },
 
-  // ── View Modal ──
-  viewModalContent: { padding: 16, paddingBottom: 60 },
+  // ── View Modal ────────────────────────────────────────────────────────────
+  viewModalContent: {
+    padding: 16,
+    paddingBottom: 60,
+    backgroundColor: C.pageBg,
+  },
   viewTextCard: {
     marginTop: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 14,
-    padding: 16,
+    borderColor: C.border,
+    borderRadius: 20,
+    padding: 18,
   },
   viewTitleText: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0f172a',
+    color: C.textDark,
     lineHeight: 28,
     marginBottom: 12,
   },
   viewDescriptionText: {
     fontSize: 14,
-    color: '#475569',
+    color: C.textMid,
     lineHeight: 22,
   },
-  viewImage: { width: 200, height: 140, borderRadius: 12, marginRight: 10 },
+  viewImage: {
+    width: 200,
+    height: 140,
+    borderRadius: 14,
+    marginRight: 10,
+  },
 });
 
 export default EPaperStyles;
-
-
-

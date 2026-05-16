@@ -4,14 +4,13 @@ import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   ScrollView,
+  StatusBar,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import Footer from '../components/Footer';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
 import { useToast } from '../components/ui/ToastProvider';
 import { UserStore } from '../store/UserStore';
 import PaymentStyles from '../styles/PaymentStyles';
@@ -21,8 +20,6 @@ export default function PaymentScreen({ route, navigation }) {
   const orderFromRoute = route?.params?.order || null;
   const returnTo = route?.params?.returnTo || 'Subscription Plans';
 
-  const [sidebarVisible, setSidebarVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState('Home');
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -34,8 +31,6 @@ export default function PaymentScreen({ route, navigation }) {
     pending_order: null,
     payment_history: [],
   });
-
-  const moduleName = 'Payment';
 
   const loadPayment = useCallback(async () => {
     setLoading(true);
@@ -78,11 +73,6 @@ export default function PaymentScreen({ route, navigation }) {
     }, [loadPayment])
   );
 
-  const handleLogout = async () => {
-    await UserStore.clearCurrentUser();
-    navigation.replace('Login');
-  };
-
   const onPaymentSuccess = async (paymentId, orderId, signature, order) => {
     const verifyResult = await UserStore.verifyPayment({
       payment_id: paymentId,
@@ -106,7 +96,8 @@ export default function PaymentScreen({ route, navigation }) {
     setTimeout(() => setSuccessMessage(''), 3000);
 
     const updatedUser = await UserStore.getCurrentUser();
-    const needsLocation = UserStore.hasPremiumAccess(updatedUser) && !updatedUser?.location_complete;
+    const needsLocation =
+      UserStore.hasPremiumAccess(updatedUser) && !updatedUser?.location_complete;
     if (needsLocation) {
       navigation.replace('StateSelect', { fromPremium: true });
       return;
@@ -127,12 +118,7 @@ export default function PaymentScreen({ route, navigation }) {
     setPaying(true);
 
     try {
-      await onPaymentSuccess(
-        `pay_${Date.now()}`,
-        order.order_id,
-        '',
-        order
-      );
+      await onPaymentSuccess(`pay_${Date.now()}`, order.order_id, '', order);
     } catch (_error) {
       setPaying(false);
       showToast('Payment failed. Please try again.', 'error');
@@ -147,27 +133,21 @@ export default function PaymentScreen({ route, navigation }) {
   const statusBadgeStyle = (status) => {
     switch (status?.toLowerCase()) {
       case 'success': return PaymentStyles.statusSuccess;
-      case 'failed': return PaymentStyles.statusFailed;
-      default: return PaymentStyles.statusPending;
+      case 'failed':  return PaymentStyles.statusFailed;
+      default:        return PaymentStyles.statusPending;
     }
   };
 
   const statusTextStyle = (status) => {
     switch (status?.toLowerCase()) {
       case 'success': return PaymentStyles.statusTextSuccess;
-      case 'failed': return PaymentStyles.statusTextFailed;
-      default: return PaymentStyles.statusTextPending;
+      case 'failed':  return PaymentStyles.statusTextFailed;
+      default:        return PaymentStyles.statusTextPending;
     }
   };
 
   return (
     <View style={PaymentStyles.root}>
-      <Header
-        title={moduleName}
-        onMenuPress={() => setSidebarVisible(true)}
-        onLogout={handleLogout}
-      />
-
       <ScrollView
         style={PaymentStyles.scrollView}
         contentContainerStyle={PaymentStyles.scrollContent}
@@ -175,7 +155,7 @@ export default function PaymentScreen({ route, navigation }) {
       >
         <View style={PaymentStyles.heroCard}>
 
-          {/* ✅ Back Button */}
+          {/* ✅ Back Button — Android status bar fix */}
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={{
@@ -183,29 +163,26 @@ export default function PaymentScreen({ route, navigation }) {
               alignItems: 'center',
               alignSelf: 'flex-start',
               marginBottom: 10,
-              paddingVertical: 4,
               paddingHorizontal: 2,
+              paddingVertical: 4,
+              paddingTop: Platform.OS === 'android'
+                ? (StatusBar.currentHeight || 24) + 4
+                : 4,
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Feather name="arrow-left" size={18} color="#7c3aed" />
-            <Text
-              style={{
-                color: '#7c3aed',
-                fontSize: 14,
-                marginLeft: 5,
-                fontWeight: '600',
-              }}
-            >
+            <Feather name="arrow-left" size={18} color="#d95f00" />
+            <Text style={{ color: '#d95f00', fontSize: 14, marginLeft: 5, fontWeight: '600' }}>
               Back
             </Text>
           </TouchableOpacity>
 
           <Text style={PaymentStyles.heroEyebrow}>In-App Payment</Text>
           <Text style={PaymentStyles.heroTitle}>Secure Payment</Text>
+
           <View style={PaymentStyles.ownerRow}>
             <View style={PaymentStyles.ownerBadge}>
-              <Feather name="user" size={16} color="#2563eb" />
+              <Feather name="user" size={16} color="#d95f00" />
             </View>
             <View style={PaymentStyles.ownerInfo}>
               <Text style={PaymentStyles.ownerName}>
@@ -226,7 +203,7 @@ export default function PaymentScreen({ route, navigation }) {
           <View style={PaymentStyles.orderCard}>
             <View style={PaymentStyles.orderHeader}>
               <View style={PaymentStyles.orderIconWrap}>
-                <Feather name="shopping-bag" size={22} color="#2563eb" />
+                <Feather name="shopping-bag" size={22} color="#d95f00" />
               </View>
               <View style={PaymentStyles.orderHeaderInfo}>
                 <Text style={PaymentStyles.orderPlanName}>
@@ -265,7 +242,7 @@ export default function PaymentScreen({ route, navigation }) {
             </TouchableOpacity>
 
             <View style={PaymentStyles.paymentBadgeRow}>
-              <Feather name="shield" size={12} color="#64748b" />
+              <Feather name="shield" size={12} color="#aaaaaa" />
               <Text style={PaymentStyles.paymentBadgeText}>
                 Secure in-app payment flow
               </Text>
@@ -273,11 +250,12 @@ export default function PaymentScreen({ route, navigation }) {
 
             <View style={PaymentStyles.testHelperCard}>
               <View style={PaymentStyles.testHelperHeader}>
-                <Feather name="info" size={14} color="#1d4ed8" />
+                <Feather name="info" size={14} color="#d95f00" />
                 <Text style={PaymentStyles.testHelperTitle}>Payment Note</Text>
               </View>
               <Text style={PaymentStyles.testHelperText}>
-                Subscription activate hone ke liye <Text style={PaymentStyles.testHelperValue}>Pay</Text> button press karein.
+                Subscription activate hone ke liye{' '}
+                <Text style={PaymentStyles.testHelperValue}>Pay</Text> button press karein.
               </Text>
             </View>
           </View>
@@ -308,23 +286,25 @@ export default function PaymentScreen({ route, navigation }) {
                 </View>
 
                 <View style={PaymentStyles.historyMetaRow}>
-                  <Feather name="hash" size={12} color="#94a3b8" />
+                  <Feather name="hash" size={12} color="#aaaaaa" />
                   <Text style={PaymentStyles.historyMeta}>
-                    Order ID: <Text style={PaymentStyles.historyMetaBold}>{item.order_id}</Text>
+                    Order ID:{' '}
+                    <Text style={PaymentStyles.historyMetaBold}>{item.order_id}</Text>
                   </Text>
                 </View>
 
                 {item.payment_id ? (
                   <View style={PaymentStyles.historyMetaRow}>
-                    <Feather name="credit-card" size={12} color="#94a3b8" />
+                    <Feather name="credit-card" size={12} color="#aaaaaa" />
                     <Text style={PaymentStyles.historyMeta}>
-                      Payment ID: <Text style={PaymentStyles.historyMetaBold}>{item.payment_id}</Text>
+                      Payment ID:{' '}
+                      <Text style={PaymentStyles.historyMetaBold}>{item.payment_id}</Text>
                     </Text>
                   </View>
                 ) : null}
 
                 <View style={PaymentStyles.historyMetaRow}>
-                  <Feather name="calendar" size={12} color="#94a3b8" />
+                  <Feather name="calendar" size={12} color="#aaaaaa" />
                   <Text style={PaymentStyles.historyMeta}>{item.date}</Text>
                 </View>
 
@@ -332,7 +312,7 @@ export default function PaymentScreen({ route, navigation }) {
                   style={PaymentStyles.viewStatusBtn}
                   onPress={() => handleViewStatus(item)}
                 >
-                  <Feather name="eye" size={13} color="#2563eb" />
+                  <Feather name="eye" size={13} color="#d95f00" />
                   <Text style={PaymentStyles.viewStatusBtnText}>View Status</Text>
                 </TouchableOpacity>
               </View>
@@ -343,6 +323,7 @@ export default function PaymentScreen({ route, navigation }) {
         </View>
       </ScrollView>
 
+      {/* Status Modal */}
       <Modal
         visible={statusModalVisible}
         transparent
@@ -354,42 +335,52 @@ export default function PaymentScreen({ route, navigation }) {
             <View style={PaymentStyles.modalHeader}>
               <Text style={PaymentStyles.modalTitle}>Payment Status</Text>
               <TouchableOpacity onPress={() => setStatusModalVisible(false)}>
-                <Feather name="x" size={22} color="#0f172a" />
+                <Feather name="x" size={22} color="#1a1a1a" />
               </TouchableOpacity>
             </View>
 
             {selectedPayment ? (
               <>
                 <View style={PaymentStyles.modalStatusWrap}>
-                  <View style={[PaymentStyles.modalStatusBadge, statusBadgeStyle(selectedPayment.status)]}>
+                  <View
+                    style={[
+                      PaymentStyles.modalStatusBadge,
+                      statusBadgeStyle(selectedPayment.status),
+                    ]}
+                  >
                     <Feather
                       name={
                         selectedPayment.status?.toLowerCase() === 'success'
                           ? 'check-circle'
                           : selectedPayment.status?.toLowerCase() === 'failed'
-                            ? 'x-circle'
-                            : 'clock'
+                          ? 'x-circle'
+                          : 'clock'
                       }
                       size={32}
                       color={
                         selectedPayment.status?.toLowerCase() === 'success'
                           ? '#16a34a'
                           : selectedPayment.status?.toLowerCase() === 'failed'
-                            ? '#dc2626'
-                            : '#d97706'
+                          ? '#dc2626'
+                          : '#d97706'
                       }
                     />
-                    <Text style={[PaymentStyles.modalStatusText, statusTextStyle(selectedPayment.status)]}>
+                    <Text
+                      style={[
+                        PaymentStyles.modalStatusText,
+                        statusTextStyle(selectedPayment.status),
+                      ]}
+                    >
                       {selectedPayment.status}
                     </Text>
                   </View>
                 </View>
 
                 {[
-                  { label: 'Order ID', value: selectedPayment.order_id },
+                  { label: 'Order ID',   value: selectedPayment.order_id },
                   { label: 'Payment ID', value: selectedPayment.payment_id },
-                  { label: 'Amount', value: `Rs. ${selectedPayment.amount}` },
-                  { label: 'Date', value: selectedPayment.date },
+                  { label: 'Amount',     value: `Rs. ${selectedPayment.amount}` },
+                  { label: 'Date',       value: selectedPayment.date },
                 ].map(({ label, value }) => (
                   <View key={label} style={PaymentStyles.modalInfoRow}>
                     <Text style={PaymentStyles.modalInfoLabel}>{label}</Text>
@@ -401,14 +392,6 @@ export default function PaymentScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
-
-      <Footer activeTab={activeTab} onTabPress={setActiveTab} />
-
-      <Sidebar
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        activeItem={moduleName}
-      />
     </View>
   );
 }

@@ -1,10 +1,10 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import {
   Image, Linking, Modal, Platform, ScrollView, Share,
-  Text, TextInput, TouchableOpacity, View, Alert
+  Text, TextInput, TouchableOpacity, View, Alert, BackHandler
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import VideoPreview from '../components/VideoPreview';
@@ -337,6 +337,40 @@ export default function NewsFeedScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { loadNewsFeed(); }, [loadNewsFeed]));
 
+  // Handle back button press
+  const handleGoBack = () => {
+    // Check if we can go back
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // If no screen to go back to, navigate to Home or Dashboard
+      navigation.navigate('Home');
+    }
+  };
+
+  // Add hardware back button handler for Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (commentModalVisible) {
+        setCommentModalVisible(false);
+        return true;
+      }
+      if (editModalVisible) {
+        setEditModalVisible(false);
+        setEditingNewsItem(null);
+        return true;
+      }
+      if (filterPanelVisible) {
+        setFilterPanelVisible(false);
+        return true;
+      }
+      handleGoBack();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [commentModalVisible, editModalVisible, filterPanelVisible, navigation]);
+
   const handleShare = async (item) => {
     setSuccessMessage('');
     const shareText = `${item.title}\nCategory: ${item.category}\nState: ${item.state}\nDate: ${item.date}\n${item.subtitle || item.description}`;
@@ -513,9 +547,13 @@ export default function NewsFeedScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      {/* Header with Back Button */}
+      {/* Header with Back Button - Fixed */}
       <View style={styles.customHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity 
+          onPress={handleGoBack} 
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
           <Feather name="arrow-left" size={24} color="#0f766e" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{moduleName}</Text>

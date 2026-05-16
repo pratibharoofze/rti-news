@@ -5,7 +5,11 @@ import {
   View,
   TouchableOpacity,
   TextInput,
+  StatusBar,
+  Platform,
 } from 'react-native';
+
+
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import Sidebar from '../components/Sidebar';
@@ -96,7 +100,8 @@ export default function MyNetworkScreen({ navigation }) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          paddingHorizontal: 20,
+          paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 12 : 12,
+paddingBottom: 12,
           paddingVertical: 12,
           gap: 8,
           backgroundColor: '#fff7ed',

@@ -4,7 +4,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
   // ── Root ──
   root: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#fff8f2',
   },
   scrollContent: {
     padding: 16,
@@ -18,11 +18,13 @@ const SubscriptionPlansStyles = StyleSheet.create({
     padding: 20,
     marginBottom: 14,
     elevation: 3,
-    boxShadow: '0px 8px 18px rgba(15, 23, 42, 0.06)',
+    boxShadow: '0px 8px 18px rgba(217, 95, 0, 0.08)',
+    borderWidth: 1,
+    borderColor: '#ffe0c2',
   },
   heroEyebrow: {
     fontSize: 12,
-    color: '#7c3aed',
+    color: '#d95f00',
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -31,12 +33,12 @@ const SubscriptionPlansStyles = StyleSheet.create({
   heroTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
     marginBottom: 4,
   },
   heroSubtitle: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#888888',
     marginBottom: 14,
   },
   ownerRow: {
@@ -49,7 +51,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f5f3ff',
+    backgroundColor: '#fff3e8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -59,11 +61,11 @@ const SubscriptionPlansStyles = StyleSheet.create({
   ownerName: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
   },
   ownerEmail: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#888888',
     marginTop: 1,
   },
 
@@ -92,7 +94,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
   activeBannerName: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
     marginBottom: 2,
   },
   activeBannerMeta: {
@@ -111,29 +113,31 @@ const SubscriptionPlansStyles = StyleSheet.create({
     padding: 16,
     marginBottom: 14,
     elevation: 3,
-    boxShadow: '0px 6px 16px rgba(15, 23, 42, 0.05)',
+    boxShadow: '0px 6px 16px rgba(217, 95, 0, 0.06)',
+    borderWidth: 1,
+    borderColor: '#ffe5cc',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
     marginBottom: 14,
   },
 
   // ── Plan Card ──
   planCard: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#fff9f5',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderWidth: 1.5,
+    borderColor: '#f0d3b8',
     elevation: 2,
   },
   planCardActive: {
     borderWidth: 2,
-    borderColor: '#2563eb',
-    backgroundColor: '#eff6ff',
+    borderColor: '#d95f00',
+    backgroundColor: '#fff3e8',
   },
   planTopRow: {
     flexDirection: 'row',
@@ -147,30 +151,30 @@ const SubscriptionPlansStyles = StyleSheet.create({
   planName: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0f172a',
+    color: '#1a1a1a',
   },
   planDuration: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#888888',
     marginTop: 2,
   },
   planPrice: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#2563eb',
+    color: '#d95f00',
     marginBottom: 10,
   },
 
   // ── Active Pill ──
   activePill: {
-    backgroundColor: '#22c55e',
+    backgroundColor: '#16a34a',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     marginLeft: 8,
   },
   activePillText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -203,7 +207,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#d95f00',
   },
   buyBtnText: {
     fontSize: 13,
@@ -214,13 +218,13 @@ const SubscriptionPlansStyles = StyleSheet.create({
   // ── States ──
   loadingText: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#888888',
     textAlign: 'center',
     paddingVertical: 10,
   },
   emptyText: {
     fontSize: 13,
-    color: '#94a3b8',
+    color: '#aaaaaa',
     textAlign: 'center',
     paddingVertical: 10,
   },

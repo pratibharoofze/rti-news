@@ -1197,7 +1197,7 @@ export default function FeedScreen({ navigation }) {
 
   const NAVBAR_H = Platform.OS === 'ios' ? 60 : 56;
 const WEB_TOPNAV_H = 60;
-const cardHeight = isWebPlatform ? windowHeight - WEB_TOPNAV_H : windowHeight - 65;
+const cardHeight = isWebPlatform ? windowHeight - WEB_TOPNAV_H : windowHeight - 70;
 const cardWidth = isMobileLayout ? windowWidth : Math.min(windowWidth * 0.65, 560);
 
  const handleLike = useCallback(async (id) => {

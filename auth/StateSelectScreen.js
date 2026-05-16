@@ -41,25 +41,20 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
 
         <Text style={dropStyles.title}>{title}</Text>
 
-        {/* Search Box */}
         <View style={dropStyles.searchWrap}>
-          <Ionicons
-            name="search-outline"
-            size={16}
-            color="#a78bfa"
-          />
-
+          <Ionicons name="search-outline" size={16} color="#e8732a" />
           <TextInput
             style={dropStyles.searchInput}
             value={search}
             onChangeText={setSearch}
+            placeholder="Search state..."
+            placeholderTextColor="#b0a898"
             autoCorrect={false}
             autoCapitalize="none"
-            selectionColor="#a78bfa"
+            selectionColor="#e8732a"
           />
         </View>
 
-        {/* List */}
         <FlatList
           data={filtered}
           keyExtractor={(item) => item}
@@ -80,19 +75,14 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
               <Text
                 style={[
                   dropStyles.itemText,
-                  selected === item &&
-                    dropStyles.itemTextSelected,
+                  selected === item && dropStyles.itemTextSelected,
                 ]}
               >
                 {item}
               </Text>
 
               {selected === item && (
-                <Ionicons
-                  name="checkmark-circle"
-                  size={18}
-                  color="#a78bfa"
-                />
+                <Ionicons name="checkmark-circle" size={18} color="#e8732a" />
               )}
             </TouchableOpacity>
           )}
@@ -105,138 +95,115 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
 const dropStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(180,170,160,0.5)',
   },
-
   sheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1a1329',
+    backgroundColor: '#ece7e0',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 20,
     paddingBottom: 36,
-    borderWidth: 1,
-    borderColor: 'rgba(196,181,253,0.16)',
+    shadowColor: '#b8afa6',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 16,
   },
-
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#4b3579',
+    backgroundColor: '#c8c0b8',
     borderRadius: 99,
     alignSelf: 'center',
     marginBottom: 14,
   },
-
   title: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#faf5ff',
+    color: '#2d2a26',
     marginBottom: 12,
     textAlign: 'center',
   },
-
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#120d1d',
-    borderWidth: 1,
-    borderColor: '#302246',
+    backgroundColor: '#ece7e0',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
     marginBottom: 10,
+    shadowColor: '#b8afa6',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#f5f3ff',
-    borderWidth: 0,
-    outlineStyle: 'none',
+    color: '#2d2a26',
     paddingVertical: 0,
+    ...(Platform.OS === 'web' && { outlineStyle: 'none' }),
   },
-
   item: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 11,
     paddingHorizontal: 14,
     borderRadius: 12,
-    marginBottom: 4,
+    marginBottom: 3,
   },
-
   itemSelected: {
-    backgroundColor: 'rgba(124,58,237,0.18)',
+    backgroundColor: 'rgba(232,115,42,0.12)',
   },
-
   itemText: {
     fontSize: 14,
-    color: '#ddd6fe',
+    color: '#4a4540',
     fontWeight: '500',
   },
-
   itemTextSelected: {
-    color: '#c4b5fd',
+    color: '#e8732a',
     fontWeight: '700',
   },
 });
 
-export default function StateSelectScreen({
-  navigation,
-  route,
-}) {
+export default function StateSelectScreen({ navigation, route }) {
   const { showPopup } = useToast();
 
   const [state, setState] = useState('');
   const [stateModal, setStateModal] = useState(false);
 
   const fromPremium = route?.params?.fromPremium;
-  const needsCreateUser =
-    route?.params?.needsCreateUser;
+  const needsCreateUser = route?.params?.needsCreateUser;
   const autoOpen = route?.params?.autoOpen;
-  const preselectedState =
-    route?.params?.preselectedState;
+  const preselectedState = route?.params?.preselectedState;
 
   const allowLeaveRef = useRef(false);
 
   useEffect(() => {
     if (!preselectedState) return;
-
     setState(String(preselectedState));
   }, [preselectedState]);
 
   useEffect(() => {
     if (!autoOpen) return;
-
     setTimeout(() => setStateModal(true), 80);
-
-    navigation.setParams({
-      autoOpen: undefined,
-    });
+    navigation.setParams({ autoOpen: undefined });
   }, [autoOpen, navigation]);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener(
-      'beforeRemove',
-      (e) => {
-        if (allowLeaveRef.current) return;
-
-        const targetRoute =
-          e.data.action.payload?.name;
-
-        if (targetRoute === 'DistrictSelect')
-          return;
-
-        e.preventDefault();
-      }
-    );
-
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (allowLeaveRef.current) return;
+      const targetRoute = e.data.action.payload?.name;
+      if (targetRoute === 'DistrictSelect') return;
+      e.preventDefault();
+    });
     return unsubscribe;
   }, [navigation]);
 
@@ -247,14 +214,9 @@ export default function StateSelectScreen({
 
   const handleNext = async () => {
     if (!state) {
-      showPopup(
-        'Please select your state to continue.',
-        'error'
-      );
-
+      showPopup('Please select your state to continue.', 'error');
       return;
     }
-
     try {
       navigation.replace('DistrictSelect', {
         selectedState: state,
@@ -268,24 +230,16 @@ export default function StateSelectScreen({
 
   const handleStateSelect = (selectedState) => {
     setState(selectedState);
-
-    
   };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : undefined
-      }
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.root}>
         <View style={[styles.glow, styles.glowTop]} />
-        <View
-          style={[styles.glow, styles.glowBottom]}
-        />
+        <View style={[styles.glow, styles.glowBottom]} />
 
         <ScrollView
           contentContainerStyle={styles.formScroll}
@@ -296,36 +250,13 @@ export default function StateSelectScreen({
           <View style={styles.formContainer}>
             {/* Back Button */}
             <TouchableOpacity
-              style={[
-                styles.closeButton,
-                {
-                  width: 'auto',
-                  paddingHorizontal: 10,
-                },
-              ]}
+              style={[styles.closeButton, { width: 'auto', paddingHorizontal: 10 }]}
               onPress={handleClose}
               activeOpacity={0.7}
             >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                <Ionicons
-                  name="arrow-back-outline"
-                  size={18}
-                  color="#94a3b8"
-                />
-
-                <Text
-                  style={{
-                    color: '#94a3b8',
-                    fontWeight: '800',
-                    fontSize: 13,
-                  }}
-                >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="arrow-back-outline" size={18} color="#8a8078" />
+                <Text style={{ color: '#8a8078', fontWeight: '800', fontSize: 13 }}>
                   Back
                 </Text>
               </View>
@@ -333,47 +264,16 @@ export default function StateSelectScreen({
 
             <View style={styles.topAccent} />
 
-            <View style={styles.logoCircle}>
-              <Ionicons
-                name="location-outline"
-                size={24}
-                color="#faf5ff"
-              />
-            </View>
-
-            <Text style={styles.brandName}>
-              RTI News
-            </Text>
-
+            {/* Header — only label + title, no logo/icon/subtitle */}
             <View style={styles.headerBlock}>
-              <View style={styles.formIconWrap}>
-                <Ionicons
-                  name="map-outline"
-                  size={18}
-                  color="#c4b5fd"
-                />
-              </View>
-
-              <Text style={styles.welcomeBack}>
-                Setup Location
-              </Text>
-
-              <Text style={styles.formTitle}>
-                Select Your State
-              </Text>
-
-              <Text style={styles.formSubtitle}>
-                Choose your state to continue
-              </Text>
+              <Text style={styles.welcomeBack}>Setup Location</Text>
+              <Text style={styles.formTitle}>Select Your State</Text>
             </View>
 
             {/* State Dropdown */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
-                State{' '}
-                <Text style={styles.required}>
-                  *
-                </Text>
+                State <Text style={styles.required}>*</Text>
               </Text>
 
               <TouchableOpacity
@@ -381,45 +281,29 @@ export default function StateSelectScreen({
                 onPress={() => setStateModal(true)}
                 activeOpacity={0.8}
               >
-                <Ionicons
-                  name="location-outline"
-                  size={18}
-                  color="#a78bfa"
-                />
+                <Ionicons name="location-outline" size={16} color="#a09890" />
 
                 <Text
                   style={[
                     styles.input,
-                    !state && {
-                      color: '#64748b',
-                    },
+                    !state && { color: '#b0a898' },
                   ]}
                 >
                   {state || 'Select your state'}
                 </Text>
 
-                <Ionicons
-                  name="chevron-down-outline"
-                  size={18}
-                  color="#a78bfa"
-                />
+                <Ionicons name="chevron-down-outline" size={16} color="#a09890" />
               </TouchableOpacity>
             </View>
 
             {/* Next Button */}
             <TouchableOpacity
-              style={styles.submitBtn}
+              style={[styles.submitBtn, !state && styles.submitBtnDisabled]}
               onPress={handleNext}
+              disabled={!state}
             >
-              <Text style={styles.submitBtnText}>
-                Next
-              </Text>
-
-              <Ionicons
-                name="arrow-forward"
-                size={18}
-                color="#ffffff"
-              />
+              <Text style={styles.submitBtnText}>Next</Text>
+              <Ionicons name="arrow-forward" size={18} color="#ffffff" />
             </TouchableOpacity>
           </View>
         </ScrollView>

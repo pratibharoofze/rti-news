@@ -26,7 +26,7 @@ const { width: SW } = Dimensions.get('window');
 
 // ── Redirect Options ───────────────────────────────────────────────────────────
 const REDIRECT_OPTIONS = [
-  { id: 'profile',   title: 'My Shuru Profile',   desc: 'Users will directly reach your profile on clicking',  icon: 'person-circle-outline', extra: null },
+  { id: 'profile',   title: 'My RTI Profile',   desc: 'Users will directly reach your profile on clicking',  icon: 'person-circle-outline', extra: null },
   { id: 'website',   title: 'My Website',          desc: 'Users will be directly sent to your website',         icon: 'globe-outline',         extra: 'website_url' },
   { id: 'shop',      title: 'My Shop',             desc: 'Users will be directly sent to your online shop',     icon: 'storefront-outline',    extra: 'shop_url' },
   { id: 'lead_form', title: 'Lead Form',           desc: 'Users can fill out a form you created',               icon: 'document-text-outline', extra: null },

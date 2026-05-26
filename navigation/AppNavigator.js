@@ -1,0 +1,172 @@
+import React, { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import HomeScreen from '../screens/HomeScreen';
+import AboutScreen from '../screens/AboutScreen';
+import ContactScreen from '../screens/ContactScreen';
+import WhatIsRTIScreen from '../screens/WhatIsRTIScreen';
+import ImportantLawsScreen from '../screens/ImportantLawsScreen';
+import NewsDetailsScreen from '../screens/NewsDetailsScreen';
+import FeedScreen from '../screens/FeedScreen';
+import LoginScreen from '../auth/LoginScreen';
+import RegisterScreen from '../auth/RegisterScreen';
+import StateSelectScreen from '../auth/StateSelectScreen';
+import DistrictSelectScreen from '../auth/DistrictSelectScreen';
+import TalukaSelectScreen from '../auth/TalukaSelectScreen';
+import ForgotPasswordScreen from '../auth/ForgotPasswordScreen';
+import OtpScreen from '../auth/OtpScreen';
+import ResetPasswordScreen from '../auth/ResetPasswordScreen';
+// import DashboardScreen from '../pages/DashboardScreen';
+import ProfileScreen from '../pages/ProfileScreen';
+import MyNetworkScreen from '../pages/MyNetworkScreen';
+import WalletScreen from '../pages/WalletScreen';
+import WithdrawScreen from '../pages/WithdrawScreen';
+import SubscriptionPlansScreen from '../pages/SubscriptionPlansScreen';
+import NewsFeedScreen from '../pages/NewsFeedScreen';
+import AddNewsScreen from '../pages/Addnewsscreen';
+import EPaperScreen from '../pages/EPaperScreen';
+import LiveStreamingScreen from '../pages/LiveStreamingScreen';
+import LiveBroadcastScreen from '../pages/LiveBroadcastScreen';
+import CertificationScreen from '../pages/CertificationScreen';
+import NotificationsScreen from '../pages/NotificationsScreen';
+import SettingsScreen from '../pages/SettingsScreen';
+import ViewMemberScreen from '../pages/ViewMemberScreen';
+import EditMemberScreen from '../pages/EditMemberScreen';
+import PaymentScreen from '../pages/PaymentScreen';
+import AttemptQuizScreen from '../pages/AttemptQuizScreen';
+import QuizResultScreen from '../pages/QuizResultScreen';
+import CertificatePreviewScreen from '../pages/CertificatePreviewScreen';
+import UserPublicProfileScreen from '../pages/UserPublicProfileScreen';
+import QuickMenuScreen from '../screens/QuickMenuScreen';
+import ReferScreen from '../screens/ReferScreen';
+import ChangeLocationScreen from '../screens/ChangeLocationScreen';
+import AdvertiseScreen from '../screens/AdvertiseScreen';
+import ChoosePlanScreen from '../screens/ChoosePlanScreen';
+import PurchaseBlueTickScreen from '../screens/PurchaseBlueTickScreen';
+import CommerceAdsCenterScreen from '../pages/CommerceAdsCenterScreen';
+import FarmingScreen from '../screens/FarmingScreen';
+import SellScreen from '../screens/SellScreen';
+
+const Stack = createNativeStackNavigator();
+const NAVIGATION_STATE_KEY = 'rti-news-navigation-state';
+
+async function readPersistedNavigationState() {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      const raw = window.localStorage.getItem(NAVIGATION_STATE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }
+
+    const raw = await AsyncStorage.getItem(NAVIGATION_STATE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function persistNavigationState(state) {
+  try {
+    const serialized = JSON.stringify(state);
+
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined' || !window.localStorage) return;
+      window.localStorage.setItem(NAVIGATION_STATE_KEY, serialized);
+      return;
+    }
+
+    await AsyncStorage.setItem(NAVIGATION_STATE_KEY, serialized);
+  } catch {
+    // Ignore persistence failures so navigation keeps working.
+  }
+}
+
+export default function AppNavigator() {
+  const [initialState, setInitialState] = useState();
+  const [isNavStateReady, setIsNavStateReady] = useState(false);
+
+  // Render screens via an array so we don't accidentally render raw text nodes
+  // between JSX children (can trigger: "Text strings must be rendered within a <Text> component").
+  const stackScreens = [
+    { name: 'Home', component: HomeScreen },
+    { name: 'About', component: AboutScreen },
+    { name: 'Contact', component: ContactScreen },
+    { name: 'WhatIsRTI', component: WhatIsRTIScreen },
+    { name: 'ImportantLaws', component: ImportantLawsScreen },
+    { name: 'NewsDetails', component: NewsDetailsScreen },
+    { name: 'Feed', component: FeedScreen },
+    { name: 'Login', component: LoginScreen },
+    { name: 'Register', component: RegisterScreen },
+    { name: 'StateSelect', component: StateSelectScreen },
+    { name: 'DistrictSelect', component: DistrictSelectScreen },
+    { name: 'TalukaSelect', component: TalukaSelectScreen },
+    { name: 'ForgotPassword', component: ForgotPasswordScreen },
+    { name: 'Otp', component: OtpScreen },
+    { name: 'ResetPassword', component: ResetPasswordScreen },
+    // { name: 'Dashboard', component: DashboardScreen },
+    { name: 'Profile', component: ProfileScreen },
+    { name: 'My Network', component: MyNetworkScreen },
+    { name: 'Wallet', component: WalletScreen },
+    { name: 'Withdraw', component: WithdrawScreen },
+    { name: 'Subscription Plans', component: SubscriptionPlansScreen },
+    { name: 'News Feed', component: NewsFeedScreen },
+    { name: 'Add News', component: AddNewsScreen },
+    { name: 'e-Paper', component: EPaperScreen },
+    { name: 'Live Streaming', component: LiveStreamingScreen },
+    { name: 'Start Live', component: LiveBroadcastScreen },
+    { name: 'Certification', component: CertificationScreen },
+    { name: 'Notifications', component: NotificationsScreen },
+    { name: 'Settings', component: SettingsScreen },
+    { name: 'ViewMember', component: ViewMemberScreen },
+    { name: 'EditMember', component: EditMemberScreen },
+    { name: 'UserProfile', component: UserPublicProfileScreen },
+    { name: 'UserPublicProfile', component: UserPublicProfileScreen },
+    { name: 'Payment', component: PaymentScreen },
+    { name: 'AttemptQuiz', component: AttemptQuizScreen },
+    { name: 'QuizResult', component: QuizResultScreen },
+    { name: 'CertificatePreview', component: CertificatePreviewScreen },
+    { name: 'QuickMenu', component: QuickMenuScreen },
+    { name: 'Refer', component: ReferScreen },
+    { name: 'ChangeLocation', component: ChangeLocationScreen },
+    { name: 'Advertise', component: AdvertiseScreen },
+    { name: 'ChoosePlan', component: ChoosePlanScreen },
+    { name: 'PurchaseBlueTick', component: PurchaseBlueTickScreen },
+    { name: 'CommerceAdsCenter', component: CommerceAdsCenterScreen },
+    { name: 'Farming', component: FarmingScreen },
+    { name: 'Sell', component: SellScreen },
+  ];
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      const savedState = await readPersistedNavigationState();
+      if (!alive) return;
+      if (savedState) {
+        setInitialState(savedState);
+      }
+      setIsNavStateReady(true);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!isNavStateReady) {
+    return null;
+  }
+
+  return (
+    <NavigationContainer initialState={initialState} onStateChange={persistNavigationState}>
+      <Stack.Navigator initialRouteName="Home" screenOptions={{ headerShown: false }}>
+        {stackScreens.map(({ name, component }) => (
+          <Stack.Screen key={name} name={name} component={component} />
+        ))}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

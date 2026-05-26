@@ -1,0 +1,684 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Modal, Platform, ScrollView, StyleSheet, Text,
+  TextInput, TouchableOpacity, View, useWindowDimensions,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import AppNavbar from '../components/AppNavbar';
+import AppFooter from '../components/AppFooter';
+import WebLayout from '../components/WebLayout';
+import { UserStore } from '../store/UserStore';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useToast } from '../components/ui/ToastProvider';
+import { getSiteCopy } from '../constants/siteCopy';
+import { IS_WEB, DEMO_STORIES, FEATURED_STATE_OPTIONS } from '../constants/homeData';
+import {
+  normalizeStoryItem, dedupeStories, storyMatchesMenu,
+  buildHomeStateFromParams, buildPanelContent, buildStateDistrictList, ensureStoryCount,
+} from '../utils/storyHelpers';
+import { getResponsiveWindowWidth, isMobileWebDevice } from '../utils/webDevice';
+import NewsFeedCard from '../components/NewsFeedCard';
+import NewsMenuSidebar from '../components/NewsMenuSidebar';
+import StateDirectorySection from '../components/StateDirectorySection';
+import RightUtilityPanel from '../components/RightUtilityPanel';
+import MarqueeMenuBar from '../components/MarqueeMenuBar';
+
+const DESKTOP_STICKY_TOP_OFFSET = 0;
+
+const PINK = '#FF2D78';
+const PINK_LIGHT = '#fff5f9';
+const PINK_BORDER = '#ffe0ed';
+const PINK_MUTED = '#fdf2f7';
+
+const SUBSCRIPTION_PLANS = [
+  {
+    plan_id: 'plan-basic',
+    plan_name: 'Basic Access',
+    price: 199,
+    duration: '30 Days',
+    label: 'Starter',
+    features: ['News Feed', 'e-Paper', 'Notifications'],
+    accentColor: '#14b87a',
+    accentLight: '#e6faf3',
+    dotColor: '#14b87a',
+    popular: false,
+  },
+  {
+    plan_id: 'plan-pro',
+    plan_name: 'Pro Access',
+    price: 499,
+    duration: '90 Days',
+    label: 'Most Popular',
+    features: ['News Feed', 'e-Paper', 'Live Streaming', 'Wallet', 'Certification'],
+    accentColor: PINK,
+    accentLight: PINK_LIGHT,
+    dotColor: PINK,
+    popular: true,
+  },
+  {
+    plan_id: 'plan-premium',
+    plan_name: 'Premium Access',
+    price: 899,
+    duration: '180 Days',
+    label: 'Best Value',
+    features: ['All Features', 'Priority Support', 'Certificate Download', 'Referral Bonus'],
+    accentColor: '#8b5cf6',
+    accentLight: '#f5f3ff',
+    dotColor: '#8b5cf6',
+    popular: false,
+  },
+];
+
+function SeatSelectModal({ visible, stateName, seats, selectedSeatId, onSelectSeatId, onCancel, onConfirm }) {
+  const baseSeats = Array.isArray(seats) ? seats.slice(0, 5) : [];
+  const commonSeat = { id: 'seat-common', name: 'Common Seat', status: 'available' };
+  const seatsToShow = [...baseSeats, commonSeat];
+  const isLoadingSeats = baseSeats.length === 0;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
+      <TouchableOpacity
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
+        activeOpacity={1}
+        onPress={onCancel}
+      />
+      <View style={seatStyles.sheet}>
+        <View style={seatStyles.handle} />
+        <Text style={seatStyles.title}>Select your seat</Text>
+        <View style={seatStyles.stateRow}>
+          <View style={seatStyles.stateDot} />
+          <Text style={seatStyles.subtitle}>{stateName || '-'}</Text>
+        </View>
+        <View style={{ marginTop: 14, gap: 8 }}>
+          {isLoadingSeats && baseSeats.length === 0 ? (
+            <Text style={seatStyles.loadingText}>Loading seats…</Text>
+          ) : null}
+          {seatsToShow.map((seat) => {
+            const isTaken = seat.status === 'taken';
+            const isDisabled = seat.status === 'disabled';
+            const isSelected = selectedSeatId === seat.id;
+            const isCommon = seat.id === 'seat-common';
+            const disabled = isTaken || isDisabled;
+            return (
+              <TouchableOpacity
+                key={seat.id}
+                activeOpacity={0.85}
+                disabled={disabled}
+                onPress={() => onSelectSeatId(seat.id)}
+                style={[
+                  seatStyles.seatCard,
+                  isSelected && seatStyles.seatCardSelected,
+                  disabled && seatStyles.seatCardDisabled,
+                  isCommon && seatStyles.seatCardCommon,
+                ]}
+              >
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={[
+                    seatStyles.seatName,
+                    disabled && seatStyles.seatNameDisabled,
+                    isCommon && seatStyles.seatNameCommon,
+                  ]}>
+                    {seat.name}
+                  </Text>
+                  <Text style={[
+                    seatStyles.seatStatus,
+                    (isTaken || isDisabled) && seatStyles.seatStatusMuted,
+                  ]}>
+                    {isTaken ? 'Taken' : isDisabled ? 'Select state first' : 'Available'}
+                  </Text>
+                </View>
+                {isSelected ? (
+                  <View style={seatStyles.checkCircle}>
+                    <Ionicons name="checkmark" size={13} color="#fff" />
+                  </View>
+                ) : (
+                  <View style={seatStyles.checkCircleEmpty} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <View style={{ marginTop: 16, flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity style={seatStyles.cancelBtn} onPress={onCancel} activeOpacity={0.85}>
+            <Text style={seatStyles.cancelBtnText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[seatStyles.confirmBtn, !selectedSeatId && seatStyles.confirmBtnDisabled]}
+            onPress={onConfirm}
+            activeOpacity={0.85}
+            disabled={!selectedSeatId || isLoadingSeats}
+          >
+            <Text style={[seatStyles.confirmBtnText, !selectedSeatId && seatStyles.confirmBtnTextDisabled]}>
+              Pay now
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const seatStyles = StyleSheet.create({
+  sheet: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 18,
+    paddingBottom: 28,
+  },
+  handle: { width: 36, height: 4, backgroundColor: PINK_BORDER, borderRadius: 99, alignSelf: 'center', marginBottom: 18 },
+  title: { fontSize: 15, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
+  stateRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stateDot: { width: 7, height: 7, borderRadius: 99, backgroundColor: PINK },
+  subtitle: { fontSize: 12, color: '#b0b8cc', fontWeight: '500' },
+  loadingText: { fontSize: 12, color: '#b0b8cc', fontWeight: '500', paddingVertical: 10 },
+  seatCard: { borderWidth: 1.5, borderColor: '#f0f2f7', backgroundColor: '#fff', borderRadius: 16, padding: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  seatCardSelected: { borderColor: PINK, backgroundColor: PINK_LIGHT },
+  seatCardDisabled: { borderColor: '#f5f5f5', backgroundColor: '#fafafa' },
+  seatCardCommon: { borderColor: PINK_BORDER, backgroundColor: PINK_MUTED },
+  seatName: { fontSize: 13, fontWeight: '600', color: '#0f172a' },
+  seatNameDisabled: { color: '#b0b8cc' },
+  seatNameCommon: { color: PINK },
+  seatStatus: { marginTop: 3, fontSize: 11, fontWeight: '500', color: PINK },
+  seatStatusMuted: { color: '#b0b8cc' },
+  checkCircle: { width: 22, height: 22, borderRadius: 99, backgroundColor: PINK, alignItems: 'center', justifyContent: 'center' },
+  checkCircleEmpty: { width: 22, height: 22, borderRadius: 99, borderWidth: 1.5, borderColor: '#e2e8f0' },
+  cancelBtn: { flex: 1, borderWidth: 1.5, borderColor: '#f0f2f7', backgroundColor: '#fff', borderRadius: 16, paddingVertical: 13, alignItems: 'center' },
+  cancelBtnText: { color: '#0f172a', fontWeight: '600', fontSize: 13 },
+  confirmBtn: { flex: 1, borderRadius: 16, paddingVertical: 13, alignItems: 'center', backgroundColor: PINK },
+  confirmBtnDisabled: { backgroundColor: '#f0f2f7' },
+  confirmBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  confirmBtnTextDisabled: { color: '#b0b8cc' },
+});
+
+function SubscriptionModal({ visible, pendingPlan, onPlanPress, onClose }) {
+  if (!visible) return null;
+  return (
+    <View style={subStyles.overlay}>
+      <View style={subStyles.modalContent}>
+        <View style={subStyles.crownCircle}>
+          <Ionicons name="star" size={22} color={PINK} />
+        </View>
+        <Text style={subStyles.modalTitle}>Choose your plan</Text>
+        <Text style={subStyles.modalSubtitle}>Unlock everything with one tap</Text>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380, marginTop: 16 }}>
+          {SUBSCRIPTION_PLANS.map((plan) => {
+            const isActive = pendingPlan?.plan_id === plan.plan_id;
+            return (
+              <TouchableOpacity
+                key={plan.plan_id}
+                style={[subStyles.planCard, isActive && { borderColor: plan.accentColor, backgroundColor: plan.accentLight }]}
+                onPress={() => onPlanPress(plan)}
+                activeOpacity={0.85}
+              >
+                <View style={[subStyles.badge, { backgroundColor: plan.accentLight }]}>
+                  <Text style={[subStyles.badgeText, { color: plan.accentColor }]}>{plan.label}</Text>
+                </View>
+                <View style={subStyles.planHeader}>
+                  <View>
+                    <Text style={[subStyles.planName, { color: plan.accentColor }]}>{plan.plan_name}</Text>
+                    <Text style={subStyles.planDuration}>{plan.duration}</Text>
+                  </View>
+                  <Text style={subStyles.planPrice}>₹{plan.price}</Text>
+                </View>
+                <View style={subStyles.divider} />
+                <View style={subStyles.featureRow}>
+                  {plan.features.map((feature, idx) => (
+                    <View key={idx} style={subStyles.featureItem}>
+                      <View style={[subStyles.featureDot, { backgroundColor: plan.dotColor }]} />
+                      <Text style={subStyles.featureText}>{feature}</Text>
+                    </View>
+                  ))}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        <TouchableOpacity style={subStyles.closeBtn} onPress={onClose} activeOpacity={0.8}>
+          <Text style={subStyles.closeBtnText}>Maybe later</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const subStyles = StyleSheet.create({
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: 20 },
+  modalContent: { backgroundColor: '#fff', borderRadius: 28, padding: 22, width: '100%', maxWidth: 400, alignItems: 'center' },
+  crownCircle: { width: 48, height: 48, borderRadius: 99, backgroundColor: PINK_MUTED, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
+  modalSubtitle: { fontSize: 12, color: '#b0b8cc', textAlign: 'center' },
+  planCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: PINK_BORDER, width: '100%' },
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, marginBottom: 8 },
+  badgeText: { fontSize: 10, fontWeight: '600', letterSpacing: 0.3 },
+  planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  planName: { fontSize: 15, fontWeight: '700' },
+  planDuration: { fontSize: 11, color: '#b0b8cc', marginTop: 2 },
+  planPrice: { fontSize: 22, fontWeight: '700', color: '#0f172a' },
+  divider: { height: 1, backgroundColor: PINK_BORDER, marginBottom: 10 },
+  featureRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  featureItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  featureDot: { width: 6, height: 6, borderRadius: 99 },
+  featureText: { fontSize: 11, color: '#64748b' },
+  closeBtn: { width: '100%', marginTop: 12, paddingVertical: 14, borderRadius: 18, backgroundColor: PINK_MUTED, alignItems: 'center' },
+  closeBtnText: { fontSize: 13, fontWeight: '600', color: PINK },
+});
+
+// ── Main HomeScreen ───────────────────────────────────────────────────────────
+export default function HomeScreen({ navigation, route }) {
+  const { language } = useLanguage();
+  const { showToast, showPopup } = useToast();
+  const copy = useMemo(() => getSiteCopy(language), [language]);
+  const commonCopy = copy.common;
+  const homeCopy = copy.home;
+  const { width } = useWindowDimensions();
+  const responsiveWidth = getResponsiveWindowWidth(width);
+  const isMobileDeviceWeb = isMobileWebDevice();
+  const isDesktopRailLayout = IS_WEB && !isMobileDeviceWeb && responsiveWidth >= 1180;
+  const isCompactLayout = !isDesktopRailLayout;
+  const isMobileLayout = !IS_WEB || isMobileDeviceWeb || responsiveWidth < 768;
+
+  const routeInitialView = route?.params?.initialView;
+  const routeInitialMenuKey = route?.params?.initialMenuKey;
+  const routeInitialStateName = route?.params?.initialStateName;
+
+  const fromRegistration = Boolean(route?.params?.fromRegistration);
+  const registrationJustCompleted = Boolean(route?.params?.registrationJustCompleted);
+
+  const handledRegistrationToastRef = useRef(false);
+  const handledSubscriptionModalRef = useRef(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [seatModalOpen, setSeatModalOpen] = useState(false);
+  const [seatSummary, setSeatSummary] = useState(null);
+  const [selectedSeatId, setSelectedSeatId] = useState('');
+  const [pendingPlan, setPendingPlan] = useState(null);
+
+  const initialHomeState = buildHomeStateFromParams(route?.params);
+  const [viewMode, setViewMode] = useState(initialHomeState.nextViewMode);
+  const [selectedMenuKey, setSelectedMenuKey] = useState(initialHomeState.nextMenuKey);
+  const [selectedStateName, setSelectedStateName] = useState(initialHomeState.nextStateName);
+  const [selectedDistrictName, setSelectedDistrictName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [liveStories, setLiveStories] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const nextHomeState = buildHomeStateFromParams({
+      initialView: routeInitialView,
+      initialMenuKey: routeInitialMenuKey,
+      initialStateName: routeInitialStateName,
+    });
+    setViewMode(nextHomeState.nextViewMode);
+    setSelectedMenuKey(nextHomeState.nextMenuKey);
+    setSelectedStateName(nextHomeState.nextStateName);
+    setSelectedDistrictName('');
+    setSearchQuery('');
+  }, [routeInitialView, routeInitialMenuKey, routeInitialStateName]);
+
+  const loadNewsStories = useCallback(async () => {
+    try {
+      const summary = await UserStore.getNewsFeedSummary();
+      const fetchedStories = Array.isArray(summary?.items)
+        ? summary.items.map((item, index) => normalizeStoryItem(item, index)).filter(Boolean)
+        : [];
+      setLiveStories(fetchedStories);
+    } catch { setLiveStories([]); }
+  }, []);
+
+  const loadCurrentUser = useCallback(async () => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      setCurrentUser(user || null);
+    } catch { setCurrentUser(null); }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    let mounted = true;
+    (async () => {
+      await loadNewsStories();
+      await loadCurrentUser();
+      if (!mounted) return;
+      try {
+        const seats = await UserStore.getStateSeatSummary();
+        if (mounted) {
+          setSeatSummary(seats || null);
+          const seatId = seats?.current_seat?.seat_id || '';
+          setSelectedSeatId((prev) => prev || seatId);
+        }
+      } catch { }
+      if (registrationJustCompleted && !handledRegistrationToastRef.current) {
+        handledRegistrationToastRef.current = true;
+        showToast('Registration successful! Welcome 🎉', 'success');
+      }
+      if (fromRegistration && !handledSubscriptionModalRef.current) {
+        handledSubscriptionModalRef.current = true;
+        setTimeout(() => setShowSubscriptionModal(true), 1000);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [fromRegistration, loadCurrentUser, loadNewsStories, registrationJustCompleted, showToast]));
+
+  const handlePlanPress = (plan) => {
+    setPendingPlan(plan);
+    const stateName = seatSummary?.state || currentUser?.state || '';
+    if (!stateName) {
+      showPopup('Please select your state first.', 'error', {
+        primaryLabel: 'Open',
+        secondaryLabel: 'Cancel',
+        onPrimaryPress: () => navigation.navigate('StateSelect', { fromPremium: true, autoOpen: true }),
+      });
+      return;
+    }
+    const existingSeatId = seatSummary?.current_seat?.seat_id || '';
+    if (existingSeatId) {
+      setSelectedSeatId(existingSeatId);
+      handleDirectSubscribe(plan, existingSeatId);
+      return;
+    }
+    setSeatModalOpen(true);
+  };
+
+  const handleDirectSubscribe = async (plan, seatId) => {
+    try {
+      await UserStore.saveSubscription({
+        plan_id: plan.plan_id, plan_name: plan.plan_name,
+        seat_id: seatId, price: plan.price, duration: plan.duration,
+      });
+      setCurrentUser((prev) => ({ ...prev, subscription_type: plan.plan_id.replace('plan-', ''), subscription_active: true }));
+      setShowSubscriptionModal(false);
+      setPendingPlan(null);
+      showToast(`${plan.plan_name} Subscription Successful! 🎉`, 'success');
+    } catch (err) {
+      console.error('Subscription save failed:', err);
+      showToast('Something went wrong. Please try again.', 'error');
+    }
+  };
+
+  const handleSeatConfirm = async () => {
+    if (!pendingPlan || !selectedSeatId) return;
+    try {
+      await UserStore.saveSelectedSeat(selectedSeatId);
+      await UserStore.saveSubscription({
+        plan_id: pendingPlan.plan_id, plan_name: pendingPlan.plan_name,
+        seat_id: selectedSeatId, price: pendingPlan.price, duration: pendingPlan.duration,
+      });
+      setCurrentUser((prev) => ({ ...prev, subscription_type: pendingPlan.plan_id.replace('plan-', ''), subscription_active: true }));
+      setSeatModalOpen(false);
+      setShowSubscriptionModal(false);
+      setPendingPlan(null);
+      showToast(`${pendingPlan.plan_name} Subscription Successful! 🎉`, 'success');
+    } catch (err) {
+      console.error('Subscription save failed:', err);
+      showToast('Something went wrong. Please try again.', 'error');
+    }
+  };
+
+  const allStories = useMemo(() => {
+    const manualStories = DEMO_STORIES.map((item, index) => normalizeStoryItem(item, index)).filter(Boolean);
+    return dedupeStories([...liveStories, ...manualStories]);
+  }, [liveStories]);
+
+  const visibleStories = useMemo(() => {
+    if (viewMode === 'states') return [];
+    let scopedStories = allStories.filter((story) => storyMatchesMenu(story, selectedMenuKey));
+    if (selectedStateName) {
+      scopedStories = scopedStories.filter((story) => String(story.state || '').toLowerCase() === selectedStateName.toLowerCase());
+    }
+    const q = String(searchQuery || '').trim().toLowerCase();
+    if (q) {
+      scopedStories = scopedStories.filter((story) =>
+        [story.title, story.excerpt, story.description, story.category, story.state, story.district, story.author_name].join(' ').toLowerCase().includes(q)
+      );
+    }
+    return ensureStoryCount(scopedStories, { selectedMenuKey, selectedStateName });
+  }, [allStories, searchQuery, selectedMenuKey, selectedStateName, viewMode]);
+
+  const stateDistrictOptions = useMemo(() => buildStateDistrictList(allStories, selectedStateName), [allStories, selectedStateName]);
+
+  const panelContent = useMemo(() => buildPanelContent({
+    viewMode, selectedMenuKey, selectedStateName,
+    districtCount: stateDistrictOptions.length, commonCopy, homeCopy,
+  }), [commonCopy, homeCopy, selectedMenuKey, selectedStateName, stateDistrictOptions.length, viewMode]);
+
+  const utilityLocationOptions = useMemo(() => {
+    if (selectedStateName) return stateDistrictOptions;
+    if (viewMode === 'states' || selectedMenuKey === 'states') return FEATURED_STATE_OPTIONS;
+    return [];
+  }, [selectedMenuKey, selectedStateName, stateDistrictOptions, viewMode]);
+
+  const handleMenuSelection = useCallback((menuKey) => {
+    setSearchQuery(''); setSelectedDistrictName('');
+    if (menuKey === 'states') { setViewMode('states'); setSelectedMenuKey('states'); setSelectedStateName(''); return; }
+    setViewMode('feed'); setSelectedMenuKey(menuKey); setSelectedStateName('');
+  }, []);
+
+  const handleStateSelection = useCallback((stateName) => {
+    setSearchQuery(''); setViewMode('feed');
+    setSelectedMenuKey((k) => (k === 'states' ? 'latest' : k));
+    setSelectedStateName(stateName); setSelectedDistrictName('');
+  }, []);
+
+  const handleDistrictSelection = useCallback((districtName) => { setSelectedDistrictName(districtName); }, []);
+
+  const handleOpenDetails = useCallback(async (story) => {
+    if (!story) return;
+    try { if (story.id) await UserStore.updateNewsFeedItem(story.id, 'view'); } catch { }
+    navigation?.navigate?.('NewsDetails', { article: story });
+  }, [navigation]);
+
+  const handleOpenLocation = useCallback((stateName) => {
+    if (!stateName) return;
+    setSearchQuery(''); setViewMode('feed'); setSelectedMenuKey('latest'); setSelectedStateName(stateName); setSelectedDistrictName('');
+  }, []);
+
+  const handleOpenCategory = useCallback((story) => {
+    const menuTag = (story?.menuTags || []).find((tag) => tag !== 'latest');
+    if (!menuTag) return;
+    setSearchQuery(''); setViewMode('feed'); setSelectedStateName(''); setSelectedDistrictName(''); setSelectedMenuKey(menuTag);
+  }, []);
+
+  const handleOpenAuthorProfile = useCallback((story) => {
+    if (!story) return;
+    const fallbackAuthor = {
+      name: story.author_name || '', author_profile_image: story.author_profile_image || '',
+      author_seat_name: story.author_seat_name || '', author_role_label: story.author_role_label || '',
+      author_has_blue_tick: Boolean(story.author_has_blue_tick),
+      author_is_premium: Boolean(story.author_is_premium),
+    };
+    if (!story.createdBy && !fallbackAuthor.name) return;
+    navigation?.navigate?.('UserProfile', { email: story.createdBy || '', author: fallbackAuthor });
+  }, [navigation]);
+
+  const renderSearchField = viewMode === 'states' ? null : (
+    <View style={[styles.sectionSearchRow, isCompactLayout && styles.sectionSearchRowCompact]}>
+      <View style={styles.sectionSearchField}>
+        <Ionicons name="search-outline" size={18} color="#94a3b8" />
+        <TextInput
+          value={searchQuery} onChangeText={setSearchQuery}
+          placeholder={homeCopy.searchFeedPlaceholder} placeholderTextColor="#94a3b8"
+          style={styles.sectionSearchInput}
+        />
+      </View>
+      {(selectedStateName || selectedMenuKey !== 'latest') ? (
+        <TouchableOpacity
+          style={styles.sectionResetButton}
+          onPress={() => { setViewMode('feed'); setSelectedMenuKey('latest'); setSelectedStateName(''); setSelectedDistrictName(''); setSearchQuery(''); }}
+          activeOpacity={0.84}
+        >
+          <Ionicons name="refresh-outline" size={16} color="#f97316" />
+          <Text style={styles.sectionResetButtonText}>{homeCopy.resetFeed}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+
+  const utilityPanel = (
+    <RightUtilityPanel
+      navigation={navigation} panelContent={panelContent}
+      selectedStateName={selectedStateName} selectedDistrictName={selectedDistrictName}
+      locationOptions={utilityLocationOptions}
+      onSelectState={handleStateSelection} onSelectDistrict={handleDistrictSelection}
+      isCompactLayout={isCompactLayout} commonCopy={commonCopy} homeCopy={homeCopy}
+    />
+  );
+
+  const shouldShowRightRail = viewMode !== 'states';
+
+  const pageContent = (
+    <>
+      <View style={styles.pageBodyShell}>
+
+        {/* ✅ FULL WIDTH MARQUEE — search bar ke niche, sidebar ke upar, sirf web desktop pe */}
+        {IS_WEB && !isMobileDeviceWeb && viewMode !== 'states' && (
+          <View style={styles.marqueeFullWidthWrapper}>
+            <MarqueeMenuBar
+              activeMenuKey={selectedMenuKey}
+              onSelectMenu={handleMenuSelection}
+              commonCopy={commonCopy}
+            />
+          </View>
+        )}
+
+        <View style={[styles.pageBodyInner, isCompactLayout && styles.pageBodyInnerCompact, isMobileLayout && styles.pageBodyInnerMobile]}>
+
+          {/* ✅ Left sidebar — sirf native app pe dikhao, web pe nahi */}
+          {!isMobileLayout && !IS_WEB && (
+            <View style={[styles.sidebarStickyWrapper, isCompactLayout && styles.sidebarStickyWrapperCompact]}>
+              <NewsMenuSidebar activeMenuKey={selectedMenuKey} onSelectMenu={handleMenuSelection} isCompactLayout={isCompactLayout} commonCopy={commonCopy} />
+            </View>
+          )}
+
+          <View style={[styles.workspaceShell, isCompactLayout && styles.workspaceShellCompact, isMobileLayout && styles.workspaceShellMobile]}>
+            {isCompactLayout && shouldShowRightRail && !isMobileLayout ? (
+              <View style={[styles.utilityStickyWrapper, styles.utilityStickyWrapperCompact]}>{utilityPanel}</View>
+            ) : null}
+            <View style={[styles.feedColumnShell, isCompactLayout && styles.feedColumnShellCompact, isMobileLayout && styles.feedColumnShellMobile]}>
+              <View style={[styles.feedColumn, viewMode === 'states' && styles.feedColumnStatesView, isMobileLayout && styles.feedColumnMobile]}>
+                {viewMode === 'states' ? (
+                  <StateDirectorySection
+                    stateSearchQuery={searchQuery} onSearchChange={setSearchQuery}
+                    onSelectState={handleStateSelection} isCompactLayout={isCompactLayout} homeCopy={homeCopy}
+                  />
+                ) : (
+                  <>
+                    {renderSearchField}
+                    <View style={styles.storyCardsStack}>
+                      {visibleStories.map((story) => (
+                        <NewsFeedCard
+                          key={story.id} story={story} isCompactLayout={isMobileLayout}
+                          onOpenDetails={handleOpenDetails} onOpenLocation={handleOpenLocation}
+                          onOpenCategory={handleOpenCategory} onOpenAuthorProfile={handleOpenAuthorProfile}
+                          commonCopy={commonCopy}
+                          currentUser={currentUser ? {
+                            name: currentUser.name,
+                            avatar: currentUser.profile_image,
+                            email: currentUser.email,
+                            has_blue_tick: UserStore.hasBlueTick(currentUser),
+                          } : null}
+                        />
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+            {!isCompactLayout && shouldShowRightRail ? (
+              <View style={styles.utilityStickyWrapper}>{utilityPanel}</View>
+            ) : null}
+          </View>
+        </View>
+      </View>
+      {IS_WEB ? <AppFooter navigation={navigation} /> : null}
+    </>
+  );
+
+  const page = (
+    <View style={styles.screenShell}>
+      <AppNavbar navigation={navigation} activeScreen="Home" hideBottomBar={true} />
+      <ScrollView
+        style={styles.pageScrollView}
+        contentContainerStyle={[
+          styles.pageScrollContent,
+          isMobileLayout && styles.pageScrollContentMobile,
+          isMobileLayout && styles.pageScrollContentWithMobileNav,
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {pageContent}
+      </ScrollView>
+      {isMobileLayout && (
+        <AppNavbar navigation={navigation} activeScreen="Home" hideTopHeader={true} />
+      )}
+      <SeatSelectModal
+        visible={seatModalOpen}
+        stateName={seatSummary?.state || currentUser?.state || ''}
+        seats={seatSummary?.seats || []}
+        selectedSeatId={selectedSeatId}
+        onSelectSeatId={setSelectedSeatId}
+        onCancel={() => { setSeatModalOpen(false); setPendingPlan(null); }}
+        onConfirm={handleSeatConfirm}
+      />
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        pendingPlan={pendingPlan}
+        onPlanPress={handlePlanPress}
+        onClose={() => { setShowSubscriptionModal(false); setPendingPlan(null); }}
+      />
+    </View>
+  );
+
+  return IS_WEB ? <WebLayout>{page}</WebLayout> : page;
+}
+
+const styles = StyleSheet.create({
+  screenShell: { flex: 1, backgroundColor: '#ffffff' },
+  pageScrollView: { flex: 1 },
+  pageScrollContent: { paddingTop: 8, paddingBottom: 24 },
+  pageScrollContentMobile: { paddingTop: 0 },
+  pageScrollContentWithMobileNav: { paddingBottom: 90 },
+  pageBodyShell: { paddingHorizontal: 0, paddingTop: 0, marginTop: -1, backgroundColor: '#ffffff' },
+  pageBodyInner: { maxWidth: 1360, width: '100%', alignSelf: 'center', flexDirection: 'row', alignItems: 'flex-start', gap: 0 },
+  pageBodyInnerCompact: { flexDirection: 'column' },
+  pageBodyInnerMobile: { maxWidth: '100%' },
+
+  // ✅ Full width marquee wrapper
+  marqueeFullWidthWrapper: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f2f7',
+    marginBottom: 4,
+  },
+
+  sidebarStickyWrapper: {
+    width: 252,
+    ...Platform.select({ web: { position: 'sticky', top: DESKTOP_STICKY_TOP_OFFSET, alignSelf: 'flex-start' } }),
+  },
+  sidebarStickyWrapperCompact: { width: '100%', position: 'relative' },
+  workspaceShell: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 0, paddingHorizontal: 0 },
+  workspaceShellCompact: { width: '100%', flexDirection: 'column', paddingHorizontal: 12, gap: 12 },
+  workspaceShellMobile: { paddingHorizontal: 0, gap: 0 },
+  feedColumnShell: { flex: 1, minWidth: 0, alignItems: 'center', paddingHorizontal: 12 },
+  feedColumnShellCompact: { width: '100%' },
+  feedColumnShellMobile: { paddingHorizontal: 0, alignItems: 'stretch' },
+  feedColumn: { width: '100%', minWidth: 0, maxWidth: 560, paddingBottom: 24, paddingTop: 8 },
+  feedColumnMobile: { maxWidth: '100%', paddingTop: 14 },
+  feedColumnStatesView: { maxWidth: 840 },
+
+  // ✅ Right panel thoda neeche
+  utilityStickyWrapper: {
+    width: 320,
+    ...Platform.select({ web: { position: 'sticky', top: 60, alignSelf: 'flex-start' } }),
+  },
+  utilityStickyWrapperCompact: { width: '100%', position: 'relative' },
+  sectionSearchRow: { marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  sectionSearchRowCompact: { flexDirection: 'column', alignItems: 'stretch' },
+  sectionSearchField: { flex: 1, minHeight: 42, borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbe3ee', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionSearchInput: { flex: 1, fontSize: 13, color: '#0f172a', ...Platform.select({ web: { outlineStyle: 'none' } }) },
+  sectionResetButton: { minHeight: 42, borderRadius: 18, paddingHorizontal: 14, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fdba74', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sectionResetButtonText: { color: '#f97316', fontSize: 12, fontWeight: '800' },
+  storyCardsStack: { gap: 12 },
+});

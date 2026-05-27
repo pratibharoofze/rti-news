@@ -432,7 +432,7 @@ const webStyles = StyleSheet.create({
   },
   statusTextPending: { color: '#92400e' },
   statusTextSuccess: { color: '#166534' },
-  statusTextFailed:  { color: '#FF2D78' },
+  statusTextFailed:  { color: '#F97316' },
   viewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -820,7 +820,7 @@ export default function PaymentScreen({ route, navigation }) {
   const statusIconColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'success': return '#14b87a';
-      case 'failed':  return '#FF2D78';
+      case 'failed':  return '#F97316';
       default:        return '#d97706';
     }
   };
@@ -941,7 +941,7 @@ export default function PaymentScreen({ route, navigation }) {
           <View style={S.orderCard}>
             <View style={S.orderHeader}>
               <View style={S.orderIconWrap}>
-                <Feather name="shopping-bag" size={22} color="#FF2D78" />
+                <Feather name="shopping-bag" size={22} color="#F97316" />
               </View>
               <View style={S.orderHeaderInfo}>
                 <Text style={S.orderPlanName}>
@@ -986,7 +986,7 @@ export default function PaymentScreen({ route, navigation }) {
 
             <View style={S.testHelperCard}>
               <View style={S.testHelperHeader}>
-                <Feather name="info" size={14} color="#FF2D78" />
+                <Feather name="info" size={14} color="#F97316" />
                 <Text style={S.testHelperTitle}>Payment Note</Text>
               </View>
               <Text style={S.testHelperText}>
@@ -1049,7 +1049,7 @@ export default function PaymentScreen({ route, navigation }) {
                   style={S.viewStatusBtn}
                   onPress={() => handleViewStatus(item)}
                 >
-                  <Feather name="eye" size={13} color="#FF2D78" />
+                  <Feather name="eye" size={13} color="#F97316" />
                   <Text style={S.viewStatusBtnText}>View Status</Text>
                 </TouchableOpacity>
               </View>

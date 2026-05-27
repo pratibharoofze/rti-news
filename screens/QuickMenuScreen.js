@@ -122,6 +122,9 @@ const WEB_MODULES = [
 function QuickMenuWeb({ navigation }) {
   const { logout } = useAuth();
   const [activeScreen, setActiveScreen] = React.useState('Profile');
+  const [isMobileWeb, setIsMobileWeb] = React.useState(() => {
+    return Platform.OS === 'web' && typeof window !== 'undefined' && window.innerWidth <= 760;
+  });
   const activeModule = WEB_MODULES.find((item) => item.screen === activeScreen) || WEB_MODULES[0];
   const ActiveComponent = activeModule.component || ProfileScreen;
   const embeddedNavigation = React.useMemo(() => {
@@ -165,6 +168,15 @@ function QuickMenuWeb({ navigation }) {
   };
 
   React.useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return undefined;
+    const updateLayout = () => setIsMobileWeb(window.innerWidth <= 760);
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    return () => window.removeEventListener('resize', updateLayout);
+  }, []);
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
     const id = 'qm-web-styles';
     let el = document.getElementById(id);
     if (!el) {
@@ -304,8 +316,34 @@ function QuickMenuWeb({ navigation }) {
       .qm-main > div[class^="qm-section-"] { display: none !important; }
       .qm-embedded-page { height: 100vh; overflow: auto; }
       .qm-embedded-page > div { min-height: 100%; }
+      @media (max-width: 760px) {
+        html, body, #root { overflow: auto; }
+        .qm-root { height: auto; min-height: 100vh; overflow: auto; }
+        .qm-shell { width: 100vw; height: auto; min-height: 100vh; display: block; grid-template-columns: 1fr !important; overflow: visible; border-width: 0; }
+        .qm-sidebar { display: none !important; }
+        .qm-main { height: auto !important; min-height: 100vh; overflow: auto !important; padding: 14px !important; background: #fffdfb !important; }
+        .qm-content-panel { display: none !important; }
+        .qm-main > .qm-page-header,
+        .qm-main > .qm-stats,
+        .qm-main > div[class^="qm-section-"] { display: block !important; }
+        .qm-page-header { margin: 4px 0 18px; }
+        .qm-page-title { font-size: 26px; }
+        .qm-page-sub { font-size: 13px; line-height: 18px; }
+        .qm-stats { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; margin-bottom: 18px; }
+        .qm-stat { min-height: 104px; padding: 16px 12px 12px; }
+        .qm-stat-value { font-size: 19px; line-height: 23px; }
+        .qm-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; margin-bottom: 18px; }
+        .qm-card { min-height: 92px; padding: 16px 10px 12px; }
+        .qm-card-name { font-size: 12px; line-height: 15px; overflow-wrap: anywhere; }
+        .qm-main::after { display: none; }
+      }
     `;
+    return undefined;
   }, []);
+
+  if (isMobileWeb) {
+    return <QuickMenuMobile navigation={navigation} />;
+  }
 
   return (
     <div className="qm-root">

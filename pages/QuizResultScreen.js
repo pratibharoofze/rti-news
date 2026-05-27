@@ -165,7 +165,7 @@ export default function QuizResultScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={22} color="#FF2D78" />
+          <Feather name="arrow-left" size={22} color="#F97316" />
         </TouchableOpacity>
         <Text style={QuizResultStyles.headerTitle}>Quiz Result</Text>
         <View style={QuizResultStyles.headerPlaceholder} />
@@ -187,7 +187,7 @@ export default function QuizResultScreen({ navigation, route }) {
             <Feather
               name={isPass ? 'check-circle' : 'x-circle'}
               size={28}
-              color={isPass ? '#16a34a' : '#FF2D78'}
+              color={isPass ? '#16a34a' : '#F97316'}
             />
             <Text style={[QuizResultStyles.resultText, isPass ? QuizResultStyles.passText : QuizResultStyles.failText]}>
               {result?.result_type || 'No Result'}
@@ -240,7 +240,7 @@ export default function QuizResultScreen({ navigation, route }) {
               </>
             ) : (
               <View style={QuizResultStyles.failMessageBox}>
-                <Feather name="lock" size={16} color="#FF2D78" />
+                <Feather name="lock" size={16} color="#F97316" />
                 <Text style={QuizResultStyles.failMessageText}>
                   Certificate dekhne ke liye pehle subscription lena hoga.
                 </Text>
@@ -249,7 +249,7 @@ export default function QuizResultScreen({ navigation, route }) {
           </>
         ) : (
           <View style={QuizResultStyles.failMessageBox}>
-            <Feather name="info" size={16} color="#FF2D78" />
+            <Feather name="info" size={16} color="#F97316" />
             <Text style={QuizResultStyles.failMessageText}>
               Certificate is only issued for passing scores. Please retake the exam.
             </Text>

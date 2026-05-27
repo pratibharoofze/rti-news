@@ -775,7 +775,7 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
         onPress={() => navigation.navigate('QuickMenu')}
         style={S.backBtn}
       >
-        <Feather name="arrow-left" size={20} color="#FF2D78" />
+        <Feather name="arrow-left" size={20} color="#F97316" />
         <Text style={S.backBtnText}>Back</Text>
       </TouchableOpacity>
 

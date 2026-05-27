@@ -73,7 +73,7 @@ export default function AttemptQuizScreen({ navigation, route }) {
           style={AttemptQuizStyles.backBtn}
           onPress={() => navigation.goBack()}
         >
-          {/* ← White icon because topBar background is #FF2D78 */}
+          {/* ← White icon because topBar background is #F97316 */}
           <Feather name="arrow-left" size={20} color="#ffffff" />
         </TouchableOpacity>
         <Text style={AttemptQuizStyles.topBarTitle}>Attempt Quiz</Text>

@@ -22,7 +22,7 @@ export default StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ffe4ef',
     elevation: 3,
-    shadowColor: '#FF2D78',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 6,
@@ -57,7 +57,7 @@ export default StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: '#ffe4ef',
-    shadowColor: '#FF2D78',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.07,
     shadowRadius: 12,
@@ -65,7 +65,7 @@ export default StyleSheet.create({
   },
   heroEyebrow: {
     fontSize: 11,
-    color: '#FF2D78',
+    color: '#F97316',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -86,7 +86,7 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ffe4ef',
     alignItems: 'center',
-    shadowColor: '#FF2D78',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
@@ -119,7 +119,7 @@ export default StyleSheet.create({
     color: '#16a34a',
   },
   failText: {
-    color: '#FF2D78',
+    color: '#F97316',
   },
 
   infoRow: {
@@ -149,7 +149,7 @@ export default StyleSheet.create({
   infoValueFail: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FF2D78',
+    color: '#F97316',
   },
 
   // ── Certificate Section Label ──
@@ -359,7 +359,7 @@ export default StyleSheet.create({
 
   // ── Download / View buttons ──
   downloadBtn: {
-    backgroundColor: '#FF2D78',
+    backgroundColor: '#F97316',
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 24,
@@ -367,7 +367,7 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    shadowColor: '#FF2D78',
+    shadowColor: '#F97316',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.28,
     shadowRadius: 10,
@@ -405,7 +405,7 @@ export default StyleSheet.create({
   failMessageText: {
     flex: 1,
     fontSize: 13,
-    color: '#FF2D78',
+    color: '#F97316',
     fontWeight: '600',
     lineHeight: 20,
   },

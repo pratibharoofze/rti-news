@@ -88,7 +88,29 @@ const w = {
   cardsRow:    { paddingTop: 28, gap: 16 },
   cardsRowNarrow: { flexDirection: 'column' },
 
-  // Progress card
+  // Combined stats row (Profile Completion, Referral, Rank in one line)
+  combinedStatsRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    backgroundColor: '#ffffff', 
+    borderRadius: 16, 
+    padding: 16, 
+    borderWidth: 1, 
+    borderColor: '#e2e8f0',
+    marginBottom: 16,
+    gap: 12,
+  },
+  combinedStatsItem: { flex: 1, alignItems: 'center' },
+  combinedStatsDivider: { width: 1, height: 40, backgroundColor: '#e2e8f0' },
+  combinedStatsLabel: { fontSize: 11, color: '#64748b', fontWeight: '500', marginBottom: 4, textAlign: 'center' },
+  combinedStatsValue: { fontSize: 18, fontWeight: '700', color: '#0f172a', textAlign: 'center' },
+  combinedStatsSub: { fontSize: 10, color: '#64748b', marginTop: 2, textAlign: 'center' },
+  referralCodeCompact: { fontSize: 14, fontWeight: '800', color: ORANGE, textAlign: 'center' },
+  copyBtnCompact: { marginTop: 4, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: '#f1f5f9', borderRadius: 6 },
+  copyBtnTextCompact: { fontSize: 10, fontWeight: '600', color: '#0f172a' },
+
+  // Progress card (keep for backward compatibility but hide if needed)
   progressCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#e2e8f0' },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   progressLabel: { fontSize: 13, color: '#64748b', fontWeight: '600', marginBottom: 4 },
@@ -103,14 +125,11 @@ const w = {
   twoColNarrow: { flexDirection: 'column' },
   halfCard:    { flex: 1, backgroundColor: '#ffffff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#e2e8f0' },
   fullCard:    { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#e2e8f0' },
-
-  // Referral card
-  referralCard: { borderRadius: 16, padding: 20, backgroundColor: ORANGE },
-  referralEye:  { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
-  referralCode: { fontSize: 22, fontWeight: '900', color: '#ffffff', letterSpacing: 1, marginBottom: 4 },
-  referralSub:  { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
-  copyBtn:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  copyBtnText:  { fontSize: 13, fontWeight: '700', color: '#ffffff' },
+  fullCardWithHeader: { backgroundColor: '#ffffff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#e2e8f0', position: 'relative' },
+  
+  // Edit button inside profile details card
+  editInsideBtn: { position: 'absolute', top: 12, right: 12, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbdbdb', zIndex: 10 },
+  editInsideBtnText: { fontSize: 12, fontWeight: '600', color: '#0f172a' },
 
   sectionTitle: { fontSize: 14, fontWeight: '700', color: '#0f172a', marginBottom: 12 },
 
@@ -120,6 +139,40 @@ const w = {
   guestText:   { fontSize: 14, color: '#64748b', textAlign: 'center' },
   loginBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: ORANGE, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 12, marginTop: 8 },
   loginBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
+  
+  // Post card styles
+  postCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 12 },
+  postHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f1f5f9' },
+  postAuthor: { fontWeight: '700', color: '#0f172a', fontSize: 14 },
+  postTime: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  postContent: { fontSize: 14, color: '#0f172a', lineHeight: 20, marginBottom: 12 },
+  postImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12, backgroundColor: '#f1f5f9' },
+  postActions: { flexDirection: 'row', gap: 24, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#e2e8f0' },
+  postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  postActionText: { fontSize: 13, color: '#64748b' },
+  
+  // Post view mode controls and grid styles
+  postViewToggle: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  postViewBtn: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0' },
+  postViewBtnActive: { backgroundColor: ORANGE, borderColor: ORANGE },
+  postGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
+  postGridItem: { width: 'calc(33.333% - 2px)', aspectRatio: 1, overflow: 'hidden', backgroundColor: '#f1f5f9' },
+  postGridThumb: { width: '100%', height: '100%', overflow: 'hidden', backgroundColor: '#f1f5f9' },
+  postGridImage: { width: '100%', height: '100%' },
+  
+  // Toggle buttons
+  toggleContainer: { flexDirection: 'row', gap: 12, marginBottom: 16, backgroundColor: '#ffffff', borderRadius: 12, padding: 4, borderWidth: 1, borderColor: '#e2e8f0' },
+  toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  toggleBtnActive: { backgroundColor: ORANGE },
+  toggleBtnText: { fontSize: 14, fontWeight: '600', color: '#64748b' },
+  toggleBtnTextActive: { color: '#ffffff' },
+  
+  // Edit form container with margin top
+  editFormContainer: { marginTop: 20 },
+  editTopCancel: { marginBottom: 12, alignSelf: 'flex-start' },
+  editTopCancelBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f1f5f9' },
+  editTopCancelText: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
 };
 
 export default function ProfileScreen({ navigation }) {
@@ -141,6 +194,9 @@ export default function ProfileScreen({ navigation }) {
   const [followLists, setFollowLists] = useState({ followers: [], following: [] });
   const [followModalType, setFollowModalType] = useState('');
   const [documentPreviewType, setDocumentPreviewType] = useState('');
+  const [userPosts, setUserPosts] = useState([]);
+  const [showSavedProfile, setShowSavedProfile] = useState(true);
+  const [postViewMode, setPostViewMode] = useState('grid');
 
   const loadCurrentUser = useCallback(async () => {
     setLoading(true);
@@ -151,6 +207,7 @@ export default function ProfileScreen({ navigation }) {
       setIsLoggedIn(false);
       setProfileStats({ posts: 0, followers: 0, following: 0 });
       setFollowLists({ followers: [], following: [] });
+      setUserPosts([]);
       return;
     }
 
@@ -199,7 +256,20 @@ export default function ProfileScreen({ navigation }) {
       ...(Array.isArray(user.news) ? user.news : []),
       ...(Array.isArray(user.news_feed) ? user.news_feed : []),
     ];
-    const mergedPostKeys = new Set([...ownFeedPosts, ...ownLocalPosts].map((item, index) => String(item?.id || `local-${index}`)));
+    const allPosts = [...ownFeedPosts, ...ownLocalPosts];
+const mergedPostKeys = new Set(allPosts.map((item, index) => 
+  String(item?.id || `fallback-${index}`)
+));
+    
+    const seenIds = new Set();
+const userPostsData = [...ownFeedPosts, ...ownLocalPosts].filter(item => {
+  const key = item?.id ? String(item.id) : null;
+  if (!key) return true; // keep posts without id
+  if (seenIds.has(key)) return false;
+  seenIds.add(key);
+  return true;
+});
+setUserPosts(userPostsData);
 
     setProfileStats({
       posts: mergedPostKeys.size,
@@ -218,12 +288,27 @@ export default function ProfileScreen({ navigation }) {
     loadCurrentUser();
   }, [loadCurrentUser]));
 
-  const openEdit = () => { setForm(savedProfile); setIsEditing(true); };
-  const closeEdit = () => { setForm(savedProfile); setIsEditing(false); };
+  const openEdit = () => { 
+    setForm(savedProfile); 
+    setIsEditing(true); 
+  };
+  
+  const closeEdit = () => { 
+    setForm(savedProfile); 
+    setIsEditing(false); 
+  };
+  
   const handleChange = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const hasDocumentSubscription = Boolean((isEditing ? form : savedProfile).is_subscribed);
 
-  const handleGoHome = useCallback(() => { navigation?.navigate?.('QuickMenu'); }, [navigation]);
+  const handleGoHome = useCallback(() => { 
+    if (isEditing) {
+      closeEdit();
+    } else {
+      navigation?.navigate?.('QuickMenu'); 
+    }
+  }, [navigation, isEditing]);
+  
   const handleOpenSettings = useCallback(() => { navigation?.navigate?.('Settings'); }, [navigation]);
   const handleOpenNotifications = useCallback(() => { navigation?.navigate?.('Notifications'); }, [navigation]);
 
@@ -259,7 +344,6 @@ export default function ProfileScreen({ navigation }) {
       showToast('Complete profile to generate document.', 'error');
       return;
     }
-
     setDocumentPreviewType(type);
   };
 
@@ -380,79 +464,80 @@ export default function ProfileScreen({ navigation }) {
     : '0%';
 
   const editProfileForm = (
-    <View style={ProfileStyles.formCard}>
-      <View style={ProfileStyles.sectionHeaderRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={ProfileStyles.sectionHeading}>Edit Profile</Text>
-          <Text style={ProfileStyles.sectionSubtitle}>Update your basic details and profile photo.</Text>
-          {successMessage ? <Text style={ProfileStyles.successText}>{successMessage}</Text> : null}
-        </View>
-        <TouchableOpacity style={ProfileStyles.uploadPill} onPress={handlePickImage} disabled={uploading}>
-          <Feather name="image" size={14} color="#6d3df5" />
-          <Text style={ProfileStyles.uploadPillText}>{uploading ? 'Opening...' : 'Photo'}</Text>
-        </TouchableOpacity>
+    <View style={w.editFormContainer}>
+      <View style={w.editTopCancel}>
+        <Pressable
+          style={({ pressed }) => [
+            w.editTopCancelBtn,
+            pressed ? { opacity: 0.8 } : null,
+          ]}
+          onPress={closeEdit}
+        >
+          <Text style={w.editTopCancelText}>Cancel</Text>
+        </Pressable>
       </View>
-      <View style={ProfileStyles.fieldGrid}>
-        <View style={ProfileStyles.fullWidthGroup}>
-          <Text style={ProfileStyles.inputLabel}>Full Name *</Text>
-          <View style={ProfileStyles.inputWrap}>
-            <Feather name="user" size={16} color="#8a94a6" />
-            <TextInput style={ProfileStyles.input} value={form.name} onChangeText={(v) => handleChange('name', v)} placeholder="Enter your name" placeholderTextColor="#94a3b8" />
+      <View style={ProfileStyles.formCard}>
+        <View style={ProfileStyles.sectionHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={ProfileStyles.sectionHeading}>Edit Profile</Text>
+            <Text style={ProfileStyles.sectionSubtitle}>Update your basic details and profile photo.</Text>
+            {successMessage ? <Text style={ProfileStyles.successText}>{successMessage}</Text> : null}
           </View>
-        </View>
-        <View style={ProfileStyles.fullWidthGroup}>
-          <Text style={ProfileStyles.inputLabel}>Email</Text>
-          <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
-            <Feather name="mail" size={16} color="#8a94a6" />
-            <TextInput style={[ProfileStyles.input, ProfileStyles.inputDisabled]} value={form.email} editable={false} />
-          </View>
-        </View>
-        <View style={ProfileStyles.inputGroup}>
-          <Text style={ProfileStyles.inputLabel}>Village</Text>
-          <View style={ProfileStyles.inputWrap}>
-            <Feather name="home" size={16} color="#8a94a6" />
-            <TextInput style={ProfileStyles.input} value={form.village} onChangeText={(v) => handleChange('village', v)} placeholder="Village" placeholderTextColor="#94a3b8" />
-          </View>
-        </View>
-        <View style={ProfileStyles.inputGroup}>
-          <Text style={ProfileStyles.inputLabel}>Mobile Number</Text>
-          <View style={ProfileStyles.inputWrap}>
-            <Feather name="smartphone" size={16} color="#8a94a6" />
-            <TextInput style={ProfileStyles.input} value={form.contact_number} onChangeText={(v) => handleChange('contact_number', v)} placeholder="10-digit mobile" placeholderTextColor="#94a3b8" keyboardType="phone-pad" maxLength={14} />
-          </View>
-        </View>
-        <View style={ProfileStyles.fullWidthGroup}>
-          <Text style={ProfileStyles.inputLabel}>Bio</Text>
-          <View style={[ProfileStyles.inputWrap, ProfileStyles.textAreaWrap]}>
-            <Feather name="file-text" size={16} color="#8a94a6" style={ProfileStyles.textAreaIcon} />
-            <TextInput style={[ProfileStyles.input, ProfileStyles.textArea]} value={form.bio} onChangeText={(v) => handleChange('bio', v)} placeholder="Write something about you" placeholderTextColor="#94a3b8" multiline />
-          </View>
-        </View>
-      </View>
-      <View style={ProfileStyles.previewRow}>
-        <Image source={form.profile_image ? { uri: form.profile_image } : DEFAULT_AVATAR} style={ProfileStyles.formPreviewAvatar} />
-        <View style={ProfileStyles.previewInfo}>
-          <Text style={ProfileStyles.previewTitle}>Profile Photo</Text>
-          <Text style={ProfileStyles.helperText}>{form.profile_image ? 'Image selected.' : 'No image selected yet.'}</Text>
-        </View>
-        {form.profile_image ? (
-          <TouchableOpacity style={ProfileStyles.removeMiniButton} onPress={() => handleChange('profile_image', '')}>
-            <Feather name="x" size={15} color="#EA580C" />
+          <TouchableOpacity style={ProfileStyles.uploadPill} onPress={handlePickImage} disabled={uploading}>
+            <Feather name="image" size={14} color="#6d3df5" />
+            <Text style={ProfileStyles.uploadPillText}>{uploading ? 'Opening...' : 'Photo'}</Text>
           </TouchableOpacity>
-        ) : null}
-      </View>
-      <View style={ProfileStyles.formFooterRow}>
-        <TouchableOpacity style={ProfileStyles.cancelButton} onPress={closeEdit}>
-          <Text style={ProfileStyles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={ProfileStyles.submitButton} onPress={handleSave} disabled={saving}>
-          <Text style={ProfileStyles.submitButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
-        </TouchableOpacity>
+        </View>
+        <View style={ProfileStyles.fieldGrid}>
+          <View style={ProfileStyles.fullWidthGroup}>
+            <Text style={ProfileStyles.inputLabel}>Full Name *</Text>
+            <View style={ProfileStyles.inputWrap}>
+              <Feather name="user" size={16} color="#8a94a6" />
+              <TextInput style={ProfileStyles.input} value={form.name} onChangeText={(v) => handleChange('name', v)} placeholder="Enter your name" placeholderTextColor="#94a3b8" />
+            </View>
+          </View>
+          <View style={ProfileStyles.fullWidthGroup}>
+            <Text style={ProfileStyles.inputLabel}>Email</Text>
+            <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
+              <Feather name="mail" size={16} color="#8a94a6" />
+              <TextInput style={[ProfileStyles.input, ProfileStyles.inputDisabled]} value={form.email} editable={false} />
+            </View>
+          </View>
+          <View style={ProfileStyles.inputGroup}>
+            <Text style={ProfileStyles.inputLabel}>Village</Text>
+            <View style={ProfileStyles.inputWrap}>
+              <Feather name="home" size={16} color="#8a94a6" />
+              <TextInput style={ProfileStyles.input} value={form.village} onChangeText={(v) => handleChange('village', v)} placeholder="Village" placeholderTextColor="#94a3b8" />
+            </View>
+          </View>
+          <View style={ProfileStyles.inputGroup}>
+            <Text style={ProfileStyles.inputLabel}>Mobile Number</Text>
+            <View style={ProfileStyles.inputWrap}>
+              <Feather name="smartphone" size={16} color="#8a94a6" />
+              <TextInput style={ProfileStyles.input} value={form.contact_number} onChangeText={(v) => handleChange('contact_number', v)} placeholder="10-digit mobile" placeholderTextColor="#94a3b8" keyboardType="phone-pad" maxLength={14} />
+            </View>
+          </View>
+          <View style={ProfileStyles.fullWidthGroup}>
+            <Text style={ProfileStyles.inputLabel}>Bio</Text>
+            <View style={[ProfileStyles.inputWrap, ProfileStyles.textAreaWrap]}>
+              <Feather name="file-text" size={16} color="#8a94a6" style={ProfileStyles.textAreaIcon} />
+              <TextInput style={[ProfileStyles.input, ProfileStyles.textArea]} value={form.bio} onChangeText={(v) => handleChange('bio', v)} placeholder="Write something about you" placeholderTextColor="#94a3b8" multiline />
+            </View>
+          </View>
+        </View>
+        <View style={ProfileStyles.formFooterRow}>
+          <TouchableOpacity style={ProfileStyles.cancelButton} onPress={closeEdit}>
+            <Text style={ProfileStyles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={ProfileStyles.submitButton} onPress={handleSave} disabled={saving}>
+            <Text style={ProfileStyles.submitButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 
-  // ── Follow modal (shared by both web and mobile) ──────────────────────────
+  // Follow modal
   const followModal = (
     <Modal visible={Boolean(followModalType)} transparent animationType="slide" onRequestClose={closeFollowList}>
       <View style={ProfileStyles.followModalOverlay}>
@@ -514,9 +599,260 @@ export default function ProfileScreen({ navigation }) {
     </Modal>
   );
 
+  const openUserPost = async (post) => {
+    if (!post) return;
+    try { if (post.id) await UserStore.updateNewsFeedItem(post.id, 'view'); } catch {}
+    navigation.navigate('NewsDetails', { article: post });
+  };
+
+  // Render user posts with grid/list toggle
+  const renderUserPosts = () => {
+    const isGrid = postViewMode === 'grid';
+    const isNativeApp = Platform.OS !== 'web';
+    const gridGap = 3;
+    const nativeGridWidth = Math.max(windowWidth - 24, 300);
+    const nativeTileSize = Math.floor((nativeGridWidth - gridGap * 2) / 3);
+    const isImageUri = (value) => {
+      const uri = String(value || '').trim();
+      return /^(https?:|file:|content:|data:image|blob:)/i.test(uri);
+    };
+    const firstImageUri = (values) => {
+      for (const value of values) {
+        if (Array.isArray(value)) {
+          const nested = firstImageUri(value);
+          if (nested) return nested;
+        } else if (isImageUri(value)) {
+          return String(value).trim();
+        }
+      }
+      return '';
+    };
+    const getPostImage = (post = {}) => firstImageUri([
+      post.thumbnail,
+      post.videoThumb,
+      post.video_thumb,
+      post.videoThumbnail,
+      post.video_thumbnail,
+      post.thumbnail_url,
+      post.poster,
+      post.image,
+      post.cover_image,
+      post.featured_image,
+      post.photo,
+      post.img,
+      post.picture,
+      post.imageUrl,
+      post.image_url,
+      post.coverImage,
+      post.images,
+      post.media,
+    ]);
+    const getPostKind = (post = {}) => String(post.mediaType || post.type || '').toLowerCase();
+
+    if (userPosts.length === 0) {
+      return (
+        <View style={w.fullCard}>
+          <Text style={{ textAlign: 'center', color: '#64748b', padding: 20 }}>
+            No posts yet. Click "Post News" to share your first post.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View>
+        <View style={w.postViewToggle}>
+          <TouchableOpacity
+            style={[w.postViewBtn, isGrid && w.postViewBtnActive]}
+            onPress={() => setPostViewMode('grid')}
+            activeOpacity={0.8}
+          >
+            <Feather name="grid" size={18} color={isGrid ? '#ffffff' : '#64748b'} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[w.postViewBtn, !isGrid && w.postViewBtnActive]}
+            onPress={() => setPostViewMode('list')}
+            activeOpacity={0.8}
+          >
+            <Feather name="list" size={18} color={!isGrid ? '#ffffff' : '#64748b'} />
+          </TouchableOpacity>
+        </View>
+
+        {isGrid ? (
+          <View style={[w.postGrid, isNativeApp && { gap: 0, paddingHorizontal: 0 }]}>
+            {userPosts.map((post, index) => {
+              const postImage = getPostImage(post);
+              const postKind = getPostKind(post);
+              const isLastInRow = index % 3 === 2;
+              return (
+                <TouchableOpacity
+                  key={post.id || index}
+                  style={[
+                    w.postGridItem,
+                    isNativeApp && {
+                      width: nativeTileSize,
+                      height: nativeTileSize,
+                      aspectRatio: undefined,
+                      marginRight: isLastInRow ? 0 : gridGap,
+                      marginBottom: gridGap,
+                      borderRadius: 0,
+                    },
+                  ]}
+                  onPress={() => openUserPost(post)}
+                  activeOpacity={0.85}
+                >
+                  {postImage ? (
+                    <>
+                      <Image source={{ uri: postImage }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      {postKind.includes('video') ? (
+                        <View style={{ position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Feather name="play" size={12} color="#ffffff" />
+                        </View>
+                      ) : null}
+                      {Array.isArray(post.images) && post.images.length > 1 ? (
+                        <View style={{ position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Feather name="copy" size={12} color="#ffffff" />
+                        </View>
+                      ) : null}
+                    </>
+                  ) : (
+                    <View style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
+                      <Feather name={postKind.includes('video') ? 'video' : postKind.includes('file') ? 'file-text' : 'file'} size={18} color="#ffffff" style={{ marginBottom: 6 }} />
+                      <Text style={{ fontSize: 11, color: '#ffffff', fontWeight: '600', textAlign: 'center', lineHeight: 15 }} numberOfLines={6}>
+                        {post.content || post.title || post.description || '📰'}
+                      </Text>
+                      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.4)', flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Feather name="eye" size={10} color="#fff" />
+                        <Text style={{ fontSize: 10, color: '#fff', fontWeight: '700' }}>{post.views || post.likes || 0}</Text>
+                      </View>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
+          userPosts.map((post, index) => (
+            <TouchableOpacity key={post.id || index} style={w.postCard} onPress={() => openUserPost(post)} activeOpacity={0.85}>
+              <View style={w.postHeader}>
+                <Image
+                  source={savedProfile.profile_image ? { uri: savedProfile.profile_image } : DEFAULT_AVATAR}
+                  style={w.postAvatar}
+                />
+                <View>
+                  <Text style={w.postAuthor}>{savedProfile.name || 'User'}</Text>
+                  <Text style={w.postTime}>{new Date(post.createdAt || post.date || Date.now()).toLocaleDateString()}</Text>
+                </View>
+              </View>
+              <Text style={w.postContent}>{post.content || post.title || post.description || ''}</Text>
+              {getPostImage(post) ? <Image source={{ uri: getPostImage(post) }} style={w.postImage} resizeMode="cover" /> : null}
+              <View style={w.postActions}>
+  <TouchableOpacity
+    style={w.postActionBtn}
+    activeOpacity={0.75}
+    onPress={async () => {
+      try {
+        if (post.id) await UserStore.updateNewsFeedItem(post.id, 'like');
+        openUserPost(post);
+      } catch {}
+    }}
+  >
+    <Feather name="heart" size={18} color="#64748b" />
+    <Text style={w.postActionText}>{post.likes || 0}</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={w.postActionBtn}
+    activeOpacity={0.75}
+    onPress={() => openUserPost(post)}
+  >
+    <Feather name="message-circle" size={18} color="#64748b" />
+    <Text style={w.postActionText}>{post.comments || 0}</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={w.postActionBtn}
+    activeOpacity={0.75}
+    onPress={async () => {
+      try {
+        const title = post.title || post.content || 'RTI News';
+        await Share.share({ title: 'RTI News', message: title });
+      } catch {}
+    }}
+  >
+    <Feather name="share-2" size={18} color="#64748b" />
+    <Text style={w.postActionText}>Share</Text>
+  </TouchableOpacity>
+</View>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+    );
+  };
+
+  // Toggle buttons component
+  const ToggleButtons = () => (
+    <View style={w.toggleContainer}>
+      <TouchableOpacity 
+        style={[w.toggleBtn, !showSavedProfile && w.toggleBtnActive]} 
+        onPress={() => setShowSavedProfile(false)}
+        activeOpacity={0.8}
+      >
+        <Text style={[w.toggleBtnText, !showSavedProfile && w.toggleBtnTextActive]}>
+          My Posts
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={[w.toggleBtn, showSavedProfile && w.toggleBtnActive]} 
+        onPress={() => setShowSavedProfile(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={[w.toggleBtnText, showSavedProfile && w.toggleBtnTextActive]}>
+          Profile Details
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Combined Stats Row Component
+  const CombinedStatsRow = () => {
+    const rankData = getRank(savedProfile.referral_count || 0);
+    const nextRankNeeded = rankData.nextRankNeeded || 10;
+    
+    return (
+      <View style={w.combinedStatsRow}>
+        {/* Profile Completion */}
+        <View style={w.combinedStatsItem}>
+          <Text style={w.combinedStatsLabel}>Profile Completion</Text>
+          <Text style={w.combinedStatsValue}>{completionPct}</Text>
+        </View>
+        
+        <View style={w.combinedStatsDivider} />
+        
+        {/* Referral Code */}
+        <View style={w.combinedStatsItem}>
+          <Text style={w.combinedStatsLabel}>Referral Code</Text>
+          <Text style={w.referralCodeCompact}>{referralCode}</Text>
+          <TouchableOpacity onPress={handleCopyReferralCode} style={w.copyBtnCompact}>
+            <Text style={w.copyBtnTextCompact}>Copy</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={w.combinedStatsDivider} />
+        
+        {/* Your Rank */}
+        <View style={w.combinedStatsItem}>
+          <Text style={w.combinedStatsLabel}>Your Rank</Text>
+          <Text style={w.combinedStatsValue}>{rankData.icon} {rankData.title}</Text>
+          <Text style={w.combinedStatsSub}>{savedProfile.referral_count || 0} / {nextRankNeeded}</Text>
+        </View>
+      </View>
+    );
+  };
+
   // ══════════════════════════════════════════════════════════════════
-  // WEB DESKTOP — Instagram-style, sirf Platform.OS === 'web' pe
-  // Mobile layout neeche, bilkul same as before
+  // WEB DESKTOP — Instagram-style
   // ══════════════════════════════════════════════════════════════════
   if (Platform.OS === 'web') {
     return (
@@ -538,22 +874,11 @@ export default function ProfileScreen({ navigation }) {
             >
               <Feather name="arrow-left" size={20} color="#0f172a" />
             </Pressable>
-            <Text style={w.topBarTitle}>Profile</Text>
+            <Text style={w.topBarTitle}>{isEditing ? 'Edit Profile' : 'Profile'}</Text>
           </View>
           <View style={[w.topRight, isWebNarrow && w.topRightNarrow]}>
-            {isLoggedIn && (
+            {isLoggedIn && !isEditing && (
               <>
-                <Pressable
-                  style={({ pressed }) => [
-                    w.iconBtn,
-                    Platform.OS === 'web' ? { cursor: 'pointer' } : null,
-                    pressed ? { opacity: 0.75 } : null,
-                  ]}
-                  onPress={openEdit}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Feather name="edit-2" size={18} color="#0f172a" />
-                </Pressable>
                 <Pressable
                   style={({ pressed }) => [
                     w.iconBtn,
@@ -594,166 +919,126 @@ export default function ProfileScreen({ navigation }) {
 
         <ScrollView style={w.scroll} contentContainerStyle={w.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={w.col}>
-
-            {/* ── Profile Header Row ── */}
-            <View style={[w.profileRow, isWebNarrow && w.profileRowNarrow]}>
-
-              {/* LEFT: Avatar */}
-              <View style={[w.avatarWrap, isWebNarrow && w.avatarWrapNarrow]}>
-                <Image
-                  source={isLoggedIn && displayProfile.profile_image ? { uri: displayProfile.profile_image } : DEFAULT_AVATAR}
-                  style={w.avatar}
-                  resizeMode="cover"
-                />
-              </View>
-
-              {/* RIGHT: Info */}
-              <View style={[w.profileInfo, isWebNarrow && w.profileInfoNarrow]}>
-
-                {/* Row 1: name + verified + action buttons */}
-                <View style={w.nameRow}>
-                  <Text style={w.name}>
-                    {isLoggedIn ? (displayProfile.name || 'Your Name') : 'RTI News Member'}
-                  </Text>
-                  {displayHasBlueTick ? <VerifiedBadge size={20} /> : null}
-                  {isLoggedIn ? (
-                    <>
-                      <Pressable
-                        style={({ pressed }) => [
-                          w.editBtn,
-                          Platform.OS === 'web' ? { cursor: 'pointer' } : null,
-                          pressed ? { opacity: 0.85 } : null,
-                        ]}
-                        onPress={openEdit}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <Text style={w.editBtnText}>Edit Profile</Text>
-                      </Pressable>
-                      <Pressable
-                        style={({ pressed }) => [
-                          w.postBtn,
-                          Platform.OS === 'web' ? { cursor: 'pointer' } : null,
-                          pressed ? { opacity: 0.85 } : null,
-                        ]}
-                        onPress={handlePostNews}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <Text style={w.postBtnText}>Post News</Text>
-                      </Pressable>
-                    </>
-                  ) : null}
-                </View>
-
-                {/* Row 2: posts · followers · following */}
-                <View style={[w.statsRow, isWebNarrow && w.statsRowNarrow]}>
-                  <View style={w.statItem}>
-                    <Text style={w.statNum}>{profileStats.posts}</Text>
-                    <Text style={w.statLabel}> posts</Text>
+            {isEditing ? (
+              editProfileForm
+            ) : (
+              <>
+                {/* Profile Header Row */}
+                <View style={[w.profileRow, isWebNarrow && w.profileRowNarrow]}>
+                  <View style={[w.avatarWrap, isWebNarrow && w.avatarWrapNarrow]}>
+                    <Image
+                      source={isLoggedIn && displayProfile.profile_image ? { uri: displayProfile.profile_image } : DEFAULT_AVATAR}
+                      style={w.avatar}
+                      resizeMode="cover"
+                    />
                   </View>
-                  <TouchableOpacity style={w.statItem} onPress={() => openFollowList('followers')} activeOpacity={0.75}>
-                    <Text style={w.statNum}>{isLoggedIn ? profileStats.followers : 0}</Text>
-                    <Text style={w.statLabel}> followers</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={w.statItem} onPress={() => openFollowList('following')} activeOpacity={0.75}>
-                    <Text style={w.statNum}>{isLoggedIn ? profileStats.following : 0}</Text>
-                    <Text style={w.statLabel}> following</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Row 3: bio / rank / location */}
-                {isLoggedIn ? (
-                  <View style={w.bioSection}>
-                    {displayProfile.name ? <Text style={w.bioName}>{displayProfile.name}</Text> : null}
-                    {displayProfile.bio ? <Text style={w.bioText}>{displayProfile.bio}</Text> : null}
-                    <View style={w.rankRow}>
-                      <Text style={[w.rankText, { color: rank.color }]}>{rank.icon} {rank.title}</Text>
-                      {displayProfile.state ? (
+                  <View style={[w.profileInfo, isWebNarrow && w.profileInfoNarrow]}>
+                    <View style={w.nameRow}>
+                      <Text style={w.name}>
+                        {isLoggedIn ? (displayProfile.name || 'Your Name') : 'RTI News Member'}
+                      </Text>
+                      {displayHasBlueTick ? <VerifiedBadge size={20} /> : null}
+                      {isLoggedIn ? (
                         <>
-                          <Text style={{ color: '#dbdbdb', fontSize: 14 }}>·</Text>
-                          <Text style={w.bioMeta}>📍 {displayProfile.state}</Text>
+                          <Pressable
+                            style={({ pressed }) => [
+                              w.postBtn,
+                              Platform.OS === 'web' ? { cursor: 'pointer' } : null,
+                              pressed ? { opacity: 0.85 } : null,
+                            ]}
+                            onPress={handlePostNews}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          >
+                            <Text style={w.postBtnText}>Post News</Text>
+                          </Pressable>
                         </>
                       ) : null}
                     </View>
-                    {generateMemberId(displayProfile.email) ? (
-                      <Text style={w.bioMeta}>Member ID: <Text style={{ fontWeight: '700', color: ORANGE }}>{generateMemberId(displayProfile.email)}</Text></Text>
+                    <View style={[w.statsRow, isWebNarrow && w.statsRowNarrow]}>
+                      <View style={w.statItem}>
+                        <Text style={w.statNum}>{profileStats.posts}</Text>
+                        <Text style={w.statLabel}> posts</Text>
+                      </View>
+                      <TouchableOpacity style={w.statItem} onPress={() => openFollowList('followers')} activeOpacity={0.75}>
+                        <Text style={w.statNum}>{isLoggedIn ? profileStats.followers : 0}</Text>
+                        <Text style={w.statLabel}> followers</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={w.statItem} onPress={() => openFollowList('following')} activeOpacity={0.75}>
+                        <Text style={w.statNum}>{isLoggedIn ? profileStats.following : 0}</Text>
+                        <Text style={w.statLabel}> following</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {isLoggedIn ? (
+                      <View style={w.bioSection}>
+                        {displayProfile.name ? <Text style={w.bioName}>{displayProfile.name}</Text> : null}
+                        {displayProfile.bio ? <Text style={w.bioText}>{displayProfile.bio}</Text> : null}
+                        <View style={w.rankRow}>
+                          <Text style={[w.rankText, { color: rank.color }]}>{rank.icon} {rank.title}</Text>
+                          {displayProfile.state ? (
+                            <>
+                              <Text style={{ color: '#dbdbdb', fontSize: 14 }}>·</Text>
+                              <Text style={w.bioMeta}>📍 {displayProfile.state}</Text>
+                            </>
+                          ) : null}
+                        </View>
+                        {generateMemberId(displayProfile.email) ? (
+                          <Text style={w.bioMeta}>Member ID: <Text style={{ fontWeight: '700', color: ORANGE }}>{generateMemberId(displayProfile.email)}</Text></Text>
+                        ) : null}
+                      </View>
                     ) : null}
                   </View>
-                ) : null}
-              </View>
-            </View>
-
-            {/* Divider */}
-            <View style={w.divider} />
-
-            {/* ── Content below divider ── */}
-            {!isLoggedIn ? (
-              <View style={w.guestCard}>
-                <Feather name="user" size={48} color={ORANGE} />
-                <Text style={w.guestTitle}>Login to view your profile</Text>
-                <Text style={w.guestText}>Access your posts, followers, referral code and more.</Text>
-                <TouchableOpacity style={w.loginBtn} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
-                  <Feather name="log-in" size={16} color="#ffffff" />
-                  <Text style={w.loginBtnText}>Login / Sign Up</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={[w.cardsRow, isWebNarrow && w.cardsRowNarrow]}>
-                {isEditing ? editProfileForm : (
-                  <>
-
-                {/* Progress card */}
-                <View style={w.progressCard}>
-                  <View style={w.progressHeader}>
-                    <View>
-                      <Text style={w.progressLabel}>Profile Completion</Text>
-                      <Text style={w.progressVal}>{completionPct}</Text>
-                    </View>
-                    <View>
-                      <Text style={w.memberIdLabel}>Member ID</Text>
-                      <Text style={w.memberIdVal}>{generateMemberId(displayProfile.email)}</Text>
-                    </View>
-                  </View>
-                  <View style={w.progressTrack}>
-                    <View style={[w.progressFill, { width: completionPct }]} />
-                  </View>
                 </View>
 
-                {/* Referral + Rank — two columns */}
-                <View style={[w.twoCol, isWebNarrow && w.twoColNarrow]}>
-                  {/* Referral card */}
-                  <View style={[w.referralCard, { flex: 1 }]}>
-                    <Text style={w.referralEye}>MY REFERRAL CODE</Text>
-                    <Text style={w.referralCode}>{referralCode}</Text>
-                    <Text style={w.referralSub}>Share this code to earn referral bonus</Text>
-                    <TouchableOpacity style={w.copyBtn} onPress={handleCopyReferralCode} activeOpacity={0.8}>
-                      <Feather name="copy" size={14} color="#ffffff" />
-                      <Text style={w.copyBtnText}>Copy</Text>
+                <View style={w.divider} />
+
+                {!isLoggedIn ? (
+                  <View style={w.guestCard}>
+                    <Feather name="user" size={48} color={ORANGE} />
+                    <Text style={w.guestTitle}>Login to view your profile</Text>
+                    <Text style={w.guestText}>Access your posts, followers, referral code and more.</Text>
+                    <TouchableOpacity style={w.loginBtn} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
+                      <Feather name="log-in" size={16} color="#ffffff" />
+                      <Text style={w.loginBtnText}>Login / Sign Up</Text>
                     </TouchableOpacity>
                   </View>
+                ) : (
+                  <View style={[w.cardsRow, isWebNarrow && w.cardsRowNarrow]}>
+                    <ToggleButtons />
 
-                  {/* Rank card */}
-                  <View style={[w.halfCard, { flex: 1 }]}>
-                    <Text style={w.sectionTitle}>Your Rank</Text>
-                    <RankBadge referralCount={savedProfile.referral_count || 0} />
+                    {/* Combined Stats Row - replaces the old progress and referral/rank cards */}
+                    <CombinedStatsRow />
+
+                    {/* Conditional rendering based on toggle */}
+                    {showSavedProfile ? (
+                      <View style={w.fullCardWithHeader}>
+                        <Pressable
+                          style={({ pressed }) => [
+                            w.editInsideBtn,
+                            pressed ? { opacity: 0.85 } : null,
+                          ]}
+                          onPress={openEdit}
+                        >
+                          <Text style={w.editInsideBtnText}>Edit Profile</Text>
+                        </Pressable>
+                        <Text style={w.sectionTitle}>Profile Details</Text>
+                        <SavedProfileCard
+                          profile={savedProfile}
+                          onOpenIdCard={() => openDocumentPreview('id-card')}
+                          onOpenAppointmentLetter={() => openDocumentPreview('appointment-letter')}
+                        />
+                      </View>
+                    ) : (
+                      <View>
+                        <Text style={w.sectionTitle}>My Posts</Text>
+                        {renderUserPosts()}
+                      </View>
+                    )}
                   </View>
-                </View>
-
-                {/* Saved Profile card */}
-                <View style={w.fullCard}>
-                  <Text style={w.sectionTitle}>Saved Profile</Text>
-                  <SavedProfileCard
-                    profile={savedProfile}
-                    onOpenIdCard={() => openDocumentPreview('id-card')}
-                    onOpenAppointmentLetter={() => openDocumentPreview('appointment-letter')}
-                  />
-                </View>
-                  </>
                 )}
-
-              </View>
+              </>
             )}
 
-            {loading ? <Text style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', paddingVertical: 20 }}>Loading profile...</Text> : null}
+            {loading && !isEditing ? <Text style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', paddingVertical: 20 }}>Loading profile...</Text> : null}
           </View>
         </ScrollView>
       </View>
@@ -761,7 +1046,7 @@ export default function ProfileScreen({ navigation }) {
   }
 
   // ══════════════════════════════════════════════════════════════════
-  // MOBILE LAYOUT — bilkul same as document 10, koi change nahi
+  // MOBILE LAYOUT
   // ══════════════════════════════════════════════════════════════════
 
   return (
@@ -774,12 +1059,10 @@ export default function ProfileScreen({ navigation }) {
         <TouchableOpacity style={ProfileStyles.topBarBackBtn} onPress={handleGoHome} activeOpacity={0.75}>
           <Feather name="arrow-left" size={20} color="#0f172a" />
         </TouchableOpacity>
+        <Text style={{ flex: 1, fontSize: 18, fontWeight: '600', marginLeft: 12 }}>{isEditing ? 'Edit Profile' : 'Profile'}</Text>
         <View style={ProfileStyles.topBarActions}>
-          {isLoggedIn && (
+          {isLoggedIn && !isEditing && (
             <>
-              <TouchableOpacity style={ProfileStyles.topBarIconBtn} onPress={openEdit} activeOpacity={0.75} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Feather name="edit-2" size={18} color="#0f172a" />
-              </TouchableOpacity>
               <TouchableOpacity style={ProfileStyles.topBarIconBtn} onPress={handleOpenSettings} activeOpacity={0.75} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Feather name="settings" size={18} color="#0f172a" />
               </TouchableOpacity>
@@ -796,270 +1079,154 @@ export default function ProfileScreen({ navigation }) {
 
       <ScrollView style={ProfileStyles.scrollView} contentContainerStyle={ProfileStyles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={ProfileStyles.profileShell}>
-
-          <View style={ProfileStyles.summaryCard}>
-            <View style={ProfileStyles.summaryTopRow}>
-              <View style={ProfileStyles.avatarRing}>
-                <Image
-                  source={isLoggedIn && displayProfile.profile_image ? { uri: displayProfile.profile_image } : DEFAULT_AVATAR}
-                  style={ProfileStyles.avatar}
-                />
-                <View style={ProfileStyles.onlineDot} />
-              </View>
-              <View style={ProfileStyles.summaryContent}>
-                <View style={ProfileStyles.profileNameRow}>
-                  <Text style={ProfileStyles.profileName}>
-                    {isLoggedIn ? (displayProfile.name || 'Your Name') : 'RTI News Member'}
-                  </Text>
-                  {displayHasBlueTick ? <VerifiedBadge size={18} /> : null}
-                </View>
-                <View style={ProfileStyles.statsRow}>
-                  <View style={ProfileStyles.statItem}>
-                    <Text style={ProfileStyles.statValue}>{profileStats.posts}</Text>
-                    <Text style={ProfileStyles.statLabel}>posts</Text>
-                  </View>
-                  <TouchableOpacity style={ProfileStyles.statItem} onPress={() => openFollowList('followers')} activeOpacity={0.75}>
-                    <Text style={ProfileStyles.statValue}>{isLoggedIn ? profileStats.followers : 0}</Text>
-                    <Text style={ProfileStyles.statLabel}>followers</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={ProfileStyles.statItem} onPress={() => openFollowList('following')} activeOpacity={0.75}>
-                    <Text style={ProfileStyles.statValue}>{isLoggedIn ? profileStats.following : 0}</Text>
-                    <Text style={ProfileStyles.statLabel}>following</Text>
-                  </TouchableOpacity>
-                </View>
-                {isLoggedIn ? (
-                  <View style={ProfileStyles.summaryRankRow}>
-                    <Text style={ProfileStyles.summaryRankEmoji}>{rank.icon}</Text>
-                    <Text style={[ProfileStyles.summaryRankText, { color: rank.color }]}>{rank.title}</Text>
-                    {displayProfile.state ? (
-                      <>
-                        <Text style={ProfileStyles.summaryDot}>·</Text>
-                        <MaterialIcons name="location-on" size={13} color="#F97316" />
-                        <Text style={ProfileStyles.locationText}>{displayProfile.state}</Text>
-                      </>
-                    ) : null}
-                  </View>
-                ) : (
-                  <View style={ProfileStyles.summaryRankRow}>
-                    <Text style={ProfileStyles.summaryRankEmoji}>👤</Text>
-                    <Text style={[ProfileStyles.summaryRankText, { color: '#AAAAAA' }]}>Guest</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-            {isLoggedIn && displayProfile.bio ? (
-              <Text style={ProfileStyles.profileBio}>{displayProfile.bio}</Text>
-            ) : null}
-
-            <View style={ProfileStyles.uploadBarCard}>
-              <View style={ProfileStyles.metricRow}>
-                <View>
-                  <Text style={ProfileStyles.metricLabel}>Profile Completion</Text>
-                  <Text style={ProfileStyles.metricValuePrimary}>{completionPct}</Text>
-                </View>
-                <View style={ProfileStyles.metricRightBlock}>
-                  <Text style={ProfileStyles.metricLabel}>Member ID</Text>
-                  <Text style={ProfileStyles.metricValueAccent}>
-                    {isLoggedIn ? generateMemberId(displayProfile.email) : '—'}
-                  </Text>
-                </View>
-              </View>
-              <View style={ProfileStyles.uploadBarTrack}>
-                <View style={[ProfileStyles.uploadWaveOne, { width: completionPct }]} />
-              </View>
-              {isLoggedIn && (
-                <View style={ProfileStyles.quickIconRow}>
-                  <TouchableOpacity style={ProfileStyles.quickIconButton} onPress={openEdit} activeOpacity={0.75} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Text style={ProfileStyles.quickIconButtonText}>Edit Profile</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={ProfileStyles.quickPostNewsBtn} onPress={handlePostNews} activeOpacity={0.85} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Feather name="plus-circle" size={14} color="#111111" />
-                    <Text style={ProfileStyles.quickPostNewsBtnText}>Post News</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {!isLoggedIn ? (
-            <View style={ProfileStyles.loginPromptWrap}>
-              <View style={ProfileStyles.loginPromptIconWrap}>
-                <Feather name="user" size={32} color="#F97316" />
-              </View>
-              <Text style={ProfileStyles.loginPromptHeading}>Login</Text>
-              <Text style={ProfileStyles.loginPromptText}></Text>
-              <TouchableOpacity style={ProfileStyles.loginPromptBtn} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
-                <Feather name="log-in" size={16} color="#ffffff" />
-                <Text style={ProfileStyles.loginPromptBtnText}>Login / Sign Up</Text>
-              </TouchableOpacity>
-            </View>
+          {isEditing ? (
+            editProfileForm
           ) : (
             <>
-              {!isEditing && (
-                <>
-                  <RankBadge referralCount={savedProfile.referral_count || 0} />
-                  <ReferralCodeCard referralCode={referralCode} onCopy={handleCopyReferralCode} />
-                </>
-              )}
-              {isEditing ? (
-                <View style={ProfileStyles.formCard}>
-                  <View style={ProfileStyles.sectionHeaderRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={ProfileStyles.sectionHeading}>Edit Profile</Text>
-                      <Text style={ProfileStyles.sectionSubtitle}>Update your basic details and profile photo.</Text>
-                      {successMessage ? <Text style={ProfileStyles.successText}>{successMessage}</Text> : null}
-                    </View>
-                    <TouchableOpacity style={ProfileStyles.uploadPill} onPress={handlePickImage} disabled={uploading}>
-                      <Feather name="image" size={14} color="#6d3df5" />
-                      <Text style={ProfileStyles.uploadPillText}>{uploading ? 'Opening...' : 'Photo'}</Text>
-                    </TouchableOpacity>
+              <View style={ProfileStyles.summaryCard}>
+                <View style={ProfileStyles.summaryTopRow}>
+                  <View style={ProfileStyles.avatarRing}>
+                    <Image
+                      source={isLoggedIn && displayProfile.profile_image ? { uri: displayProfile.profile_image } : DEFAULT_AVATAR}
+                      style={ProfileStyles.avatar}
+                    />
+                    <View style={ProfileStyles.onlineDot} />
                   </View>
-                  <View style={ProfileStyles.fieldGrid}>
-                    <View style={ProfileStyles.fullWidthGroup}>
-                      <Text style={ProfileStyles.inputLabel}>Full Name *</Text>
-                      <View style={ProfileStyles.inputWrap}>
-                        <Feather name="user" size={16} color="#8a94a6" />
-                        <TextInput style={ProfileStyles.input} value={form.name} onChangeText={(v) => handleChange('name', v)} placeholder="Enter your name" placeholderTextColor="#94a3b8" />
+                  <View style={ProfileStyles.summaryContent}>
+                    <View style={ProfileStyles.profileNameRow}>
+                      <Text style={ProfileStyles.profileName}>
+                        {isLoggedIn ? (displayProfile.name || 'Your Name') : 'RTI News Member'}
+                      </Text>
+                      {displayHasBlueTick ? <VerifiedBadge size={18} /> : null}
+                    </View>
+                    <View style={ProfileStyles.statsRow}>
+                      <View style={ProfileStyles.statItem}>
+                        <Text style={ProfileStyles.statValue}>{profileStats.posts}</Text>
+                        <Text style={ProfileStyles.statLabel}>posts</Text>
                       </View>
-                    </View>
-                    <View style={ProfileStyles.fullWidthGroup}>
-                      <Text style={ProfileStyles.inputLabel}>Email</Text>
-                      <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
-                        <Feather name="mail" size={16} color="#8a94a6" />
-                        <TextInput style={[ProfileStyles.input, ProfileStyles.inputDisabled]} value={form.email} editable={false} />
-                      </View>
-                    </View>
-                    <View style={ProfileStyles.inputGroup}>
-                      <Text style={ProfileStyles.inputLabel}>Village</Text>
-                      <View style={ProfileStyles.inputWrap}>
-                        <Feather name="home" size={16} color="#8a94a6" />
-                        <TextInput style={ProfileStyles.input} value={form.village} onChangeText={(v) => handleChange('village', v)} placeholder="Village" placeholderTextColor="#94a3b8" />
-                      </View>
-                    </View>
-                    <View style={ProfileStyles.inputGroup}>
-                      <Text style={ProfileStyles.inputLabel}>Mobile Number</Text>
-                      <View style={ProfileStyles.inputWrap}>
-                        <Feather name="smartphone" size={16} color="#8a94a6" />
-                        <TextInput style={ProfileStyles.input} value={form.contact_number} onChangeText={(v) => handleChange('contact_number', v)} placeholder="10-digit mobile" placeholderTextColor="#94a3b8" keyboardType="phone-pad" maxLength={14} />
-                      </View>
-                    </View>
-                    <View style={ProfileStyles.fullWidthGroup}>
-                      <Text style={ProfileStyles.inputLabel}>Bio</Text>
-                      <View style={[ProfileStyles.inputWrap, ProfileStyles.textAreaWrap]}>
-                        <Feather name="file-text" size={16} color="#8a94a6" style={ProfileStyles.textAreaIcon} />
-                        <TextInput style={[ProfileStyles.input, ProfileStyles.textArea]} value={form.bio} onChangeText={(v) => handleChange('bio', v)} placeholder="Write something about you" placeholderTextColor="#94a3b8" multiline />
-                      </View>
-                    </View>
-                  </View>
-                  <View style={ProfileStyles.previewRow}>
-                    <Image source={form.profile_image ? { uri: form.profile_image } : DEFAULT_AVATAR} style={ProfileStyles.formPreviewAvatar} />
-                    <View style={ProfileStyles.previewInfo}>
-                      <Text style={ProfileStyles.previewTitle}>Profile Photo</Text>
-                      <Text style={ProfileStyles.helperText}>{form.profile_image ? 'Image selected.' : 'No image selected yet.'}</Text>
-                    </View>
-                    {form.profile_image ? (
-                      <TouchableOpacity style={ProfileStyles.removeMiniButton} onPress={() => handleChange('profile_image', '')}>
-                        <Feather name="x" size={15} color="#EA580C" />
+                      <TouchableOpacity style={ProfileStyles.statItem} onPress={() => openFollowList('followers')} activeOpacity={0.75}>
+                        <Text style={ProfileStyles.statValue}>{isLoggedIn ? profileStats.followers : 0}</Text>
+                        <Text style={ProfileStyles.statLabel}>followers</Text>
                       </TouchableOpacity>
-                    ) : null}
-                  </View>
-                  <View style={ProfileStyles.fullWidthGroup}>
-                    <Text style={ProfileStyles.inputLabel}>Subscription</Text>
-                    <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
-                      <Feather name="star" size={16} color="#8a94a6" />
-                      <TextInput style={[ProfileStyles.input, ProfileStyles.inputDisabled]} value={form.role_label ? `${form.role_label} (${form.subscription_type || 'free'})` : form.subscription_type || 'free'} editable={false} />
-                    </View>
-                    {!form.is_subscribed ? (
-                      <TouchableOpacity style={[ProfileStyles.uploadPill, { marginTop: 10 }]} onPress={() => navigation.navigate('Subscription Plans')}>
-                        <Feather name="credit-card" size={14} color="#6d3df5" />
-                        <Text style={ProfileStyles.uploadPillText}>Take Subscription</Text>
+                      <TouchableOpacity style={ProfileStyles.statItem} onPress={() => openFollowList('following')} activeOpacity={0.75}>
+                        <Text style={ProfileStyles.statValue}>{isLoggedIn ? profileStats.following : 0}</Text>
+                        <Text style={ProfileStyles.statLabel}>following</Text>
                       </TouchableOpacity>
-                    ) : null}
-                  </View>
-                  <View style={[ProfileStyles.fullWidthGroup, { marginBottom: 0 }]}>
-                    <Text style={ProfileStyles.inputLabel}>Your Referral Code</Text>
-                    <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
-                      <Feather name="share-2" size={16} color="#8a94a6" />
-                      <TextInput style={[ProfileStyles.input, ProfileStyles.inputDisabled]} value={form.referral_code || generateReferralCode(form.email)} editable={false} />
                     </View>
-                  </View>
-                  <View style={[ProfileStyles.fullWidthGroup, { marginTop: 10 }]}>
-                    <RankBadge referralCount={form.referral_count || 0} />
-                  </View>
-                  <View style={ProfileStyles.documentSection}>
-                    <Text style={ProfileStyles.documentSectionTitle}>Documents (Auto Generated)</Text>
-                    <View style={ProfileStyles.documentRow}>
-                      <View style={ProfileStyles.documentInfo}>
-                        <Feather name="credit-card" size={20} color="#ea580c" />
-                        <Text style={ProfileStyles.documentLabel}>ID Card</Text>
+                    {isLoggedIn ? (
+                      <View style={ProfileStyles.summaryRankRow}>
+                        <Text style={ProfileStyles.summaryRankEmoji}>{rank.icon}</Text>
+                        <Text style={[ProfileStyles.summaryRankText, { color: rank.color }]}>{rank.title}</Text>
+                        {displayProfile.state ? (
+                          <>
+                            <Text style={ProfileStyles.summaryDot}>·</Text>
+                            <MaterialIcons name="location-on" size={13} color="#F97316" />
+                            <Text style={ProfileStyles.locationText}>{displayProfile.state}</Text>
+                          </>
+                        ) : null}
                       </View>
-                      <Text style={ProfileStyles.autoDocHint}>PDF Download</Text>
-                    </View>
-                    {hasDocumentSource(form) && hasDocumentSubscription ? (
-                      <>
-                        <AutoIdCardPreview profile={form} />
-                        <TouchableOpacity style={ProfileStyles.generatedDownloadBtn} onPress={() => handleDownloadDocument('id-card')} disabled={downloadingDoc === 'id-card'}>
-                          <Feather name="download" size={16} color="#fff" />
-                          <Text style={ProfileStyles.generatedDownloadText}>{downloadingDoc === 'id-card' ? 'Generating PDF...' : 'Download ID Card (PDF)'}</Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : hasDocumentSource(form) ? (
-                      <>
-                        <Text style={ProfileStyles.helperText}>Subscription lene ke baad hi ID Card dekh sakte hain.</Text>
-                        <TouchableOpacity style={ProfileStyles.generatedDownloadBtn} onPress={() => promptSubscriptionRequired('ID Card')}>
-                          <Feather name="lock" size={16} color="#fff" />
-                          <Text style={ProfileStyles.generatedDownloadText}>Take Subscription</Text>
-                        </TouchableOpacity>
-                      </>
                     ) : (
-                      <Text style={ProfileStyles.helperText}>Complete profile to generate ID Card.</Text>
-                    )}
-                    <View style={ProfileStyles.documentSpacer} />
-                    <View style={ProfileStyles.documentRow}>
-                      <View style={ProfileStyles.documentInfo}>
-                        <Feather name="file" size={20} color="#f97316" />
-                        <Text style={ProfileStyles.documentLabel}>Appointment Letter</Text>
+                      <View style={ProfileStyles.summaryRankRow}>
+                        <Text style={ProfileStyles.summaryRankEmoji}>👤</Text>
+                        <Text style={[ProfileStyles.summaryRankText, { color: '#AAAAAA' }]}>Guest</Text>
                       </View>
-                      <Text style={ProfileStyles.autoDocHint}>PDF Download</Text>
-                    </View>
-                    {hasDocumentSource(form) && hasDocumentSubscription ? (
-                      <>
-                        <AutoAppointmentLetterPreview profile={form} />
-                        <TouchableOpacity style={[ProfileStyles.generatedDownloadBtn, ProfileStyles.generatedDownloadBtnAlt]} onPress={() => handleDownloadDocument('appointment-letter')} disabled={downloadingDoc === 'appointment-letter'}>
-                          <Feather name="download" size={16} color="#fff" />
-                          <Text style={ProfileStyles.generatedDownloadText}>{downloadingDoc === 'appointment-letter' ? 'Generating PDF...' : 'Download Appointment Letter (PDF)'}</Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : hasDocumentSource(form) ? (
-                      <>
-                        <Text style={ProfileStyles.helperText}>Subscription lene ke baad hi Appointment Letter dekh sakte hain.</Text>
-                        <TouchableOpacity style={[ProfileStyles.generatedDownloadBtn, ProfileStyles.generatedDownloadBtnAlt]} onPress={() => promptSubscriptionRequired('Appointment Letter')}>
-                          <Feather name="lock" size={16} color="#fff" />
-                          <Text style={ProfileStyles.generatedDownloadText}>Take Subscription</Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : null}
-                  </View>
-                  <View style={ProfileStyles.formFooterRow}>
-                    <TouchableOpacity style={ProfileStyles.cancelButton} onPress={closeEdit}>
-                      <Text style={ProfileStyles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={ProfileStyles.submitButton} onPress={handleSave} disabled={saving}>
-                      <Text style={ProfileStyles.submitButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
-                    </TouchableOpacity>
+                    )}
                   </View>
                 </View>
+                {isLoggedIn && displayProfile.bio ? (
+                  <Text style={ProfileStyles.profileBio}>{displayProfile.bio}</Text>
+                ) : null}
+
+                {isLoggedIn ? (
+  <View style={ProfileStyles.quickIconRow}>
+    <TouchableOpacity
+      style={ProfileStyles.quickPostNewsBtn}
+      onPress={handlePostNews}
+      activeOpacity={0.85}
+    >
+      <Feather name="plus-circle" size={15} color="#F97316" />
+      <Text style={ProfileStyles.quickPostNewsBtnText}>Post News</Text>
+    </TouchableOpacity>
+  </View>
+) : null}
+              </View>
+
+              {!isLoggedIn ? (
+                <View style={ProfileStyles.loginPromptWrap}>
+                  <View style={ProfileStyles.loginPromptIconWrap}>
+                    <Feather name="user" size={32} color="#F97316" />
+                  </View>
+                  <Text style={ProfileStyles.loginPromptHeading}>Login</Text>
+                  <Text style={ProfileStyles.loginPromptText}></Text>
+                  <TouchableOpacity style={ProfileStyles.loginPromptBtn} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
+                    <Feather name="log-in" size={16} color="#ffffff" />
+                    <Text style={ProfileStyles.loginPromptBtnText}>Login / Sign Up</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
-                <SavedProfileCard
-                  profile={savedProfile}
-                  onOpenIdCard={() => openDocumentPreview('id-card')}
-                  onOpenAppointmentLetter={() => openDocumentPreview('appointment-letter')}
-                />
+                <>
+                  <View style={{ marginHorizontal: 12, marginTop: 8 }}>
+                    <CombinedStatsRow />
+                  </View>
+                  
+                  <View style={[ProfileStyles.referralCard, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', marginHorizontal: 12, marginBottom: 8, padding: 8 }]}>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity 
+                        style={{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: !showSavedProfile ? '#F97316' : '#f0f0f0' }}
+                        onPress={() => setShowSavedProfile(false)}
+                      >
+                        <Text style={{ color: !showSavedProfile ? '#fff' : '#666', fontWeight: '600' }}>My Posts</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={{ flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: showSavedProfile ? '#F97316' : '#f0f0f0' }}
+                        onPress={() => setShowSavedProfile(true)}
+                      >
+                        <Text style={{ color: showSavedProfile ? '#fff' : '#666', fontWeight: '600' }}>Profile Details</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  
+                  {showSavedProfile ? (
+                    <View style={[ProfileStyles.infoCard, { position: 'relative' }]}>
+                      <TouchableOpacity 
+                        style={{ position: 'absolute', top: 8, right: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#dbdbdb', zIndex: 10 }}
+                        onPress={openEdit}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#0f172a' }}>Edit Profile</Text>
+                      </TouchableOpacity>
+                      <View style={ProfileStyles.headerStrip}>
+                        <View style={ProfileStyles.headerLeft}>
+                          <View style={ProfileStyles.headerIconWrap}>
+                            <Feather name="user" size={18} color="#F97316" />
+                          </View>
+                          <Text style={ProfileStyles.cardTitle}>Profile Details</Text>
+                        </View>
+                      </View>
+                      <SavedProfileCard
+                        profile={savedProfile}
+                        onOpenIdCard={() => openDocumentPreview('id-card')}
+                        onOpenAppointmentLetter={() => openDocumentPreview('appointment-letter')}
+                      />
+                    </View>
+                  ) : (
+                    <View style={ProfileStyles.infoCard}>
+                      <View style={ProfileStyles.headerStrip}>
+                        <View style={ProfileStyles.headerLeft}>
+                          <View style={ProfileStyles.headerIconWrap}>
+                            <Feather name="file-text" size={18} color="#F97316" />
+                          </View>
+                          <Text style={ProfileStyles.cardTitle}>My Posts</Text>
+                        </View>
+                      </View>
+                      {renderUserPosts()}
+                    </View>
+                  )}
+                </>
               )}
             </>
           )}
         </View>
-        {loading ? <Text style={ProfileStyles.loadingText}>Loading profile...</Text> : null}
+        {loading && !isEditing ? <Text style={ProfileStyles.loadingText}>Loading profile...</Text> : null}
       </ScrollView>
 
       {followModal}
@@ -1073,5 +1240,3 @@ export default function ProfileScreen({ navigation }) {
     </View>
   );
 }
-
-

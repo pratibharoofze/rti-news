@@ -506,6 +506,9 @@ const NewsFeedStyles = StyleSheet.create({
   },
 
   // ─── Comment Modal ────────────────────────────────────────────────
+  commentKeyboardAvoider: {
+    flex: 1,
+  },
   commentOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15,23,42,0.4)',
@@ -533,6 +536,7 @@ const NewsFeedStyles = StyleSheet.create({
     color: '#0f172a',
   },
   commentList: {
+    flexShrink: 1,
     marginBottom: 12,
   },
   commentItem: {
@@ -676,6 +680,7 @@ const NewsFeedStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
+    paddingBottom: Platform.OS === 'android' ? 6 : 0,
   },
   commentInput: {
     flex: 1,

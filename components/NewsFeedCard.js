@@ -16,6 +16,7 @@ import { isValidImageUrl, buildPlaceholderImage, getLocalizedCategoryLabel, getL
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
 import { safePause, safePlay } from '../utils/videoPlayerSafe';
 import { UserStore } from '../store/UserStore';
+import { useAuth } from '../contexts/AuthContext';
 
 // ── Styles (alag file se import) ──────────────────────────────────────────────
 import styles from './NewsFeedCardStyles';
@@ -304,32 +305,42 @@ const EXCERPT_LINE_LIMIT = 3;
 function InlineReadMore({ text, style }) {
   const [expanded, setExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
+  const safeText = String(text || '').trim();
+  const shouldShowToggle = isTruncated || safeText.length > 180;
 
-  if (!text) return null;
+  useEffect(() => {
+    setExpanded(false);
+    setIsTruncated(false);
+  }, [safeText]);
+
+  if (!safeText) return null;
 
   return (
-    <Text
-      style={style}
-      numberOfLines={expanded ? undefined : EXCERPT_LINE_LIMIT}
-      onTextLayout={(e) => {
-        if (!expanded) {
-          setIsTruncated(e.nativeEvent.lines.length >= EXCERPT_LINE_LIMIT);
-        }
-      }}
-    >
-      {text}
-      {!expanded && isTruncated ? (
-        <Text style={styles.inlineReadMoreText} onPress={() => setExpanded(true)}>
-          {'... '}
-          <Text style={styles.inlineReadMoreLink}>read more</Text>
-        </Text>
+    <View style={styles.inlineReadMoreWrap}>
+      <Text
+        style={style}
+        numberOfLines={expanded ? undefined : EXCERPT_LINE_LIMIT}
+        onTextLayout={(e) => {
+          if (!expanded) {
+            setIsTruncated(e.nativeEvent.lines.length > EXCERPT_LINE_LIMIT);
+          }
+        }}
+      >
+        {safeText}
+      </Text>
+      {shouldShowToggle ? (
+        <TouchableOpacity
+          style={styles.inlineReadMoreButton}
+          onPress={() => setExpanded((prev) => !prev)}
+          activeOpacity={0.75}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <Text style={styles.inlineReadMoreLink}>
+            {expanded ? 'see less' : 'read more'}
+          </Text>
+        </TouchableOpacity>
       ) : null}
-      {expanded ? (
-        <Text style={styles.inlineReadMoreLink} onPress={() => setExpanded(false)}>
-          {' see less'}
-        </Text>
-      ) : null}
-    </Text>
+    </View>
   );
 }
 
@@ -346,6 +357,7 @@ export default function NewsFeedCard({
   commonCopy,
   currentUser,
 }) {
+  const { isLoggedIn } = useAuth();
   const isScreenFocused = useIsFocused();
   const cardRef = useRef(null);
   const isCardVisible = useCardVisibility(cardRef, 0.3);
@@ -591,7 +603,24 @@ export default function NewsFeedCard({
 
   const handleImagePress = () => onOpenDetails(story);
 
+  const showLoginRequired = useCallback(() => {
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert('Please login to continue.');
+        return;
+      }
+      Alert.alert('Login required', 'Please login to continue.');
+    } catch {}
+  }, []);
+
+  const requireLogin = useCallback(() => {
+    if (isLoggedIn && currentEmail) return true;
+    showLoginRequired();
+    return false;
+  }, [currentEmail, isLoggedIn, showLoginRequired]);
+
   const handleLike = async () => {
+    if (!requireLogin()) return;
     const prev = isLiked;
     const newLiked = !prev;
     setIsLiked(newLiked);
@@ -617,6 +646,7 @@ export default function NewsFeedCard({
   };
 
   const handleComment = async () => {
+    if (!requireLogin()) return;
     setShowComments((prev) => {
       const next = !prev;
       if (next) {
@@ -667,6 +697,7 @@ export default function NewsFeedCard({
   };
 
   const handleSubmitComment = async () => {
+    if (!requireLogin()) return;
     const trimmed = commentText.trim();
     if (!trimmed) return;
     try {
@@ -739,6 +770,7 @@ export default function NewsFeedCard({
   };
 
   const handleReplyComment = useCallback((commentId) => {
+    if (!requireLogin()) return;
     const parentCommentId = findParentCommentId(localComments, commentId) || commentId;
     if (replyingToCommentId === commentId) {
       setReplyingToCommentId(null);
@@ -750,9 +782,10 @@ export default function NewsFeedCard({
       setReplyText('');
       setExpandedReplyThreads((prev) => ({ ...prev, [parentCommentId]: true }));
     }
-  }, [findParentCommentId, localComments, replyingToCommentId]);
+  }, [findParentCommentId, localComments, replyingToCommentId, requireLogin]);
 
   const handleSubmitReply = async () => {
+    if (!requireLogin()) return;
     const trimmed = replyText.trim();
     if (!trimmed || !replyingToCommentId) return;
     try {
@@ -792,6 +825,7 @@ export default function NewsFeedCard({
   const handleCancelReply = () => { setReplyingToCommentId(null); setReplyText(''); };
 
   const handleLikeComment = async (commentId) => {
+    if (!requireLogin()) return;
     try {
       const result = await UserStore.likeNewsComment(story.id, commentId);
       if (!result?.ok) return;

@@ -31,6 +31,14 @@ const PINK_LIGHT = '#fff5f9';
 const PINK_BORDER = '#ffe0ed';
 const PINK_MUTED = '#fdf2f7';
 
+function storyMatchesLanguage(story, selectedLanguage) {
+  const activeLanguage = String(selectedLanguage || '').trim().toLowerCase();
+  if (!activeLanguage) return true;
+  const storyLanguage = String(story?.language || story?.lang || story?.news_language || '').trim().toLowerCase();
+  if (!storyLanguage) return true;
+  return storyLanguage === activeLanguage;
+}
+
 const SUBSCRIPTION_PLANS = [
   {
     plan_id: 'plan-basic',
@@ -423,7 +431,9 @@ export default function HomeScreen({ navigation, route }) {
 
   const visibleStories = useMemo(() => {
     if (viewMode === 'states') return [];
-    let scopedStories = allStories.filter((story) => storyMatchesMenu(story, selectedMenuKey));
+    let scopedStories = allStories
+      .filter((story) => storyMatchesMenu(story, selectedMenuKey))
+      .filter((story) => storyMatchesLanguage(story, language));
     if (selectedStateName) {
       scopedStories = scopedStories.filter((story) => String(story.state || '').toLowerCase() === selectedStateName.toLowerCase());
     }
@@ -434,7 +444,7 @@ export default function HomeScreen({ navigation, route }) {
       );
     }
     return ensureStoryCount(scopedStories, { selectedMenuKey, selectedStateName });
-  }, [allStories, searchQuery, selectedMenuKey, selectedStateName, viewMode]);
+  }, [allStories, language, searchQuery, selectedMenuKey, selectedStateName, viewMode]);
 
   const stateDistrictOptions = useMemo(() => buildStateDistrictList(allStories, selectedStateName), [allStories, selectedStateName]);
 

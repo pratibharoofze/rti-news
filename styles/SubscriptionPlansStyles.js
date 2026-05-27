@@ -1,13 +1,14 @@
 import { Platform, StatusBar, StyleSheet } from 'react-native';
+import { OrganizeImportsMode } from 'typescript';
 
 const SAFE_TOP = Platform.OS === 'android'
   ? (StatusBar.currentHeight || 24) + 4
   : 50;
 
-const PINK        = '#FF2D78';
-const PINK_LIGHT  = '#fff0f5';
-const PINK_BORDER = '#ffd6e7';
-const PINK_MUTED  = '#fdf2f7';
+const orange        = '#F97316';
+const orange_LIGHT  = '#FED7AA';
+const orange_BORDER = '#FED7AA';
+const orange_MUTED  = '#FED7AA';
 
 const SubscriptionPlansStyles = StyleSheet.create({
 
@@ -35,19 +36,19 @@ const SubscriptionPlansStyles = StyleSheet.create({
     borderBottomColor: '#f0f2f7',
   },
   backBtnText: {
-    color: PINK,
+    color: orange,
     fontSize: 14,
     fontWeight: '600',
   },
 
   // ── Hero Card ──
   heroCard: {
-    backgroundColor: PINK,
+    backgroundColor: orange,
     borderRadius: 22,
     padding: 22,
     marginBottom: 14,
     marginTop: 14,
-    shadowColor: PINK,
+    shadowColor: orange,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.28,
     shadowRadius: 14,
@@ -170,8 +171,8 @@ const SubscriptionPlansStyles = StyleSheet.create({
   },
   planCardActive: {
     borderWidth: 2,
-    borderColor: PINK,
-    backgroundColor: PINK_LIGHT,
+    borderColor: orange,
+    backgroundColor: orange_LIGHT,
   },
   planTopRow: {
     flexDirection: 'row',
@@ -195,7 +196,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
   planPrice: {
     fontSize: 26,
     fontWeight: '900',
-    color: PINK,
+    color: orange,
     marginBottom: 10,
   },
 
@@ -236,7 +237,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
   tapHint: {
     marginTop: 8,
     fontSize: 12,
-    color: PINK,
+    color: Orange,
     fontWeight: '700',
   },
 
@@ -249,7 +250,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: PINK,
+    backgroundColor: orange,
   },
   buyBtnText: {
     fontSize: 13,
@@ -301,7 +302,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
   seatHandle: {
     width: 36,
     height: 4,
-    backgroundColor: PINK_BORDER,
+    backgroundColor: orange_BORDER,
     borderRadius: 99,
     alignSelf: 'center',
     marginBottom: 16,
@@ -322,7 +323,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 99,
-    backgroundColor: PINK,
+    backgroundColor: orange,
   },
   seatStateText: {
     fontSize: 12,
@@ -339,16 +340,16 @@ const SubscriptionPlansStyles = StyleSheet.create({
   // ── Pending Plan Preview ──
   pendingPlanBox: {
     marginBottom: 14,
-    backgroundColor: PINK_MUTED,
+    backgroundColor: orange_MUTED,
     borderWidth: 1,
-    borderColor: PINK_BORDER,
+    borderColor: o_BORDER,
     borderRadius: 14,
     padding: 12,
   },
   pendingPlanLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: PINK,
+    color: orange,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -378,8 +379,8 @@ const SubscriptionPlansStyles = StyleSheet.create({
     marginBottom: 8,
   },
   seatItemSelected: {
-    borderColor: PINK,
-    backgroundColor: PINK_LIGHT,
+    borderColor: orange,
+    backgroundColor: orange_LIGHT,
   },
   seatItemDisabled: {
     borderColor: '#f0f2f7',
@@ -396,7 +397,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
   seatItemStatus: {
     fontSize: 11,
     fontWeight: '500',
-    color: PINK,
+    color: orange,
     marginTop: 3,
   },
   seatItemStatusMuted: {
@@ -406,7 +407,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 99,
-    backgroundColor: PINK,
+    backgroundColor: orange,
     alignItems: 'center',
     justifyContent: 'center',
   },

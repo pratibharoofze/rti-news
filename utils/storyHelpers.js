@@ -77,6 +77,7 @@ export function normalizeStoryItem(item, index = 0) {
     excerpt: stripHtml(item.excerpt || item.subtitle || item.description || ''),
     description: stripHtml(item.description || item.subtitle || item.excerpt || ''),
     category: item.category || 'Latest News',
+    language: String(item.language || item.lang || item.news_language || '').trim().toLowerCase(),
     menuTags: Array.isArray(item.menuTags) && item.menuTags.length
       ? Array.from(new Set(['latest', ...item.menuTags]))
       : inferMenuTagsFromText(item),

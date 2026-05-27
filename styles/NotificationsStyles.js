@@ -46,16 +46,8 @@ const styles = StyleSheet.create({
   customHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    // Web: full-width bar, content max-width centered via inner padding trick
-    paddingHorizontal: Platform.OS === 'web' ? '50%' : 16,
-    ...(Platform.OS === 'web'
-      ? {
-          // subtract half of max-width (320px) from each side so content is centered at 640px
-          paddingLeft: 'calc(320% - 370px)',
-          paddingRight: 'calc(320% - 370px)',
-        }
-      : {}),
+    justifyContent: 'center',
+    paddingHorizontal: Platform.OS === 'web' ? 0 : 16,
     paddingTop:
       Platform.OS === 'android'
         ? (StatusBar.currentHeight || 24) + 10
@@ -71,6 +63,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
+  },
+  headerInner: {
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 950 : '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   backButton: {
     width: 38,

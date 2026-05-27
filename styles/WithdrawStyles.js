@@ -4,7 +4,7 @@ const SAFE_TOP = Platform.OS === 'android'
   ? (StatusBar.currentHeight || 24) + 4
   : 50;
 
-const PINK       = '#FF2D78';
+const PINK       = '#e8732a';
 const PINK_LIGHT = '#fff0f5';
 const PINK_BORDER= '#ffd6e7';
 

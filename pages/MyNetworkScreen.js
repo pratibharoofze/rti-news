@@ -13,13 +13,13 @@ const PAGE_SIZE = 10;
 
 // ─── Amber/Orange design tokens (web only) ────────────────────────────────────
 const O = {
-  50:  '#FEF6EC',
-  100: '#FDECD8',
-  200: '#FBCFA0',
-  400: '#F09A3E',
-  600: '#C8700F',
-  800: '#7A420A',
-  900: '#4A2706',
+  50:  '#FFF4EC',
+  100: '#FFE2CE',
+  200: '#F8C29B',
+  400: '#e8732a',
+  600: '#C95C18',
+  800: '#7A360E',
+  900: '#4A2108',
 };
 
 // ─── Web inline styles ────────────────────────────────────────────────────────
@@ -509,7 +509,7 @@ export default function MyNetworkScreen({ navigation }) {
   // MOBILE LAYOUT — bilkul same, koi change nahi
   // ══════════════════════════════════════════════════════════════════════════
 
-  const PINK = '#FF2D78';
+  const PINK = '#e8732a';
 
   const mobileTableContent = () => {
     const colUser       = MyNetworkStyles.colUser;
@@ -532,7 +532,7 @@ export default function MyNetworkScreen({ navigation }) {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch('')}>
-              <Feather name="x" size={16} color={PINK} />
+              <Feather name="x" size={16} color={ORANGE} />
             </TouchableOpacity>
           )}
         </View>
@@ -620,7 +620,7 @@ export default function MyNetworkScreen({ navigation }) {
                 style={[MyNetworkStyles.pageBtn, safePage === 1 && MyNetworkStyles.pageBtnDisabled]}
                 onPress={() => goToPage(safePage - 1)} disabled={safePage === 1}
               >
-                <Feather name="chevron-left" size={16} color={safePage === 1 ? '#FFD0E6' : PINK} />
+                <Feather name="chevron-left" size={16} color={safePage === 1 ? '#F8C29B' : PINK} />
               </TouchableOpacity>
               {pageNumbers.map((page) => (
                 <TouchableOpacity
@@ -637,7 +637,7 @@ export default function MyNetworkScreen({ navigation }) {
                 style={[MyNetworkStyles.pageBtn, safePage === totalPages && MyNetworkStyles.pageBtnDisabled]}
                 onPress={() => goToPage(safePage + 1)} disabled={safePage === totalPages}
               >
-                <Feather name="chevron-right" size={16} color={safePage === totalPages ? '#FFD0E6' : PINK} />
+                <Feather name="chevron-right" size={16} color={safePage === totalPages ? '#F8C29B' : PINK} />
               </TouchableOpacity>
             </View>
             <Text style={MyNetworkStyles.pageInfo}>Page {safePage} of {totalPages}</Text>
@@ -659,7 +659,7 @@ export default function MyNetworkScreen({ navigation }) {
         activeOpacity={0.8}
       >
         <View style={MyNetworkStyles.backBtnIcon}>
-          <Feather name="arrow-left" size={18} color={PINK} />
+          <Feather name="arrow-left" size={18} color={ORANGE} />
         </View>
         <Text style={MyNetworkStyles.backBtnText}>Back to Menu</Text>
       </TouchableOpacity>

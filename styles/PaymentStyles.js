@@ -4,10 +4,10 @@ const SAFE_TOP = Platform.OS === 'android'
   ? (StatusBar.currentHeight || 24) + 4
   : 50;
 
-const PINK        = '#FF2D78';
-const PINK_LIGHT  = '#fff0f5';
-const PINK_BORDER = '#ffd6e7';
-const PINK_MUTED  = '#fdf2f7';
+const ORANGE        = '#F97316';
+const ORANGE_LIGHT  = '#fff0f5';
+const ORANGE_BORDER = '#ffd6e7';
+const ORANGE_MUTED  = '#fdf2f7';
 
 const PaymentStyles = StyleSheet.create({
 
@@ -35,19 +35,19 @@ const PaymentStyles = StyleSheet.create({
     gap: 5,
   },
   backBtnText: {
-    color: PINK,
+    color: ORANGE,
     fontSize: 14,
     fontWeight: '600',
   },
 
   // ── Hero Card ──
   heroCard: {
-    backgroundColor: PINK,
+    backgroundColor: ORANGE,
     borderRadius: 22,
     padding: 20,
     marginBottom: 14,
     marginTop: 14,
-    shadowColor: PINK,
+    shadowColor: ORANGE,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.28,
     shadowRadius: 14,
@@ -99,7 +99,7 @@ const PaymentStyles = StyleSheet.create({
     padding: 20,
     marginBottom: 14,
     borderWidth: 1.5,
-    borderColor: PINK_BORDER,
+    borderColor: ORANGE_BORDER,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.06,
@@ -116,7 +116,7 @@ const PaymentStyles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 16,
-    backgroundColor: PINK_LIGHT,
+    backgroundColor: ORANGE_LIGHT,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -133,7 +133,7 @@ const PaymentStyles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: PINK_BORDER,
+    backgroundColor: ORANGE_BORDER,
     marginBottom: 16,
   },
   amountRow: {
@@ -150,12 +150,12 @@ const PaymentStyles = StyleSheet.create({
   amountValue: {
     fontSize: 28,
     fontWeight: '900',
-    color: PINK,
+    color: ORANGE,
   },
 
   // ── Pay Button ──
   payBtn: {
-    backgroundColor: PINK,
+    backgroundColor: ORANGE,
     borderRadius: 16,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -163,7 +163,7 @@ const PaymentStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     marginBottom: 12,
-    shadowColor: PINK,
+    shadowColor: ORANGE,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -194,9 +194,9 @@ const PaymentStyles = StyleSheet.create({
     marginTop: 14,
     borderRadius: 16,
     padding: 14,
-    backgroundColor: PINK_MUTED,
+    backgroundColor: ORANGE_MUTED,
     borderWidth: 1,
-    borderColor: PINK_BORDER,
+    borderColor: ORANGE_BORDER,
     gap: 6,
   },
   testHelperHeader: {
@@ -301,7 +301,7 @@ const PaymentStyles = StyleSheet.create({
   },
   statusPending: { backgroundColor: '#fef3c7' },
   statusSuccess: { backgroundColor: '#dcfce7' },
-  statusFailed:  { backgroundColor: PINK_LIGHT },
+  statusFailed:  { backgroundColor: ORANGE_LIGHT },
   statusText: {
     fontSize: 11,
     fontWeight: '800',
@@ -309,7 +309,7 @@ const PaymentStyles = StyleSheet.create({
   },
   statusTextPending: { color: '#92400e' },
   statusTextSuccess: { color: '#166534' },
-  statusTextFailed:  { color: PINK },
+  statusTextFailed:  { color: ORANGE },
 
   // ── View Status Button ──
   viewStatusBtn: {
@@ -320,14 +320,14 @@ const PaymentStyles = StyleSheet.create({
     gap: 6,
     paddingVertical: 9,
     borderRadius: 12,
-    backgroundColor: PINK_LIGHT,
+    backgroundColor: ORANGE_LIGHT,
     borderWidth: 1,
-    borderColor: PINK_BORDER,
+    borderColor: ORANGE_BORDER,
   },
   viewStatusBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: PINK,
+    color: ORANGE,
   },
 
   // ── Status Modal ──
@@ -346,7 +346,7 @@ const PaymentStyles = StyleSheet.create({
   modalHandle: {
     width: 36,
     height: 4,
-    backgroundColor: PINK_BORDER,
+    backgroundColor: ORANGE_BORDER,
     borderRadius: 99,
     alignSelf: 'center',
     marginBottom: 18,

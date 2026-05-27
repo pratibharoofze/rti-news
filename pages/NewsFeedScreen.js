@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import {
-  Image, Linking, Modal, Platform, ScrollView, Share,
+  Image, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, Share,
   Text, TextInput, TouchableOpacity, View, Alert, BackHandler
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import styles from '../styles/NewsFeedStyles';
 import { UserStore } from '../store/UserStore';
 import { INDIAN_STATES } from './locationData';
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // ─── Filter constants ──────────────────────────────────────────────
 const REPORT_TYPES = [
@@ -26,6 +27,14 @@ const REPORT_TYPES = [
 const ROLE_TYPES = [
   'All', 'Subscriber', 'Premium', 'Reporter', 'Editor',
 ];
+
+function itemMatchesLanguage(item, selectedLanguage) {
+  const activeLanguage = String(selectedLanguage || '').trim().toLowerCase();
+  if (!activeLanguage) return true;
+  const itemLanguage = String(item?.language || item?.lang || item?.news_language || '').trim().toLowerCase();
+  if (!itemLanguage) return true;
+  return itemLanguage === activeLanguage;
+}
 
 // ─── ResolvedImage ─────────────────────────────────────────────────
 function ResolvedImage({ uri, style, resizeMode = 'cover' }) {
@@ -382,6 +391,7 @@ const EditNewsModal = ({ visible, newsItem, onClose, onUpdate, showToast }) => {
 // ─── Main Screen ───────────────────────────────────────────────────
 export default function NewsFeedScreen({ navigation }) {
   const { showToast } = useToast();
+  const { language } = useLanguage();
   const successMessage = '';
   const [loading, setLoading] = useState(true);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
@@ -898,7 +908,7 @@ export default function NewsFeedScreen({ navigation }) {
     navigation.navigate('Add News');
   };
 
-  const displayedItems = applyUIFilters(newsData.items);
+  const displayedItems = applyUIFilters(newsData.items.filter((item) => itemMatchesLanguage(item, language)));
   const currentUser = newsData.currentUser;
   const currentUserEmail = String(currentUser?.email || '').trim().toLowerCase();
   const currentUserHasBlueTick = Boolean(currentUser && UserStore.hasBlueTick(currentUser));
@@ -1287,6 +1297,11 @@ export default function NewsFeedScreen({ navigation }) {
           setExpandedReplyThreads({});
         }}
       >
+        <KeyboardAvoidingView
+          style={styles.commentKeyboardAvoider}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+        >
         <View style={styles.commentOverlay}>
           <View style={styles.commentSheet}>
             <View style={styles.commentHeader}>
@@ -1301,7 +1316,12 @@ export default function NewsFeedScreen({ navigation }) {
                 <Feather name="x" size={20} color="#94a3b8" />
               </TouchableOpacity>
             </View>
-            <ScrollView style={styles.commentList} contentContainerStyle={styles.commentListContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.commentList}
+              contentContainerStyle={styles.commentListContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
               {localComments.length ? (
                 localComments.map((c) => (
                   <FeedCommentItem
@@ -1345,6 +1365,7 @@ export default function NewsFeedScreen({ navigation }) {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

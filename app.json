@@ -4,7 +4,7 @@
     "slug": "rti-news",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-icon-certificate.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -16,10 +16,19 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon-certificate.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.roofze.rtinews"
+      "package": "com.roofze.rtinews",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png",
@@ -27,7 +36,15 @@
       "output": "single"
     },
     "plugins": [
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon-certificate.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
       [
         "expo-media-library",
         {
@@ -54,19 +71,17 @@
       ],
       "expo-sqlite"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "790ebc30-229b-4861-8f93-0838f09ff045"
-      }
-    },
-    "owner": "roofze",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/790ebc30-229b-4861-8f93-0838f09ff045"
-    }
-
-    
+    },
+    "extra": {
+      "eas": {
+        "projectId": "df1a39ab-1bd1-4a8c-b57d-2761844b3b92"
+      }
+    },
+    "owner": "pratibhaa"
   }
 }

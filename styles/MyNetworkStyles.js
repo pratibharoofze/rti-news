@@ -2,8 +2,8 @@ import { StyleSheet } from 'react-native';
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────
 // Pink        : #e8732a
-// Pink Light  : #FFE8F0
-// Pink Border : #FFD0E6
+// Pink Light  : #FFF4EC
+// Pink Border : #F8C29B
 // White       : #ffffff
 // Page BG     : #F8F8F8
 // Text Dark   : #111111
@@ -32,8 +32,8 @@ const MyNetworkStyles = StyleSheet.create({
   topBarBackBtn: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#FFE8F0',
-    borderWidth: 1, borderColor: '#FFD0E6',
+    backgroundColor: '#FFF4EC',
+    borderWidth: 1, borderColor: '#F8C29B',
   },
   topBarTitle: {
     fontSize: 16, fontWeight: '700', color: '#111111',
@@ -54,8 +54,8 @@ const MyNetworkStyles = StyleSheet.create({
   backBtnIcon: {
     width: 34, height: 34, borderRadius: 17,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#FFE8F0',
-    borderWidth: 1, borderColor: '#FFD0E6',
+    backgroundColor: '#F8C29B',
+    borderWidth: 1, borderColor: '#F8C29B',
   },
   backBtnText: {
     fontSize: 15, fontWeight: '700', color: '#111111',
@@ -70,7 +70,7 @@ const MyNetworkStyles = StyleSheet.create({
     paddingVertical: 16, paddingHorizontal: 14,
     elevation: 1,
   },
-  metricPrimary:   { backgroundColor: '#FFE8F0', borderWidth: 1, borderColor: '#FFD0E6' },
+  metricPrimary:   { backgroundColor: '#FFF4EC', borderWidth: 1, borderColor: '#F8C29B' },
   metricAccent:    { backgroundColor: '#ffffff',  borderWidth: 1, borderColor: '#EEEEEE' },
   metricValue:     { fontSize: 26, fontWeight: '800', color: '#111111', marginBottom: 4 },
   metricLabel:     { fontSize: 12, fontWeight: '600', color: '#888888' },
@@ -100,7 +100,7 @@ const MyNetworkStyles = StyleSheet.create({
   // ─── Results Info ────────────────────────────────────────────────────────
   resultsInfo: {
     fontSize: 12, color: '#888888', marginBottom: 10,
-    fontWeight: '600', backgroundColor: '#FFE8F0',
+    fontWeight: '600', backgroundColor: '#FFF4EC',
     padding: 8, borderRadius: 10, textAlign: 'center',
   },
 
@@ -112,9 +112,9 @@ const MyNetworkStyles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#FFE8F0',
+    backgroundColor: '#FFF4EC',
     paddingVertical: 12, paddingHorizontal: 12,
-    borderBottomWidth: 1, borderBottomColor: '#FFD0E6',
+    borderBottomWidth: 1, borderBottomColor: '#F8C29B',
     alignItems: 'center',
   },
   headerCell: {
@@ -129,7 +129,7 @@ const MyNetworkStyles = StyleSheet.create({
   },
   tableRowEven:    { backgroundColor: '#FAFAFA' },
   currentUserRow:  {
-    backgroundColor: '#FFF5F8',
+    backgroundColor: '#FFF4EC',
     borderLeftWidth: 3, borderLeftColor: '#e8732a',
   },
 
@@ -153,7 +153,7 @@ const MyNetworkStyles = StyleSheet.create({
     borderRadius: 20, backgroundColor: '#F8F8F8',
     alignItems: 'center', borderWidth: 1, borderColor: '#EEEEEE',
   },
-  currentLevelBadge:     { backgroundColor: '#FFE8F0', borderColor: '#FFD0E6' },
+  currentLevelBadge:     { backgroundColor: '#F8C29B', borderColor: '#F8C29B' },
   levelBadgeText:        { fontSize: 11, fontWeight: '800', color: '#555555' },
   currentLevelBadgeText: { color: '#e8732a' },
 
@@ -163,8 +163,8 @@ const MyNetworkStyles = StyleSheet.create({
   // ─── Action Button ───────────────────────────────────────────────────────
   viewBtn: {
     width: 32, height: 32, borderRadius: 10,
-    backgroundColor: '#FFE8F0', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#FFD0E6',
+    backgroundColor: '#FFF4EC', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#F8C29B',
   },
 
   // ─── Pagination ──────────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ const MyNetworkStyles = StyleSheet.create({
   pageBtnTextActive:  { color: '#ffffff' },
   pageInfo: {
     fontSize: 12, color: '#888888', textAlign: 'center',
-    fontWeight: '600', backgroundColor: '#FFE8F0',
+    fontWeight: '600', backgroundColor: '#F8C29B',
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 20, alignSelf: 'center',
   },
@@ -201,7 +201,7 @@ const MyNetworkStyles = StyleSheet.create({
   emptyText: {
     fontSize: 14, color: '#888888',
     paddingVertical: 28, textAlign: 'center',
-    fontWeight: '500', backgroundColor: '#FFE8F0',
+    fontWeight: '500', backgroundColor: '#F8C29B',
     borderRadius: 14, marginTop: 10,
   },
 });

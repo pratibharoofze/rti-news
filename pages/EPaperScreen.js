@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import {
   Alert, Image, Modal, Platform, ScrollView, Text, TextInput,
   TouchableOpacity, View, Share, KeyboardAvoidingView, SafeAreaView,
+  useWindowDimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -129,6 +130,169 @@ const w = {
   loadingTxt:{ fontSize:14, color:'#888888', paddingVertical:40, textAlign:'center' },
 };
 
+const getWebStyles = (windowWidth) => {
+  const isPhone = windowWidth <= 640;
+  const isNarrow = windowWidth <= 820;
+  const isTablet = windowWidth <= 1024;
+
+  if (!isPhone && !isNarrow && !isTablet) return w;
+
+  return {
+    ...w,
+    topBar: {
+      ...w.topBar,
+      alignItems: isPhone ? 'flex-start' : 'center',
+      flexDirection: isPhone ? 'column' : 'row',
+      gap: isPhone ? 10 : 12,
+      paddingHorizontal: isPhone ? 16 : 24,
+      paddingVertical: isPhone ? 12 : 14,
+    },
+    topLeft: {
+      ...w.topLeft,
+      flexWrap: 'wrap',
+      maxWidth: '100%',
+    },
+    backBtn: {
+      ...w.backBtn,
+      alignSelf: isPhone ? 'flex-start' : 'auto',
+      paddingHorizontal: isPhone ? 12 : 16,
+    },
+    scrollContent: {
+      ...w.scrollContent,
+      paddingHorizontal: isPhone ? 14 : 24,
+      paddingTop: isPhone ? 22 : 28,
+    },
+    innerWrap: {
+      ...w.innerWrap,
+      maxWidth: isTablet ? 820 : 1100,
+    },
+    pageHeadRow: {
+      ...w.pageHeadRow,
+      alignItems: isPhone ? 'stretch' : 'flex-end',
+      flexDirection: isPhone ? 'column' : 'row',
+      gap: isPhone ? 14 : 18,
+      marginBottom: isPhone ? 18 : 24,
+    },
+    pageTitle: {
+      ...w.pageTitle,
+      fontSize: isPhone ? 22 : 24,
+    },
+    pageSub: {
+      ...w.pageSub,
+      flexShrink: 1,
+      lineHeight: 20,
+    },
+    addBtn: {
+      ...w.addBtn,
+      justifyContent: 'center',
+      alignSelf: isPhone ? 'stretch' : 'auto',
+      paddingVertical: isPhone ? 12 : 10,
+    },
+    metricsRow: {
+      ...w.metricsRow,
+      flexWrap: 'wrap',
+      gap: isPhone ? 10 : 12,
+      marginBottom: isPhone ? 20 : 24,
+    },
+    mc: {
+      ...w.mc,
+      flex: isPhone ? 0 : 1,
+      width: isPhone ? '100%' : 'calc(33.333% - 8px)',
+      minWidth: isPhone ? '100%' : 180,
+      padding: isPhone ? 16 : 18,
+    },
+    mcTop: {
+      ...w.mcTop,
+      marginBottom: isPhone ? 10 : 14,
+    },
+    sectionHead: {
+      ...w.sectionHead,
+      alignItems: isPhone ? 'flex-start' : 'center',
+      flexDirection: isPhone ? 'column' : 'row',
+      gap: isPhone ? 10 : 12,
+    },
+    grid: {
+      ...w.grid,
+      gap: isPhone ? 12 : 14,
+    },
+    articleCard: {
+      ...w.articleCard,
+      width: isNarrow ? '100%' : 'calc(50% - 7px)',
+    },
+    articleBody: {
+      ...w.articleBody,
+      padding: isPhone ? 14 : 18,
+    },
+    articleMeta: {
+      ...w.articleMeta,
+      alignItems: 'flex-start',
+      gap: 8,
+    },
+    statsRow: {
+      ...w.statsRow,
+      flexWrap: 'wrap',
+      gap: isPhone ? 10 : 14,
+    },
+    actionBtn: {
+      ...w.actionBtn,
+      justifyContent: 'center',
+      minWidth: isPhone ? 'calc(50% - 4px)' : 92,
+      flexGrow: isPhone ? 1 : 0,
+    },
+    actionBtnDanger: {
+      ...w.actionBtnDanger,
+      justifyContent: 'center',
+      minWidth: isPhone ? 'calc(50% - 4px)' : 92,
+      flexGrow: isPhone ? 1 : 0,
+    },
+    successOverlay: {
+      ...w.successOverlay,
+      top: isPhone ? 84 : 70,
+      paddingHorizontal: 14,
+    },
+    successBox: {
+      ...w.successBox,
+      maxWidth: '100%',
+    },
+    webModalHeader: {
+      ...w.webModalHeader,
+      paddingHorizontal: isPhone ? 14 : 24,
+      gap: isPhone ? 8 : 12,
+    },
+    webModalHeaderTitle: {
+      ...w.webModalHeaderTitle,
+      fontSize: isPhone ? 15 : 17,
+    },
+    webModalSaveBtn: {
+      ...w.webModalSaveBtn,
+      paddingHorizontal: isPhone ? 14 : 20,
+    },
+    webFormContent: {
+      ...w.webFormContent,
+      paddingHorizontal: isPhone ? 14 : 24,
+      paddingTop: isPhone ? 18 : 24,
+    },
+    webMediaCard: {
+      ...w.webMediaCard,
+      borderRadius: isPhone ? 16 : 20,
+      padding: isPhone ? 14 : 20,
+    },
+    webMediaBadgeRow: {
+      ...w.webMediaBadgeRow,
+      gap: 8,
+    },
+    webMediaPill: {
+      ...w.webMediaPill,
+      flexGrow: isPhone ? 1 : 0,
+      justifyContent: isPhone ? 'center' : 'flex-start',
+    },
+    webMediaSection: {
+      ...w.webMediaSection,
+      padding: isPhone ? 12 : 16,
+    },
+  };
+};
+
 function StatusBadge({ status, web }) {
   const cfg = {
     approved:{ bg:'#DCFCE7', color:'#16A34A', label:'Approved' },
@@ -201,7 +365,7 @@ function StatePickerModal({visible,selected,onSelect,onClose}){
           {filtered.map((state)=>(
             <TouchableOpacity key={state} style={[EPaperStyles.stateItem,selected===state&&EPaperStyles.stateItemActive]} onPress={()=>{onSelect(state);onClose();}}>
               <Text style={[EPaperStyles.stateItemText,selected===state&&EPaperStyles.stateItemTextActive]}>{state}</Text>
-              {selected===state?<Feather name="check" size={15} color="#FF2D78"/>:null}
+              {selected===state?<Feather name="check" size={15} color="#F97316"/>:null}
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -213,6 +377,8 @@ function StatePickerModal({visible,selected,onSelect,onClose}){
 export default function EPaperScreen({navigation}){
   const{showToast}=useToast();
   const isWeb=Platform.OS==='web';
+  const { width: windowWidth } = useWindowDimensions();
+  const w = getWebStyles(windowWidth);
   const htmlToPlain=(html)=>String(html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
   const escapeHtml=(text)=>String(text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const plainToHtml=(text)=>`<div>${escapeHtml(text).replace(/\n/g,'<br/>')}</div>`;
@@ -489,7 +655,7 @@ export default function EPaperScreen({navigation}){
               <Text style={EPaperStyles.fieldLabelSpaced}>State</Text>
               <Text style={EPaperStyles.fieldHint}>Choose the state this e-paper belongs to.</Text>
               <TouchableOpacity style={EPaperStyles.stateSelector} onPress={() => setStatePickerVisible(true)}>
-                <Feather name="map-pin" size={16} color="#FF2D78" />
+                <Feather name="map-pin" size={16} color="#F97316" />
                 <Text style={[EPaperStyles.stateSelectorText, !selectedState && EPaperStyles.stateSelectorPlaceholder]}>{selectedState || 'Select a state...'}</Text>
                 <Feather name="chevron-down" size={16} color="#64748b" />
               </TouchableOpacity>
@@ -532,17 +698,17 @@ export default function EPaperScreen({navigation}){
     if(isWeb){
       return(
         <Modal visible={!!viewItem} animationType="fade" onRequestClose={()=>setViewItem(null)}>
-          <View style={{flex:1,backgroundColor:'#F7F4F0',minHeight:'100vh'}}>
-            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:24,paddingVertical:14,backgroundColor:O[400],borderBottomWidth:2,borderBottomColor:O[600]}}>
-              <TouchableOpacity onPress={()=>setViewItem(null)} style={{width:36,height:36,borderRadius:8,backgroundColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'Center'}}>
+          <View style={w.webModalRoot}>
+            <View style={w.webModalHeader}>
+              <TouchableOpacity onPress={()=>setViewItem(null)} style={w.webModalCloseBtn}>
                 <Feather name="arrow-left" size={18} color="#ffffff"/>
               </TouchableOpacity>
-              <Text style={{fontSize:17,fontWeight:'800',color:'#ffffff',flex:1,textAlign:'center',marginHorizontal:8}} numberOfLines={1}>View E-Paper</Text>
+              <Text style={[w.webModalHeaderTitle,{marginHorizontal:8}]} numberOfLines={1}>View E-Paper</Text>
               <View style={{width:36}}/>
             </View>
 
-            <ScrollView contentContainerStyle={{paddingHorizontal:32,paddingTop:24,paddingBottom:60,alignItems:'center'}} showsVerticalScrollIndicator={false}>
-              <View style={{width:'100%',maxWidth:820,alignSelf:'center'}}>
+            <ScrollView contentContainerStyle={w.webFormContent} showsVerticalScrollIndicator={false}>
+              <View style={w.webFormInner}>
                 <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                   <StatusBadge status={viewItem.status} web/>
                   <Text style={{fontSize:12,color:'#AAAAAA',fontWeight:'500'}}>{viewItem.createdAt?.slice(0,10)||''}</Text>
@@ -555,14 +721,14 @@ export default function EPaperScreen({navigation}){
                   </View>
                 ):null}
 
-                <View style={{backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:16,padding:24,marginBottom:20}}>
-                  <Text style={{fontSize:22,fontWeight:'800',color:'#111111',lineHeight:30,marginBottom:12}}>{plainTitle||'Untitled E-Paper'}</Text>
+                <View style={{backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:16,padding:windowWidth<=640?16:24,marginBottom:20}}>
+                  <Text style={{fontSize:windowWidth<=640?19:22,fontWeight:'800',color:'#111111',lineHeight:windowWidth<=640?27:30,marginBottom:12}}>{plainTitle||'Untitled E-Paper'}</Text>
                   <View style={{height:1,backgroundColor:'#F0EBE4',marginBottom:14}}/>
                   <Text style={{fontSize:14,color:'#555555',lineHeight:24}}>{plainDescription||'No description available.'}</Text>
                 </View>
 
                 {viewItem.mediaType==='Images'&&viewItem.images?.length>0&&(
-                  <View style={{backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:16,padding:20,marginBottom:20}}>
+                  <View style={{backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:16,padding:windowWidth<=640?14:20,marginBottom:20}}>
                     <View style={{flexDirection:'row',alignItems:'center',gap:8,marginBottom:14}}>
                       <Feather name="image" size={15} color={O[600]}/>
                       <Text style={{fontSize:13,fontWeight:'800',color:'#111111'}}>Images ({viewItem.images.length})</Text>
@@ -582,7 +748,7 @@ export default function EPaperScreen({navigation}){
                   </View>
                 )}
 
-                <View style={{flexDirection:'row',gap:20,backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:14,padding:16}}>
+                <View style={{flexDirection:'row',flexWrap:'wrap',gap:windowWidth<=640?12:20,backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:14,padding:16}}>
                   <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
                     <Feather name="eye" size={14} color={O[400]}/>
                     <Text style={{fontSize:13,fontWeight:'700',color:'#555555'}}>{viewItem.views??0} Views</Text>

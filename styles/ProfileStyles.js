@@ -145,10 +145,10 @@ quickIconButtonText: {
   quickPostNewsBtn: {
   flex: 1, flexDirection: 'row', alignItems: 'center',
   justifyContent: 'center', gap: 5, height: 36,
-  backgroundColor: '#F0F0F0', borderRadius: 10,
-  borderWidth: 1, borderColor: '#E0E0E0',
+  backgroundColor: '#F97316', borderRadius: 10,
+  borderWidth: 1, borderColor: '#F97316',
 },
-quickPostNewsBtnText: { color: '#111111', fontSize: 13, fontWeight: '700' },
+quickPostNewsBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
 
   // ─── Rank Card ─────────────────────────────────────────────────────────────
   rankCard: {

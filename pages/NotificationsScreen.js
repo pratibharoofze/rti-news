@@ -122,15 +122,25 @@ export default function NotificationsScreen({ navigation }) {
 
         {/* Header */}
         <View style={styles.customHeader}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate('QuickMenu')}
-            activeOpacity={0.75}
+          <View
+            style={[
+              styles.headerInner,
+              Platform.OS === 'web' && {
+                paddingHorizontal: isMobileWeb ? 16 : 24,
+                maxWidth: isMobileWeb ? '100%' : 950,
+              },
+            ]}
           >
-            <Feather name="arrow-left" size={20} color={C.accent} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notifications</Text>
-          <View style={styles.headerGhost} />
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.navigate('QuickMenu')}
+              activeOpacity={0.75}
+            >
+              <Feather name="arrow-left" size={20} color={C.accent} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            <View style={styles.headerGhost} />
+          </View>
         </View>
 
         <ScrollView

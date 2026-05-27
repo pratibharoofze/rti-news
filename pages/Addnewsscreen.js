@@ -22,6 +22,7 @@ import { useToast } from '../components/ui/ToastProvider';
 import AddNewsStyles from '../styles/Addnewsstyles';
 import { UserStore } from '../store/UserStore';
 import { storeWebUriToIdbMedia } from '../utils/webMediaStore';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const INDIA_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -239,7 +240,7 @@ function RoleTypeModal({ visible, selected, onSelect, onClose }) {
 }
 
 // ─── Web Stepper Component ────────────────────────────────────────────────────
-function WebStepper() {
+function WebStepper({ compact = false }) {
   const steps = [
     { n: '1', label: 'Content', done: true },
     { n: '2', label: 'Categorise', active: true },
@@ -248,10 +249,10 @@ function WebStepper() {
   ];
 
   return (
-    <View style={AddNewsStyles.webStepper}>
+    <View style={[AddNewsStyles.webStepper, compact && { flexWrap: 'wrap', gap: 10 }]}>
       {steps.map((step, index) => (
         <React.Fragment key={step.n}>
-          <View style={AddNewsStyles.webStepItem}>
+          <View style={[AddNewsStyles.webStepItem, compact && { minWidth: '45%' }]}>
             <View style={[
               AddNewsStyles.webStepCircle,
               step.done && AddNewsStyles.webStepCircleDone,
@@ -277,6 +278,7 @@ function WebStepper() {
             <View style={[
               AddNewsStyles.webStepLine,
               step.done && AddNewsStyles.webStepLineDone,
+              compact && { display: 'none' },
             ]} />
           )}
         </React.Fragment>
@@ -286,10 +288,79 @@ function WebStepper() {
 }
 
 export default function AddNewsScreen({ navigation }) {
+  const { language } = useLanguage();
   const { showToast } = useToast();
   const { width: windowWidth } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isMobileWeb = isWeb && windowWidth <= 760;
+  const isNarrowWeb = isWeb && windowWidth <= 980;
+  const webResponsive = {
+    pageContainer: {
+      paddingHorizontal: isMobileWeb ? 12 : isNarrowWeb ? 18 : 24,
+      paddingVertical: isMobileWeb ? 12 : 20,
+      alignItems: 'center',
+    },
+    card: {
+      maxWidth: isMobileWeb ? '100%' : 980,
+      borderRadius: isMobileWeb ? 14 : 20,
+    },
+    cardHeader: {
+      paddingHorizontal: isMobileWeb ? 14 : 24,
+      paddingTop: isMobileWeb ? 14 : 20,
+    },
+    formHeader: {
+      alignItems: isMobileWeb ? 'flex-start' : 'flex-start',
+      gap: isMobileWeb ? 10 : 8,
+    },
+    formHeaderTitle: {
+      fontSize: isMobileWeb ? 18 : 20,
+      lineHeight: isMobileWeb ? 24 : 26,
+    },
+    formHeaderSub: {
+      lineHeight: 19,
+    },
+    formContent: {
+      paddingHorizontal: isMobileWeb ? 14 : 28,
+      gap: isMobileWeb ? 14 : 18,
+    },
+    input: {
+      fontSize: 14,
+      padding: isMobileWeb ? 11 : 12,
+    },
+    row2Field: {
+      minWidth: isMobileWeb ? '100%' : 200,
+    },
+    mediaToggleRow: {
+      flexWrap: 'wrap',
+      gap: isMobileWeb ? 8 : 10,
+    },
+    mediaToggleBtn: {
+      flexGrow: 1,
+      flexBasis: isMobileWeb ? '48%' : 'auto',
+      minWidth: isMobileWeb ? '48%' : 120,
+      paddingHorizontal: 8,
+    },
+    mediaPickBtn: {
+      justifyContent: 'center',
+      paddingHorizontal: isMobileWeb ? 12 : 16,
+    },
+    footer: {
+      alignItems: 'stretch',
+      flexDirection: isMobileWeb ? 'column-reverse' : 'row',
+      justifyContent: isMobileWeb ? 'center' : 'flex-end',
+      paddingHorizontal: isMobileWeb ? 14 : 28,
+      paddingVertical: isMobileWeb ? 14 : 20,
+      borderBottomLeftRadius: isMobileWeb ? 14 : 20,
+      borderBottomRightRadius: isMobileWeb ? 14 : 20,
+    },
+    footerBtn: {
+      width: isMobileWeb ? '100%' : 'auto',
+      alignItems: 'center',
+    },
+    videoPreview: {
+      height: isMobileWeb ? 170 : 190,
+    },
+  };
 
   const decodeHtmlEntities = (value) => String(value || '')
     .replace(/&nbsp;/gi, ' ')
@@ -687,6 +758,7 @@ export default function AddNewsScreen({ navigation }) {
       report_type: reportType,
       role_type: roleType,
       category: reportType || stateValue || 'General',
+      language: String(language || '').trim().toLowerCase(),
       state: stateValue,
       district: isSubscribedUser ? locationDistrict : '',
       taluka: isSubscribedUser ? locationTaluka : '',
@@ -757,19 +829,19 @@ export default function AddNewsScreen({ navigation }) {
   // ─────────────────────────────────────────────────────────────────────────
   // WEB — Centered modal layout (no sidebar)
   // ─────────────────────────────────────────────────────────────────────────
-  if (isWeb && !isMobileWeb) {
+  if (isWeb) {
     return (
       <View style={AddNewsStyles.root}>
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={AddNewsStyles.webPageContainer}
+          contentContainerStyle={[AddNewsStyles.webPageContainer, webResponsive.pageContainer]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="always"
         >
-          <View style={AddNewsStyles.webCard}>
+          <View style={[AddNewsStyles.webCard, webResponsive.card]}>
 
             {/* ── Card Header ── */}
-            <View style={AddNewsStyles.webCardHeader}>
+            <View style={[AddNewsStyles.webCardHeader, webResponsive.cardHeader]}>
 
               {/* Back button */}
               <TouchableOpacity
@@ -782,10 +854,10 @@ export default function AddNewsScreen({ navigation }) {
               </TouchableOpacity>
 
               {/* Title row */}
-              <View style={AddNewsStyles.webFormHeader}>
-                <View>
-                  <Text style={AddNewsStyles.webFormHeaderTitle}>Add news article</Text>
-                  <Text style={AddNewsStyles.webFormHeaderSub}>
+              <View style={[AddNewsStyles.webFormHeader, webResponsive.formHeader]}>
+                <View style={{ flex: 1, minWidth: isMobileWeb ? '100%' : 240 }}>
+                  <Text style={[AddNewsStyles.webFormHeaderTitle, webResponsive.formHeaderTitle]}>Add news article</Text>
+                  <Text style={[AddNewsStyles.webFormHeaderSub, webResponsive.formHeaderSub]}>
                     Fill in the details below to publish your news report.
                   </Text>
                 </View>
@@ -798,14 +870,14 @@ export default function AddNewsScreen({ navigation }) {
               <View style={AddNewsStyles.webDivider} />
 
               {/* Stepper */}
-              <WebStepper />
+              <WebStepper compact={isMobileWeb} />
 
               {/* Divider */}
               <View style={AddNewsStyles.webDivider} />
             </View>
 
             {/* ── Form Body ── */}
-            <View style={AddNewsStyles.webFormContent}>
+            <View style={[AddNewsStyles.webFormContent, webResponsive.formContent]}>
 
               {/* ── Title ── */}
               <View style={AddNewsStyles.webField}>
@@ -813,7 +885,7 @@ export default function AddNewsScreen({ navigation }) {
                   Title <Text style={AddNewsStyles.required}>*</Text>
                 </Text>
                 <TextInput
-                  style={[AddNewsStyles.webInput, { minHeight: 52 }]}
+                  style={[AddNewsStyles.webInput, webResponsive.input, { minHeight: 52 }]}
                   placeholder="Enter news title..."
                   placeholderTextColor="#94a3b8"
                   value={title}
@@ -833,7 +905,7 @@ export default function AddNewsScreen({ navigation }) {
                 </Text>
                 <Text style={AddNewsStyles.webHint}>A short one-line summary below the headline.</Text>
                 <TextInput
-                  style={[AddNewsStyles.webInput, { minHeight: 52 }]}
+                  style={[AddNewsStyles.webInput, webResponsive.input, { minHeight: 52 }]}
                   placeholder="Enter subtitle (optional)..."
                   placeholderTextColor="#94a3b8"
                   value={subtitle}
@@ -852,7 +924,7 @@ export default function AddNewsScreen({ navigation }) {
                 </Text>
                 <Text style={AddNewsStyles.webHint}>Write the full report here. Be clear, concise and factual.</Text>
                 <TextInput
-                  style={[AddNewsStyles.webInput, { minHeight: 200 }]}
+                  style={[AddNewsStyles.webInput, webResponsive.input, { minHeight: isMobileWeb ? 160 : 200 }]}
                   placeholder="Enter description..."
                   placeholderTextColor="#94a3b8"
                   value={descriptionText}
@@ -868,7 +940,7 @@ export default function AddNewsScreen({ navigation }) {
 
               {/* ── Report Type + Role Type side by side ── */}
               <View style={AddNewsStyles.webRow2}>
-                <View style={[AddNewsStyles.webField, { flex: 1, minWidth: 200 }]}>
+                <View style={[AddNewsStyles.webField, { flex: 1 }, webResponsive.row2Field]}>
                   <Text style={AddNewsStyles.webLabel}>
                     Report type <Text style={AddNewsStyles.required}>*</Text>
                   </Text>
@@ -883,7 +955,7 @@ export default function AddNewsScreen({ navigation }) {
                     <Feather name="chevron-down" size={14} color="#64748b" />
                   </TouchableOpacity>
                 </View>
-                <View style={[AddNewsStyles.webField, { flex: 1, minWidth: 200 }]}>
+                <View style={[AddNewsStyles.webField, { flex: 1 }, webResponsive.row2Field]}>
                   <Text style={AddNewsStyles.webLabel}>Role type</Text>
                   <TouchableOpacity
                     style={AddNewsStyles.webSelect}
@@ -937,12 +1009,13 @@ export default function AddNewsScreen({ navigation }) {
               {/* ── Media Type ── */}
               <View style={AddNewsStyles.webField}>
                 <Text style={AddNewsStyles.webLabel}>Media type</Text>
-                <View style={AddNewsStyles.mediaToggleRow}>
+                <View style={[AddNewsStyles.mediaToggleRow, webResponsive.mediaToggleRow]}>
                   {MEDIA_TYPES.map((type) => (
                     <TouchableOpacity
                       key={type}
                       style={[
                         AddNewsStyles.mediaToggleBtn,
+                        webResponsive.mediaToggleBtn,
                         mediaType === type && AddNewsStyles.mediaToggleBtnActive,
                       ]}
                       onPress={() => {
@@ -978,7 +1051,7 @@ export default function AddNewsScreen({ navigation }) {
                 <View style={AddNewsStyles.mediaSection}>
                   <Text style={AddNewsStyles.webHint}>Upload one or more images (max 5, 10MB each).</Text>
                   <TouchableOpacity
-                    style={AddNewsStyles.mediaPickBtn}
+                    style={[AddNewsStyles.mediaPickBtn, webResponsive.mediaPickBtn]}
                     onPress={pickImages}
                     activeOpacity={0.85}
                   >
@@ -1007,7 +1080,7 @@ export default function AddNewsScreen({ navigation }) {
                 <View style={AddNewsStyles.mediaSection}>
                   <Text style={AddNewsStyles.webHint}>Upload one video (15s to 1 minute, max 50MB).</Text>
                   <TouchableOpacity
-                    style={[AddNewsStyles.mediaPickBtn, AddNewsStyles.videoPickBtn]}
+                    style={[AddNewsStyles.mediaPickBtn, AddNewsStyles.videoPickBtn, webResponsive.mediaPickBtn]}
                     onPress={pickVideo}
                     activeOpacity={0.85}
                   >
@@ -1018,7 +1091,7 @@ export default function AddNewsScreen({ navigation }) {
                   </TouchableOpacity>
                   {video ? (
                     <View style={AddNewsStyles.videoPreviewWrap}>
-                      <VideoPreview uri={video} style={AddNewsStyles.videoPreview} contentFit="cover" />
+                      <VideoPreview uri={video} style={[AddNewsStyles.videoPreview, webResponsive.videoPreview]} contentFit="cover" />
                       <TouchableOpacity style={AddNewsStyles.videoRemoveBtn} onPress={() => setVideo(null)}>
                         <Feather name="x" size={12} color="#fff" />
                       </TouchableOpacity>
@@ -1032,7 +1105,7 @@ export default function AddNewsScreen({ navigation }) {
                 <View style={AddNewsStyles.mediaSection}>
                   <Text style={AddNewsStyles.webHint}>Attach a supporting file (PDF, DOC, etc.).</Text>
                   <TouchableOpacity
-                    style={[AddNewsStyles.mediaPickBtn, AddNewsStyles.filePickBtn]}
+                    style={[AddNewsStyles.mediaPickBtn, AddNewsStyles.filePickBtn, webResponsive.mediaPickBtn]}
                     onPress={pickFile}
                     activeOpacity={0.85}
                   >
@@ -1067,16 +1140,16 @@ export default function AddNewsScreen({ navigation }) {
             </View>
 
             {/* ── Card Footer ── */}
-            <View style={AddNewsStyles.webCardFooter}>
+            <View style={[AddNewsStyles.webCardFooter, webResponsive.footer]}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                style={AddNewsStyles.webCancelBtn}
+                style={[AddNewsStyles.webCancelBtn, webResponsive.footerBtn]}
               >
                 <Text style={AddNewsStyles.webCancelBtnText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[AddNewsStyles.webSubmitBtn, saving && { opacity: 0.7 }]}
+                style={[AddNewsStyles.webSubmitBtn, webResponsive.footerBtn, saving && { opacity: 0.7 }]}
                 onPress={handleSubmit}
                 disabled={saving}
               >

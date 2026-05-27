@@ -172,9 +172,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  inlineReadMoreText: {
-    color: '#64748b',
-    fontSize: 13,
+  inlineReadMoreWrap: {
+    width: '100%',
+  },
+  inlineReadMoreButton: {
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    paddingVertical: 2,
   },
   inlineReadMoreLink: {
     color: '#2563eb',

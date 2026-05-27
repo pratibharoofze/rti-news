@@ -657,6 +657,7 @@ const normalizeNewsFeed = (items = []) => {
       : item.mediaType === 'File' ? (item.file?.name ? `file: ${item.file.name}` : 'file attached')
       : 'no media'),
     category:    item.category || item.state || 'General',
+    language:    String(item.language || item.lang || item.news_language || '').trim().toLowerCase(),
     mediaType:   item.mediaType || 'None',
     state:       item.state || item.category || 'General',
     district:    item.district || '',
@@ -812,6 +813,7 @@ const normalizeUserNewsItems = (items = []) => {
         : item.mediaType === 'File' ? (item.file?.name ? `file: ${item.file.name}` : 'file attached')
         : 'no media'),
       category: item.category || item.state || 'General',
+      language: String(item.language || item.lang || item.news_language || '').trim().toLowerCase(),
       mediaType: item.mediaType || 'None',
       state: item.state || item.category || 'General',
       district: item.district || '',

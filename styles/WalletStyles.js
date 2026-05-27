@@ -1,7 +1,7 @@
 import { StyleSheet, Platform, StatusBar } from 'react-native';
 
 // Pink tokens (mobile)
-const PINK       = '#FF2D78';
+const PINK       = '#f97316';
 const PINK_LIGHT = '#FFF0F5';
 const PINK_BORDER= '#FFE4EF';
 
@@ -124,7 +124,7 @@ export default StyleSheet.create({
     backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA', borderRadius: 20,
   },
   typeTxtCredit: { fontSize: 12, fontWeight: '700', color: PINK },
-  typeTxtDebit:  { fontSize: 12, fontWeight: '700', color: '#DC2626' },
+  typeTxtDebit:  { fontSize: 12, fontWeight: '700', color: '#f97316' },
 
   // ── TRANSACTION TABLE ─────────────────────────────────────────────────────
   tableWrap: {
@@ -156,11 +156,11 @@ export default StyleSheet.create({
   colDate:   { flex: 1.1, alignItems: 'flex-end' },
 
   amountCredit: { fontSize: 13, fontWeight: '800', color: PINK },
-  amountDebit:  { fontSize: 13, fontWeight: '800', color: '#EF4444' },
+  amountDebit:  { fontSize: 13, fontWeight: '800', color: '#f97316' },
 
   typePill: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
   typePillTextCredit: { fontSize: 11, fontWeight: '700', color: PINK },
-  typePillTextDebit:  { fontSize: 11, fontWeight: '700', color: '#EF4444' },
+  typePillTextDebit:  { fontSize: 11, fontWeight: '700', color: '#f97316' },
   rowText:   { fontSize: 12, color: '#555555', fontWeight: '500' },
 
   // ── PAGINATION ────────────────────────────────────────────────────────────

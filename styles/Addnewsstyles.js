@@ -214,37 +214,35 @@ const AddNewsStyles = StyleSheet.create({
 
   // Full-page scroll container — grey background, centers the card
   webPageContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    paddingVertical: 38,
-    paddingHorizontal: 22,          // breathing room on narrow screens
-    backgroundColor: '#F0F0F5',
-  },
+  flexGrow: 1,
+  alignItems: 'center',
+  paddingVertical: 20,
+  paddingHorizontal: 0,
+  backgroundColor: '#F0F0F5',
+},
 
   // The white centered card — fills width up to 760px, never overflows
   webCard: {
-    width: '100%',
-    maxWidth: 980,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    // no overflow:hidden — causes button clipping on web
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 4,
-    alignSelf: 'center',
-  },
+  width: '100%',
+  maxWidth: 980,
+  backgroundColor: '#ffffff',
+  borderRadius: 20,
+  borderWidth: 1,
+  borderColor: '#E2E8F0',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.06,
+  shadowRadius: 24,
+  elevation: 4,
+  alignSelf: 'center',
+},
 
   // Header area (back btn + title row + stepper)
   webCardHeader: {
-    paddingHorizontal: 28,
-    paddingTop: 28,
-    paddingBottom: 0,
-  },
-
+  paddingHorizontal: 16,
+  paddingTop: 20,
+  paddingBottom: 0,
+},
   // Back button
   webBackBtn: {
     flexDirection: 'row',
@@ -329,7 +327,7 @@ const AddNewsStyles = StyleSheet.create({
   webSelectText: { flex: 1, fontSize: 13, color: '#0f172a', fontWeight: '500' },
 
   // Two-column row — stacks on very small screens naturally via flex
-  webRow2: { flexDirection: 'row', gap: 14, flexWrap: 'wrap' },
+  webRow2: { flexDirection: 'column', gap: 14 },
 
   // ─── Card Footer ─────────────────────────────────────────────────────────
   webCardFooter: {

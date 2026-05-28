@@ -6,7 +6,7 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import ProfileAvatar from '../components/ProfileAvatar';
 import VideoPreview from '../components/VideoPreview';
 import VerifiedBadge from '../components/VerifiedBadge';
@@ -16,6 +16,7 @@ import { UserStore } from '../store/UserStore';
 import { INDIAN_STATES } from './locationData';
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getAdRedirectMeta, openAdRedirect } from '../utils/adRedirect';
 
 // ─── Filter constants ──────────────────────────────────────────────
 const REPORT_TYPES = [
@@ -34,6 +35,22 @@ function itemMatchesLanguage(item, selectedLanguage) {
   const itemLanguage = String(item?.language || item?.lang || item?.news_language || '').trim().toLowerCase();
   if (!itemLanguage) return true;
   return itemLanguage === activeLanguage;
+}
+
+function interleaveSponsoredCards(items = [], ads = []) {
+  const sponsoredAds = Array.isArray(ads) ? ads : [];
+  if (!sponsoredAds.length) return items.map((item) => ({ ...item, __type: 'news' }));
+  if (!Array.isArray(items) || !items.length) return sponsoredAds.map((ad) => ({ ...ad, __type: 'ad' }));
+  const mixed = [];
+  let adIndex = 0;
+  items.forEach((item, index) => {
+    mixed.push({ ...item, __type: 'news' });
+    if ((index + 1) % 3 === 0 && adIndex < sponsoredAds.length) {
+      mixed.push({ ...sponsoredAds[adIndex], __type: 'ad' });
+      adIndex += 1;
+    }
+  });
+  return [...mixed, ...sponsoredAds.slice(adIndex).map((ad) => ({ ...ad, __type: 'ad' }))];
 }
 
 // ─── ResolvedImage ─────────────────────────────────────────────────
@@ -57,6 +74,56 @@ function ResolvedImage({ uri, style, resizeMode = 'cover' }) {
     return <View style={[style, styles.imagePlaceholder]} />;
   }
   return <Image source={{ uri: resolvedUri }} style={style} resizeMode={resizeMode} />;
+}
+
+function SponsoredAdCard({ ad, navigation }) {
+  const redirectMeta = getAdRedirectMeta(ad);
+  const location = [ad.district, ad.state].filter(Boolean).join(', ');
+
+  return (
+    <TouchableOpacity
+      style={styles.newsCard}
+      onPress={() => openAdRedirect(ad, navigation)}
+      activeOpacity={0.9}
+    >
+      <View style={styles.newsTopRow}>
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>Sponsored</Text>
+        </View>
+        <Text style={styles.newsDate}>{ad.updated_at || ad.created_at || ''}</Text>
+      </View>
+
+      <View style={styles.authorRow}>
+        <ProfileAvatar uri={ad.owner_profile_image} size={24} style={styles.authorAvatar} />
+        <Text style={styles.authorLabel}>By</Text>
+        <Text style={styles.authorName}>{ad.owner_name || 'Advertiser'}</Text>
+        {ad.owner_has_blue_tick ? <VerifiedBadge size={18} iconSize={10} style={styles.authorBadge} /> : null}
+      </View>
+
+      <Text style={styles.newsTitle}>{ad.title || 'Sponsored Advertisement'}</Text>
+      {ad.description ? <Text style={styles.newsDescription}>{ad.description}</Text> : null}
+
+      {location ? (
+        <View style={styles.locationTagRow}>
+          <View style={styles.locationTag}>
+            <Feather name="map-pin" size={10} color="#FF2D78" />
+            <Text style={styles.locationTagText}>{location}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {ad.photo ? (
+        <View style={styles.mediaPreviewWrap}>
+          <ResolvedImage uri={ad.photo} style={{ width: '100%', height: 220, borderRadius: 14 }} resizeMode="cover" />
+        </View>
+      ) : null}
+
+      <TouchableOpacity style={styles.actionIconButton} onPress={() => openAdRedirect(ad, navigation)}>
+        <Feather name={redirectMeta.type === 'whatsapp' ? 'message-circle' : 'external-link'} size={15} color="#FF6600" />
+        <Text style={styles.actionIconText}>{redirectMeta.label}</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
 }
 
 // ─── FilterChip ────────────────────────────────────────────────────
@@ -421,6 +488,7 @@ export default function NewsFeedScreen({ navigation }) {
     totalViews: 0,
     totalShares: 0,
   });
+  const [adFeedItems, setAdFeedItems] = useState([]);
 
   const moduleName = 'News Feed';
   const stateOptions = ['All', ...INDIAN_STATES];
@@ -513,6 +581,7 @@ export default function NewsFeedScreen({ navigation }) {
     const totalShares = filteredItems.reduce((sum, item) => sum + (Number(item.shares) || 0), 0);
     const payload = { ...data, items: filteredItems, totalViews, totalShares };
     setNewsData(payload);
+    setAdFeedItems(await UserStore.getActiveAdsFeed());
     if (focusItemId) {
       const target = filteredItems.find((item) => item.id === focusItemId);
       setActiveCommentItem(target || null);
@@ -909,6 +978,7 @@ export default function NewsFeedScreen({ navigation }) {
   };
 
   const displayedItems = applyUIFilters(newsData.items.filter((item) => itemMatchesLanguage(item, language)));
+  const displayedCards = interleaveSponsoredCards(displayedItems, adFeedItems);
   const currentUser = newsData.currentUser;
   const currentUserEmail = String(currentUser?.email || '').trim().toLowerCase();
   const currentUserHasBlueTick = Boolean(currentUser && UserStore.hasBlueTick(currentUser));
@@ -1092,8 +1162,11 @@ export default function NewsFeedScreen({ navigation }) {
 
           {loading ? (
             <Text style={styles.loadingText}>Loading news feed...</Text>
-          ) : displayedItems.length ? (
-            displayedItems.map((item) => (
+          ) : displayedCards.length ? (
+            displayedCards.map((item) => (
+              item.__type === 'ad' ? (
+                <SponsoredAdCard key={item.feed_id || item.id} ad={item} navigation={navigation} />
+              ) : (
               <View key={item.id} style={styles.newsCard}>
                 <View style={styles.newsTopRow}>
                   <View style={styles.categoryBadge}>
@@ -1257,6 +1330,7 @@ export default function NewsFeedScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
               </View>
+              )
             ))
           ) : (
             <View style={styles.emptyState}>

@@ -237,7 +237,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
   tapHint: {
     marginTop: 8,
     fontSize: 12,
-    color: Orange,
+    color: orange,
     fontWeight: '700',
   },
 
@@ -342,7 +342,7 @@ const SubscriptionPlansStyles = StyleSheet.create({
     marginBottom: 14,
     backgroundColor: orange_MUTED,
     borderWidth: 1,
-    borderColor: o_BORDER,
+    borderColor: orange_BORDER, 
     borderRadius: 14,
     padding: 12,
   },

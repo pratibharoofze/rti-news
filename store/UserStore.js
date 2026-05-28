@@ -1128,6 +1128,39 @@ const normalizeEmailList = (items = []) => (
   ))
 );
 
+const CREDIT_VALIDITY_DAYS = 30;
+
+const addDaysToDateString = (dateValue, days = CREDIT_VALIDITY_DAYS) => {
+  const base = dateValue ? new Date(dateValue) : new Date();
+  const safeBase = Number.isFinite(base.getTime()) ? base : new Date();
+  safeBase.setDate(safeBase.getDate() + Number(days || CREDIT_VALIDITY_DAYS));
+  return safeBase.toISOString().slice(0, 10);
+};
+
+const getCreditExpiryState = (credits = 0, subscription = null) => {
+  const plan = subscription && typeof subscription === 'object' ? subscription : null;
+  const expiresAt = plan?.expires_at || (plan?.purchased_at ? addDaysToDateString(plan.purchased_at) : '');
+  const expiresTime = expiresAt ? new Date(`${expiresAt}T23:59:59`).getTime() : 0;
+  const expired = Boolean(expiresTime && Date.now() > expiresTime);
+  const normalizedPlan = plan ? { ...plan, expires_at: expiresAt, validity_days: Number(plan.validity_days || CREDIT_VALIDITY_DAYS) } : null;
+
+  if (!expired) {
+    return {
+      credits: Number(credits || 0),
+      subscription: normalizedPlan,
+      expired: false,
+      expires_at: expiresAt,
+    };
+  }
+
+  return {
+    credits: 0,
+    subscription: normalizedPlan ? { ...normalizedPlan, status: 'expired', expired_at: expiresAt } : null,
+    expired: true,
+    expires_at: expiresAt,
+  };
+};
+
 const normalizeUser = (user = {}) => {
   const referralCount = Number(user.referral_count || 0);
   const savedPlan = normalizeSubscriptionPlan(user.subscription_plan);
@@ -1174,6 +1207,14 @@ const normalizeUser = (user = {}) => {
     subscription_plan:   savedPlan,
     payment_history:     normalizePaymentHistory(user.payment_history),
     settings:            normalizeSettings(user.settings),
+    ad_credits:          Number(user.ad_credits ?? 0),
+    ad_subscription:     user.ad_subscription || null,
+    ads:                 Array.isArray(user.ads) ? user.ads : [],
+    farming_credits:     Number(user.farming_credits ?? 0),
+    farming_subscription:user.farming_subscription || null,
+    farming_listings:    Array.isArray(user.farming_listings) ? user.farming_listings : [],
+    farming_enquiries:   Array.isArray(user.farming_enquiries) ? user.farming_enquiries : [],
+    farming_purchases:   Array.isArray(user.farming_purchases) ? user.farming_purchases : [],
   };
 };
 
@@ -3150,6 +3191,428 @@ export const UserStore = {
     } catch (err) {
       console.error('saveSubscription error:', err);
       return { ok: false, message: 'Unable to save subscription.' };
+    }
+  },
+
+  getAdCreditsSummary: async () => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return null;
+      const creditState = getCreditExpiryState(user.ad_credits, user.ad_subscription);
+      if (creditState.expired && Number(user.ad_credits ?? 0) > 0) {
+        await UserStore.updateUser(user.email, {
+          ad_credits: 0,
+          ad_subscription: creditState.subscription,
+        });
+      }
+      return {
+        credits: creditState.credits,
+        ads: Array.isArray(user.ads) ? user.ads : [],
+        ad_subscription: creditState.subscription,
+        expired: creditState.expired,
+        expires_at: creditState.expires_at,
+      };
+    } catch { return null; }
+  },
+
+  getActiveAdsFeed: async () => {
+    try {
+      const users = await getUsersFromStorage();
+      return users
+        .flatMap((user) => {
+          const ads = Array.isArray(user.ads) ? user.ads : [];
+          return ads
+            .filter((ad) => String(ad?.status || 'active').toLowerCase() === 'active')
+            .map((ad) => ({
+              ...ad,
+              feed_id: `ad-feed-${String(user.email || '').trim().toLowerCase()}-${ad.id}`,
+              owner_email: String(user.email || '').trim().toLowerCase(),
+              owner_name: user.name || user.email || 'Advertiser',
+              owner_profile_image: user.profile_image || user.avatar || '',
+              owner_role_label: user.role_label || getRoleLabel(user.role || 'free'),
+              owner_has_blue_tick: hasBlueTick(user),
+              owner_mobile: user.mobile || user.mobile_number || user.phone_number || user.contact_number || '',
+              state: ad.state || user.state || '',
+              district: ad.district || user.district || '',
+              taluka: ad.taluka || user.taluka || '',
+            }));
+        })
+        .sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')));
+    } catch { return []; }
+  },
+
+  buyAdCredits: async ({ plan_id, plan_name, price, credits, duration, validity_days }) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+
+      const today = new Date().toISOString().slice(0, 10);
+      const currentState = getCreditExpiryState(user.ad_credits, user.ad_subscription);
+      const validDays = Number(validity_days || CREDIT_VALIDITY_DAYS);
+      const newCredits = Number(currentState.credits ?? 0) + Number(credits);
+
+      const adSubscription = {
+        plan_id,
+        plan_name,
+        price: Number(price),
+        credits: Number(credits),
+        duration: duration || `${validDays} Days`,
+        validity_days: validDays,
+        purchased_at: today,
+        expires_at: addDaysToDateString(today, validDays),
+        status: 'active',
+      };
+
+      const updatedUser = await UserStore.updateUser(user.email, {
+        ad_credits: newCredits,
+        ad_subscription: adSubscription,
+      });
+
+      if (!updatedUser) return { ok: false, message: 'Unable to activate ad plan.' };
+      return { ok: true, credits: newCredits, plan: adSubscription };
+    } catch { return { ok: false, message: 'Unable to activate ad plan.' }; }
+  },
+
+  useAdCredit: async (reason = 'post', adData = {}) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+
+      const creditState = getCreditExpiryState(user.ad_credits, user.ad_subscription);
+      if (creditState.expired) {
+        await UserStore.updateUser(user.email, {
+          ad_credits: 0,
+          ad_subscription: creditState.subscription,
+        });
+        return { ok: false, code: 'CREDITS_EXPIRED', message: 'Your ad credits have expired. Please buy a new monthly plan.' };
+      }
+
+      const currentCredits = Number(creditState.credits ?? 0);
+      if (currentCredits <= 0) return { ok: false, message: 'No credits left. Please buy a new plan.' };
+
+      const today = new Date().toISOString().slice(0, 10);
+      const newAd = reason === 'post' ? {
+        id: `ad-${Date.now()}`,
+        ...adData,
+        created_at: today,
+        status: 'active',
+      } : null;
+
+      const existingAds = Array.isArray(user.ads) ? user.ads : [];
+      let updatedAd = newAd;
+      const updatedAds = newAd
+        ? [newAd, ...existingAds]
+        : existingAds.map(ad => {
+            if (ad.id !== adData.id) return ad;
+            updatedAd = { ...ad, ...adData, updated_at: today };
+            return updatedAd;
+          });
+
+      if (!newAd && !updatedAd) return { ok: false, message: 'Ad not found.' };
+
+      const updatedUser = await UserStore.updateUser(user.email, {
+        ad_credits: currentCredits - 1,
+        ads: updatedAds,
+      });
+
+      if (!updatedUser) return { ok: false, message: 'Unable to use credit.' };
+      return { ok: true, credits: currentCredits - 1, ad: updatedAd };
+    } catch { return { ok: false, message: 'Unable to use credit.' }; }
+  },
+
+  deleteAd: async (adId) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+
+      const existingAds = Array.isArray(user.ads) ? user.ads : [];
+      const updatedAds = existingAds.filter(ad => ad.id !== adId);
+
+      const updatedUser = await UserStore.updateUser(user.email, { ads: updatedAds });
+      if (!updatedUser) return { ok: false, message: 'Unable to delete ad.' };
+      return { ok: true };
+    } catch { return { ok: false, message: 'Unable to delete ad.' }; }
+  },
+
+  getFarmingPlans: () => ([
+    { plan_id: 'farming-10', plan_name: 'Starter Farming Credits', price: 999, credits: 10, duration: '30 Days', validity_days: 30 },
+    { plan_id: 'farming-20', plan_name: 'Growth Farming Credits', price: 899, credits: 20, duration: '30 Days', validity_days: 30 },
+    { plan_id: 'farming-50', plan_name: 'Power Farming Credits', price: 1299, credits: 50, duration: '30 Days', validity_days: 30 },
+  ]),
+
+  getFarmingMarketplaceSummary: async () => {
+    try {
+      const currentUser = await UserStore.getCurrentUser();
+      const farmingState = getCreditExpiryState(currentUser?.farming_credits, currentUser?.farming_subscription);
+      if (currentUser && farmingState.expired && Number(currentUser.farming_credits ?? 0) > 0) {
+        await UserStore.updateUser(currentUser.email, {
+          farming_credits: 0,
+          farming_subscription: farmingState.subscription,
+        });
+      }
+      const users = await getUsersFromStorage();
+      const listings = users
+        .flatMap((user) => {
+          const ownerEmail = String(user.email || '').trim().toLowerCase();
+          return (Array.isArray(user.farming_listings) ? user.farming_listings : []).map((item) => ({
+            ...item,
+            owner_email: ownerEmail,
+            owner_name: item.author_name || user.name || user.email || 'Seller',
+            owner_profile_image: item.author_profile_image || user.profile_image || '',
+            owner_role: user.role || 'free',
+            owner_role_label: user.role_label || getRoleLabel(user.role || 'free'),
+            owner_has_blue_tick: hasBlueTick(user),
+          }));
+        })
+        .filter((item) => String(item.status || 'active').toLowerCase() === 'active')
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+      return {
+        currentUser,
+        credits: farmingState.credits,
+        subscription: farmingState.subscription,
+        expired: farmingState.expired,
+        expires_at: farmingState.expires_at,
+        listings,
+        enquiries: Array.isArray(currentUser?.farming_enquiries) ? currentUser.farming_enquiries : [],
+      };
+    } catch {
+      return { currentUser: null, credits: 0, subscription: null, listings: [], enquiries: [] };
+    }
+  },
+
+  buyFarmingCredits: async ({ plan_id, plan_name, price, credits, duration, validity_days }) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+      const today = new Date().toISOString().slice(0, 10);
+      const currentState = getCreditExpiryState(user.farming_credits, user.farming_subscription);
+      const validDays = Number(validity_days || CREDIT_VALIDITY_DAYS);
+      const nextCredits = Number(currentState.credits ?? 0) + Number(credits || 0);
+      const plan = {
+        plan_id,
+        plan_name,
+        price: Number(price || 0),
+        credits: Number(credits || 0),
+        duration: duration || `${validDays} Days`,
+        validity_days: validDays,
+        purchased_at: today,
+        expires_at: addDaysToDateString(today, validDays),
+        status: 'active',
+      };
+      const updatedUser = await UserStore.updateUser(user.email, {
+        farming_credits: nextCredits,
+        farming_subscription: plan,
+      });
+      if (!updatedUser) return { ok: false, message: 'Unable to activate farming credits.' };
+      return { ok: true, credits: nextCredits, plan };
+    } catch {
+      return { ok: false, message: 'Unable to activate farming credits.' };
+    }
+  },
+
+  createFarmingListing: async (listingData = {}) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+      const creditState = getCreditExpiryState(user.farming_credits, user.farming_subscription);
+      if (creditState.expired) {
+        await UserStore.updateUser(user.email, {
+          farming_credits: 0,
+          farming_subscription: creditState.subscription,
+        });
+        return { ok: false, code: 'CREDITS_EXPIRED', message: 'Your farming credits have expired. Please buy a new monthly plan.' };
+      }
+
+      const currentCredits = Number(creditState.credits ?? 0);
+      if (currentCredits <= 0) return { ok: false, code: 'NO_CREDITS', message: 'No farming credits left. Please buy a farming credit plan.' };
+
+      const now = new Date().toISOString();
+      const listing = {
+        id: listingData.id || `farm-${Date.now()}`,
+        type: 'farming_sell',
+        title: String(listingData.title || '').trim() || 'Farming Product',
+        sector: String(listingData.sector || '').trim(),
+        description: String(listingData.description || '').trim(),
+        quantity: String(listingData.quantity || '').trim(),
+        price: String(listingData.price || '').trim(),
+        city: String(listingData.city || '').trim(),
+        contact: String(listingData.contact || '').trim(),
+        mediaType: String(listingData.mediaType || '').trim(),
+        mediaUri: String(listingData.mediaUri || '').trim(),
+        author_name: user.name || 'User',
+        author_profile_image: user.profile_image || '',
+        createdBy: user.email,
+        reporter_email: user.email,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const updatedUser = await UserStore.updateUser(user.email, {
+        farming_credits: currentCredits - 1,
+        farming_listings: [listing, ...(Array.isArray(user.farming_listings) ? user.farming_listings : [])],
+      });
+      if (!updatedUser) return { ok: false, message: 'Unable to save your listing.' };
+      return { ok: true, credits: currentCredits - 1, listing };
+    } catch {
+      return { ok: false, message: 'Unable to save your listing.' };
+    }
+  },
+
+  createFarmingEnquiry: async (productId, enquiryData = {}) => {
+    try {
+      const currentUser = await UserStore.getCurrentUser();
+      if (!currentUser) return { ok: false, message: 'Please login again.' };
+
+      const users = await getUsersFromStorage();
+      let product = null;
+      let sellerEmail = '';
+      users.some((user) => {
+        const match = (Array.isArray(user.farming_listings) ? user.farming_listings : [])
+          .find((item) => String(item.id) === String(productId));
+        if (match) {
+          product = match;
+          sellerEmail = String(user.email || '').trim().toLowerCase();
+          return true;
+        }
+        return false;
+      });
+
+      if (!product || !sellerEmail) return { ok: false, message: 'Product not found.' };
+
+      const now = new Date().toISOString();
+      const buyerEmail = String(currentUser.email || '').trim().toLowerCase();
+      const enquiry = {
+        id: `farm-enq-${Date.now()}`,
+        product_id: product.id,
+        product_name: product.title,
+        product_sector: product.sector,
+        product_quantity: product.quantity,
+        product_price: product.price,
+        product_city: product.city,
+        product_contact: product.contact,
+        buyer_email: buyerEmail,
+        buyer_name: currentUser.name || buyerEmail || 'Buyer',
+        buyer_mobile: currentUser.mobile || currentUser.mobile_number || currentUser.contact_number || '',
+        seller_email: sellerEmail,
+        seller_name: product.author_name || 'Seller',
+        message: String(enquiryData.message || '').trim(),
+        requested_quantity: String(enquiryData.quantity || product.quantity || '').trim(),
+        status: 'new',
+        createdAt: now,
+      };
+
+      const recipients = new Set([buyerEmail, sellerEmail, String(product.reporter_email || '').trim().toLowerCase()]);
+      users.forEach((user) => {
+        if (String(user.role || '').trim().toLowerCase() === 'admin') {
+          recipients.add(String(user.email || '').trim().toLowerCase());
+        }
+      });
+      recipients.delete('');
+
+      const notification = {
+        id: `notif-farm-enq-${Date.now()}`,
+        title: 'New Farming Product Enquiry',
+        message: `${enquiry.buyer_name} enquired for ${enquiry.product_name} (${enquiry.product_id}). Quantity: ${enquiry.requested_quantity || enquiry.product_quantity || 'N/A'}.`,
+        date: now.slice(0, 10),
+        status: 'Unread',
+        product_id: enquiry.product_id,
+        enquiry_id: enquiry.id,
+      };
+
+      const updatedUsers = users.map((user) => {
+        const email = String(user.email || '').trim().toLowerCase();
+        if (!recipients.has(email)) return user;
+        return normalizeUser({
+          ...user,
+          farming_enquiries: [enquiry, ...(Array.isArray(user.farming_enquiries) ? user.farming_enquiries : [])],
+          notifications: [notification, ...normalizeNotifications(user.notifications)],
+        });
+      });
+
+      await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      return { ok: true, enquiry };
+    } catch {
+      return { ok: false, message: 'Unable to send enquiry.' };
+    }
+  },
+
+  createFarmingPurchase: async (productId, purchaseData = {}) => {
+    try {
+      const currentUser = await UserStore.getCurrentUser();
+      if (!currentUser) return { ok: false, message: 'Please login again.' };
+
+      const users = await getUsersFromStorage();
+      let product = null;
+      let sellerEmail = '';
+      users.some((user) => {
+        const match = (Array.isArray(user.farming_listings) ? user.farming_listings : [])
+          .find((item) => String(item.id) === String(productId));
+        if (match) {
+          product = match;
+          sellerEmail = String(user.email || '').trim().toLowerCase();
+          return true;
+        }
+        return false;
+      });
+
+      if (!product || !sellerEmail) return { ok: false, message: 'Product not found.' };
+
+      const now = new Date().toISOString();
+      const buyerEmail = String(currentUser.email || '').trim().toLowerCase();
+      const purchase = {
+        id: `farm-buy-${Date.now()}`,
+        product_id: product.id,
+        product_name: product.title,
+        product_sector: product.sector,
+        product_quantity: product.quantity,
+        product_price: product.price,
+        product_city: product.city,
+        product_contact: product.contact,
+        buyer_email: buyerEmail,
+        buyer_name: currentUser.name || buyerEmail || 'Buyer',
+        buyer_mobile: currentUser.mobile || currentUser.mobile_number || currentUser.contact_number || '',
+        seller_email: sellerEmail,
+        seller_name: product.author_name || 'Seller',
+        requested_quantity: String(purchaseData.quantity || product.quantity || '').trim(),
+        message: String(purchaseData.message || '').trim(),
+        status: 'requested',
+        createdAt: now,
+      };
+
+      const recipients = new Set([buyerEmail, sellerEmail, String(product.reporter_email || '').trim().toLowerCase()]);
+      users.forEach((user) => {
+        if (String(user.role || '').trim().toLowerCase() === 'admin') {
+          recipients.add(String(user.email || '').trim().toLowerCase());
+        }
+      });
+      recipients.delete('');
+
+      const notification = {
+        id: `notif-farm-buy-${Date.now()}`,
+        title: 'New Farming Product Buy Request',
+        message: `${purchase.buyer_name} wants to buy ${purchase.product_name} (${purchase.product_id}). Quantity: ${purchase.requested_quantity || purchase.product_quantity || 'N/A'}.`,
+        date: now.slice(0, 10),
+        status: 'Unread',
+        product_id: purchase.product_id,
+        purchase_id: purchase.id,
+      };
+
+      const updatedUsers = users.map((user) => {
+        const email = String(user.email || '').trim().toLowerCase();
+        if (!recipients.has(email)) return user;
+        return normalizeUser({
+          ...user,
+          farming_purchases: [purchase, ...(Array.isArray(user.farming_purchases) ? user.farming_purchases : [])],
+          notifications: [notification, ...normalizeNotifications(user.notifications)],
+        });
+      });
+
+      await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      return { ok: true, purchase };
+    } catch {
+      return { ok: false, message: 'Unable to send buy request.' };
     }
   },
 };

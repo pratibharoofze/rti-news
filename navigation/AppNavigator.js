@@ -49,6 +49,9 @@ import PurchaseBlueTickScreen from '../screens/PurchaseBlueTickScreen';
 import CommerceAdsCenterScreen from '../pages/CommerceAdsCenterScreen';
 import FarmingScreen from '../screens/FarmingScreen';
 import SellScreen from '../screens/SellScreen';
+import FarmingBuyScreen from '../screens/FarmingBuyScreen';
+import AdPlansScreen from '../pages/AdPlansScreen';
+import MyAdsScreen   from '../pages/MyAdsScreen';
 
 const Stack = createNativeStackNavigator();
 const NAVIGATION_STATE_KEY = 'rti-news-navigation-state';
@@ -137,6 +140,10 @@ export default function AppNavigator() {
     { name: 'CommerceAdsCenter', component: CommerceAdsCenterScreen },
     { name: 'Farming', component: FarmingScreen },
     { name: 'Sell', component: SellScreen },
+    { name: 'FarmingBuy', component: FarmingBuyScreen },
+    { name: 'AdPlans', component: AdPlansScreen },
+    { name: 'MyAds', component: MyAdsScreen }, 
+
   ];
 
   useEffect(() => {

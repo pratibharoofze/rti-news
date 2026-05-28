@@ -39,6 +39,60 @@ function storyMatchesLanguage(story, selectedLanguage) {
   return storyLanguage === activeLanguage;
 }
 
+function homeStoryFromAd(ad = {}) {
+  const photo = String(ad.photo || '').trim();
+  return {
+    id: String(ad.feed_id || `ad-feed-${ad.id || Date.now()}`),
+    isAd: true,
+    title: ad.title || 'Sponsored Advertisement',
+    subtitle: 'Sponsored',
+    excerpt: ad.description || '',
+    description: ad.description || '',
+    category: 'Sponsored',
+    menuTags: ['latest', 'viral'],
+    image: photo,
+    images: photo ? [photo] : [],
+    video: '',
+    state: ad.state || '',
+    district: ad.district || '',
+    date: ad.updated_at || ad.created_at || '',
+    publishedAgo: ad.updated_at || ad.created_at || '',
+    author_name: ad.owner_name || 'Advertiser',
+    author_profile_image: ad.owner_profile_image || '',
+    author_has_blue_tick: Boolean(ad.owner_has_blue_tick),
+    createdBy: ad.owner_email || '',
+    owner_email: ad.owner_email || '',
+    owner_name: ad.owner_name || 'Advertiser',
+    owner_profile_image: ad.owner_profile_image || '',
+    owner_role_label: ad.owner_role_label || 'Sponsored',
+    owner_has_blue_tick: Boolean(ad.owner_has_blue_tick),
+    owner_mobile: ad.owner_mobile || '',
+    redirect: ad.redirect || 'profile',
+    extraValues: ad.extraValues || {},
+    allowCalls: ad.allowCalls !== false,
+    originalAdId: ad.id,
+    comments: 0,
+    shares: 0,
+    likes: 0,
+    views: 0,
+  };
+}
+
+function interleaveAdStories(stories = [], ads = []) {
+  if (!ads.length) return stories;
+  if (!stories.length) return ads;
+  const mixed = [];
+  let adIndex = 0;
+  stories.forEach((story, index) => {
+    mixed.push(story);
+    if ((index + 1) % 3 === 0 && adIndex < ads.length) {
+      mixed.push(ads[adIndex]);
+      adIndex += 1;
+    }
+  });
+  return [...mixed, ...ads.slice(adIndex)];
+}
+
 const SUBSCRIPTION_PLANS = [
   {
     plan_id: 'plan-basic',
@@ -328,11 +382,15 @@ export default function HomeScreen({ navigation, route }) {
 
   const loadNewsStories = useCallback(async () => {
     try {
-      const summary = await UserStore.getNewsFeedSummary();
+      const [summary, activeAds] = await Promise.all([
+        UserStore.getNewsFeedSummary(),
+        UserStore.getActiveAdsFeed(),
+      ]);
       const fetchedStories = Array.isArray(summary?.items)
         ? summary.items.map((item, index) => normalizeStoryItem(item, index)).filter(Boolean)
         : [];
-      setLiveStories(fetchedStories);
+      const adStories = Array.isArray(activeAds) ? activeAds.map(homeStoryFromAd) : [];
+      setLiveStories(interleaveAdStories(fetchedStories, adStories));
     } catch { setLiveStories([]); }
   }, []);
 
@@ -579,6 +637,7 @@ export default function HomeScreen({ navigation, route }) {
                       {visibleStories.map((story) => (
                         <NewsFeedCard
                           key={story.id} story={story} isCompactLayout={isMobileLayout}
+                          navigation={navigation}
                           onOpenDetails={handleOpenDetails} onOpenLocation={handleOpenLocation}
                           onOpenCategory={handleOpenCategory} onOpenAuthorProfile={handleOpenAuthorProfile}
                           commonCopy={commonCopy}

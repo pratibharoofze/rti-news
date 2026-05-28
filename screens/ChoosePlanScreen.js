@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { INDIAN_STATES, getDistricts } from '../pages/locationData';
+import { UserStore } from '../store/UserStore';
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const C = {
@@ -230,7 +231,7 @@ export default function ChoosePlanScreen({ navigation, route }) {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
     if (!selState)    { Alert.alert('Required', 'Please select your state.'); return; }
     if (!selDistrict) { Alert.alert('Required', 'Please select your city/district.'); return; }
     if (!promoteScope){ Alert.alert('Required', 'Please choose where to promote.'); return; }
@@ -240,18 +241,35 @@ export default function ChoosePlanScreen({ navigation, route }) {
       return;
     }
 
+    // ── Ad UserStore mein save karo ──
+    if (adData && adData.title) {
+      await UserStore.useAdCredit('post', {
+        title:       adData.title,
+        description: adData.description,
+        photo:       adData.photo,
+        redirect:    adData.redirect,
+        extraValues:  adData.extraValues,
+        allowCalls:   adData.allowCalls,
+        scope:       promoteScope,
+        placement:   placement,
+        duration:    duration,
+        state:       selState,
+        district:    selDistrict,
+      });
+    }
+
     if (promoteScope === 'district') {
       showSuccessToast(`🎉 Free Promotion Activated! Your ad is now promoted in ${selDistrict} for FREE!`);
-      setTimeout(() => navigation.goBack(), 3000);
+      setTimeout(() => navigation.navigate('MyAds'), 3000);
       return;
     }
 
-    const scopeLabel    = promoteScope === 'state' ? selState : 'All of India';
+    const scopeLabel     = promoteScope === 'state' ? selState : 'All of India';
     const placementLabel = placement === 'full' ? 'Full Page' : 'Home Page';
-    const durationLabel = DURATION_PLANS.find(p => p.id === duration)?.label || duration;
+    const durationLabel  = DURATION_PLANS.find(p => p.id === duration)?.label || duration;
 
     showSuccessToast(`✅ Promotion Activated! Your ad is now live on ${scopeLabel} — ${placementLabel} for ${durationLabel}.`);
-    setTimeout(() => navigation.goBack(), 3000);
+    setTimeout(() => navigation.navigate('MyAds'), 3000);
   };
 
   if (Platform.OS === 'web') {

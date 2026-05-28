@@ -208,7 +208,7 @@ const PaymentStyles = StyleSheet.create({
   testHelperTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: PINK,
+    color: ORANGE,
   },
   testHelperText: {
     fontSize: 12,
@@ -217,7 +217,7 @@ const PaymentStyles = StyleSheet.create({
   },
   testHelperValue: {
     fontWeight: '800',
-    color: PINK,
+    color: ORANGE,
   },
 
   // ── No Order Card ──

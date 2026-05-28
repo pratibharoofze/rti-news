@@ -17,6 +17,7 @@ import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaS
 import { safePause, safePlay } from '../utils/videoPlayerSafe';
 import { UserStore } from '../store/UserStore';
 import { useAuth } from '../contexts/AuthContext';
+import { getAdRedirectMeta, openAdRedirect } from '../utils/adRedirect';
 
 // ── Styles (alag file se import) ──────────────────────────────────────────────
 import styles from './NewsFeedCardStyles';
@@ -350,6 +351,7 @@ function InlineReadMore({ text, style }) {
 export default function NewsFeedCard({
   story,
   isCompactLayout,
+  navigation,
   onOpenDetails,
   onOpenLocation,
   onOpenCategory,
@@ -381,6 +383,8 @@ export default function NewsFeedCard({
   const [followLoading, setFollowLoading] = useState(false);
   const inputRef = useRef(null);
   const storyAuthorEmail = String(story.createdBy || story.created_by || story.author_email || '').trim().toLowerCase();
+  const isAdStory = Boolean(story.isAd);
+  const adRedirectMeta = isAdStory ? getAdRedirectMeta(story) : null;
 
   useFocusEffect(
     useCallback(() => {
@@ -601,7 +605,18 @@ export default function NewsFeedCard({
     else { setVideoPaused(true); }
   };
 
-  const handleImagePress = () => onOpenDetails(story);
+  const handleAdPress = useCallback(() => {
+    if (!isAdStory) return false;
+    openAdRedirect(story, navigation, {
+      onProfilePress: () => onOpenAuthorProfile(story),
+    });
+    return true;
+  }, [isAdStory, navigation, onOpenAuthorProfile, story]);
+
+  const handleImagePress = () => {
+    if (handleAdPress()) return;
+    onOpenDetails(story);
+  };
 
   const showLoginRequired = useCallback(() => {
     try {
@@ -1026,7 +1041,7 @@ export default function NewsFeedCard({
 
         {/* ── Headline + Excerpt ── */}
         <View style={styles.storyContentWrap}>
-          <TouchableOpacity onPress={() => onOpenDetails(story)} activeOpacity={0.88}>
+          <TouchableOpacity onPress={() => { if (!handleAdPress()) onOpenDetails(story); }} activeOpacity={0.88}>
             <Text style={styles.storyHeadlineText}>{story.title}</Text>
             {story.subtitle ? <Text style={styles.storySubtitleText} numberOfLines={2}>{story.subtitle}</Text> : null}
           </TouchableOpacity>
@@ -1063,10 +1078,31 @@ export default function NewsFeedCard({
           ) : (
             <Image source={{ uri: safeImage }} style={styles.storyHeroImage} resizeMode="cover" />
           )}
-          <TouchableOpacity style={[styles.storyCategoryChip, { backgroundColor: `${categoryColor}CC` }]} onPress={() => onOpenCategory(story)} activeOpacity={0.84}>
-            <Text style={styles.storyCategoryChipText}>{getLocalizedCategoryLabel(story.category, commonCopy)}</Text>
+          <TouchableOpacity style={[styles.storyCategoryChip, { backgroundColor: `${categoryColor}CC` }]} onPress={() => isAdStory ? handleAdPress() : onOpenCategory(story)} activeOpacity={0.84}>
+            <Text style={styles.storyCategoryChipText}>{isAdStory ? 'Sponsored' : getLocalizedCategoryLabel(story.category, commonCopy)}</Text>
           </TouchableOpacity>
         </TouchableOpacity>
+
+        {isAdStory && adRedirectMeta ? (
+          <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                backgroundColor: '#f97316',
+                borderRadius: 10,
+                paddingVertical: 11,
+              }}
+              onPress={handleAdPress}
+              activeOpacity={0.86}
+            >
+              <Ionicons name={adRedirectMeta.icon} size={17} color="#ffffff" />
+              <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 14 }}>{adRedirectMeta.label}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* ── Action Bar ── */}
         <View style={styles.storyActionBar}>

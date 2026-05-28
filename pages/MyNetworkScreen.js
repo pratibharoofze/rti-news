@@ -532,7 +532,7 @@ export default function MyNetworkScreen({ navigation }) {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch('')}>
-              <Feather name="x" size={16} color={ORANGE} />
+              <Feather name="arrow-left" size={18} color={PINK} />
             </TouchableOpacity>
           )}
         </View>
@@ -659,7 +659,7 @@ export default function MyNetworkScreen({ navigation }) {
         activeOpacity={0.8}
       >
         <View style={MyNetworkStyles.backBtnIcon}>
-          <Feather name="arrow-left" size={18} color={ORANGE} />
+          <Feather name="x" size={16} color={PINK} /> 
         </View>
         <Text style={MyNetworkStyles.backBtnText}>Back to Menu</Text>
       </TouchableOpacity>

@@ -18,6 +18,7 @@ import { UserStore } from '../store/UserStore';
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl, storeWebUriToIdbMedia } from '../utils/webMediaStore';
 import { safePause, safePlay, safeSetMuted } from '../utils/videoPlayerSafe';
 import { getResponsiveWindowWidth, isMobileWebDevice } from '../utils/webDevice';
+import { getAdRedirectMeta, openAdRedirect } from '../utils/adRedirect';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 const MOBILE_BREAKPOINT = 900;
@@ -579,6 +580,60 @@ function feedPostFromNewsItem(item = {}, currentEmail = '') {
   };
 }
 
+function feedPostFromAdItem(ad = {}) {
+  const title = String(ad.title || 'Sponsored Advertisement').trim();
+  const description = String(ad.description || '').trim();
+  const location = [ad.district, ad.state].filter(Boolean).join(', ') || 'Sponsored';
+
+  return {
+    id: String(ad.feed_id || `ad-feed-${ad.id || Date.now()}`),
+    isAd: true,
+    originalAdId: ad.id,
+    user: String(ad.owner_name || 'Advertiser'),
+    avatar: String(ad.owner_profile_image || ''),
+    verified: Boolean(ad.owner_has_blue_tick),
+    author_has_blue_tick: Boolean(ad.owner_has_blue_tick),
+    role: 'Sponsored',
+    location,
+    time: String(ad.updated_at || ad.created_at || ''),
+    type: 'image',
+    media: String(ad.photo || ''),
+    thumbnail: String(ad.photo || ''),
+    image: String(ad.photo || ''),
+    headline: title,
+    caption: description,
+    fullDescription: description || title,
+    likes: 0,
+    shares: 0,
+    comments: [],
+    commentsCount: 0,
+    liked: false,
+    bookmarked: false,
+    tag: 'Sponsored',
+    tagColor: '#F97316',
+    createdAt: ad.created_at || null,
+    createdBy: String(ad.owner_email || '').trim().toLowerCase(),
+    redirect: ad.redirect || '',
+    extraValues: ad.extraValues || {},
+    allowCalls: ad.allowCalls !== false,
+  };
+}
+
+function interleaveSponsoredPosts(posts = [], ads = []) {
+  if (!Array.isArray(ads) || ads.length === 0) return posts;
+  if (!Array.isArray(posts) || posts.length === 0) return ads;
+  const mixed = [];
+  let adIndex = 0;
+  posts.forEach((post, index) => {
+    mixed.push(post);
+    if ((index + 1) % 3 === 0 && adIndex < ads.length) {
+      mixed.push(ads[adIndex]);
+      adIndex += 1;
+    }
+  });
+  return [...mixed, ...ads.slice(adIndex)];
+}
+
 // Upload Modal
 function UploadModal({ visible, onClose, onPost }) {
   const [caption, setCaption] = useState('');
@@ -1091,7 +1146,7 @@ function ActionColumn({ post, onLike, onComment, onShare, onBookmark, onDescript
 }
 
 // Reel Card
-function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription, onProfilePress, onFollow, isActive, cardWidth, cardHeight, isMobileLayout }) {
+function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription, onProfilePress, onAdPress, onFollow, isActive, cardWidth, cardHeight, isMobileLayout }) {
   const safePost = post || {};
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [captionExpanded, setCaptionExpanded] = useState(false);
@@ -1125,6 +1180,8 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
     (authorEmail && currentUserEmail && authorEmail === currentUserEmail && currentUserHasBlueTick)
   );
   const shares      = Number(safePost.shares || 0);
+  const isAd        = Boolean(safePost.isAd);
+  const adRedirectMeta = isAd ? getAdRedirectMeta(safePost) : null;
 
   useEffect(() => {
     const initializeComponent = async () => {
@@ -1327,6 +1384,10 @@ return t || '';
   }, [isActive, canPlayVideo, player]);
 
   const handleVideoToggle = useCallback(() => {
+    if (isAd) {
+      onAdPress?.(safePost);
+      return;
+    }
     if (!canPlayVideo || !player || !playerReady) return;
 
     if (paused) {
@@ -1338,7 +1399,7 @@ return t || '';
       setPaused(true);
       setShowPoster(true);
     }
-  }, [canPlayVideo, paused, player, playerReady]);
+  }, [canPlayVideo, isAd, onAdPress, paused, player, playerReady, safePost]);
 
   const handleLikePress = () => {
     Animated.sequence([
@@ -1348,17 +1409,14 @@ return t || '';
     onLike(postId);
   };
 
-  const videoWidth = cardWidth;
   const navbarH = Platform.OS === 'ios' ? 60 : 56;
 const safeBot = Platform.OS === 'ios' ? 34 : 0;
-const webNavbarH = (Platform.OS === 'web' && isMobileLayout) ? 70 : 0; // ✅ web navbar
   const bottomBottom = isMobileLayout 
     ? (Platform.OS === 'web' ? 80 : navbarH + safeBot + 12) 
     : 28;
   // const bottomRight = isMobileLayout ? 60 : 14;
   const bottomRight = isMobileLayout ? 80 : 14;
 
-  const browserHeight = typeof window !== 'undefined' ? window.innerHeight : windowHeight;
   const showPlayOverlay = paused && !showPoster && playerReady;
 
   return (
@@ -1487,6 +1545,29 @@ const webNavbarH = (Platform.OS === 'web' && isMobileLayout) ? 70 : 0; // ✅ we
             )}
           </TouchableOpacity>
 
+          {isAd && adRedirectMeta ? (
+            <TouchableOpacity
+              style={{
+                marginTop: 12,
+                alignSelf: 'flex-start',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: '#f97316',
+                borderRadius: 999,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.35)',
+              }}
+              onPress={() => onAdPress?.(safePost)}
+              activeOpacity={0.86}
+            >
+              <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 13 }}>{adRedirectMeta.label}</Text>
+              <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 15 }}>›</Text>
+            </TouchableOpacity>
+          ) : null}
+
           {(safePost.commentsCount > 0 || comments.length > 0) && (
             <TouchableOpacity onPress={() => onComment(postId)} style={{ marginTop: 5 }}>
               <Text style={styles.reelViewComments}>💬 View all {safePost.commentsCount ?? comments.length} comments</Text>
@@ -1570,6 +1651,15 @@ const cardHeight = feedViewportHeight > 0 ? feedViewportHeight : browserHeight;
   }, [commentProfilesByEmail]);
 
   const handleLike = useCallback(async (id) => {
+    const targetPost = posts.find((post) => String(post.id) === String(id));
+    if (targetPost?.isAd) {
+      setPosts(prev => prev.map(p => p.id === id ? {
+        ...p,
+        liked: !p.liked,
+        likes: Math.max(0, Number(p.likes || 0) + (p.liked ? -1 : 1)),
+      } : p));
+      return;
+    }
     setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p));
     try {
       const result = await UserStore.updateNewsFeedItem(id, 'like');
@@ -1581,9 +1671,14 @@ const cardHeight = feedViewportHeight > 0 ? feedViewportHeight : browserHeight;
     } catch {
       setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked } : p));
     }
-  }, []);
+  }, [posts]);
 
   const handleBookmark = useCallback(async (id) => {
+    const targetPost = posts.find((post) => String(post.id) === String(id));
+    if (targetPost?.isAd) {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p));
+      return;
+    }
     setPosts(prev => prev.map(p => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p));
     try {
       const result = await UserStore.updateNewsFeedItem(id, 'bookmark');
@@ -1595,7 +1690,7 @@ const cardHeight = feedViewportHeight > 0 ? feedViewportHeight : browserHeight;
     } catch {
       setPosts(prev => prev.map(p => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p));
     }
-  }, []);
+  }, [posts]);
 
   const handleComment = useCallback(async (id) => {
     setCommentPost(id);
@@ -1933,9 +2028,11 @@ image: item.image || null,
   bookmarked: Boolean(item.bookmarked),
 };
             });
-            setPosts(cleanedPosts);
+            const sponsoredPosts = (await UserStore.getActiveAdsFeed()).map(feedPostFromAdItem);
+            setPosts(interleaveSponsoredPosts(cleanedPosts, sponsoredPosts));
           } else {
-            setPosts([]);
+            const sponsoredPosts = (await UserStore.getActiveAdsFeed()).map(feedPostFromAdItem);
+            setPosts(sponsoredPosts);
           }
         } catch (e) { console.log('Feed fetch error:', e); }
       };
@@ -1992,6 +2089,21 @@ image: item.image || null,
                     },
                   })
                 }
+                onAdPress={(adPost) => openAdRedirect(adPost, navigation, {
+                  onProfilePress: (targetAd) =>
+                    navigation.navigate('UserProfile', {
+                      email: String(targetAd.createdBy || targetAd.created_by || '').trim().toLowerCase(),
+                      author: {
+                        name: targetAd.user,
+                        author_profile_image: isValidImageUrl(targetAd.avatar) ? targetAd.avatar : null,
+                        author_role_label: targetAd.role,
+                        author_seat_name: targetAd.location,
+                        author_has_blue_tick: Boolean(targetAd.author_has_blue_tick || targetAd.verified),
+                        has_blue_tick: Boolean(targetAd.author_has_blue_tick || targetAd.verified),
+                        createdBy: String(targetAd.createdBy || targetAd.created_by || '').trim().toLowerCase(),
+                      },
+                    }),
+                })}
                 onFollow={true}
                 isActive={index === activeIndex && isScreenFocused}
                 cardWidth={effectiveCardWidth}

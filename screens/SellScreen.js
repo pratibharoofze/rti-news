@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,13 @@ import {
   StatusBar,
   Platform,
   TextInput,
-  Modal,
-  Pressable,
-  Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserStore } from '../store/UserStore';
+import { useToast } from '../components/ui/ToastProvider';
 
 const FARMING_SECTORS = [
   'Crops',
@@ -32,10 +31,43 @@ const FARMING_SECTORS = [
   'Other',
 ];
 
+const FARMING_CREDIT_PLANS = [
+  { plan_id: 'farming-10', plan_name: 'Starter', price: 999, credits: 10, duration: '30 Days', validity_days: 30 },
+  { plan_id: 'farming-20', plan_name: 'Growth', price: 899, credits: 20, duration: '30 Days', validity_days: 30 },
+  { plan_id: 'farming-50', plan_name: 'Power', price: 1299, credits: 50, duration: '30 Days', validity_days: 30 },
+];
+
+const getAssetMimeType = (asset = {}) => {
+  const mimeType = String(asset.mimeType || '').trim();
+  if (mimeType) return mimeType;
+  const uri = String(asset.uri || '').toLowerCase();
+  if (uri.endsWith('.png')) return 'image/png';
+  if (uri.endsWith('.webp')) return 'image/webp';
+  return 'image/jpeg';
+};
+
+const getPersistentMediaUri = (asset = {}) => {
+  const type = String(asset.type || '').toLowerCase();
+  if (type !== 'video' && asset.base64) {
+    return `data:${getAssetMimeType(asset)};base64,${asset.base64}`;
+  }
+  return asset.uri || '';
+};
+
+const normalizeIndianMobileNumber = (value = '') => {
+  const digits = String(value || '').replace(/\D+/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
+  return digits.slice(0, 10);
+};
+
+const isValidIndianMobileNumber = (value = '') => /^[6-9]\d{9}$/.test(normalizeIndianMobileNumber(value));
+
 // ─── Mobile Layout ────────────────────────────────────────────────────────────
 
 function FarmingSellMobile({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { showToast } = useToast();
 
   const [sectorOpen, setSectorOpen] = useState(false);
   const [sector, setSector] = useState('');
@@ -48,12 +80,31 @@ function FarmingSellMobile({ navigation }) {
   const [mediaUri, setMediaUri] = useState('');
   const [mediaType, setMediaType] = useState('');
   const [saving, setSaving] = useState(false);
+  const [credits, setCredits] = useState(0);
+
+  React.useEffect(() => {
+    let alive = true;
+    UserStore.getFarmingMarketplaceSummary().then((summary) => {
+      if (alive) setCredits(summary.credits || 0);
+    });
+    return () => { alive = false; };
+  }, []);
+
+  const handleBuyPlan = async (plan) => {
+    const result = await UserStore.buyFarmingCredits(plan);
+    if (result.ok) {
+      setCredits(result.credits || 0);
+      showToast(`${plan.credits} farming credits added for 30 days. Total: ${result.credits}`, 'success');
+    } else {
+      showToast(result.message || 'Unable to buy credits.', 'error');
+    }
+  };
 
   const openMediaPicker = async () => {
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Permission to access your media is required.');
+        showToast('Permission to access your media is required.', 'error');
         return;
       }
     }
@@ -62,12 +113,13 @@ function FarmingSellMobile({ navigation }) {
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: false,
       quality: 0.7,
+      base64: true,
     });
 
     if (result.canceled) return;
     const asset = result.assets?.[0] || result;
     if (asset?.uri) {
-      setMediaUri(asset.uri);
+      setMediaUri(getPersistentMediaUri(asset));
       setMediaType(asset.type || (asset.uri.endsWith('.mp4') ? 'video' : 'image'));
     }
   };
@@ -75,7 +127,11 @@ function FarmingSellMobile({ navigation }) {
   const handleSubmit = async () => {
     if (saving) return;
     if (!sector || !whatSelling) {
-      Alert.alert('Missing Fields', 'Please fill Farming Sector and What are you selling.');
+      showToast('Please fill Category and What are you selling.', 'error');
+      return;
+    }
+    if (contact.trim() && !isValidIndianMobileNumber(contact)) {
+      showToast('Please enter a valid 10 digit contact number.', 'error');
       return;
     }
 
@@ -83,7 +139,7 @@ function FarmingSellMobile({ navigation }) {
     const user = await UserStore.getCurrentUser();
     if (!user?.email) {
       setSaving(false);
-      Alert.alert('Login required', 'Please login again to upload your listing.');
+      showToast('Please login again to upload your listing.', 'error');
       return;
     }
 
@@ -96,27 +152,23 @@ function FarmingSellMobile({ navigation }) {
       quantity: quantity.trim(),
       price: price.trim(),
       city: city.trim(),
-      contact: contact.trim(),
+      contact: normalizeIndianMobileNumber(contact),
       mediaType,
       mediaUri,
       author_name: user.name || 'User',
       author_profile_image: user.profile_image || '',
       createdBy: user.email,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
     };
 
-    const updatedUser = await UserStore.updateUser(user.email, {
-      news: [...(user.news || []), listing],
-    });
-
+    const result = await UserStore.createFarmingListing(listing);
     setSaving(false);
-    if (!updatedUser) {
-      Alert.alert('Upload failed', 'Unable to save your listing. Please try again.');
+    if (!result.ok) {
+      showToast(result.message || 'Unable to save your listing. Please try again.', 'error');
       return;
     }
 
-    Alert.alert('Uploaded', 'Your listing has been uploaded successfully.');
+    setCredits(result.credits || 0);
+    showToast('Your listing has been uploaded successfully and is visible on Buy page.', 'success');
     setSector('');
     setWhatSelling('');
     setQuantity('');
@@ -126,7 +178,7 @@ function FarmingSellMobile({ navigation }) {
     setContact('');
     setMediaUri('');
     setMediaType('');
-    navigation.navigate('News Feed');
+    navigation.navigate('FarmingBuy');
   };
 
   return (
@@ -158,15 +210,31 @@ function FarmingSellMobile({ navigation }) {
         keyboardShouldPersistTaps="handled"
       >
 
-        {/* Farming Sector */}
-        <Text style={styles.fieldLabel}>Farming Sector<Text style={styles.required}>*</Text></Text>
+        {/* Category */}
+        <View style={styles.creditCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.creditTitle}>Farming Credits</Text>
+            <Text style={styles.creditSub}>{credits} credits available · monthly validity · 1 credit per listing</Text>
+          </View>
+        </View>
+        <View style={styles.planRow}>
+          {FARMING_CREDIT_PLANS.map((plan) => (
+            <TouchableOpacity key={plan.plan_id} style={styles.planCard} onPress={() => handleBuyPlan(plan)} activeOpacity={0.85}>
+              <Text style={styles.planPrice}>₹{plan.price}</Text>
+              <Text style={styles.planCredits}>{plan.credits} credits · 30 days</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Category */}
+        <Text style={styles.fieldLabel}>Category<Text style={styles.required}>*</Text></Text>
         <TouchableOpacity
           style={styles.selectBox}
           onPress={() => setSectorOpen(!sectorOpen)}
           activeOpacity={0.8}
         >
           <Text style={sector ? styles.selectValue : styles.selectPlaceholder}>
-            {sector || 'Select Farming Sector'}
+            {sector || 'Select Category'}
           </Text>
           <Ionicons name={sectorOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#94a3b8" />
         </TouchableOpacity>
@@ -231,11 +299,16 @@ function FarmingSellMobile({ navigation }) {
         {mediaUri ? (
           <View style={styles.mediaPreview}>
             {mediaType === 'video' ? (
-              <Text style={styles.mediaPreviewText}>Video selected</Text>
+              <>
+                <Ionicons name="videocam-outline" size={22} color="#64748b" />
+                <Text style={styles.mediaPreviewText}>Video selected</Text>
+              </>
             ) : (
-              <Text style={styles.mediaPreviewText}>Image selected</Text>
+              <>
+                <Image source={{ uri: mediaUri }} style={styles.mediaPreviewImage} resizeMode="cover" />
+                <Text style={styles.mediaPreviewText}>Image selected</Text>
+              </>
             )}
-            <Text style={styles.mediaPreviewUri} numberOfLines={1}>{mediaUri}</Text>
           </View>
         ) : null}
 
@@ -269,8 +342,9 @@ function FarmingSellMobile({ navigation }) {
           placeholder="Enter your contact number"
           placeholderTextColor="#b0b8c4"
           value={contact}
-          onChangeText={setContact}
+          onChangeText={(value) => setContact(normalizeIndianMobileNumber(value))}
           keyboardType="phone-pad"
+          maxLength={10}
         />
 
         {/* Bottom Submit */}
@@ -287,6 +361,7 @@ function FarmingSellMobile({ navigation }) {
 // ─── Web Layout ───────────────────────────────────────────────────────────────
 
 function FarmingSellWeb({ navigation }) {
+  const { showToast } = useToast();
   const [sectorOpen, setSectorOpen] = useState(false);
   const [sector, setSector] = useState('');
   const [whatSelling, setWhatSelling] = useState('');
@@ -298,12 +373,13 @@ function FarmingSellWeb({ navigation }) {
   const [mediaUri, setMediaUri] = useState('');
   const [mediaType, setMediaType] = useState('');
   const [saving, setSaving] = useState(false);
+  const [credits, setCredits] = useState(0);
 
   const openMediaPicker = async () => {
     if (Platform.OS !== 'web') {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        alert('Permission to access your media is required.');
+        showToast('Permission to access your media is required.', 'error');
         return;
       }
     }
@@ -312,12 +388,13 @@ function FarmingSellWeb({ navigation }) {
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: false,
       quality: 0.7,
+      base64: true,
     });
 
     if (result.canceled) return;
     const asset = result.assets?.[0] || result;
     if (asset?.uri) {
-      setMediaUri(asset.uri);
+      setMediaUri(getPersistentMediaUri(asset));
       setMediaType(asset.type || (asset.uri.endsWith('.mp4') ? 'video' : 'image'));
     }
   };
@@ -376,14 +453,54 @@ function FarmingSellWeb({ navigation }) {
       .fs-submit-full { width: 100%; background: #ea580c; border: none; border-radius: 14px; padding: 16px; font-size: 15px; font-weight: 700; color: #fff; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; transition: background 0.15s, transform 0.1s, box-shadow 0.15s; }
       .fs-submit-full:hover { background: #c2410c; box-shadow: 0 4px 16px rgba(234,88,12,0.25); }
       .fs-submit-full:active { transform: scale(0.98); }
+      @media (max-width: 720px) {
+        html, body, #root { min-height: 100%; overflow-x: hidden; }
+        .fs-root { height: 100vh; min-height: 100vh; }
+        .fs-topbar { height: 58px; padding: 0 12px; gap: 8px; }
+        .fs-logo { font-size: 17px; min-width: 0; }
+        .fs-topbar-back { padding: 7px 10px; font-size: 12px; white-space: nowrap; }
+        .fs-topbar-submit { padding: 9px 14px; font-size: 13px; }
+        .fs-body { display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .fs-sidebar { display: none; }
+        .fs-main { display: block; padding: 22px 14px 34px; overflow: visible; }
+        .fs-form-wrap { width: 100%; max-width: none; }
+        .fs-page-title { font-size: 25px; }
+        .fs-page-sub { font-size: 12px; margin-bottom: 18px; max-width: 260px; line-height: 17px; }
+        .fs-field { margin-bottom: 18px; }
+        .fs-input, .fs-select-btn { font-size: 14px; padding: 12px 13px; }
+        .fs-dropdown { position: relative; top: auto; margin-top: 6px; max-height: 260px; }
+        .fs-media-btn { width: 100%; min-height: 86px; }
+      }
     `;
     document.head.appendChild(el);
   }, []);
 
+  React.useEffect(() => {
+    let alive = true;
+    UserStore.getFarmingMarketplaceSummary().then((summary) => {
+      if (alive) setCredits(summary.credits || 0);
+    });
+    return () => { alive = false; };
+  }, []);
+
+  const handleBuyPlan = async (plan) => {
+    const result = await UserStore.buyFarmingCredits(plan);
+    if (result.ok) {
+      setCredits(result.credits || 0);
+      showToast(`${plan.credits} farming credits added for 30 days. Total: ${result.credits}`, 'success');
+    } else {
+      showToast(result.message || 'Unable to buy credits.', 'error');
+    }
+  };
+
   const handleSubmit = async () => {
     if (saving) return;
     if (!sector || !whatSelling) {
-      alert('Please fill Farming Sector and What are you selling.');
+      showToast('Please fill Category and What are you selling.', 'error');
+      return;
+    }
+    if (contact.trim() && !isValidIndianMobileNumber(contact)) {
+      showToast('Please enter a valid 10 digit contact number.', 'error');
       return;
     }
 
@@ -391,7 +508,7 @@ function FarmingSellWeb({ navigation }) {
     const user = await UserStore.getCurrentUser();
     if (!user?.email) {
       setSaving(false);
-      alert('Please login again to upload your listing.');
+      showToast('Please login again to upload your listing.', 'error');
       return;
     }
 
@@ -404,27 +521,24 @@ function FarmingSellWeb({ navigation }) {
       quantity: quantity.trim(),
       price: price.trim(),
       city: city.trim(),
-      contact: contact.trim(),
+      contact: normalizeIndianMobileNumber(contact),
       mediaType,
       mediaUri,
       author_name: user.name || 'User',
       author_profile_image: user.profile_image || '',
       createdBy: user.email,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
     };
 
-    const updatedUser = await UserStore.updateUser(user.email, {
-      news: [...(user.news || []), listing],
-    });
+    const result = await UserStore.createFarmingListing(listing);
     setSaving(false);
 
-    if (!updatedUser) {
-      alert('Unable to save your listing. Please try again.');
+    if (!result.ok) {
+      showToast(result.message || 'Unable to save your listing. Please try again.', 'error');
       return;
     }
 
-    alert('Your listing has been uploaded successfully!');
+    setCredits(result.credits || 0);
+    showToast('Your listing has been uploaded successfully and is visible on Buy page.', 'success');
     setSector('');
     setWhatSelling('');
     setQuantity('');
@@ -434,7 +548,7 @@ function FarmingSellWeb({ navigation }) {
     setContact('');
     setMediaUri('');
     setMediaType('');
-    navigation.navigate('News Feed');
+    navigation.navigate('FarmingBuy');
   };
 
   return (
@@ -471,9 +585,26 @@ function FarmingSellWeb({ navigation }) {
             <div className="fs-page-title">Sell</div>
             <div className="fs-page-sub">Farming (buy / sell) — List your produce or equipment for sale</div>
 
-            {/* Farming Sector */}
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 16, marginBottom: 18 }}>
+              <div style={{ fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Farming Credits</div>
+              <div style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>{credits} credits available · monthly validity · 1 credit per product listing</div>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {FARMING_CREDIT_PLANS.map((plan) => (
+                  <button
+                    key={plan.plan_id}
+                    type="button"
+                    onClick={() => handleBuyPlan(plan)}
+                    style={{ border: '1px solid #fed7aa', background: '#fff7ed', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', fontWeight: 800, color: '#ea580c' }}
+                  >
+                    ₹{plan.price} → {plan.credits} credits · 30 days
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Category */}
             <div className="fs-field">
-              <label className="fs-label">Farming Sector <span className="fs-required">*</span></label>
+              <label className="fs-label">Category <span className="fs-required">*</span></label>
               <div className="fs-select-wrap">
                 <button
                   className={`fs-select-btn${sectorOpen ? ' open' : ''}`}
@@ -481,7 +612,7 @@ function FarmingSellWeb({ navigation }) {
                   type="button"
                 >
                   <span className={sector ? '' : 'fs-select-placeholder'}>
-                    {sector || 'Select Farming Sector'}
+                    {sector || 'Select Category'}
                   </span>
                   <span style={{ fontSize: 13, color: '#94a3b8' }}>{sectorOpen ? '▲' : '▼'}</span>
                 </button>
@@ -565,7 +696,6 @@ function FarmingSellWeb({ navigation }) {
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>
                     {mediaType === 'video' ? 'Video selected' : 'Image selected'}
                   </div>
-                  <div style={{ wordBreak: 'break-all', color: '#64748b', fontSize: 13 }}>{mediaUri}</div>
                 </div>
               ) : null}
             </div>
@@ -601,7 +731,8 @@ function FarmingSellWeb({ navigation }) {
                 type="tel"
                 placeholder="Enter your contact number"
                 value={contact}
-                onChange={(e) => setContact(e.target.value)}
+                maxLength={10}
+                onChange={(e) => setContact(normalizeIndianMobileNumber(e.target.value))}
               />
             </div>
 
@@ -750,16 +881,47 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
+  mediaPreviewImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
+    marginBottom: 10,
+    backgroundColor: '#e2e8f0',
+  },
   mediaPreviewText: {
     fontSize: 13,
     color: '#334155',
     fontWeight: '600',
     marginBottom: 4,
   },
-  mediaPreviewUri: {
-    fontSize: 12,
-    color: '#64748b',
+  creditCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    marginBottom: 12,
   },
+  creditTitle: { fontSize: 15, fontWeight: '800', color: '#9a3412' },
+  creditSub: { fontSize: 12, color: '#c2410c', marginTop: 3 },
+  planRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  planCard: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    alignItems: 'center',
+  },
+  planPrice: { fontSize: 14, fontWeight: '900', color: '#ea580c' },
+  planCredits: { fontSize: 11, fontWeight: '700', color: '#64748b', marginTop: 2 },
 
   // Bottom submit
   submitBtnFull: {

@@ -253,6 +253,7 @@ export default function SettingsScreen({ navigation }) {
           <SettingsItem emoji="📍" label="Change Location" onPress={() => nav('ChangeLocation')} />
           <SettingsItem emoji="🧑‍💼" label="Reporter Registration"             onPress={() => nav('Register')} />
           <SettingsItem emoji="📢" label="Advertise"                          onPress={() => nav('Advertise')} />
+          <SettingsItem emoji="🎯" label="My Ads & Credits" onPress={() => nav('MyAds')} />
           <SettingsItem emoji="✅" label="Purchase blue tick"                 onPress={() => nav('PurchaseBlueTick')} />
           <SettingsItem emoji="📱" label="My subscriptions"                   onPress={() => nav('Subscription Plans')} />
           <SettingsItem emoji="🛒" label="Commerce & Ads Center"             onPress={() => nav('CommerceAdsCenter')} />

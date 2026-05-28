@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, Image, Alert, Modal, Dimensions, Platform, StatusBar,
@@ -8,6 +8,8 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { getResponsiveWindowWidth } from '../utils/webDevice';
+import { UserStore } from '../store/UserStore';
+import { useToast } from '../components/ui/ToastProvider';
 
 // ── Theme Colors ───────────────────────────────────────────────────────────────
 const C = {
@@ -40,6 +42,20 @@ const REDIRECT_OPTIONS = [
   { id: 'lead_form', title: 'Lead Form',            desc: 'Users can fill out a form you created',               icon: 'document-text-outline', extra: null },
   { id: 'whatsapp',  title: 'My Whatsapp Number',   desc: 'Users will be able to message you on WhatsApp',       icon: 'logo-whatsapp',         extra: 'whatsapp_number' },
 ];
+
+const normalizeIndianMobileNumber = (value = '') => {
+  const digits = String(value || '').replace(/\D+/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
+  return digits.slice(0, 10);
+};
+
+const isValidIndianMobileNumber = (value = '') => /^[6-9]\d{9}$/.test(normalizeIndianMobileNumber(value));
+
+const buildNextExtraValues = (key, value, previous = {}) => ({
+  ...previous,
+  [key]: key === 'whatsapp_number' ? normalizeIndianMobileNumber(value) : value,
+});
 
 // ── Step Badge Component ───────────────────────────────────────────────────────
 function StepBadge({ number, label, hint }) {
@@ -243,13 +259,17 @@ const wpm = StyleSheet.create({
 });
 
 // ── Main Screen ────────────────────────────────────────────────────────────────
-export default function AdvertiseScreen({ navigation }) {
-  const [photo, setPhoto]                       = useState(null);
-  const [title, setTitle]                       = useState('');
-  const [description, setDescription]           = useState('');
-  const [selectedRedirect, setSelectedRedirect] = useState('whatsapp');
-  const [extraValues, setExtraValues]           = useState({});
-  const [allowCalls, setAllowCalls]             = useState(true);
+export default function AdvertiseScreen({ navigation, route }) {
+  const editAd = route?.params?.editAd || null;
+  const isEditing = Boolean(editAd?.id);
+  const { showToast } = useToast();
+
+  const [photo, setPhoto]                       = useState(editAd?.photo || null);
+  const [title, setTitle]                       = useState(editAd?.title || '');
+  const [description, setDescription]           = useState(editAd?.description || '');
+  const [selectedRedirect, setSelectedRedirect] = useState(editAd?.redirect || 'whatsapp');
+  const [extraValues, setExtraValues]           = useState(editAd?.extraValues || {});
+  const [allowCalls, setAllowCalls]             = useState(editAd?.allowCalls !== undefined ? Boolean(editAd.allowCalls) : true);
   const [showPreview, setShowPreview]           = useState(false);
   const { width: windowWidth } = useWindowDimensions();
   const webWidth = getResponsiveWindowWidth(windowWidth);
@@ -263,6 +283,16 @@ export default function AdvertiseScreen({ navigation }) {
     }
   );
 
+  useEffect(() => {
+    if (!editAd) return;
+    setPhoto(editAd.photo || null);
+    setTitle(editAd.title || '');
+    setDescription(editAd.description || '');
+    setSelectedRedirect(editAd.redirect || 'whatsapp');
+    setExtraValues(editAd.extraValues || {});
+    setAllowCalls(editAd.allowCalls !== undefined ? Boolean(editAd.allowCalls) : true);
+  }, [editAd]);
+
   const handlePickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permission needed', 'Please allow access to your photo library.'); return; }
@@ -274,11 +304,37 @@ export default function AdvertiseScreen({ navigation }) {
     if (!photo)             { Alert.alert('Required', 'Please add an advertisement photo.'); return; }
     if (!title.trim())      { Alert.alert('Required', 'Please write an advertisement title.'); return; }
     if (!description.trim()){ Alert.alert('Required', 'Please write a description.'); return; }
+    if (selectedRedirect === 'whatsapp' && !isValidIndianMobileNumber(extraValues.whatsapp_number)) {
+      showToast('Please enter a valid 10 digit WhatsApp number.', 'error');
+      return;
+    }
     setShowPreview(true);
   };
 
-  const handlePreviewNext = () => {
+  const handlePreviewNext = async () => {
     setShowPreview(false);
+    if (isEditing) {
+      const spendAdCredit = UserStore.useAdCredit;
+      const result = await spendAdCredit('edit', {
+        id:          editAd.id,
+        title:       title.trim(),
+        description: description.trim(),
+        photo,
+        redirect:    selectedRedirect,
+        extraValues,
+        allowCalls,
+      });
+
+      if (!result.ok) {
+        Alert.alert('Unable to Update', result.message || 'Unable to update ad.');
+        return;
+      }
+
+      showToast('Ad updated successfully. 1 credit has been used.', 'success');
+      navigation.navigate('MyAds');
+      return;
+    }
+
     navigation.navigate('ChoosePlan', {
       adData: { photo, title, description, redirect: selectedRedirect, extraValues, allowCalls },
     });
@@ -441,8 +497,9 @@ export default function AdvertiseScreen({ navigation }) {
                                 placeholder={opt.extra === 'whatsapp_number' ? 'Eg. 9999999999' : 'https://...'}
                                 placeholderTextColor="#FBCFA0"
                                 value={extraValues[opt.extra] || ''}
-                                onChangeText={(v) => setExtraValues(p => ({ ...p, [opt.extra]: v }))}
+                                onChangeText={(v) => setExtraValues(p => buildNextExtraValues(opt.extra, v, p))}
                                 keyboardType={opt.extra === 'whatsapp_number' ? 'phone-pad' : 'url'}
+                                maxLength={opt.extra === 'whatsapp_number' ? 10 : undefined}
                               />
                             </View>
                           )}
@@ -607,8 +664,9 @@ export default function AdvertiseScreen({ navigation }) {
                         placeholder={opt.extra === 'whatsapp_number' ? 'Eg. 9999999999' : 'https://...'}
                         placeholderTextColor={C.pinkMid}
                         value={extraValues[opt.extra] || ''}
-                        onChangeText={(v) => setExtraValues(p => ({ ...p, [opt.extra]: v }))}
+                        onChangeText={(v) => setExtraValues(p => buildNextExtraValues(opt.extra, v, p))}
                         keyboardType={opt.extra === 'whatsapp_number' ? 'phone-pad' : 'url'}
+                        maxLength={opt.extra === 'whatsapp_number' ? 10 : undefined}
                       />
                     </View>
                   )}

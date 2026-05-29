@@ -388,17 +388,27 @@ const ROLE_LABELS = {
 const getRoleLabel = (role = 'free') => ROLE_LABELS[role] || 'Free Member';
 
 const RANK_TIERS = [
-  { rank: 'Director',  min: 500 },
-  { rank: 'Manager',   min: 100 },
-  { rank: 'Leader',    min: 25  },
-  { rank: 'Promoter',  min: 5   },
-  { rank: 'Starter',   min: 1   },
-  { rank: 'Member',    min: 0   },
+  { rank: 'Director',  min: 500, bonus: 10000 },
+  { rank: 'Manager',   min: 100, bonus: 2000  },
+  { rank: 'Leader',    min: 25,  bonus: 500   },
+  { rank: 'Promoter',  min: 5,   bonus: 100   },
+  { rank: 'Starter',   min: 1,   bonus: 0     },
+  { rank: 'Member',    min: 0,   bonus: 0     },
 ];
 
 const calculateRank = (referralCount = 0) => {
   const tier = RANK_TIERS.find((t) => referralCount >= t.min);
   return tier ? tier.rank : 'Member';
+};
+
+const getReferralTier = (referralCount = 0) => (
+  RANK_TIERS.find((t) => Number(referralCount || 0) >= t.min) || RANK_TIERS[RANK_TIERS.length - 1]
+);
+
+const getNextReferralTier = (referralCount = 0) => {
+  const current = Number(referralCount || 0);
+  const ascending = [...RANK_TIERS].reverse();
+  return ascending.find((tier) => tier.min > current) || null;
 };
 
 const normalizeIndianMobileNumber = (value = '') => {
@@ -1198,6 +1208,11 @@ const normalizeUser = (user = {}) => {
     referred_by:         user.referred_by         || '',
     referral_code_used:  user.referral_code_used  || '',
     referral_count:      referralCount,
+    referral_qualified:  Boolean(user.referral_qualified),
+    referral_qualified_at: user.referral_qualified_at || '',
+    referral_bonus_paid: Boolean(user.referral_bonus_paid),
+    valid_referrals:     Array.isArray(user.valid_referrals) ? user.valid_referrals : [],
+    referral_bonus_milestones: Array.isArray(user.referral_bonus_milestones) ? user.referral_bonus_milestones : [],
     followers:           normalizeEmailList(user.followers),
     following:           normalizeEmailList(user.following),
     rank:                calculateRank(referralCount),
@@ -1247,6 +1262,106 @@ const getLevelFromCurrentUser = (user, currentUser, usersByEmail) => {
     level += 1;
   }
   return user.referred_by ? 'Linked' : 'Direct';
+};
+
+const qualifyReferralForSubscribedUser = async (subscribedEmail) => {
+  const normalizedEmail = String(subscribedEmail || '').trim().toLowerCase();
+  if (!normalizedEmail) return { ok: false, credited: false };
+
+  const users = await getUsersFromStorage();
+  const subscribedUser = users.find((u) => String(u.email || '').trim().toLowerCase() === normalizedEmail);
+  if (!subscribedUser?.referred_by || subscribedUser.referral_qualified) {
+    return { ok: true, credited: false };
+  }
+
+  const parentEmail = String(subscribedUser.referred_by || '').trim().toLowerCase();
+  const parentUser = users.find((u) => String(u.email || '').trim().toLowerCase() === parentEmail);
+  if (!parentUser) return { ok: true, credited: false };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const existingQualifiedReferrals = users
+    .filter((u) => String(u.referred_by || '').trim().toLowerCase() === parentEmail)
+    .filter((u) => String(u.email || '').trim().toLowerCase() !== normalizedEmail)
+    .filter((u) => Boolean(u.referral_qualified || u.is_subscribed))
+    .map((u) => ({
+      email: String(u.email || '').trim().toLowerCase(),
+      name: u.name || u.email || 'Referral',
+      qualified_at: u.referral_qualified_at || today,
+    }));
+  const storedValidReferrals = Array.isArray(parentUser.valid_referrals) ? parentUser.valid_referrals : [];
+  const validByEmail = new Map();
+  [...storedValidReferrals, ...existingQualifiedReferrals].forEach((item) => {
+    const email = String(item.email || '').trim().toLowerCase();
+    if (email) validByEmail.set(email, { ...item, email });
+  });
+  const validReferrals = [...validByEmail.values()];
+  const previousCount = validReferrals.length;
+  const alreadyLinked = validReferrals.some((item) => String(item.email || '').trim().toLowerCase() === normalizedEmail);
+  const nextValidReferrals = alreadyLinked
+    ? validReferrals
+    : [
+      ...validReferrals,
+      {
+        email: normalizedEmail,
+        name: subscribedUser.name || normalizedEmail,
+        qualified_at: today,
+      },
+    ];
+  const newCount = nextValidReferrals.length;
+  const previousTier = getReferralTier(previousCount);
+  const newTier = getReferralTier(newCount);
+  const crossedMilestone = newTier.min > previousTier.min && Number(newTier.bonus || 0) > 0;
+  const milestones = Array.isArray(parentUser.referral_bonus_milestones) ? parentUser.referral_bonus_milestones : [];
+  const milestoneKey = `${newTier.rank}:${newTier.min}`;
+  const shouldCreditBonus = crossedMilestone && !milestones.includes(milestoneKey);
+  const bonusAmount = shouldCreditBonus ? Number(newTier.bonus || 0) : 0;
+  const bonusTxn = bonusAmount > 0 ? {
+    id: `txn-referral-${Date.now()}`,
+    amount: bonusAmount,
+    type: 'credit',
+    source: 'referral_bonus',
+    date: today,
+  } : null;
+
+  const updatedUsers = users.map((user) => {
+    const email = String(user.email || '').trim().toLowerCase();
+    if (email === normalizedEmail) {
+      return normalizeUser({
+        ...user,
+        referral_qualified: true,
+        referral_qualified_at: today,
+        referral_bonus_paid: true,
+      });
+    }
+    if (email === parentEmail) {
+      return normalizeUser({
+        ...user,
+        referral_count: newCount,
+        valid_referrals: nextValidReferrals,
+        rank: calculateRank(newCount),
+        referral_bonus_milestones: shouldCreditBonus ? [...milestones, milestoneKey] : milestones,
+        wallet_transactions: bonusTxn
+          ? [bonusTxn, ...normalizeWalletTransactions(user.wallet_transactions)]
+          : normalizeWalletTransactions(user.wallet_transactions),
+        notifications: [
+          {
+            id: `notif-referral-${Date.now()}`,
+            title: bonusAmount > 0 ? `${newTier.rank} Referral Bonus Added` : 'Referral Qualified',
+            message: bonusAmount > 0
+              ? `${subscribedUser.name || normalizedEmail} subscription complete hua. ${newTier.rank} rank par Rs. ${bonusAmount} bonus wallet me add hua.`
+              : `${subscribedUser.name || normalizedEmail} subscription complete hua. Valid referral count ab ${newCount} hai.`,
+            date: today,
+            status: 'Unread',
+          },
+          ...normalizeNotifications(user.notifications),
+        ],
+      });
+    }
+    return user;
+  });
+
+  await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+  return { ok: true, credited: shouldCreditBonus, bonus: bonusAmount, rank: newTier.rank, referral_count: newCount };
 };
 
 // ─── Certificate SVG Builder ──────────────────────────────────────────────────
@@ -1357,6 +1472,9 @@ export const UserStore = {
   isPremiumPlan: (plan) => isPremiumPlan(plan),
   getRoleFromPlanId,
   getRoleLabel,
+  getReferralTier,
+  getNextReferralTier,
+  getReferralTiers: () => [...RANK_TIERS].reverse().filter((tier) => tier.rank !== 'Member'),
 
   saveUser: async ({
     name,
@@ -1430,20 +1548,7 @@ export const UserStore = {
         settings:            defaultSettings,
       });
 
-      let updatedUsers = [...users];
-      if (referred_by) {
-        updatedUsers = users.map((u) => {
-          if (u.email !== referred_by) return u;
-          const newCount = (u.referral_count || 0) + 1;
-          return normalizeUser({
-            ...u,
-            referral_count: newCount,
-            rank: calculateRank(newCount),
-          });
-        });
-      }
-
-      updatedUsers.push(newUser);
+      const updatedUsers = [...users, newUser];
       await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
       return { ok: true, user: newUser };
     } catch (_err) {
@@ -1626,21 +1731,28 @@ export const UserStore = {
 
       const users = await getUsersFromStorage();
       const directReferrals = users.filter((u) => u.referred_by === currentUser.email);
+      const validReferrals = directReferrals.filter((u) => Boolean(u.referral_qualified || u.is_subscribed));
+      const validCount = validReferrals.length;
+      const currentTier = getReferralTier(validCount);
+      const nextTier = getNextReferralTier(validCount);
 
       return {
         my_referral_code: currentUser.my_referral_code || '',
-        referral_count:   currentUser.referral_count   || 0,
-        rank:             currentUser.rank              || 'Member',
-        next_rank:        (() => {
-          const idx = RANK_TIERS.findIndex((t) => t.rank === currentUser.rank);
-          return idx > 0 ? RANK_TIERS[idx - 1] : null;
-        })(),
+        referral_count:   validCount,
+        total_referrals:  directReferrals.length,
+        pending_referrals: Math.max(0, directReferrals.length - validCount),
+        rank:             currentTier.rank,
+        bonus:            currentTier.bonus,
+        next_rank:        nextTier,
+        tiers:            [...RANK_TIERS].reverse().filter((tier) => tier.rank !== 'Member'),
         direct_referrals: directReferrals.map((u) => ({
           name:      u.name,
           email:     u.email,
           join_date: u.join_date,
           rank:      u.rank,
           state:     u.state,
+          qualified: Boolean(u.referral_qualified || u.is_subscribed),
+          subscription: u.subscription_plan?.plan_name || '',
         })),
       };
     } catch { return null; }
@@ -1929,6 +2041,7 @@ export const UserStore = {
         if (allocationsBefore) await AsyncStorage.setItem(STATE_SEATS_KEY, JSON.stringify(allocationsBefore));
         return { ok: false, message: 'Payment verification failed.' };
       }
+      await qualifyReferralForSubscribedUser(user.email);
       return { ok: true, role: newRole, role_label: getRoleLabel(newRole), plan: activePlan };
     } catch {
       if (allocationsBefore) {
@@ -3187,6 +3300,7 @@ export const UserStore = {
         notifications: [...currentNotifications, roleNotification],
       });
       if (!updatedUser) return { ok: false, message: 'Unable to save subscription.' };
+      await qualifyReferralForSubscribedUser(user.email);
       return { ok: true, plan: activePlan, role: newRole };
     } catch (err) {
       console.error('saveSubscription error:', err);

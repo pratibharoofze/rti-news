@@ -789,7 +789,7 @@ const styles = StyleSheet.create({
   },
   submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
-  formContainer: { paddingHorizontal: 18, paddingTop: 22 },
+  formContainer: { paddingHorizontal: 18, paddingTop: 22, paddingBottom: 300 },
 
   fieldLabel: {
     fontSize: 13,

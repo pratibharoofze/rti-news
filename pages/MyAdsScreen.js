@@ -559,7 +559,7 @@ const s = StyleSheet.create({
   headerBuyText: { fontSize: 12, fontWeight: '700', color: C.orange },
 
   scroll:        { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 120 },
 
   planCard: {
     flexDirection: 'row', alignItems: 'center',

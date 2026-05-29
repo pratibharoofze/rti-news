@@ -1,13 +1,20 @@
-import { RANKS } from '../constants/profileConstants';
+const REFERRAL_RANKS = [
+  { id: 'director', minReferrals: 500, title: 'Director', icon: 'D', bonus: 10000, color: '#f59e0b', bgColor: '#fffbeb', badgeColor: '#d97706' },
+  { id: 'manager', minReferrals: 100, title: 'Manager', icon: 'M', bonus: 2000, color: '#2563eb', bgColor: '#eff6ff', badgeColor: '#1d4ed8' },
+  { id: 'leader', minReferrals: 25, title: 'Leader', icon: 'L', bonus: 500, color: '#7c3aed', bgColor: '#f5f3ff', badgeColor: '#6d28d9' },
+  { id: 'promoter', minReferrals: 5, title: 'Promoter', icon: 'P', bonus: 100, color: '#16a34a', bgColor: '#f0fdf4', badgeColor: '#15803d' },
+  { id: 'starter', minReferrals: 1, title: 'Starter', icon: 'S', bonus: 0, color: '#0f766e', bgColor: '#f0fdfa', badgeColor: '#0d9488' },
+  { id: 'member', minReferrals: 0, title: 'Member', icon: 'M', bonus: 0, color: '#64748b', bgColor: '#f8fafc', badgeColor: '#94a3b8' },
+];
 
 // Rank Functions
 export function getRank(n = 0) {
-  return RANKS.find((r) => n >= r.minReferrals) || RANKS[RANKS.length - 1];
+  return REFERRAL_RANKS.find((r) => n >= r.minReferrals) || REFERRAL_RANKS[REFERRAL_RANKS.length - 1];
 }
 
 export function getNextRank(n = 0) {
-  const i = RANKS.findIndex((r) => n >= r.minReferrals);
-  return i > 0 ? RANKS[i - 1] : null;
+  const i = REFERRAL_RANKS.findIndex((r) => n >= r.minReferrals);
+  return i > 0 ? REFERRAL_RANKS[i - 1] : null;
 }
 
 // Code Generation

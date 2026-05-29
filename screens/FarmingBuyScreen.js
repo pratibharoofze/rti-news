@@ -233,79 +233,79 @@ export default function FarmingBuyScreen({ navigation }) {
       </ScrollView>
 
       <Modal visible={Boolean(selectedProduct)} transparent animationType="slide" onRequestClose={() => setSelectedProduct(null)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setSelectedProduct(null)}>
-          <Pressable style={styles.detailSheet}>
-            {selectedProduct ? (
-              <>
-                <View style={styles.modalHandle} />
-                <ProductMedia item={selectedProduct} size="detail" />
-                <Text style={styles.detailTitle}>{selectedProduct.title}</Text>
-                <Text style={styles.detailPrice}>{money(selectedProduct.price)}</Text>
-                <InfoRow label="Product ID" value={selectedProduct.id} />
-                <InfoRow label="Sector" value={selectedProduct.sector} />
-                <InfoRow label="Quantity" value={selectedProduct.quantity} />
-                <InfoRow label="Location" value={selectedProduct.city} />
-                <InfoRow label="Seller / Reporter" value={selectedProduct.owner_name || selectedProduct.author_name} />
-                <InfoRow label="Contact" value={selectedProduct.contact} />
-                <Text style={styles.descTitle}>Description</Text>
-                <Text style={styles.detailDesc}>{selectedProduct.description || 'No description added.'}</Text>
-                <View style={styles.actionRow}>
-                  <TouchableOpacity style={styles.enquireBtn} onPress={() => openEnquiry(selectedProduct)} activeOpacity={0.85}>
-                    <Text style={styles.enquireBtnText}>Enquire Now</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.buyBtn} onPress={() => handleBuy(selectedProduct)} activeOpacity={0.85}>
-                    <Text style={styles.buyBtnText}>Buy Now</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : null}
-          </Pressable>
-        </Pressable>
-      </Modal>
+  <Pressable style={styles.modalBackdrop} onPress={() => setSelectedProduct(null)}>
+    <Pressable style={styles.detailSheet}>
+      {selectedProduct ? (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <View style={styles.modalHandle} />
+          <ProductMedia item={selectedProduct} size="detail" />
+          <Text style={styles.detailTitle}>{selectedProduct.title}</Text>
+          <Text style={styles.detailPrice}>{money(selectedProduct.price)}</Text>
+          <InfoRow label="Product ID" value={selectedProduct.id} />
+          <InfoRow label="Sector" value={selectedProduct.sector} />
+          <InfoRow label="Quantity" value={selectedProduct.quantity} />
+          <InfoRow label="Location" value={selectedProduct.city} />
+          <InfoRow label="Seller / Reporter" value={selectedProduct.owner_name || selectedProduct.author_name} />
+          <InfoRow label="Contact" value={selectedProduct.contact} />
+          <Text style={styles.descTitle}>Description</Text>
+          <Text style={styles.detailDesc}>{selectedProduct.description || 'No description added.'}</Text>
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.enquireBtn} onPress={() => openEnquiry(selectedProduct)} activeOpacity={0.85}>
+              <Text style={styles.enquireBtnText}>Enquire Now</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.buyBtn} onPress={() => handleBuy(selectedProduct)} activeOpacity={0.85}>
+              <Text style={styles.buyBtnText}>Buy Now</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : null}
+    </Pressable>
+  </Pressable>
+</Modal>
 
       <Modal visible={Boolean(enquiryProduct)} transparent animationType="fade" onRequestClose={closeEnquiry}>
-        <Pressable style={styles.modalBackdrop} onPress={closeEnquiry}>
-          <Pressable style={styles.enquiryBox}>
-            {enquiryProduct ? (
-              <>
-                <Text style={styles.enquiryTitle}>Enquire Now</Text>
-                <InfoRow label="Product Name" value={enquiryProduct.title} />
-                <InfoRow label="Product ID" value={enquiryProduct.id} />
-                <InfoRow label="Sector" value={enquiryProduct.sector} />
-                <InfoRow label="Available Quantity" value={enquiryProduct.quantity} />
-                <InfoRow label="Price" value={money(enquiryProduct.price)} />
-                <InfoRow label="Location" value={enquiryProduct.city} />
-                <Text style={styles.inputLabel}>Required Quantity</Text>
-                <TextInput
-                  style={styles.input}
-                  value={quantity}
-                  onChangeText={setQuantity}
-                  placeholder="Enter quantity"
-                  placeholderTextColor="#94a3b8"
-                />
-                <Text style={styles.inputLabel}>Message</Text>
-                <TextInput
-                  style={[styles.input, styles.messageInput]}
-                  value={message}
-                  onChangeText={setMessage}
-                  placeholder="Add note for seller/reporter"
-                  placeholderTextColor="#94a3b8"
-                  multiline
-                  textAlignVertical="top"
-                />
-                <View style={styles.actionRow}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={closeEnquiry} activeOpacity={0.85}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.buyBtn} onPress={handleEnquiry} activeOpacity={0.85}>
-                    <Text style={styles.buyBtnText}>{sending ? 'Sending...' : 'Send Enquiry'}</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : null}
-          </Pressable>
-        </Pressable>
-      </Modal>
+  <Pressable style={styles.modalBackdrop} onPress={closeEnquiry}>
+    <Pressable style={styles.enquiryBox}>
+      {enquiryProduct ? (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+          <Text style={styles.enquiryTitle}>Enquire Now</Text>
+          <InfoRow label="Product Name" value={enquiryProduct.title} />
+          <InfoRow label="Product ID" value={enquiryProduct.id} />
+          <InfoRow label="Sector" value={enquiryProduct.sector} />
+          <InfoRow label="Available Quantity" value={enquiryProduct.quantity} />
+          <InfoRow label="Price" value={money(enquiryProduct.price)} />
+          <InfoRow label="Location" value={enquiryProduct.city} />
+          <Text style={styles.inputLabel}>Required Quantity</Text>
+          <TextInput
+            style={styles.input}
+            value={quantity}
+            onChangeText={setQuantity}
+            placeholder="Enter quantity"
+            placeholderTextColor="#94a3b8"
+          />
+          <Text style={styles.inputLabel}>Message</Text>
+          <TextInput
+            style={[styles.input, styles.messageInput]}
+            value={message}
+            onChangeText={setMessage}
+            placeholder="Add note for seller/reporter"
+            placeholderTextColor="#94a3b8"
+            multiline
+            textAlignVertical="top"
+          />
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={closeEnquiry} activeOpacity={0.85}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.buyBtn} onPress={handleEnquiry} activeOpacity={0.85}>
+              <Text style={styles.buyBtnText}>{sending ? 'Sending...' : 'Send Enquiry'}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : null}
+    </Pressable>
+  </Pressable>
+</Modal>
     </View>
   );
 }

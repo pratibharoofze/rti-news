@@ -587,7 +587,7 @@ setUserPosts(userPostsData);
               <Feather name="x" size={18} color="#111111" />
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 16, alignItems: 'center' }} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ padding: 16, alignItems: 'center', paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
             {documentPreviewType === 'id-card' ? (
               <AutoIdCardPreview profile={savedProfile} />
             ) : documentPreviewType === 'appointment-letter' ? (
@@ -1022,10 +1022,12 @@ setUserPosts(userPostsData);
                         </Pressable>
                         <Text style={w.sectionTitle}>Profile Details</Text>
                         <SavedProfileCard
-                          profile={savedProfile}
-                          onOpenIdCard={() => openDocumentPreview('id-card')}
-                          onOpenAppointmentLetter={() => openDocumentPreview('appointment-letter')}
-                        />
+  profile={savedProfile}
+  onOpenIdCard={() => openDocumentPreview('id-card')}
+  onOpenAppointmentLetter={() => openDocumentPreview('appointment-letter')}
+  onDownloadIdCard={() => handleDownloadDocument('id-card')}
+  onDownloadAppointmentLetter={() => handleDownloadDocument('appointment-letter')}
+/>
                       </View>
                     ) : (
                       <View>
@@ -1203,10 +1205,12 @@ setUserPosts(userPostsData);
                         </View>
                       </View>
                       <SavedProfileCard
-                        profile={savedProfile}
-                        onOpenIdCard={() => openDocumentPreview('id-card')}
-                        onOpenAppointmentLetter={() => openDocumentPreview('appointment-letter')}
-                      />
+  profile={savedProfile}
+  onOpenIdCard={() => openDocumentPreview('id-card')}
+  onOpenAppointmentLetter={() => openDocumentPreview('appointment-letter')}
+  onDownloadIdCard={() => handleDownloadDocument('id-card')}
+  onDownloadAppointmentLetter={() => handleDownloadDocument('appointment-letter')}
+/>
                     </View>
                   ) : (
                     <View style={ProfileStyles.infoCard}>

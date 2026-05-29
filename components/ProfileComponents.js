@@ -34,7 +34,7 @@ export function ReferralCodeCard({ referralCode, onCopy }) {
   );
 }
 
-export function SavedProfileCard({ profile, onOpenIdCard, onOpenAppointmentLetter }) {
+export function SavedProfileCard({ profile, onOpenIdCard, onOpenAppointmentLetter, onDownloadIdCard, onDownloadAppointmentLetter }) {
   const canGenerateDocuments = hasDocumentSource(profile);
   const fields = [
     { icon: 'user', label: 'Full Name', value: profile.name, accent: '#7d38ff' },
@@ -45,8 +45,8 @@ export function SavedProfileCard({ profile, onOpenIdCard, onOpenAppointmentLette
     { icon: 'smartphone', label: 'Mobile Number', value: profile.mobile_number || profile.contact_number, accent: '#14b8a6' },
     { icon: 'star', label: 'Subscription Type', value: profile.subscription_type, accent: '#eab308' },
     { icon: 'file-text', label: 'Bio', value: profile.bio, accent: '#EA580C', fullWidth: true },
-    { icon: 'credit-card', label: 'ID Card', value: canGenerateDocuments ? 'Generated' : 'Not ready', accent: '#ea580c', onPress: onOpenIdCard, isDocument: true },
-    { icon: 'file', label: 'Appointment Letter', value: canGenerateDocuments ? 'Generated' : 'Not ready', accent: '#f97316', onPress: onOpenAppointmentLetter, isDocument: true },
+    { icon: 'credit-card', label: 'ID Card', value: canGenerateDocuments ? 'Generated' : 'Not ready', accent: '#ea580c', onPress: onOpenIdCard, onDownload: () => onDownloadIdCard?.(), isDocument: true },
+    { icon: 'file', label: 'Appointment Letter', value: canGenerateDocuments ? 'Generated' : 'Not ready', accent: '#f97316', onPress: onOpenAppointmentLetter, onDownload: () => onDownloadAppointmentLetter?.(), isDocument: true },
   ];
 
   return (
@@ -79,23 +79,25 @@ export function SavedProfileCard({ profile, onOpenIdCard, onOpenAppointmentLette
                 <Text style={[ProfileStyles.fieldValue, (!f.value || f.value === 'Not ready') && ProfileStyles.fieldValueEmpty]} numberOfLines={f.fullWidth ? 3 : 1}>{f.value || 'Not added yet'}</Text>
               </View>
               {isClickable ? (
-                <TouchableOpacity
-                  onPress={f.onPress}
-                  activeOpacity={0.75}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 5,
-                    borderRadius: 8,
-                    backgroundColor: f.accent + '18',
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
-                  }}
-                >
-                  <Feather name="eye" size={13} color={f.accent} />
-                  <Text style={{ color: f.accent, fontSize: 12, fontWeight: '700' }}>Generated</Text>
-                </TouchableOpacity>
-              ) : null}
+  <View style={{ flexDirection: 'row', gap: 6 }}>
+    <TouchableOpacity
+      onPress={f.onPress}
+      activeOpacity={0.75}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, backgroundColor: f.accent + '18', paddingHorizontal: 10, paddingVertical: 6 }}
+    >
+      <Feather name="eye" size={13} color={f.accent} />
+      <Text style={{ color: f.accent, fontSize: 12, fontWeight: '700' }}>View</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={f.onDownload}
+      activeOpacity={0.75}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 8, backgroundColor: f.accent, paddingHorizontal: 10, paddingVertical: 6 }}
+    >
+      <Feather name="download" size={13} color="#fff" />
+      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>PDF</Text>
+    </TouchableOpacity>
+  </View>
+) : null}
               <View style={[ProfileStyles.statusDot, { backgroundColor: isReady ? '#32d27c' : '#e2e5f0' }]} />
             </View>
           );

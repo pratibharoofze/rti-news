@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image,
   StyleSheet, Modal, FlatList, TextInput, Alert,
-  Platform, StatusBar,
+  Platform, StatusBar, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { INDIAN_STATES, getDistricts } from '../pages/locationData';
@@ -192,6 +192,8 @@ const sh = StyleSheet.create({
 // ── Main Screen ────────────────────────────────────────────────────────────────
 export default function ChoosePlanScreen({ navigation, route }) {
   const adData = route?.params?.adData || {};
+const { width: winWidth } = useWindowDimensions();
+const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
 
   const [selState,    setSelState]    = useState('');
   const [selDistrict, setSelDistrict] = useState('');
@@ -276,7 +278,7 @@ export default function ChoosePlanScreen({ navigation, route }) {
     return (
       <View style={ws.root}>
         {/* Top Bar */}
-        <View style={ws.topBar}>
+        <View style={[ws.topBar, isMobileWeb && { paddingHorizontal: 12 }]}>
           <TouchableOpacity style={ws.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
             <Ionicons name="arrow-back" size={16} color="#C8700F" />
             <Text style={ws.backBtnText}>Back</Text>
@@ -296,14 +298,14 @@ export default function ChoosePlanScreen({ navigation, route }) {
           </View>
         )}
 
-        <ScrollView style={ws.scroll} contentContainerStyle={ws.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={ws.scroll} contentContainerStyle={[ws.scrollContent, isMobileWeb && { paddingHorizontal: 12 }]} showsVerticalScrollIndicator={false}>
           <View style={ws.innerWrap}>
 
             {/* Two Column Layout */}
-            <View style={ws.grid}>
+            <View style={[ws.grid, isMobileWeb && { flexDirection: 'column' }]}>
 
               {/* LEFT: Form */}
-              <View style={ws.leftCol}>
+              <View style={[ws.leftCol, isMobileWeb && { flex: 1 }]}>
 
                 {/* Ad Preview */}
                 <View style={ws.card}>
@@ -398,8 +400,8 @@ export default function ChoosePlanScreen({ navigation, route }) {
 
               </View>
 
-              {/* RIGHT: Promote + Placement + Summary */}
-              <View style={ws.rightCol}>
+             {/* RIGHT: Promote + Placement + Summary */}
+              <View style={[ws.rightCol, isMobileWeb && { flex: 1 }]}>
 
                 {/* Step 2: Where to Promote */}
                 <View style={ws.card}>
@@ -1024,11 +1026,11 @@ const ws = StyleSheet.create({
   priceBadge:     { backgroundColor:'#FFF7ED', borderRadius:20, paddingHorizontal:10, paddingVertical:4, borderWidth:1, borderColor:'#FFE8D6' },
   priceBadgeText: { fontSize:11, color:'#F97316', fontWeight:'700' },
 
-  placementCard:     { flexDirection:'row', alignItems:'flex-start', backgroundColor:'#FFFAF7', borderWidth:1.5, borderColor:'#FFE8D6', borderRadius:12, padding:14, gap:10, marginBottom:8 },
+  placementCard:     { flexDirection:'row', alignItems:'flex-start', backgroundColor:'#FFFAF7', borderWidth:1.5, borderColor:'#FFE8D6', borderRadius:12, padding:14, gap:10, marginBottom:8, overflow:'hidden' },
   placementCardSel:  { borderColor:'#F97316', backgroundColor:'#FFF7ED' },
   placementTitle:    { fontSize:13, fontWeight:'800', color:'#111111', marginBottom:2 },
   placementTitleSel: { color:'#F97316' },
-  placementDesc:     { fontSize:11, color:'#AAAAAA', lineHeight:16 },
+  placementDesc:     { fontSize:11, color:'#AAAAAA', lineHeight:16, flexShrink:1, flexWrap:'wrap' },
   placementMock:     { width:50, alignItems:'center', gap:3 },
   placementMockTop:  { fontSize:8, fontWeight:'800', color:'#AAAAAA' },
   placementMockAd:   { width:44, height:18, backgroundColor:'#F97316', borderRadius:4, alignItems:'center', justifyContent:'center' },

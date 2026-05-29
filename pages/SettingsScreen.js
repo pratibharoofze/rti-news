@@ -307,7 +307,7 @@ export default function SettingsScreen({ navigation }) {
         <View style={s.card}>
           <SettingsItem emoji="🌐" label="Change Language"         onPress={() => showToast('Coming soon', 'success')} />
           <SettingsItem emoji="🚫" label="People you blocked"      onPress={() => showToast('Coming soon', 'success')} />
-          <SettingsItem emoji="⭐" label="Get Famous On The Shuru" onPress={() => showToast('Coming soon', 'success')} />
+          <SettingsItem emoji="⭐" label="Get Famous On The RTI" onPress={() => showToast('Coming soon', 'success')} />
         </View>
 
         {/* ── About & Support ── */}

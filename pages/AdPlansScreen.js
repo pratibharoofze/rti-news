@@ -485,7 +485,7 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 17, fontWeight: '800', color: C.text },
 
   scroll:        { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 120 },
 
   currentCreditsBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

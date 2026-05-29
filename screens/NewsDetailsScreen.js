@@ -151,9 +151,19 @@ function buildArticleParagraphs(article) {
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
 
-  if (paragraphs.length > 0) return paragraphs;
+  // Agar sirf ek paragraph hai toh words se split karo
+  if (paragraphs.length > 1) return paragraphs;
 
-  return [sourceText];
+  const words = sourceText.split(' ');
+  if (words.length > 60) {
+    const chunks = [];
+    for (let i = 0; i < words.length; i += 60) {
+      chunks.push(words.slice(i, i + 60).join(' '));
+    }
+    return chunks;
+  }
+
+  return paragraphs.length > 0 ? paragraphs : [sourceText];
 }
 
 function normalizeComment(rawComment) {
@@ -451,6 +461,7 @@ export default function NewsDetailsScreen({ route, navigation }) {
   const [showAuthorImageModal, setShowAuthorImageModal] = useState(false);
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showFullBody, setShowFullBody] = useState(false);
 
   // ✅ Resolve hero image URI (handles idb-media: → blob:)
   const resolvedHeroImage = useResolvedImageUri(article.image);
@@ -1094,19 +1105,32 @@ export default function NewsDetailsScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.articleBodyWrap}>
-                  {articleParagraphs.map((paragraph, index) => (
-                    <Text
-                      key={`${paragraph.slice(0, 20)}-${index}`}
-                      style={[
-                        styles.articleBodyParagraph,
-                        index === articleParagraphs.length - 1 && styles.articleBodyParagraphLast,
-                      ]}
-                    >
-                      {paragraph}
-                    </Text>
-                  ))}
-                </View>
-
+  {(articleParagraphs.length > 1 && !showFullBody
+    ? articleParagraphs.slice(0, 1)
+    : articleParagraphs
+  ).map((paragraph, index) => (
+    <Text
+      key={`${paragraph.slice(0, 20)}-${index}`}
+      style={[
+        styles.articleBodyParagraph,
+        index === (articleParagraphs.length > 1 && !showFullBody ? 0 : articleParagraphs.length - 1) && styles.articleBodyParagraphLast,
+      ]}
+    >
+      {paragraph}
+    </Text>
+  ))}
+  {articleParagraphs.length > 1 ? (
+    <TouchableOpacity
+      onPress={() => setShowFullBody(prev => !prev)}
+      activeOpacity={0.8}
+      style={{ marginTop: 8 }}
+    >
+      <Text style={{ color: '#f97316', fontSize: 14, fontWeight: '700' }}>
+        {showFullBody ? 'Show less ▲' : 'Read more ▼'}
+      </Text>
+    </TouchableOpacity>
+  ) : null}
+</View>
                 {/* ✅ Gallery — resolved URIs */}
                 {article.images.length > 1 ? (
                   <View style={styles.storyBodySection}>
@@ -1286,12 +1310,13 @@ function GalleryImage({ rawUri }) {
 const styles = StyleSheet.create({
   screenShell: { flex: 1, backgroundColor: '#ffffff' },
   pageScrollView: { flex: 1 },
-  pageScrollContent: { paddingTop: 0, paddingBottom: 24 },
+  pageScrollContent: { paddingTop: 0, paddingBottom: 0 },
   pageScrollContentWithMobileNav: { paddingBottom: 110 },
-  pageBodyShell: { paddingHorizontal: 16, paddingTop: 0, marginTop: -1, backgroundColor: '#ffffff' },
+  pageBodyShell: { paddingTop: 0, marginTop: -1, backgroundColor: '#ffffff' },
   pageBodyInner: {
     maxWidth: 1040, width: '100%', alignSelf: 'center',
     flexDirection: 'column', alignItems: 'stretch', paddingTop: 18,
+    paddingHorizontal: 16,
   },
   pageBodyInnerCompact: { flexDirection: 'column' },
   storyColumn: { flex: 1, width: '100%', maxWidth: 900, alignSelf: 'center' },
@@ -1315,7 +1340,8 @@ const styles = StyleSheet.create({
   utilityChipText: { color: '#f97316', fontSize: 11, fontWeight: '800' },
   storyCardShell: {
     backgroundColor: 'transparent', borderWidth: 0, borderColor: 'transparent', borderRadius: 0, padding: 0,
-    ...Platform.select({ web: { boxShadow: 'none' }, default: { elevation: 0, shadowColor: 'transparent', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0, shadowRadius: 0 } }),
+    overflow: 'visible',
+    ...Platform.select({ web: { boxShadow: 'none', overflow: 'visible' }, default: { elevation: 0, shadowColor: 'transparent', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0, shadowRadius: 0 } }),
   },
   storyCardShellCompact: { padding: 0 },
   storyAuthorRow: { marginBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
@@ -1345,7 +1371,7 @@ const styles = StyleSheet.create({
   storyMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 16 },
   storyMetaPill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fdba74' },
   storyMetaPillText: { color: '#7c2d12', fontSize: 12, fontWeight: '700' },
-  storyHeroImageWrap: { marginTop: 18, height: 520, borderRadius: 5, overflow: 'hidden', backgroundColor: '#e2e8f0' },
+  storyHeroImageWrap: { marginTop: 18, height: 520, borderRadius: 5, overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: 16, zIndex: 0, position: 'relative', flexShrink: 0 },
   storyHeroImageWrapCompact: { height: 280 },
   storyHeroImage: { width: '100%', height: '100%' },
   // ✅ Placeholder when image not yet resolved

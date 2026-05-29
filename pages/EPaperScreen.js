@@ -378,7 +378,7 @@ export default function EPaperScreen({navigation}){
   const{showToast}=useToast();
   const isWeb=Platform.OS==='web';
   const { width: windowWidth } = useWindowDimensions();
-  const w = getWebStyles(windowWidth);
+  const w = React.useMemo(() => getWebStyles(windowWidth), [windowWidth]);
   const htmlToPlain=(html)=>String(html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
   const escapeHtml=(text)=>String(text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const plainToHtml=(text)=>`<div>${escapeHtml(text).replace(/\n/g,'<br/>')}</div>`;
@@ -475,7 +475,14 @@ export default function EPaperScreen({navigation}){
   const handleView=async(item)=>{const result=await UserStore.updateEPaperItem(item.id,'view');if(!result?.ok){showToast(result?.message||'Error.','error');return;}setViewItem({...item,views:(item.views||0)+1});loadData();};
   const handleShare=async(item)=>{try{await Share.share({title:(item.title||'').replace(/<[^>]*>/g,''),message:(item.description||'').replace(/<[^>]*>/g,'')});showSuccess('Shared!');}catch{showToast('Share failed.','error');}};
 
-  const FormModal = ({visible, editItemValue}) => {
+  const FormModal = ({
+  visible, editItemValue, isWeb, isAdmin,
+  fTitleRef, fDescRef, fMediaType, fImages, fVideo, fSaving,
+  selectedState, statePickerVisible, setStatePickerVisible,
+  setSelectedState, setFMediaType, setFImages, setFVideo,
+  closeForm, handleSave, pickImages, pickVideo, removeImage,
+  w, windowWidth, htmlToPlain, plainToHtml, O,
+}) => {
     const titleEditorRef = useRef(null);
     const descEditorRef = useRef(null);
     const [ready, setReady] = useState(false);
@@ -492,7 +499,7 @@ export default function EPaperScreen({navigation}){
       setWebTitleText(htmlToPlain(fTitleRef.current));
       setWebDescText(htmlToPlain(fDescRef.current));
     }, [visible, editItemValue]);
-
+    
     if (isWeb) {
       return (
         <Modal visible={visible} animationType="fade" onRequestClose={closeForm}>
@@ -902,7 +909,35 @@ export default function EPaperScreen({navigation}){
             )}
           </View>
         </ScrollView>
-        <FormModal visible={formVisible} editItemValue={editItem}/>
+        <FormModal
+  visible={formVisible}
+  editItemValue={editItem}
+  isWeb={isWeb}
+  isAdmin={isAdmin}
+  fTitleRef={fTitleRef}
+  fDescRef={fDescRef}
+  fMediaType={fMediaType}
+  fImages={fImages}
+  fVideo={fVideo}
+  fSaving={fSaving}
+  selectedState={selectedState}
+  statePickerVisible={statePickerVisible}
+  setStatePickerVisible={setStatePickerVisible}
+  setSelectedState={setSelectedState}
+  setFMediaType={setFMediaType}
+  setFImages={setFImages}
+  setFVideo={setFVideo}
+  closeForm={closeForm}
+  handleSave={handleSave}
+  pickImages={pickImages}
+  pickVideo={pickVideo}
+  removeImage={removeImage}
+  w={w}
+  windowWidth={windowWidth}
+  htmlToPlain={htmlToPlain}
+  plainToHtml={plainToHtml}
+  O={O}
+/>
         <ViewModal/>
       </View>
     );
@@ -954,7 +989,35 @@ export default function EPaperScreen({navigation}){
             )}
           </View>
         </ScrollView>
-        <FormModal visible={formVisible} editItemValue={editItem}/>
+        <FormModal
+  visible={formVisible}
+  editItemValue={editItem}
+  isWeb={isWeb}
+  isAdmin={isAdmin}
+  fTitleRef={fTitleRef}
+  fDescRef={fDescRef}
+  fMediaType={fMediaType}
+  fImages={fImages}
+  fVideo={fVideo}
+  fSaving={fSaving}
+  selectedState={selectedState}
+  statePickerVisible={statePickerVisible}
+  setStatePickerVisible={setStatePickerVisible}
+  setSelectedState={setSelectedState}
+  setFMediaType={setFMediaType}
+  setFImages={setFImages}
+  setFVideo={setFVideo}
+  closeForm={closeForm}
+  handleSave={handleSave}
+  pickImages={pickImages}
+  pickVideo={pickVideo}
+  removeImage={removeImage}
+  w={w}
+  windowWidth={windowWidth}
+  htmlToPlain={htmlToPlain}
+  plainToHtml={plainToHtml}
+  O={O}
+/>
         <ViewModal/>
       </View>
     </SafeAreaView>

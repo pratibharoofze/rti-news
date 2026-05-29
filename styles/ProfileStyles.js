@@ -143,10 +143,12 @@ quickIconButtonText: {
 
   // Post News button
   quickPostNewsBtn: {
-  flex: 1, flexDirection: 'row', alignItems: 'center',
+  flexDirection: 'row', alignItems: 'center',
   justifyContent: 'center', gap: 5, height: 36,
+  paddingHorizontal: 20,
   backgroundColor: '#F97316', borderRadius: 10,
   borderWidth: 1, borderColor: '#F97316',
+  alignSelf: 'flex-start',
 },
 quickPostNewsBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
 
@@ -307,7 +309,7 @@ quickPostNewsBtnText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
   loadingText:      { textAlign: 'center', color: '#999999', fontSize: 12, marginTop: 12 },
 
   followModalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)', justifyContent: 'flex-end' },
-  followModalCard: { maxHeight: '72%', backgroundColor: '#ffffff', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 12 },
+  followModalCard: { maxHeight: '90%', backgroundColor: '#ffffff', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingTop: 12 },
   followModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
   followModalTitle: { fontSize: 16, fontWeight: '800', color: '#111111' },
   followModalClose: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5F5F5' },

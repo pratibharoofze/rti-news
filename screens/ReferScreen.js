@@ -1,109 +1,61 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, Share, Linking, Clipboard, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { UserStore } from '../store/UserStore';
 
-// ── Apna app ka refer link yahan daalo ──────────────────────────────────────
-const REFER_LINK = 'https://play.google.com/store/apps/details?id=com.yourcompany.rtiapp'; // Apna real link daalo
-const APP_NAME   = 'RTI App';
-const REFER_MSG  =
-  `📢 *${APP_NAME}* use karo!\n\n` +
-  `RTI (Right to Information) file karna ab bahut aasaan ho gaya hai. ` +
-  `Seedha apne phone se RTI daalo, track karo aur jawab pao.\n\n` +
-  `👉 Download karo: ${REFER_LINK}`;
+const REFER_LINK = 'https://play.google.com/store/apps/details?id=com.yourcompany.rtiapp';
+const APP_NAME = 'RTI App';
 
-// ── Social platforms config ─────────────────────────────────────────────────
+const buildReferLink = (code = '') => `${REFER_LINK}${code ? `&ref=${encodeURIComponent(code)}` : ''}`;
+const buildReferMessage = (code = '') => (
+  `Join ${APP_NAME} using my referral code: ${code || 'RTI'}\n\n` +
+  `Signup karo, mobile verify karo aur subscription lo.\n\n` +
+  `Download: ${buildReferLink(code)}`
+);
+
 const PLATFORMS = [
-  {
-    id: 'whatsapp',
-    label: 'WhatsApp',
-    icon: 'logo-whatsapp',
-    color: '#25D366',
-    bg: '#e9fbe9',
-    getUrl: () => `https://wa.me/?text=${encodeURIComponent(REFER_MSG)}`,
-  },
-  {
-    id: 'whatsapp_status',
-    label: 'WhatsApp Status',
-    icon: 'logo-whatsapp',
-    color: '#128C7E',
-    bg: '#e0f4f2',
-    getUrl: () => `https://wa.me/?text=${encodeURIComponent(REFER_MSG)}`,
-  },
-  {
-    id: 'instagram',
-    label: 'Instagram',
-    icon: 'logo-instagram',
-    color: '#E1306C',
-    bg: '#fde8ef',
-    getUrl: () => `https://www.instagram.com/`,
-    note: 'Link copy ho jayega',
-  },
-  {
-    id: 'facebook',
-    label: 'Facebook',
-    icon: 'logo-facebook',
-    color: '#1877F2',
-    bg: '#e7f0fd',
-    getUrl: () =>
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(REFER_LINK)}`,
-  },
-  {
-    id: 'twitter',
-    label: 'Twitter / X',
-    icon: 'logo-twitter',
-    color: '#1DA1F2',
-    bg: '#e7f5fd',
-    getUrl: () =>
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(REFER_MSG)}`,
-  },
-  {
-    id: 'telegram',
-    label: 'Telegram',
-    icon: 'paper-plane-outline',
-    color: '#229ED9',
-    bg: '#e4f4fb',
-    getUrl: () =>
-      `https://t.me/share/url?url=${encodeURIComponent(REFER_LINK)}&text=${encodeURIComponent('📢 RTI App use karo — apna haq maango!')}`,
-  },
-  {
-    id: 'gmail',
-    label: 'Gmail',
-    icon: 'mail-outline',
-    color: '#EA4335',
-    bg: '#fde9e7',
-    getUrl: () =>
-      `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(APP_NAME + ' — Apna Haq Maango!')}&body=${encodeURIComponent(REFER_MSG)}`,
-  },
+  { id: 'whatsapp', label: 'WhatsApp', icon: 'logo-whatsapp', color: '#25D366', bg: '#e9fbe9', getUrl: (msg) => `https://wa.me/?text=${encodeURIComponent(msg)}` },
+  { id: 'whatsapp_status', label: 'WhatsApp Status', icon: 'logo-whatsapp', color: '#128C7E', bg: '#e0f4f2', getUrl: (msg) => `https://wa.me/?text=${encodeURIComponent(msg)}` },
+  { id: 'instagram', label: 'Instagram', icon: 'logo-instagram', color: '#E1306C', bg: '#fde8ef', getUrl: () => 'https://www.instagram.com/', note: 'Link copy ho jayega' },
+  { id: 'facebook', label: 'Facebook', icon: 'logo-facebook', color: '#1877F2', bg: '#e7f0fd', getUrl: (_msg, link) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}` },
+  { id: 'twitter', label: 'Twitter / X', icon: 'logo-twitter', color: '#1DA1F2', bg: '#e7f5fd', getUrl: (msg) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(msg)}` },
+  { id: 'telegram', label: 'Telegram', icon: 'paper-plane-outline', color: '#229ED9', bg: '#e4f4fb', getUrl: (msg, link) => `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(msg)}` },
+  { id: 'gmail', label: 'Gmail', icon: 'mail-outline', color: '#EA4335', bg: '#fde9e7', getUrl: (msg) => `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(`${APP_NAME} Referral`)}&body=${encodeURIComponent(msg)}` },
   {
     id: 'sms',
     label: 'SMS',
     icon: 'chatbubble-outline',
     color: '#6366f1',
     bg: '#eeeffd',
-    getUrl: () =>
-      Platform.OS === 'ios'
-        ? `sms:&body=${encodeURIComponent(REFER_MSG)}`
-        : `sms:?body=${encodeURIComponent(REFER_MSG)}`,
+    getUrl: (msg) => Platform.OS === 'ios' ? `sms:&body=${encodeURIComponent(msg)}` : `sms:?body=${encodeURIComponent(msg)}`,
   },
-  {
-    id: 'more',
-    label: 'More Options',
-    icon: 'share-social-outline',
-    color: '#64748b',
-    bg: '#f1f5f9',
-    isNativeShare: true,
-  },
+  { id: 'more', label: 'More Options', icon: 'share-social-outline', color: '#64748b', bg: '#f1f5f9', isNativeShare: true },
 ];
 
-// ── Main Screen ───────────────────────────────────────────────────────────────
 export default function ReferScreen({ navigation }) {
   const [copied, setCopied] = useState(false);
+  const [summary, setSummary] = useState(null);
 
-  const handleCopy = () => {
-    Clipboard.setString(REFER_LINK);
+  useEffect(() => {
+    let mounted = true;
+    UserStore.getReferralSummary().then((data) => {
+      if (mounted) setSummary(data);
+    });
+    return () => { mounted = false; };
+  }, []);
+
+  const referralCode = summary?.my_referral_code || '';
+  const personalLink = useMemo(() => buildReferLink(referralCode), [referralCode]);
+  const referMessage = useMemo(() => buildReferMessage(referralCode), [referralCode]);
+  const nextRank = summary?.next_rank;
+  const validCount = Number(summary?.referral_count || 0);
+  const nextNeeded = nextRank ? Math.max(0, nextRank.min - validCount) : 0;
+
+  const handleCopy = (value = personalLink) => {
+    Clipboard.setString(value);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -111,27 +63,23 @@ export default function ReferScreen({ navigation }) {
   const handleShare = async (platform) => {
     if (platform.isNativeShare) {
       try {
-        await Share.share({ message: REFER_MSG, url: REFER_LINK });
-      } catch (e) {}
+        await Share.share({ message: referMessage, url: personalLink });
+      } catch (_e) {}
       return;
     }
     if (platform.id === 'instagram') {
-      handleCopy();
-      Linking.openURL('instagram://').catch(() =>
-        Linking.openURL('https://www.instagram.com/')
-      );
+      handleCopy(personalLink);
+      Linking.openURL('instagram://').catch(() => Linking.openURL('https://www.instagram.com/'));
       return;
     }
-    const url = platform.getUrl();
+    const url = platform.getUrl(referMessage, personalLink);
     Linking.openURL(url).catch(() => {
-      Share.share({ message: REFER_MSG });
+      Share.share({ message: referMessage });
     });
   };
 
   return (
     <View style={styles.root}>
-
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={22} color="#0f172a" />
@@ -141,34 +89,74 @@ export default function ReferScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-        {/* Banner */}
         <View style={styles.banner}>
-          <Text style={styles.bannerEmoji}>📢</Text>
-          <Text style={styles.bannerTitle}>Apna Haq Maango!</Text>
+          <Text style={styles.bannerEmoji}>RTI</Text>
+          <Text style={styles.bannerTitle}>Referral Bonus</Text>
           <Text style={styles.bannerSub}>
-            Dosto aur family ko RTI App ke baare mein batao.{'\n'}
-            Unhe bhi apna haq milega! 🇮🇳
+            The referral will be considered valid only when the user completes signup, verifies their mobile number, and successfully purchases a subscription.
           </Text>
         </View>
 
-        {/* Refer Link Copy Box */}
+        <View style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{summary?.rank || 'Member'}</Text>
+            <Text style={styles.statLabel}>Current Rank</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{validCount}</Text>
+            <Text style={styles.statLabel}>Valid Referrals</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>Rs. {summary?.bonus || 0}</Text>
+            <Text style={styles.statLabel}>Rank Bonus</Text>
+          </View>
+        </View>
+
+        {nextRank ? (
+          <View style={styles.nextBox}>
+            <Text style={styles.nextText}>
+              {nextNeeded} And with valid referrals, the {nextRank.rank} rank will be unlocked.
+            </Text>
+            <Text style={styles.nextSub}>Bonus: Rs. {nextRank.bonus}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.linkBox}>
-          <Text style={styles.linkLabel}>Tumhara Refer Link</Text>
-          <View style={styles.linkRow}>
-            <Text style={styles.linkText} numberOfLines={1}>{REFER_LINK}</Text>
+          <Text style={styles.linkLabel}>Your Referral Code</Text>
+          <View style={styles.codeRow}>
+            <Text style={styles.codeText}>{referralCode || 'Login required'}</Text>
             <TouchableOpacity
               style={[styles.copyBtn, copied && styles.copyBtnDone]}
-              onPress={handleCopy}
+              onPress={() => handleCopy(referralCode)}
               activeOpacity={0.8}
             >
               <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={16} color="#fff" />
               <Text style={styles.copyBtnText}>{copied ? 'Copied!' : 'Copy'}</Text>
             </TouchableOpacity>
           </View>
+
+          <Text style={[styles.linkLabel, { marginTop: 14 }]}>Your Refer Link</Text>
+          <View style={styles.linkRow}>
+            <Text style={styles.linkText} numberOfLines={1}>{personalLink}</Text>
+            <TouchableOpacity style={styles.smallCopyBtn} onPress={() => handleCopy(personalLink)} activeOpacity={0.8}>
+              <Ionicons name="copy-outline" size={15} color="#2563eb" />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Share via */}
+        <Text style={styles.sectionTitle}>Rank & Bonus</Text>
+        <View style={styles.tierBox}>
+          {(summary?.tiers || UserStore.getReferralTiers()).map((tier) => (
+            <View key={tier.rank} style={styles.tierRow}>
+              <Text style={styles.tierRank}>{tier.rank}</Text>
+              <Text style={styles.tierMeta}>{tier.min} referrals</Text>
+              <Text style={styles.tierBonus}>Rs. {tier.bonus}</Text>
+            </View>
+          ))}
+        </View>
+
         <Text style={styles.sectionTitle}>Share via</Text>
         <View style={styles.grid}>
           {PLATFORMS.map((p) => (
@@ -186,16 +174,13 @@ export default function ReferScreen({ navigation }) {
             </TouchableOpacity>
           ))}
         </View>
-
       </ScrollView>
     </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f8fafc' },
-
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingTop: 52, paddingBottom: 14,
@@ -206,25 +191,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center',
   },
   headerTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
-
   content: { padding: 16, paddingBottom: 40 },
-
   banner: {
     backgroundColor: '#1d4ed8', borderRadius: 20, padding: 24,
-    alignItems: 'center', marginBottom: 20,
+    alignItems: 'center', marginBottom: 14,
   },
-  bannerEmoji: { fontSize: 44, marginBottom: 8 },
+  bannerEmoji: { fontSize: 20, fontWeight: '900', color: '#ffffff', marginBottom: 8, letterSpacing: 2 },
   bannerTitle: { fontSize: 22, fontWeight: '800', color: '#ffffff', marginBottom: 6 },
   bannerSub: { fontSize: 13, color: '#bfdbfe', textAlign: 'center', lineHeight: 20 },
-
+  statsCard: {
+    flexDirection: 'row', backgroundColor: '#ffffff', borderRadius: 16,
+    borderWidth: 1, borderColor: '#e2e8f0', paddingVertical: 16,
+    marginBottom: 12,
+  },
+  statItem: { flex: 1, alignItems: 'center', paddingHorizontal: 6 },
+  statDivider: { width: 1, backgroundColor: '#e2e8f0' },
+  statValue: { fontSize: 16, fontWeight: '900', color: '#0f172a', textAlign: 'center' },
+  statLabel: { fontSize: 11, color: '#64748b', fontWeight: '700', marginTop: 4, textAlign: 'center' },
+  nextBox: {
+    backgroundColor: '#ecfdf5', borderColor: '#bbf7d0', borderWidth: 1,
+    borderRadius: 14, padding: 12, marginBottom: 14,
+  },
+  nextText: { color: '#166534', fontSize: 13, fontWeight: '800' },
+  nextSub: { color: '#15803d', fontSize: 12, fontWeight: '700', marginTop: 3 },
   linkBox: {
     backgroundColor: '#ffffff', borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 24,
+    borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 20,
   },
   linkLabel: {
     fontSize: 11, color: '#64748b', fontWeight: '700',
     marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.6,
   },
+  codeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  codeText: { flex: 1, fontSize: 18, color: '#0f172a', fontWeight: '900', letterSpacing: 0.4 },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   linkText: { flex: 1, fontSize: 13, color: '#334155', fontWeight: '500' },
   copyBtn: {
@@ -232,11 +231,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563eb', paddingHorizontal: 14, paddingVertical: 9,
     borderRadius: 10,
   },
+  smallCopyBtn: {
+    width: 34, height: 34, borderRadius: 10, alignItems: 'center',
+    justifyContent: 'center', backgroundColor: '#eff6ff',
+  },
   copyBtnDone: { backgroundColor: '#16a34a' },
   copyBtnText: { fontSize: 13, color: '#fff', fontWeight: '700' },
-
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 14 },
-
+  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 12 },
+  tierBox: {
+    backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1,
+    borderColor: '#e2e8f0', marginBottom: 22, overflow: 'hidden',
+  },
+  tierRow: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9',
+  },
+  tierRank: { flex: 1, fontSize: 13, fontWeight: '900', color: '#0f172a' },
+  tierMeta: { width: 96, fontSize: 12, fontWeight: '700', color: '#64748b', textAlign: 'right' },
+  tierBonus: { width: 78, fontSize: 12, fontWeight: '900', color: '#2563eb', textAlign: 'right' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   platformCard: {
     width: '29%', alignItems: 'center',

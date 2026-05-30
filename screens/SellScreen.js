@@ -399,9 +399,10 @@ function FarmingSellWeb({ navigation }) {
     }
   };
 
-  React.useEffect(() => {
-    const id = 'fsell-web-styles';
-    if (document.getElementById(id)) return;
+  // ─── Inject CSS at module load (FOUC fix) ────────────────────────────────────
+if (typeof document !== 'undefined') {
+  const id = 'fsell-web-styles';
+  if (!document.getElementById(id)) {
     const el = document.createElement('style');
     el.id = id;
     el.textContent = `
@@ -473,8 +474,8 @@ function FarmingSellWeb({ navigation }) {
       }
     `;
     document.head.appendChild(el);
-  }, []);
-
+  }
+}
   React.useEffect(() => {
     let alive = true;
     UserStore.getFarmingMarketplaceSummary().then((summary) => {
@@ -677,7 +678,7 @@ function FarmingSellWeb({ navigation }) {
                 <span className="fs-media-label">Media</span>
               </button>
               {mediaUri ? (
-                <div style={{ marginTop: 10, maxWidth: 320, color: '#334155', fontSize: 13 }}>
+                <div style={{ marginTop: 10, maxWidth: '100%', color: '#334155', fontSize: 13, overflow: 'hidden' }}>
                   <div style={{ marginBottom: 10 }}>
                     {mediaType === 'video' ? (
                       <video
@@ -687,9 +688,9 @@ function FarmingSellWeb({ navigation }) {
                       />
                     ) : (
                       <img
-                        src={mediaUri}
-                        alt="Selected media"
-                        style={{ width: '100%', borderRadius: 12, objectFit: 'cover', display: 'block' }}
+  src={mediaUri}
+  alt="Selected media"
+  style={{ width: '100%', maxWidth: '100%', maxHeight: 240, borderRadius: 12, objectFit: 'cover', display: 'block' }}
                       />
                     )}
                   </div>

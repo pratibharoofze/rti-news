@@ -1310,9 +1310,9 @@ function GalleryImage({ rawUri }) {
 const styles = StyleSheet.create({
   screenShell: { flex: 1, backgroundColor: '#ffffff' },
   pageScrollView: { flex: 1 },
-  pageScrollContent: { paddingTop: 0, paddingBottom: 0 },
+  pageScrollContent: { paddingTop: 0, paddingBottom: 80, flexGrow: 1 },
   pageScrollContentWithMobileNav: { paddingBottom: 110 },
-  pageBodyShell: { paddingTop: 0, marginTop: -1, backgroundColor: '#ffffff' },
+  pageBodyShell: { paddingTop: 0, marginTop: -1, backgroundColor: '#ffffff', flexGrow: 1 },
   pageBodyInner: {
     maxWidth: 1040, width: '100%', alignSelf: 'center',
     flexDirection: 'column', alignItems: 'stretch', paddingTop: 18,
@@ -1371,8 +1371,8 @@ const styles = StyleSheet.create({
   storyMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 16 },
   storyMetaPill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fdba74' },
   storyMetaPillText: { color: '#7c2d12', fontSize: 12, fontWeight: '700' },
-  storyHeroImageWrap: { marginTop: 18, height: 520, borderRadius: 5, overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: 16, zIndex: 0, position: 'relative', flexShrink: 0 },
-  storyHeroImageWrapCompact: { height: 280 },
+  storyHeroImageWrap: { marginTop: 18, height: 220, borderRadius: 5, overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: 16, zIndex: 0, position: 'relative', flexShrink: 0 },
+  storyHeroImageWrapCompact: { height: 220 },
   storyHeroImage: { width: '100%', height: '100%' },
   // ✅ Placeholder when image not yet resolved
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f1f5f9' },
@@ -1382,8 +1382,8 @@ const styles = StyleSheet.create({
   videoPoster: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   playButtonOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15, 23, 42, 0.3)' },
   playButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '600', marginTop: 8, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
-  storyStatsRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap', paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  storyStatItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  storyStatsRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0', rowGap: 10, columnGap: 0 },
+  storyStatItem: { flexDirection: 'row', alignItems: 'center', gap: 6, width: '50%', paddingRight: 8 },
   storyStatText: { color: '#0f172a', fontSize: 13, fontWeight: '700' },
   likedText: { color: '#ef4444' },
   articleBodyWrap: { marginTop: 24 },

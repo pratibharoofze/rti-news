@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Platform, StatusBar, Alert,
@@ -240,10 +240,17 @@ export default function AdPlansScreen({ navigation, route }) {
   const [currentCredits, setCurrentCredits] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [toast, setToast] = useState(null);
+
+const showToast = (message, type = 'success') => {
+  setToast({ message, type });
+  setTimeout(() => setToast(null), 3000);
+};
 
   const { width: windowWidth } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
-  const isWide = isWeb && windowWidth >= 860;
+const isWide = windowWidth >= 860;
+const isMobileWeb = isWeb && windowWidth < 860;
 
   useEffect(() => {
     (async () => {
@@ -254,46 +261,46 @@ export default function AdPlansScreen({ navigation, route }) {
   }, []);
 
   const handleBuy = async () => {
-    const plan = AD_PLANS.find(p => p.id === selectedPlan);
-    if (!plan) return;
+  const plan = AD_PLANS.find(p => p.id === selectedPlan);
+  if (!plan) return;
 
-    setLoading(true);
-    const result = await UserStore.buyAdCredits({
-      plan_id:  plan.id,
-      plan_name: plan.name,
-      price:    plan.price,
-      credits:  plan.credits,
-      duration: plan.duration,
-      validity_days: plan.validity_days,
-    });
-    setLoading(false);
+  setLoading(true);
+  const result = await UserStore.buyAdCredits({
+    plan_id:       plan.id,
+    plan_name:     plan.name,
+    price:         plan.price,
+    credits:       plan.credits,
+    duration:      plan.duration,
+    validity_days: plan.validity_days,
+  });
+  setLoading(false);
 
-    if (result.ok) {
-      Alert.alert(
-        '🎉 Credits Added!',
-        `${plan.credits} ad credits have been added to your account.\n\nTotal credits: ${result.credits}`,
-        [{
-          text: 'Start Advertising',
-          onPress: () => {
-            if (route?.params?.returnTo === 'MyAds') {
-              navigation.navigate('MyAds');
-            } else {
-              navigation.navigate('Advertise');
-            }
-          },
-        }]
-      );
-    } else {
-      Alert.alert('Error', result.message || 'Unable to activate plan.');
-    }
-  };
-
+  if (result?.ok) {
+    setCurrentCredits(result.credits || 0);
+    showToast(`🎉 ${plan.credits} credits add ho gaye! Total: ${result.credits}`);
+    setTimeout(() => {
+      try {
+        const returnTo = route?.params?.returnTo;
+        navigation.navigate(returnTo === 'MyAds' ? 'MyAds' : 'Advertise');
+      } catch (e) {
+        navigation.goBack();
+      }
+    }, 2000);
+  } else {
+    showToast(result?.message || 'Unable to activate plan.', 'error');
+  }
+};
   const plan = AD_PLANS.find(p => p.id === selectedPlan);
 
   // ── WEB LAYOUT ──────────────────────────────────────────────────────────────
-  if (isWeb) {
+  if (isWeb && isWide) {
     return (
       <View style={ws.root}>
+        {toast && (
+  <View style={[ws.toast, toast.type === 'error' ? ws.toastError : ws.toastSuccess]}>
+    <Text style={ws.toastText}>{toast.message}</Text>
+  </View>
+)}
         {/* Top Bar */}
         <View style={ws.topBar}>
           <TouchableOpacity style={ws.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
@@ -397,6 +404,11 @@ export default function AdPlansScreen({ navigation, route }) {
   // ── MOBILE LAYOUT ───────────────────────────────────────────────────────────
   return (
     <View style={s.root}>
+      {toast && (
+  <View style={[s.toast, toast.type === 'error' ? s.toastError : s.toastSuccess]}>
+    <Text style={s.toastText}>{toast.message}</Text>
+  </View>
+)}
 
       {/* Header */}
       <View style={s.header}>
@@ -526,6 +538,21 @@ const s = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 6,
   },
   buyBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  toast: {
+  position: 'absolute',
+  bottom: 100,
+  left: 20,
+  right: 20,
+  borderRadius: 14,
+  paddingHorizontal: 20,
+  paddingVertical: 14,
+  zIndex: 9999,
+  elevation: 20,
+  alignItems: 'center',
+},
+toastSuccess: { backgroundColor: '#16a34a' },
+toastError:   { backgroundColor: '#dc2626' },
+toastText:    { color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center' },
 });
 
 // ── Web Styles ─────────────────────────────────────────────────────────────────
@@ -587,4 +614,20 @@ const ws = StyleSheet.create({
     backgroundColor: C.orange, borderRadius: 14, paddingVertical: 16,
   },
   buyBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  toast: {
+  position: 'fixed',
+  bottom: 40,
+  left: '50%',
+  transform: [{ translateX: -200 }],
+  width: 400,
+  borderRadius: 14,
+  paddingHorizontal: 20,
+  paddingVertical: 14,
+  zIndex: 9999,
+  elevation: 20,
+  alignItems: 'center',
+},
+toastSuccess: { backgroundColor: '#16a34a' },
+toastError:   { backgroundColor: '#dc2626' },
+toastText:    { color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center' },
 });

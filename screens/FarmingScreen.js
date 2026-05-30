@@ -21,28 +21,12 @@ const FARMING_MENU = [
     screen: 'Sell',
   },
   {
-    id: 'give-rent',
-    label: 'Give on rent',
-    icon: 'arrow-up-circle-outline',
-    iconStyle: 'blue',
-    desc: 'Rent out your farming equipment or land',
-    screen: 'FarmingGiveOnRent',
-  },
-  {
     id: 'buy',
     label: 'Buy',
     icon: 'cart-outline',
     iconStyle: 'amber',
     desc: 'Browse and buy farm produce or equipment',
     screen: 'FarmingBuy',
-  },
-  {
-    id: 'take-rent',
-    label: 'Take on rent',
-    icon: 'arrow-down-circle-outline',
-    iconStyle: 'purple',
-    desc: 'Rent farming equipment or land from others',
-    screen: 'FarmingTakeOnRent',
   },
 ];
 
@@ -58,8 +42,43 @@ function openFarmingMenuItem(navigation, item) {
     navigation.navigate('Sell');
     return;
   }
-
   navigation.navigate(item.screen);
+}
+
+// ─── Inject CSS at module load (FOUC fix) ────────────────────────────────────
+if (typeof document !== 'undefined') {
+  const id = 'farming-web-styles';
+  if (!document.getElementById(id)) {
+    const el = document.createElement('style');
+    el.id = id;
+    el.textContent = `
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
+      @keyframes farmFadeUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .farm-root { display: flex; flex-direction: column; height: 100vh; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
+      .farm-topbar { height: 60px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; align-items: center; padding: 0 24px; gap: 14px; }
+      .farm-logo { font-family: 'Instrument Serif', serif; font-size: 20px; color: #1e293b; flex: 1; }
+      .farm-logo span { color: #94a3b8; }
+      .farm-main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 48px 24px; overflow-y: auto; }
+      .farm-card-wrap { width: 100%; max-width: 600px; }
+      .farm-page-title { font-family: 'Instrument Serif', serif; font-size: 30px; color: #1e293b; margin-bottom: 6px; }
+      .farm-page-sub { font-size: 14px; color: #94a3b8; margin-bottom: 32px; }
+      .farm-banner { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+      .farm-banner-icon { width: 52px; height: 52px; border-radius: 14px; background: #dcfce7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 26px; }
+      .farm-banner-title { font-size: 16px; font-weight: 700; color: #1e293b; }
+      .farm-banner-sub { font-size: 13px; color: #64748b; margin-top: 3px; }
+      .farm-sec-label { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; margin-bottom: 12px; }
+      .farm-menu-item { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 16px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; margin-bottom: 10px; animation: farmFadeUp 0.3s ease both; transition: border-color 0.18s, transform 0.14s, box-shadow 0.18s; }
+      .farm-menu-item:hover { border-color: rgba(0,0,0,0.15); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.05); }
+      .farm-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .farm-label { font-size: 15px; font-weight: 700; color: #1e293b; }
+      .farm-desc { font-size: 13px; color: #94a3b8; margin-top: 3px; }
+      .farm-arrow { margin-left: auto; font-size: 18px; color: #e2e8f0; }
+    `;
+    document.head.appendChild(el);
+  }
 }
 
 // ─── Mobile Layout ────────────────────────────────────────────────────────────
@@ -105,7 +124,7 @@ function FarmingMobile({ navigation }) {
         {/* Menu Items */}
         <Text style={styles.sectionLabel}>What would you like to do?</Text>
 
-        {FARMING_MENU.map((item, idx) => {
+        {FARMING_MENU.map((item) => {
           const ic = ICON_STYLES[item.iconStyle];
           return (
             <TouchableOpacity
@@ -133,40 +152,6 @@ function FarmingMobile({ navigation }) {
 // ─── Web Layout ───────────────────────────────────────────────────────────────
 
 function FarmingWeb({ navigation }) {
-  React.useEffect(() => {
-    const id = 'farming-web-styles';
-    if (document.getElementById(id)) return;
-    const el = document.createElement('style');
-    el.id = id;
-    el.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
-      @keyframes farmFadeUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      .farm-root { display: flex; flex-direction: column; height: 100vh; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
-      .farm-topbar { height: 60px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; align-items: center; padding: 0 24px; gap: 14px; }
-      .farm-logo { font-family: 'Instrument Serif', serif; font-size: 20px; color: #1e293b; flex: 1; }
-      .farm-logo span { color: #94a3b8; }
-      .farm-main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 48px 24px; overflow-y: auto; }
-      .farm-card-wrap { width: 100%; max-width: 600px; }
-      .farm-page-title { font-family: 'Instrument Serif', serif; font-size: 30px; color: #1e293b; margin-bottom: 6px; }
-      .farm-page-sub { font-size: 14px; color: #94a3b8; margin-bottom: 32px; }
-      .farm-banner { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
-      .farm-banner-icon { width: 52px; height: 52px; border-radius: 14px; background: #dcfce7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 26px; }
-      .farm-banner-title { font-size: 16px; font-weight: 700; color: #1e293b; }
-      .farm-banner-sub { font-size: 13px; color: #64748b; margin-top: 3px; }
-      .farm-sec-label { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; margin-bottom: 12px; }
-      .farm-menu-item { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 16px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; margin-bottom: 10px; animation: farmFadeUp 0.3s ease both; transition: border-color 0.18s, transform 0.14s, box-shadow 0.18s; }
-      .farm-menu-item:hover { border-color: rgba(0,0,0,0.15); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.05); }
-      .farm-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-      .farm-label { font-size: 15px; font-weight: 700; color: #1e293b; }
-      .farm-desc { font-size: 13px; color: #94a3b8; margin-top: 3px; }
-      .farm-arrow { margin-left: auto; font-size: 18px; color: #e2e8f0; }
-    `;
-    document.head.appendChild(el);
-  }, []);
-
   const webItems = FARMING_MENU.map((item) => {
     const ic = ICON_STYLES[item.iconStyle];
     return (

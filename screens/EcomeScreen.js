@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const FARMING_MENU = [
+const ECOME_MENU = [
   {
     id: 'sell',
     label: 'Sell',
@@ -26,7 +26,7 @@ const FARMING_MENU = [
     icon: 'cart-outline',
     iconStyle: 'amber',
     desc: 'Browse and buy farm produce or equipment',
-    screen: 'FarmingBuy',
+    screen: 'FarmingBuy',   // ✅ FIXED: was 'Ecome' (self-loop)
   },
 ];
 
@@ -37,7 +37,7 @@ const ICON_STYLES = {
   purple: { bg: '#f5f3ff', border: '#ede9fe', color: '#7c3aed' },
 };
 
-function openFarmingMenuItem(navigation, item) {
+function openEcomeMenuItem(navigation, item) {
   if (item.id === 'sell') {
     navigation.navigate('Sell');
     return;
@@ -47,35 +47,35 @@ function openFarmingMenuItem(navigation, item) {
 
 // ─── Inject CSS at module load (FOUC fix) ────────────────────────────────────
 if (typeof document !== 'undefined') {
-  const id = 'farming-web-styles';
+  const id = 'ecome-web-styles';
   if (!document.getElementById(id)) {
     const el = document.createElement('style');
     el.id = id;
     el.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
-      @keyframes farmFadeUp {
+      @keyframes ecomeFadeUp {
         from { opacity: 0; transform: translateY(10px); }
         to   { opacity: 1; transform: translateY(0); }
       }
-      .farm-root { display: flex; flex-direction: column; height: 100vh; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
-      .farm-topbar { height: 60px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; align-items: center; padding: 0 24px; gap: 14px; }
-      .farm-logo { font-family: 'Instrument Serif', serif; font-size: 20px; color: #1e293b; flex: 1; }
-      .farm-logo span { color: #94a3b8; }
-      .farm-main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 48px 24px; overflow-y: auto; }
-      .farm-card-wrap { width: 100%; max-width: 600px; }
-      .farm-page-title { font-family: 'Instrument Serif', serif; font-size: 30px; color: #1e293b; margin-bottom: 6px; }
-      .farm-page-sub { font-size: 14px; color: #94a3b8; margin-bottom: 32px; }
-      .farm-banner { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
-      .farm-banner-icon { width: 52px; height: 52px; border-radius: 14px; background: #dcfce7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 26px; }
-      .farm-banner-title { font-size: 16px; font-weight: 700; color: #1e293b; }
-      .farm-banner-sub { font-size: 13px; color: #64748b; margin-top: 3px; }
-      .farm-sec-label { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; margin-bottom: 12px; }
-      .farm-menu-item { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 16px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; margin-bottom: 10px; animation: farmFadeUp 0.3s ease both; transition: border-color 0.18s, transform 0.14s, box-shadow 0.18s; }
-      .farm-menu-item:hover { border-color: rgba(0,0,0,0.15); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.05); }
-      .farm-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-      .farm-label { font-size: 15px; font-weight: 700; color: #1e293b; }
-      .farm-desc { font-size: 13px; color: #94a3b8; margin-top: 3px; }
-      .farm-arrow { margin-left: auto; font-size: 18px; color: #e2e8f0; }
+      .ecome-root { display: flex; flex-direction: column; height: 100vh; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
+      .ecome-topbar { height: 60px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; align-items: center; padding: 0 24px; gap: 14px; }
+      .ecome-logo { font-family: 'Instrument Serif', serif; font-size: 20px; color: #1e293b; flex: 1; }
+      .ecome-logo span { color: #94a3b8; }
+      .ecome-main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 48px 24px; overflow-y: auto; }
+      .ecome-card-wrap { width: 100%; max-width: 600px; }
+      .ecome-page-title { font-family: 'Instrument Serif', serif; font-size: 30px; color: #1e293b; margin-bottom: 6px; }
+      .ecome-page-sub { font-size: 14px; color: #94a3b8; margin-bottom: 32px; }
+      .ecome-banner { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+      .ecome-banner-icon { width: 52px; height: 52px; border-radius: 14px; background: #dcfce7; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 26px; }
+      .ecome-banner-title { font-size: 16px; font-weight: 700; color: #1e293b; }
+      .ecome-banner-sub { font-size: 13px; color: #64748b; margin-top: 3px; }
+      .ecome-sec-label { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; margin-bottom: 12px; }
+      .ecome-menu-item { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 16px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; margin-bottom: 10px; animation: ecomeFadeUp 0.3s ease both; transition: border-color 0.18s, transform 0.14s, box-shadow 0.18s; }
+      .ecome-menu-item:hover { border-color: rgba(0,0,0,0.15); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.05); }
+      .ecome-icon { width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .ecome-label { font-size: 15px; font-weight: 700; color: #1e293b; }
+      .ecome-desc { font-size: 13px; color: #94a3b8; margin-top: 3px; }
+      .ecome-arrow { margin-left: auto; font-size: 18px; color: #e2e8f0; }
     `;
     document.head.appendChild(el);
   }
@@ -83,7 +83,7 @@ if (typeof document !== 'undefined') {
 
 // ─── Mobile Layout ────────────────────────────────────────────────────────────
 
-function FarmingMobile({ navigation }) {
+function EcomeMobile({ navigation }) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -101,8 +101,8 @@ function FarmingMobile({ navigation }) {
           <Ionicons name="chevron-back" size={20} color="#334155" />
         </TouchableOpacity>
         <View>
-          <Text style={styles.headerTitle}>Farming (buy / sell)</Text>
-          <Text style={styles.headerSubtitle}>Buy, sell or rent farming resources</Text>
+          <Text style={styles.headerTitle}>Ecome (buy / sell)</Text>
+          <Text style={styles.headerSubtitle}>Buy, sell or rent e-commerce resources</Text>
         </View>
       </View>
 
@@ -116,21 +116,21 @@ function FarmingMobile({ navigation }) {
             <Ionicons name="leaf" size={28} color="#16a34a" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.bannerTitle}>Farming Marketplace</Text>
-            <Text style={styles.bannerSub}>Connect with farmers & buyers across your region</Text>
+            <Text style={styles.bannerTitle}>Ecome Marketplace</Text>
+            <Text style={styles.bannerSub}>Connect with sellers & buyers across your region</Text>
           </View>
         </View>
 
         {/* Menu Items */}
         <Text style={styles.sectionLabel}>What would you like to do?</Text>
 
-        {FARMING_MENU.map((item) => {
+        {ECOME_MENU.map((item) => {
           const ic = ICON_STYLES[item.iconStyle];
           return (
             <TouchableOpacity
               key={item.id}
               style={styles.menuItem}
-              onPress={() => openFarmingMenuItem(navigation, item)}
+              onPress={() => openEcomeMenuItem(navigation, item)}
               activeOpacity={0.6}
             >
               <View style={[styles.iconWrap, { backgroundColor: ic.bg, borderColor: ic.border }]}>
@@ -151,31 +151,31 @@ function FarmingMobile({ navigation }) {
 
 // ─── Web Layout ───────────────────────────────────────────────────────────────
 
-function FarmingWeb({ navigation }) {
-  const webItems = FARMING_MENU.map((item) => {
+function EcomeWeb({ navigation }) {
+  const webItems = ECOME_MENU.map((item) => {
     const ic = ICON_STYLES[item.iconStyle];
     return (
       <div
         key={item.id}
-        className="farm-menu-item"
-        onClick={() => openFarmingMenuItem(navigation, item)}
+        className="ecome-menu-item"
+        onClick={() => openEcomeMenuItem(navigation, item)}
       >
-        <div className="farm-icon" style={{ background: ic.bg }}>
+        <div className="ecome-icon" style={{ background: ic.bg }}>
           <Ionicons name={item.icon} size={24} color={ic.color} />
         </div>
         <div>
-          <div className="farm-label">{item.label}</div>
-          <div className="farm-desc">{item.desc}</div>
+          <div className="ecome-label">{item.label}</div>
+          <div className="ecome-desc">{item.desc}</div>
         </div>
-        <span className="farm-arrow">↗</span>
+        <span className="ecome-arrow">↗</span>
       </div>
     );
   });
 
   return (
-    <div className="farm-root">
-      <div className="farm-topbar">
-        <div className="farm-logo">News<span>Hub</span></div>
+    <div className="ecome-root">
+      <div className="ecome-topbar">
+        <div className="ecome-logo">News<span>Hub</span></div>
         <button
           onClick={() => navigation.goBack()}
           style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 9, padding: '6px 14px', fontSize: 13, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
@@ -183,18 +183,18 @@ function FarmingWeb({ navigation }) {
           ← Back
         </button>
       </div>
-      <div className="farm-main">
-        <div className="farm-card-wrap">
-          <div className="farm-page-title">Farming (buy / sell)</div>
-          <div className="farm-page-sub">Buy, sell or rent farming resources in your region</div>
-          <div className="farm-banner">
-            <div className="farm-banner-icon">🌾</div>
+      <div className="ecome-main">
+        <div className="ecome-card-wrap">
+          <div className="ecome-page-title">Ecome (buy / sell)</div>
+          <div className="ecome-page-sub">Buy, sell or rent e-commerce resources in your region</div>
+          <div className="ecome-banner">
+            <div className="ecome-banner-icon">🛒</div>
             <div>
-              <div className="farm-banner-title">Farming Marketplace</div>
-              <div className="farm-banner-sub">Connect with farmers & buyers across your region</div>
+              <div className="ecome-banner-title">Ecome Marketplace</div>
+              <div className="ecome-banner-sub">Connect with sellers & buyers across your region</div>
             </div>
           </div>
-          <div className="farm-sec-label">What would you like to do?</div>
+          <div className="ecome-sec-label">What would you like to do?</div>
           {webItems}
         </div>
       </div>
@@ -204,9 +204,9 @@ function FarmingWeb({ navigation }) {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-export default function FarmingScreen({ navigation }) {
-  if (Platform.OS === 'web') return <FarmingWeb navigation={navigation} />;
-  return <FarmingMobile navigation={navigation} />;
+export default function EcomeScreen({ navigation }) {
+  if (Platform.OS === 'web') return <EcomeWeb navigation={navigation} />;
+  return <EcomeMobile navigation={navigation} />;
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────

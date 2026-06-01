@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserStore } from '../store/UserStore';
 import { useToast } from '../components/ui/ToastProvider';
 
-const FARMING_SECTORS = [
+const ECOME_SECTORS = [
   'Crops',
   'Farm Supplies',
   'Machinery',
@@ -31,10 +31,10 @@ const FARMING_SECTORS = [
   'Other',
 ];
 
-const FARMING_CREDIT_PLANS = [
-  { plan_id: 'farming-10', plan_name: 'Starter', price: 999, credits: 10, duration: '30 Days', validity_days: 30 },
-  { plan_id: 'farming-20', plan_name: 'Growth', price: 899, credits: 20, duration: '30 Days', validity_days: 30 },
-  { plan_id: 'farming-50', plan_name: 'Power', price: 1299, credits: 50, duration: '30 Days', validity_days: 30 },
+const ECOME_CREDIT_PLANS = [
+  { plan_id: 'ecome-10', plan_name: 'Starter', price: 999, credits: 10, duration: '30 Days', validity_days: 30 },
+  { plan_id: 'ecome-20', plan_name: 'Growth', price: 899, credits: 20, duration: '30 Days', validity_days: 30 },
+  { plan_id: 'ecome-50', plan_name: 'Power', price: 1299, credits: 50, duration: '30 Days', validity_days: 30 },
 ];
 
 const getAssetMimeType = (asset = {}) => {
@@ -65,7 +65,7 @@ const isValidIndianMobileNumber = (value = '') => /^[6-9]\d{9}$/.test(normalizeI
 
 // ─── Mobile Layout ────────────────────────────────────────────────────────────
 
-function FarmingSellMobile({ navigation }) {
+function EcomeSellMobile({ navigation }) {
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
 
@@ -94,7 +94,7 @@ function FarmingSellMobile({ navigation }) {
     const result = await UserStore.buyFarmingCredits(plan);
     if (result.ok) {
       setCredits(result.credits || 0);
-      showToast(`${plan.credits} farming credits added for 30 days. Total: ${result.credits}`, 'success');
+      showToast(`${plan.credits} ecome credits added for 30 days. Total: ${result.credits}`, 'success');
     } else {
       showToast(result.message || 'Unable to buy credits.', 'error');
     }
@@ -145,8 +145,8 @@ function FarmingSellMobile({ navigation }) {
 
     const listing = {
       id: `sell-${Date.now()}`,
-      type: 'farming_sell',
-      title: whatSelling.trim() || 'Farming Sell Listing',
+      type: 'ecome_sell',
+      title: whatSelling.trim() || 'Ecome Sell Listing',
       sector,
       description: description.trim(),
       quantity: quantity.trim(),
@@ -178,7 +178,7 @@ function FarmingSellMobile({ navigation }) {
     setContact('');
     setMediaUri('');
     setMediaType('');
-    navigation.navigate('FarmingBuy');
+    navigation.navigate('Ecome');
   };
 
   return (
@@ -197,7 +197,7 @@ function FarmingSellMobile({ navigation }) {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Sell</Text>
-          <Text style={styles.headerSub}>Farming (buy / sell)</Text>
+          <Text style={styles.headerSub}>Ecome (buy / sell)</Text>
         </View>
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} activeOpacity={0.85}>
           <Text style={styles.submitBtnText}>Submit</Text>
@@ -210,15 +210,15 @@ function FarmingSellMobile({ navigation }) {
         keyboardShouldPersistTaps="handled"
       >
 
-        {/* Category */}
+        {/* Credits Card */}
         <View style={styles.creditCard}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.creditTitle}>Farming Credits</Text>
+            <Text style={styles.creditTitle}>Ecome Credits</Text>
             <Text style={styles.creditSub}>{credits} credits available · monthly validity · 1 credit per listing</Text>
           </View>
         </View>
         <View style={styles.planRow}>
-          {FARMING_CREDIT_PLANS.map((plan) => (
+          {ECOME_CREDIT_PLANS.map((plan) => (
             <TouchableOpacity key={plan.plan_id} style={styles.planCard} onPress={() => handleBuyPlan(plan)} activeOpacity={0.85}>
               <Text style={styles.planPrice}>₹{plan.price}</Text>
               <Text style={styles.planCredits}>{plan.credits} credits · 30 days</Text>
@@ -242,7 +242,7 @@ function FarmingSellMobile({ navigation }) {
         {/* Dropdown */}
         {sectorOpen && (
           <View style={styles.dropdown}>
-            {FARMING_SECTORS.map((s) => (
+            {ECOME_SECTORS.map((s) => (
               <TouchableOpacity
                 key={s}
                 style={[styles.dropdownItem, sector === s && styles.dropdownItemActive]}
@@ -360,7 +360,7 @@ function FarmingSellMobile({ navigation }) {
 
 // ─── Web Layout ───────────────────────────────────────────────────────────────
 
-function FarmingSellWeb({ navigation }) {
+function EcomeSellWeb({ navigation }) {
   const { showToast } = useToast();
   const [sectorOpen, setSectorOpen] = useState(false);
   const [sector, setSector] = useState('');
@@ -399,83 +399,84 @@ function FarmingSellWeb({ navigation }) {
     }
   };
 
-  // ─── Inject CSS at module load (FOUC fix) ────────────────────────────────────
-if (typeof document !== 'undefined') {
-  const id = 'fsell-web-styles';
-  if (!document.getElementById(id)) {
-    const el = document.createElement('style');
-    el.id = id;
-    el.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap');
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body, #root { height: 100%; background: #f5f4f0; }
-      ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
-      .fs-root { display: flex; flex-direction: column; height: 100vh; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
-      .fs-topbar { height: 60px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; align-items: center; padding: 0 24px; gap: 14px; flex-shrink: 0; }
-      .fs-logo { font-family: 'Instrument Serif', serif; font-size: 20px; color: #1e293b; flex: 1; }
-      .fs-logo span { color: #94a3b8; }
-      .fs-topbar-back { background: none; border: 1px solid #e2e8f0; border-radius: 9px; padding: 7px 16px; font-size: 13px; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
-      .fs-topbar-back:hover { background: #f8fafc; }
-      .fs-topbar-submit { background: #ea580c; border: none; border-radius: 10px; padding: 9px 22px; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s, transform 0.1s; }
-      .fs-topbar-submit:hover { background: #c2410c; }
-      .fs-topbar-submit:active { transform: scale(0.97); }
-      .fs-body { flex: 1; display: flex; overflow: hidden; }
-      .fs-sidebar { width: 220px; background: #fff; border-right: 1px solid rgba(0,0,0,0.07); padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
-      .fs-sidebar-title { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; margin-bottom: 8px; margin-top: 8px; }
-      .fs-sidebar-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; transition: background 0.15s; }
-      .fs-sidebar-item:hover { background: #f1f5f9; color: #1e293b; }
-      .fs-sidebar-item.active { background: #fff7ed; color: #ea580c; }
-      .fs-main { flex: 1; overflow-y: auto; padding: 36px; display: flex; justify-content: center; }
-      .fs-form-wrap { width: 100%; max-width: 620px; }
-      .fs-page-title { font-family: 'Instrument Serif', serif; font-size: 28px; color: #1e293b; margin-bottom: 4px; }
-      .fs-page-sub { font-size: 13px; color: #94a3b8; margin-bottom: 32px; }
-      .fs-field { margin-bottom: 22px; }
-      .fs-label { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 7px; display: block; }
-      .fs-required { color: #ea580c; }
-      .fs-input { width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 13px 16px; font-size: 14px; color: #1e293b; font-family: 'DM Sans', sans-serif; background: #fff; outline: none; transition: border-color 0.18s, box-shadow 0.18s; }
-      .fs-input:focus { border-color: #ea580c; box-shadow: 0 0 0 3px rgba(234,88,12,0.08); }
-      .fs-input::placeholder { color: #b0b8c4; }
-      .fs-textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
-      .fs-select-wrap { position: relative; }
-      .fs-select-btn { width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 13px 16px; font-size: 14px; color: #1e293b; font-family: 'DM Sans', sans-serif; background: #fff; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: border-color 0.18s, box-shadow 0.18s; }
-      .fs-select-btn:hover { border-color: #cbd5e1; }
-      .fs-select-btn.open { border-color: #ea580c; box-shadow: 0 0 0 3px rgba(234,88,12,0.08); }
-      .fs-select-placeholder { color: #b0b8c4; }
-      .fs-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.1); overflow: hidden; max-height: 340px; overflow-y: auto; }
-      .fs-dropdown-item { padding: 13px 18px; font-size: 14px; color: #334155; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.12s; font-family: 'DM Sans', sans-serif; }
-      .fs-dropdown-item:hover { background: #fff7ed; color: #ea580c; }
-      .fs-dropdown-item.selected { color: #ea580c; font-weight: 600; background: #fff7ed; }
-      .fs-dropdown-divider { height: 1px; background: #f1f5f9; margin: 0; }
-      .fs-media-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 24px 20px; cursor: pointer; background: #f8fafc; transition: border-color 0.18s, background 0.18s; width: 110px; }
-      .fs-media-btn:hover { border-color: #ea580c; background: #fff7ed; }
-      .fs-media-icon { font-size: 28px; color: #94a3b8; }
-      .fs-media-label { font-size: 13px; font-weight: 600; color: #64748b; }
-      .fs-submit-full { width: 100%; background: #ea580c; border: none; border-radius: 14px; padding: 16px; font-size: 15px; font-weight: 700; color: #fff; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; transition: background 0.15s, transform 0.1s, box-shadow 0.15s; }
-      .fs-submit-full:hover { background: #c2410c; box-shadow: 0 4px 16px rgba(234,88,12,0.25); }
-      .fs-submit-full:active { transform: scale(0.98); }
-      @media (max-width: 720px) {
-        html, body, #root { min-height: 100%; overflow-x: hidden; }
-        .fs-root { height: 100vh; min-height: 100vh; }
-        .fs-topbar { height: 58px; padding: 0 12px; gap: 8px; }
-        .fs-logo { font-size: 17px; min-width: 0; }
-        .fs-topbar-back { padding: 7px 10px; font-size: 12px; white-space: nowrap; }
-        .fs-topbar-submit { padding: 9px 14px; font-size: 13px; }
-        .fs-body { display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  // ─── Inject CSS ───────────────────────────────────────────────────────────────
+  if (typeof document !== 'undefined') {
+    const id = 'esell-web-styles';
+    if (!document.getElementById(id)) {
+      const el = document.createElement('style');
+      el.id = id;
+      el.textContent = `
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body, #root { height: 100%; background: #f5f4f0; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        .fs-root { display: flex; flex-direction: column; height: 100vh; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
+        .fs-topbar { height: 60px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; align-items: center; padding: 0 24px; gap: 14px; flex-shrink: 0; }
+        .fs-logo { font-family: 'Instrument Serif', serif; font-size: 20px; color: #1e293b; flex: 1; }
+        .fs-logo span { color: #94a3b8; }
+        .fs-topbar-back { background: none; border: 1px solid #e2e8f0; border-radius: 9px; padding: 7px 16px; font-size: 13px; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: 'DM Sans', sans-serif; transition: background 0.15s; }
+        .fs-topbar-back:hover { background: #f8fafc; }
+        .fs-topbar-submit { background: #ea580c; border: none; border-radius: 10px; padding: 9px 22px; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s, transform 0.1s; }
+        .fs-topbar-submit:hover { background: #c2410c; }
+        .fs-topbar-submit:active { transform: scale(0.97); }
+        .fs-body { flex: 1; display: flex; overflow: hidden; }
         .fs-sidebar { display: none; }
-        .fs-main { display: block; padding: 22px 14px 34px; overflow: visible; }
-        .fs-form-wrap { width: 100%; max-width: none; }
-        .fs-page-title { font-size: 25px; }
-        .fs-page-sub { font-size: 12px; margin-bottom: 18px; max-width: 260px; line-height: 17px; }
-        .fs-field { margin-bottom: 18px; }
-        .fs-input, .fs-select-btn { font-size: 14px; padding: 12px 13px; }
-        .fs-dropdown { position: relative; top: auto; margin-top: 6px; max-height: 260px; }
-        .fs-media-btn { width: 100%; min-height: 86px; }
-      }
-    `;
-    document.head.appendChild(el);
+        .fs-sidebar-title { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; margin-bottom: 8px; margin-top: 8px; }
+        .fs-sidebar-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; transition: background 0.15s; }
+        .fs-sidebar-item:hover { background: #f1f5f9; color: #1e293b; }
+        .fs-sidebar-item.active { background: #fff7ed; color: #ea580c; }
+        .fs-main { flex: 1; overflow-y: auto; padding: 36px; display: flex; justify-content: center; }
+        .fs-form-wrap { width: 100%; max-width: 620px; }
+        .fs-page-title { font-family: 'Instrument Serif', serif; font-size: 28px; color: #1e293b; margin-bottom: 4px; }
+        .fs-page-sub { font-size: 13px; color: #94a3b8; margin-bottom: 32px; }
+        .fs-field { margin-bottom: 22px; }
+        .fs-label { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 7px; display: block; }
+        .fs-required { color: #ea580c; }
+        .fs-input { width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 13px 16px; font-size: 14px; color: #1e293b; font-family: 'DM Sans', sans-serif; background: #fff; outline: none; transition: border-color 0.18s, box-shadow 0.18s; }
+        .fs-input:focus { border-color: #ea580c; box-shadow: 0 0 0 3px rgba(234,88,12,0.08); }
+        .fs-input::placeholder { color: #b0b8c4; }
+        .fs-textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+        .fs-select-wrap { position: relative; }
+        .fs-select-btn { width: 100%; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 13px 16px; font-size: 14px; color: #1e293b; font-family: 'DM Sans', sans-serif; background: #fff; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: border-color 0.18s, box-shadow 0.18s; }
+        .fs-select-btn:hover { border-color: #cbd5e1; }
+        .fs-select-btn.open { border-color: #ea580c; box-shadow: 0 0 0 3px rgba(234,88,12,0.08); }
+        .fs-select-placeholder { color: #b0b8c4; }
+        .fs-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 14px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,0.1); overflow: hidden; max-height: 340px; overflow-y: auto; }
+        .fs-dropdown-item { padding: 13px 18px; font-size: 14px; color: #334155; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: background 0.12s; font-family: 'DM Sans', sans-serif; }
+        .fs-dropdown-item:hover { background: #fff7ed; color: #ea580c; }
+        .fs-dropdown-item.selected { color: #ea580c; font-weight: 600; background: #fff7ed; }
+        .fs-dropdown-divider { height: 1px; background: #f1f5f9; margin: 0; }
+        .fs-media-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 24px 20px; cursor: pointer; background: #f8fafc; transition: border-color 0.18s, background 0.18s; width: 110px; }
+        .fs-media-btn:hover { border-color: #ea580c; background: #fff7ed; }
+        .fs-media-icon { font-size: 28px; color: #94a3b8; }
+        .fs-media-label { font-size: 13px; font-weight: 600; color: #64748b; }
+        .fs-submit-full { width: 100%; background: #ea580c; border: none; border-radius: 14px; padding: 16px; font-size: 15px; font-weight: 700; color: #fff; cursor: pointer; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; transition: background 0.15s, transform 0.1s, box-shadow 0.15s; }
+        .fs-submit-full:hover { background: #c2410c; box-shadow: 0 4px 16px rgba(234,88,12,0.25); }
+        .fs-submit-full:active { transform: scale(0.98); }
+        @media (max-width: 720px) {
+          html, body, #root { min-height: 100%; overflow-x: hidden; }
+          .fs-root { height: 100vh; min-height: 100vh; }
+          .fs-topbar { height: 58px; padding: 0 12px; gap: 8px; }
+          .fs-logo { font-size: 17px; min-width: 0; }
+          .fs-topbar-back { padding: 7px 10px; font-size: 12px; white-space: nowrap; }
+          .fs-topbar-submit { padding: 9px 14px; font-size: 13px; }
+          .fs-body { display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+          .fs-sidebar { display: none; }
+          .fs-main { display: block; padding: 22px 14px 34px; overflow: visible; }
+          .fs-form-wrap { width: 100%; max-width: none; }
+          .fs-page-title { font-size: 25px; }
+          .fs-page-sub { font-size: 12px; margin-bottom: 18px; max-width: 260px; line-height: 17px; }
+          .fs-field { margin-bottom: 18px; }
+          .fs-input, .fs-select-btn { font-size: 14px; padding: 12px 13px; }
+          .fs-dropdown { position: relative; top: auto; margin-top: 6px; max-height: 260px; }
+          .fs-media-btn { width: 100%; min-height: 86px; }
+        }
+      `;
+      document.head.appendChild(el);
+    }
   }
-}
+
   React.useEffect(() => {
     let alive = true;
     UserStore.getFarmingMarketplaceSummary().then((summary) => {
@@ -488,7 +489,7 @@ if (typeof document !== 'undefined') {
     const result = await UserStore.buyFarmingCredits(plan);
     if (result.ok) {
       setCredits(result.credits || 0);
-      showToast(`${plan.credits} farming credits added for 30 days. Total: ${result.credits}`, 'success');
+      showToast(`${plan.credits} ecome credits added for 30 days. Total: ${result.credits}`, 'success');
     } else {
       showToast(result.message || 'Unable to buy credits.', 'error');
     }
@@ -515,8 +516,8 @@ if (typeof document !== 'undefined') {
 
     const listing = {
       id: `sell-${Date.now()}`,
-      type: 'farming_sell',
-      title: whatSelling.trim() || 'Farming Sell Listing',
+      type: 'ecome_sell',
+      title: whatSelling.trim() || 'Ecome Sell Listing',
       sector,
       description: description.trim(),
       quantity: quantity.trim(),
@@ -549,7 +550,7 @@ if (typeof document !== 'undefined') {
     setContact('');
     setMediaUri('');
     setMediaType('');
-    navigation.navigate('FarmingBuy');
+    navigation.navigate('Ecome');
   };
 
   return (
@@ -564,33 +565,17 @@ if (typeof document !== 'undefined') {
       </div>
 
       <div className="fs-body">
-        {/* Sidebar */}
-        <aside className="fs-sidebar">
-          <div className="fs-sidebar-title">Farming</div>
-          {['Sell', 'Give on rent', 'Buy', 'Take on rent'].map((item) => (
-            <div
-              key={item}
-              className={`fs-sidebar-item${item === 'Sell' ? ' active' : ''}`}
-            >
-              <span style={{ fontSize: 16 }}>
-                {item === 'Sell' ? '🌾' : item === 'Give on rent' ? '⬆️' : item === 'Buy' ? '🛒' : '⬇️'}
-              </span>
-              {item}
-            </div>
-          ))}
-        </aside>
-
         {/* Main Form */}
         <main className="fs-main">
           <div className="fs-form-wrap">
             <div className="fs-page-title">Sell</div>
-            <div className="fs-page-sub">Farming (buy / sell) — List your produce or equipment for sale</div>
+            <div className="fs-page-sub">Ecome (buy / sell) — List your produce or equipment for sale</div>
 
             <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 16, marginBottom: 18 }}>
-              <div style={{ fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Farming Credits</div>
+              <div style={{ fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Ecome Credits</div>
               <div style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>{credits} credits available · monthly validity · 1 credit per product listing</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {FARMING_CREDIT_PLANS.map((plan) => (
+                {ECOME_CREDIT_PLANS.map((plan) => (
                   <button
                     key={plan.plan_id}
                     type="button"
@@ -619,7 +604,7 @@ if (typeof document !== 'undefined') {
                 </button>
                 {sectorOpen && (
                   <div className="fs-dropdown">
-                    {FARMING_SECTORS.map((s, i) => (
+                    {ECOME_SECTORS.map((s, i) => (
                       <div key={s}>
                         <div
                           className={`fs-dropdown-item${sector === s ? ' selected' : ''}`}
@@ -628,7 +613,7 @@ if (typeof document !== 'undefined') {
                           {s}
                           {sector === s && <span>✓</span>}
                         </div>
-                        {i < FARMING_SECTORS.length - 1 && <div className="fs-dropdown-divider" />}
+                        {i < ECOME_SECTORS.length - 1 && <div className="fs-dropdown-divider" />}
                       </div>
                     ))}
                   </div>
@@ -688,9 +673,9 @@ if (typeof document !== 'undefined') {
                       />
                     ) : (
                       <img
-  src={mediaUri}
-  alt="Selected media"
-  style={{ width: '100%', maxWidth: '100%', maxHeight: 240, borderRadius: 12, objectFit: 'cover', display: 'block' }}
+                        src={mediaUri}
+                        alt="Selected media"
+                        style={{ width: '100%', maxWidth: '100%', maxHeight: 240, borderRadius: 12, objectFit: 'cover', display: 'block' }}
                       />
                     )}
                   </div>
@@ -750,9 +735,9 @@ if (typeof document !== 'undefined') {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-export default function FarmingSellScreen({ navigation }) {
-  if (Platform.OS === 'web') return <FarmingSellWeb navigation={navigation} />;
-  return <FarmingSellMobile navigation={navigation} />;
+export default function EcomeSellScreen({ navigation }) {
+  if (Platform.OS === 'web') return <EcomeSellWeb navigation={navigation} />;
+  return <EcomeSellMobile navigation={navigation} />;
 }
 
 // ─── Styles (Mobile) ──────────────────────────────────────────────────────────
@@ -801,7 +786,6 @@ const styles = StyleSheet.create({
   },
   required: { color: '#ea580c' },
 
-  // Select / Dropdown
   selectBox: {
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
@@ -843,7 +827,6 @@ const styles = StyleSheet.create({
   dropdownItemText: { fontSize: 14, color: '#334155' },
   dropdownItemTextActive: { color: '#ea580c', fontWeight: '600' },
 
-  // Inputs
   inputBox: {
     borderWidth: 1.5,
     borderColor: '#e2e8f0',
@@ -860,7 +843,6 @@ const styles = StyleSheet.create({
     paddingTop: 13,
   },
 
-  // Media
   mediaBtn: {
     width: 110,
     height: 90,
@@ -924,7 +906,6 @@ const styles = StyleSheet.create({
   planPrice: { fontSize: 14, fontWeight: '900', color: '#ea580c' },
   planCredits: { fontSize: 11, fontWeight: '700', color: '#64748b', marginTop: 2 },
 
-  // Bottom submit
   submitBtnFull: {
     backgroundColor: '#ea580c',
     borderRadius: 14,

@@ -47,7 +47,7 @@ import AdvertiseScreen from '../screens/AdvertiseScreen';
 import ChoosePlanScreen from '../screens/ChoosePlanScreen';
 import PurchaseBlueTickScreen from '../screens/PurchaseBlueTickScreen';
 import CommerceAdsCenterScreen from '../pages/CommerceAdsCenterScreen';
-import FarmingScreen from '../screens/FarmingScreen';
+import EcomeScreen from '../screens/EcomeScreen';
 import SellScreen from '../screens/SellScreen';
 import FarmingBuyScreen from '../screens/FarmingBuyScreen';
 import AdPlansScreen from '../pages/AdPlansScreen';
@@ -91,8 +91,6 @@ export default function AppNavigator() {
   const [initialState, setInitialState] = useState();
   const [isNavStateReady, setIsNavStateReady] = useState(false);
 
-  // Render screens via an array so we don't accidentally render raw text nodes
-  // between JSX children (can trigger: "Text strings must be rendered within a <Text> component").
   const stackScreens = [
     { name: 'Home', component: HomeScreen },
     { name: 'About', component: AboutScreen },
@@ -138,12 +136,11 @@ export default function AppNavigator() {
     { name: 'ChoosePlan', component: ChoosePlanScreen },
     { name: 'PurchaseBlueTick', component: PurchaseBlueTickScreen },
     { name: 'CommerceAdsCenter', component: CommerceAdsCenterScreen },
-    { name: 'Farming', component: FarmingScreen },
+    { name: 'Ecome', component: EcomeScreen },
     { name: 'Sell', component: SellScreen },
     { name: 'FarmingBuy', component: FarmingBuyScreen },
     { name: 'AdPlans', component: AdPlansScreen },
-    { name: 'MyAds', component: MyAdsScreen }, 
-
+    { name: 'MyAds', component: MyAdsScreen },
   ];
 
   useEffect(() => {

@@ -1230,6 +1230,8 @@ const normalizeUser = (user = {}) => {
     farming_listings:    Array.isArray(user.farming_listings) ? user.farming_listings : [],
     farming_enquiries:   Array.isArray(user.farming_enquiries) ? user.farming_enquiries : [],
     farming_purchases:   Array.isArray(user.farming_purchases) ? user.farming_purchases : [],
+    farming_sell_offers: Array.isArray(user.farming_sell_offers) ? user.farming_sell_offers : [],
+    farming_price_feedback: Array.isArray(user.farming_price_feedback) ? user.farming_price_feedback : [],
   };
 };
 
@@ -3465,6 +3467,57 @@ export const UserStore = {
         });
       }
       const users = await getUsersFromStorage();
+      const sellersByProduct = new Map();
+      const buyersByProduct = new Map();
+      const addByProduct = (map, productId, id, value) => {
+        const key = String(productId || '');
+        if (!key) return;
+        const bucket = map.get(key) || new Map();
+        bucket.set(String(id || `${key}-${bucket.size}`), value);
+        map.set(key, bucket);
+      };
+
+      users.forEach((user) => {
+        (Array.isArray(user.farming_sell_offers) ? user.farming_sell_offers : []).forEach((offer) => {
+          addByProduct(sellersByProduct, offer.product_id, offer.id, {
+            id: offer.id,
+            name: offer.seller_name || offer.offerer_name || user.name || 'Seller',
+            email: offer.seller_email || offer.offerer_email || user.email || '',
+            crop: offer.product_name,
+            price: offer.offer_price || offer.price || offer.product_price,
+            quantity: offer.offer_quantity || offer.quantity || offer.product_quantity,
+            contact: offer.seller_mobile || offer.offerer_mobile || '',
+            created_at: offer.createdAt,
+          });
+        });
+
+        (Array.isArray(user.farming_purchases) ? user.farming_purchases : []).forEach((purchase) => {
+          addByProduct(buyersByProduct, purchase.product_id, purchase.id, {
+            id: purchase.id,
+            name: purchase.buyer_name || user.name || 'Buyer',
+            email: purchase.buyer_email || user.email || '',
+            crop: purchase.product_name,
+            price: purchase.requested_price || purchase.price || purchase.product_price,
+            quantity: purchase.requested_quantity || purchase.product_quantity,
+            contact: purchase.buyer_mobile || '',
+            created_at: purchase.createdAt,
+          });
+        });
+
+        (Array.isArray(user.farming_enquiries) ? user.farming_enquiries : []).forEach((enquiry) => {
+          addByProduct(buyersByProduct, enquiry.product_id, enquiry.id, {
+            id: enquiry.id,
+            name: enquiry.buyer_name || user.name || 'Buyer',
+            email: enquiry.buyer_email || user.email || '',
+            crop: enquiry.product_name,
+            price: enquiry.requested_price || enquiry.product_price,
+            quantity: enquiry.requested_quantity || enquiry.product_quantity,
+            contact: enquiry.buyer_mobile || '',
+            created_at: enquiry.createdAt,
+          });
+        });
+      });
+
       const listings = users
         .flatMap((user) => {
           const ownerEmail = String(user.email || '').trim().toLowerCase();
@@ -3476,6 +3529,8 @@ export const UserStore = {
             owner_role: user.role || 'free',
             owner_role_label: user.role_label || getRoleLabel(user.role || 'free'),
             owner_has_blue_tick: hasBlueTick(user),
+            sellers: Array.from(sellersByProduct.get(String(item.id))?.values?.() || []),
+            buyers: Array.from(buyersByProduct.get(String(item.id))?.values?.() || []),
           }));
         })
         .filter((item) => String(item.status || 'active').toLowerCase() === 'active')
@@ -3489,9 +3544,54 @@ export const UserStore = {
         expires_at: farmingState.expires_at,
         listings,
         enquiries: Array.isArray(currentUser?.farming_enquiries) ? currentUser.farming_enquiries : [],
+        priceFeedback: Array.isArray(currentUser?.farming_price_feedback) ? currentUser.farming_price_feedback : [],
       };
     } catch {
-      return { currentUser: null, credits: 0, subscription: null, listings: [], enquiries: [] };
+      return { currentUser: null, credits: 0, subscription: null, listings: [], enquiries: [], priceFeedback: [] };
+    }
+  },
+
+  saveFarmingPriceFeedback: async (feedbackData = {}) => {
+    try {
+      const user = await UserStore.getCurrentUser();
+      if (!user) return { ok: false, message: 'Please login again.' };
+
+      const productId = String(feedbackData.productId || feedbackData.product_id || '').trim();
+      const contactKey = String(feedbackData.contactKey || feedbackData.contact_key || '').trim();
+      const response = String(feedbackData.response || '').trim().toLowerCase();
+      if (!productId || !contactKey) return { ok: false, message: 'Feedback target missing.' };
+      if (!['like', 'dislike'].includes(response)) return { ok: false, message: 'Invalid feedback.' };
+
+      const now = new Date().toISOString();
+      const existing = Array.isArray(user.farming_price_feedback) ? user.farming_price_feedback : [];
+      const duplicate = existing.some((item) => (
+        String(item.product_id || '') === productId
+        && String(item.contact_key || '') === contactKey
+      ));
+      if (duplicate) return { ok: true, alreadySaved: true };
+
+      const feedback = {
+        id: `farm-price-feedback-${Date.now()}`,
+        product_id: productId,
+        contact_key: contactKey,
+        contact_type: String(feedbackData.contactType || feedbackData.contact_type || '').trim(),
+        contact_name: String(feedbackData.contactName || feedbackData.contact_name || '').trim(),
+        contact_email: String(feedbackData.contactEmail || feedbackData.contact_email || '').trim().toLowerCase(),
+        price: String(feedbackData.price || '').trim(),
+        quantity: String(feedbackData.quantity || '').trim(),
+        response,
+        user_email: String(user.email || '').trim().toLowerCase(),
+        user_name: user.name || '',
+        createdAt: now,
+      };
+
+      const updatedUser = await UserStore.updateUser(user.email, {
+        farming_price_feedback: [feedback, ...existing],
+      });
+      if (!updatedUser) return { ok: false, message: 'Unable to save feedback.' };
+      return { ok: true, feedback };
+    } catch {
+      return { ok: false, message: 'Unable to save feedback.' };
     }
   },
 
@@ -3686,10 +3786,13 @@ export const UserStore = {
         product_contact: product.contact,
         buyer_email: buyerEmail,
         buyer_name: currentUser.name || buyerEmail || 'Buyer',
-        buyer_mobile: currentUser.mobile || currentUser.mobile_number || currentUser.contact_number || '',
+        buyer_mobile: purchaseData.callAllow === false
+          ? ''
+          : String(purchaseData.contact || currentUser.mobile || currentUser.mobile_number || currentUser.contact_number || '').trim(),
         seller_email: sellerEmail,
         seller_name: product.author_name || 'Seller',
         requested_quantity: String(purchaseData.quantity || product.quantity || '').trim(),
+        requested_price: String(purchaseData.price || product.price || '').trim(),
         message: String(purchaseData.message || '').trim(),
         status: 'requested',
         createdAt: now,
@@ -3727,6 +3830,87 @@ export const UserStore = {
       return { ok: true, purchase };
     } catch {
       return { ok: false, message: 'Unable to send buy request.' };
+    }
+  },
+
+  createFarmingSellOffer: async (productId, offerData = {}) => {
+    try {
+      const currentUser = await UserStore.getCurrentUser();
+      if (!currentUser) return { ok: false, message: 'Please login again.' };
+
+      const users = await getUsersFromStorage();
+      let product = null;
+      let ownerEmail = '';
+      users.some((user) => {
+        const match = (Array.isArray(user.farming_listings) ? user.farming_listings : [])
+          .find((item) => String(item.id) === String(productId));
+        if (match) {
+          product = match;
+          ownerEmail = String(user.email || '').trim().toLowerCase();
+          return true;
+        }
+        return false;
+      });
+
+      if (!product || !ownerEmail) return { ok: false, message: 'Product not found.' };
+
+      const now = new Date().toISOString();
+      const sellerEmail = String(currentUser.email || '').trim().toLowerCase();
+      const offer = {
+        id: `farm-sell-${Date.now()}`,
+        product_id: product.id,
+        product_name: product.title,
+        product_sector: product.sector,
+        product_quantity: product.quantity,
+        product_price: product.price,
+        product_city: product.city,
+        product_contact: product.contact,
+        seller_email: sellerEmail,
+        seller_name: currentUser.name || sellerEmail || 'Seller',
+        seller_mobile: offerData.callAllow === false
+          ? ''
+          : String(offerData.contact || currentUser.mobile || currentUser.mobile_number || currentUser.contact_number || '').trim(),
+        owner_email: ownerEmail,
+        owner_name: product.author_name || 'Seller',
+        offer_quantity: String(offerData.quantity || product.quantity || '').trim(),
+        offer_price: String(offerData.price || product.price || '').trim(),
+        message: String(offerData.message || '').trim(),
+        status: 'offered',
+        createdAt: now,
+      };
+
+      const recipients = new Set([sellerEmail, ownerEmail, String(product.reporter_email || '').trim().toLowerCase()]);
+      users.forEach((user) => {
+        if (String(user.role || '').trim().toLowerCase() === 'admin') {
+          recipients.add(String(user.email || '').trim().toLowerCase());
+        }
+      });
+      recipients.delete('');
+
+      const notification = {
+        id: `notif-farm-sell-${Date.now()}`,
+        title: 'New Farming Product Sell Offer',
+        message: `${offer.seller_name} wants to sell ${offer.product_name} (${offer.product_id}). Quantity: ${offer.offer_quantity || offer.product_quantity || 'N/A'}.`,
+        date: now.slice(0, 10),
+        status: 'Unread',
+        product_id: offer.product_id,
+        offer_id: offer.id,
+      };
+
+      const updatedUsers = users.map((user) => {
+        const email = String(user.email || '').trim().toLowerCase();
+        if (!recipients.has(email)) return user;
+        return normalizeUser({
+          ...user,
+          farming_sell_offers: [offer, ...(Array.isArray(user.farming_sell_offers) ? user.farming_sell_offers : [])],
+          notifications: [notification, ...normalizeNotifications(user.notifications)],
+        });
+      });
+
+      await AsyncStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      return { ok: true, offer };
+    } catch {
+      return { ok: false, message: 'Unable to send sell offer.' };
     }
   },
 };

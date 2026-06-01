@@ -22,7 +22,7 @@ import EPaperScreen from '../pages/EPaperScreen';
 import LiveStreamingScreen from '../pages/LiveStreamingScreen';
 import CertificationScreen from '../pages/CertificationScreen';
 import NotificationsScreen from '../pages/NotificationsScreen';
-import FarmingScreen from './FarmingScreen';
+import EcomeScreen from './EcomeScreen';
 
 // All quick menu items (used in mobile list + web main cards)
 const MENU_SECTIONS = [
@@ -52,11 +52,11 @@ const MENU_SECTIONS = [
       { label: 'Notifications', icon: 'notifications-outline', screen: 'Notifications', iconStyle: 'green', badge: '3', badgeColor: '#e11d48' },
     ],
   },
-  // ✅ NEW: Farming section
+  // ✅ Ecome section
   {
     title: 'Marketplace',
     items: [
-      { label: 'Farming (buy / sell)', icon: 'leaf-outline', screen: 'Farming', iconStyle: 'farmGreen' },
+      { label: 'Ecome (buy / sell)', icon: 'leaf-outline', screen: 'Ecome', iconStyle: 'farmGreen' },
     ],
   },
   {
@@ -79,7 +79,7 @@ const ICON_STYLES = {
   red:       { bg: '#fff1f2', border: '#ffe4e6', color: '#e11d48' },
   cyan:      { bg: '#ecfeff', border: '#cffafe', color: '#0891b2' },
   rose:      { bg: '#fff1f2', border: '#fecdd3', color: '#f43f5e' },
-  // ✅ NEW style for farming
+  // ✅ Style for Ecome
   farmGreen: { bg: '#f0fdf4', border: '#86efac', color: '#15803d' },
 };
 
@@ -95,7 +95,7 @@ const CARD_DESCS = {
   'Live Streaming': 'Go live or watch broadcasts',
   'Certification': 'Earn & showcase credentials',
   'Notifications': '3 unread alerts waiting',
-  'Farming (buy / sell)': 'Buy, sell or rent farming resources',
+  'Ecome (buy / sell)': 'Buy, sell or rent e-commerce resources',
   'Logout': 'Sign out of your account',
 };
 
@@ -112,7 +112,7 @@ const WEB_MODULES = [
   { label: 'Live Streaming', icon: 'radio-outline', screen: 'Live Streaming', iconStyle: 'red', component: LiveStreamingScreen },
   { label: 'Certification', icon: 'ribbon-outline', screen: 'Certification', iconStyle: 'cyan', component: CertificationScreen },
   { label: 'Notifications', icon: 'notifications-outline', screen: 'Notifications', iconStyle: 'green', component: NotificationsScreen },
-  { label: 'Farming (buy / sell)', icon: 'leaf-outline', screen: 'Farming', iconStyle: 'farmGreen', component: FarmingScreen },
+  { label: 'Ecome (buy / sell)', icon: 'leaf-outline', screen: 'Ecome', iconStyle: 'farmGreen', component: EcomeScreen },
   { label: 'Logout', icon: 'log-out-outline', screen: '__logout__', iconStyle: 'rose', isDestructive: true },
 ];
 
@@ -228,8 +228,8 @@ function QuickMenuWeb({ navigation }) {
       .qm-card:active { transform: scale(0.97); }
       .qm-card.danger { background: #fff1f2; border-color: #fecdd3; }
       .qm-card.danger:hover { border-color: #fda4af; }
-      .qm-card.farming { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac; }
-      .qm-card.farming:hover { border-color: #4ade80; box-shadow: 0 6px 24px rgba(22,163,74,0.12); }
+      .qm-card.ecome { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac; }
+      .qm-card.ecome:hover { border-color: #4ade80; box-shadow: 0 6px 24px rgba(22,163,74,0.12); }
       .qm-card-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
       .qm-card-name { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
       .qm-card-desc { font-size: 12px; color: #94a3b8; line-height: 1.4; }
@@ -448,11 +448,11 @@ function QuickMenuWeb({ navigation }) {
               }}>
                 {section.items.map((item, idx) => {
                   const ic = ICON_STYLES[item.iconStyle] || ICON_STYLES.blue;
-                  const isFarming = item.screen === 'Farming';
+                  const isEcome = item.screen === 'Ecome';
                   return (
                     <div
                       key={item.label}
-                      className={`qm-card style-${item.iconStyle}${item.isDestructive ? ' danger' : ''}${isFarming ? ' farming' : ''}`}
+                      className={`qm-card style-${item.iconStyle}${item.isDestructive ? ' danger' : ''}${isEcome ? ' ecome' : ''}`}
                       style={{ animationDelay: `${si * 0.04 + idx * 0.05}s` }}
                       onClick={() => handlePress(item)}
                     >
@@ -520,11 +520,11 @@ function QuickMenuMobile({ navigation }) {
             <Text style={styles.sectionLabel}>{section.title}</Text>
             {section.items.map((item) => {
               const style = ICON_STYLES[item.iconStyle] || ICON_STYLES.blue;
-              const isFarming = item.screen === 'Farming';
+              const isEcome = item.screen === 'Ecome';
               return (
                 <TouchableOpacity
                   key={item.label}
-                  style={[styles.listItem, isFarming && styles.farmingItem]}
+                  style={[styles.listItem, isEcome && styles.ecomeItem]}
                   onPress={() => handlePress(item)}
                   activeOpacity={0.6}
                 >
@@ -532,11 +532,11 @@ function QuickMenuMobile({ navigation }) {
                     <Ionicons name={item.icon} size={21} color={style.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.label, item.isDestructive && styles.labelDestructive, isFarming && styles.farmingLabel]}>
+                    <Text style={[styles.label, item.isDestructive && styles.labelDestructive, isEcome && styles.ecomeLabel]}>
                       {item.label}
                     </Text>
-                    {isFarming && (
-                      <Text style={styles.farmingDesc}>Buy, sell or rent farming resources</Text>
+                    {isEcome && (
+                      <Text style={styles.ecomeDesc}>Buy, sell or rent e-commerce resources</Text>
                     )}
                   </View>
                   {item.badge && (
@@ -544,7 +544,7 @@ function QuickMenuMobile({ navigation }) {
                       <Text style={[styles.badgeText, { color: item.badgeColor || '#2563eb' }]}>{item.badge}</Text>
                     </View>
                   )}
-                  {!item.isDestructive && <Ionicons name="chevron-forward" size={16} color={isFarming ? '#86efac' : '#cbd5e1'} style={{ marginLeft: 4 }} />}
+                  {!item.isDestructive && <Ionicons name="chevron-forward" size={16} color={isEcome ? '#86efac' : '#cbd5e1'} style={{ marginLeft: 4 }} />}
                 </TouchableOpacity>
               );
             })}
@@ -572,16 +572,16 @@ const styles = StyleSheet.create({
   listContainer: { paddingHorizontal: 14, paddingTop: 4 },
   sectionLabel: { fontSize: 10, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.1, textTransform: 'uppercase', paddingTop: 16, paddingBottom: 6, paddingHorizontal: 4 },
   listItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14, gap: 13, marginBottom: 2 },
-  // ✅ Farming item special style
-  farmingItem: {
+  // ✅ Ecome item special style
+  ecomeItem: {
     backgroundColor: '#f0fdf4',
     borderWidth: 1,
     borderColor: '#86efac',
     paddingVertical: 13,
     marginBottom: 4,
   },
-  farmingLabel: { color: '#15803d', fontWeight: '700' },
-  farmingDesc: { fontSize: 11, color: '#4ade80', marginTop: 2 },
+  ecomeLabel: { color: '#15803d', fontWeight: '700' },
+  ecomeDesc: { fontSize: 11, color: '#4ade80', marginTop: 2 },
   iconWrap: { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   label: { flex: 1, fontSize: 14, fontWeight: '600', color: '#1e293b' },
   labelDestructive: { color: '#e11d48' },

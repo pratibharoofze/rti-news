@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserStore } from '../store/UserStore';
+import { useToast } from '../components/ui/ToastProvider';
 
 const notify = (title, message) => {
   if (Platform.OS === 'web') {
@@ -31,293 +32,161 @@ const notify = (title, message) => {
 
 const money = (value) => {
   const text = String(value || '').trim();
-  if (!text) return 'Price on request';
-  return `₹ ${text}`;
+  return text ? `Rs. ${text}` : 'Price on request';
 };
 
-const getContactFeedbackKey = (person, type) => {
-  const stableId = String(person?.id || person?.email || person?.contact || person?.name || '').trim().toLowerCase();
-  return `${type || person?.type || 'contact'}:${stableId}`;
+const normalizeIndianMobileNumber = (value = '') => {
+  const digits = String(value || '').replace(/\D+/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
+  return digits.slice(0, 10);
 };
 
-const ProductMedia = ({ item, size = 'card' }) => {
-  const uri = String(item?.mediaUri || '').trim();
-  if (uri && String(item?.mediaType || '').toLowerCase() !== 'video') {
-    return (
-      <Image
-        source={{ uri }}
-        style={size === 'compact' ? styles.cardImageCompact : styles.cardImage}
-        resizeMode="cover"
-      />
-    );
-  }
-  return (
-    <View style={size === 'compact' ? styles.cardMediaFallbackCompact : styles.cardMediaFallback}>
-      <Ionicons
-        name={String(item?.mediaType || '').toLowerCase() === 'video' ? 'videocam-outline' : 'leaf-outline'}
-        size={26}
-        color="#16a34a"
-      />
-    </View>
-  );
-};
+const isValidIndianMobileNumber = (value = '') => /^[6-9]\d{9}$/.test(normalizeIndianMobileNumber(value));
 
-const ModalProductMedia = ({ item }) => {
-  const uri = String(item?.mediaUri || '').trim();
-  if (uri && String(item?.mediaType || '').toLowerCase() !== 'video') {
-    return (
-      <Image
-        source={{ uri }}
-        style={styles.modalProductImage}
-        resizeMode="cover"
-      />
-    );
-  }
-  return (
-    <View style={styles.modalProductImageFallback}>
-      <Ionicons
-        name={String(item?.mediaType || '').toLowerCase() === 'video' ? 'videocam-outline' : 'leaf-outline'}
-        size={48}
-        color="#16a34a"
-      />
-    </View>
-  );
-};
-
-// ── Single contact card (seller or buyer) shown inside contact modal ──
-const DetailContactCard = ({ item, person, type, onCall, feedbackByContact, onFeedbackSaved }) => {
-  const contactKey = getContactFeedbackKey(person, type);
-  const existingFeedback = feedbackByContact?.[contactKey];
-  const [voted, setVoted] = useState(Boolean(existingFeedback));
-  const [showThankYou, setShowThankYou] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [savingFeedback, setSavingFeedback] = useState(false);
-
-  const handleThumb = async (response) => {
-    if (savingFeedback || voted) return;
-    setSavingFeedback(true);
-    const result = await UserStore.saveFarmingPriceFeedback({
-      productId: item?.id,
-      contactKey,
-      contactType: type,
-      contactName: person?.name,
-      contactEmail: person?.email,
-      price: person?.price,
-      quantity: person?.quantity,
-      response,
-    });
-    setSavingFeedback(false);
-    if (!result?.ok) {
-      notify('Feedback failed', result?.message || 'Unable to save your response.');
-      return;
-    }
-    setVoted(true);
-    setShowThankYou(true);
-    onFeedbackSaved?.(result.feedback || {
-      product_id: item?.id,
-      contact_key: contactKey,
-      response,
-    });
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 2500);
+const splitName = (name = '') => {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || '',
+    lastName: parts.slice(1).join(' '),
   };
-
-  return (
-    <View style={styles.detailContactCard}>
-
-      {/* ── Top Toast: "Thank you for vote" ── */}
-      {toastVisible && (
-        <View style={styles.topToast}>
-          <Ionicons name="checkmark-circle" size={16} color="#fff" />
-          <Text style={styles.topToastText}>Thank you for your vote! 🙏🏻</Text>
-        </View>
-      )}
-
-      <View style={styles.detailContactTopRow}>
-        <View style={type === 'sell' ? styles.detailBadgeSell : styles.detailBadgeBuy}>
-          <Text style={styles.detailBadgeText}>{type === 'sell' ? 'Selling' : 'Buying'}</Text>
-        </View>
-        <View style={styles.detailTimeRow}>
-          <Ionicons name="time-outline" size={13} color="#94a3b8" />
-          <Text style={styles.detailTimeText}>{person.time || 'Just now'}</Text>
-        </View>
-      </View>
-
-      <View style={styles.detailContactInfoRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.detailContactName}>{person.name || 'Unknown'}</Text>
-          <Text style={styles.detailContactCrop}>{person.crop || person.title || ''}</Text>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={styles.detailContactPriceLabel}>Price:</Text>
-          <Text style={styles.detailContactPrice}>₹ {person.price || 'N/A'}</Text>
-          <Text style={styles.detailContactQty}>({person.quantity || 'N/A'})</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.detailCallBtn}
-        onPress={() => onCall(person.contact, person)}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="call" size={16} color="#fff" />
-        <Text style={styles.detailCallBtnText}>Call</Text>
-      </TouchableOpacity>
-
-      {/* ── Bottom: thumbs hide → green thank you box ── */}
-      {existingFeedback ? null : voted && showThankYou ? (
-        <View style={styles.thankyouRow}>
-          <Text style={styles.thankyouText}>Thank you for your response🙏🏻</Text>
-        </View>
-      ) : (
-        <View style={styles.priceFeedbackRow}>
-          <Text style={styles.priceFeedbackLabel}>Is this price correct?</Text>
-          <View style={styles.priceFeedbackBtns}>
-            <TouchableOpacity
-              style={[styles.thumbBtn, savingFeedback && styles.thumbBtnDisabled]}
-              onPress={() => handleThumb('like')}
-              activeOpacity={0.8}
-              disabled={savingFeedback}
-            >
-              <Ionicons name="thumbs-up" size={16} color="#334155" />
-              <Text style={styles.thumbLabel}>Yes</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.thumbBtn, savingFeedback && styles.thumbBtnDisabled]}
-              onPress={() => handleThumb('dislike')}
-              activeOpacity={0.8}
-              disabled={savingFeedback}
-            >
-              <Ionicons name="thumbs-down" size={16} color="#334155" />
-              <Text style={styles.thumbLabel}>No</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </View>
-  );
 };
 
-// ── Contact List Modal — shown when Enquire button is tapped ──
-const ContactListModal = ({ item, onClose, onWhatsApp, priceFeedback, onFeedbackSaved }) => {
-  if (!item) return null;
-  const { sellers, buyers } = getContactPersons(item);
-  const allContacts = [
-    ...sellers.map((s) => ({ ...s, type: 'sell' })),
-    ...buyers.map((b) => ({ ...b, type: 'buy' })),
-  ];
-  const feedbackByContact = (Array.isArray(priceFeedback) ? priceFeedback : [])
-    .filter((feedback) => String(feedback.product_id || '') === String(item.id || ''))
-    .reduce((map, feedback) => {
-      const key = String(feedback.contact_key || '').trim();
-      if (key) map[key] = feedback;
-      return map;
-    }, {});
-
-  return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.detailSheet} onPress={() => {}}>
-          {/* header */}
-          <View style={styles.contactModalHeader}>
-            <View style={styles.contactModalHeaderLeft}>
-              <Text style={styles.contactModalTitle}>{item.title || 'Product'}</Text>
-              <Text style={styles.contactModalSub}>Tap Call to connect with buyer/seller</Text>
-            </View>
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={onClose} activeOpacity={0.8}>
-              <Ionicons name="close" size={18} color="#64748b" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingVertical: 12, paddingBottom: 32 }}
-          >
-            {allContacts.length === 0 ? (
-              <View style={styles.modalEmptyBox}>
-                <Ionicons name="people-outline" size={32} color="#94a3b8" />
-                <Text style={styles.modalEmptyText}>No contacts available for this product.</Text>
-              </View>
-            ) : (
-              allContacts.map((person, i) => (
-                <DetailContactCard
-                  key={i}
-                  item={item}
-                  person={person}
-                  type={person.type}
-                  onCall={onWhatsApp}
-                  feedbackByContact={feedbackByContact}
-                  onFeedbackSaved={onFeedbackSaved}
-                />
-              ))
-            )}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-};
-
-const getContactPersons = (item) => {
-  const sellers = [];
-  const buyers = [];
-
-  if (item) {
-    sellers.push({
-      id: `listing-${item.id}`,
-      email: item.owner_email || item.createdBy || item.reporter_email || '',
-      name: item.owner_name || item.author_name || 'Seller',
-      crop: item.title,
-      price: item.price,
-      quantity: item.quantity,
-      contact: item.contact,
-      time: item.created_at ? getRelativeTime(item.created_at) : 'Just now',
-    });
-  }
-
-  if (Array.isArray(item?.sellers)) {
-    item.sellers.forEach((s) => {
-      sellers.push({
-        id: s.id,
-        email: s.email || s.seller_email || '',
-        name: s.name || s.owner_name || 'Seller',
-        crop: s.crop || item.title,
-        price: s.price,
-        quantity: s.quantity,
-        contact: s.contact,
-        time: s.created_at ? getRelativeTime(s.created_at) : 'Just now',
-      });
-    });
-  }
-
-  if (Array.isArray(item?.buyers)) {
-    item.buyers.forEach((b) => {
-      buyers.push({
-        id: b.id,
-        email: b.email || b.buyer_email || '',
-        name: b.name || b.buyer_name || 'Buyer',
-        crop: b.crop || item.title,
-        price: b.price,
-        quantity: b.quantity,
-        contact: b.contact,
-        time: b.created_at ? getRelativeTime(b.created_at) : 'Just now',
-      });
-    });
-  }
-
-  return { sellers, buyers };
+const getMediaItems = (item = {}) => {
+  const items = Array.isArray(item.mediaItems) ? item.mediaItems : [];
+  if (items.length) return items.filter((media) => media?.uri);
+  const imageItems = Array.isArray(item.images)
+    ? item.images
+        .filter(Boolean)
+        .map((uri) => ({ uri: String(uri), type: 'image' }))
+    : [];
+  if (imageItems.length) return imageItems;
+  if (item.mediaUri) return [{ uri: item.mediaUri, type: item.mediaType || 'image' }];
+  return [];
 };
 
 const getRelativeTime = (dateStr) => {
   try {
     const diff = Date.now() - new Date(dateStr).getTime();
     const days = Math.floor(diff / 86400000);
-    if (days === 0) return 'Today';
+    if (days <= 0) return 'Today';
     if (days === 1) return '1 day ago';
     return `${days} days ago`;
   } catch {
-    return 'Just now';
+    return 'Recently';
   }
+};
+
+const getProductImages = (item = {}) => (
+  getMediaItems(item).filter((media) => media?.uri && String(media.type || '').toLowerCase() !== 'video')
+);
+
+const ProductMedia = ({ item, compact, onOpen }) => {
+  const mediaItems = getMediaItems(item);
+  const imageItems = getProductImages(item);
+  const media = mediaItems[0];
+  const isImage = media?.uri && String(media.type || '').toLowerCase() !== 'video';
+
+  if (imageItems.length > 1) {
+    return (
+      <View style={compact ? styles.cardImageGalleryCompact : styles.cardImageGallery}>
+        <View style={styles.cardImageGalleryContent}>
+          {imageItems.map((image, index) => (
+            <TouchableOpacity
+              key={`${image.uri}-${index}`}
+              style={compact ? styles.cardGalleryThumbWrapCompact : styles.cardGalleryThumbWrap}
+              onPress={(event) => {
+                event.stopPropagation?.();
+                onOpen?.(index);
+              }}
+              activeOpacity={0.85}
+            >
+              <Image source={{ uri: image.uri }} style={styles.cardGalleryThumb} resizeMode="cover" />
+              <View style={styles.cardGalleryCounter}>
+                <Text style={styles.cardGalleryCounterText}>{index + 1}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (isImage) {
+    return (
+      <Image
+        source={{ uri: media.uri }}
+        style={compact ? styles.cardImageCompact : styles.cardImage}
+        resizeMode="cover"
+      />
+    );
+  }
+
+  return (
+    <View style={compact ? styles.cardMediaFallbackCompact : styles.cardMediaFallback}>
+      <Ionicons name={media?.uri ? 'videocam-outline' : 'image-outline'} size={28} color="#16a34a" />
+    </View>
+  );
+};
+
+const ProductGallery = ({ item, selectedIndex = 0, onSelectIndex }) => {
+  const mediaItems = getMediaItems(item);
+  const activeIndex = Math.min(Math.max(Number(selectedIndex) || 0, 0), Math.max(mediaItems.length - 1, 0));
+  const activeMedia = mediaItems[activeIndex];
+
+  if (!mediaItems.length) {
+    return (
+      <View style={styles.modalProductImageFallback}>
+        <Ionicons name="image-outline" size={48} color="#16a34a" />
+      </View>
+    );
+  }
+
+  const isActiveImage = String(activeMedia?.type || '').toLowerCase() !== 'video';
+
+  return (
+    <View style={styles.gallery}>
+      <View style={styles.galleryItem}>
+        {isActiveImage ? (
+          <Image source={{ uri: activeMedia.uri }} style={styles.modalProductImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.modalProductImageFallback}>
+            <Ionicons name="videocam-outline" size={48} color="#16a34a" />
+            <Text style={styles.videoLabel}>Video selected</Text>
+          </View>
+        )}
+        {mediaItems.length > 1 ? (
+          <View style={styles.imageCounter}>
+            <Text style={styles.imageCounterText}>{activeIndex + 1}/{mediaItems.length}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {mediaItems.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modalThumbRow}>
+          {mediaItems.map((media, index) => {
+            const isImage = String(media.type || '').toLowerCase() !== 'video';
+            return (
+              <TouchableOpacity
+                key={`${media.uri}-${index}`}
+                style={[styles.modalThumbWrap, index === activeIndex && styles.modalThumbWrapActive]}
+                onPress={() => onSelectIndex?.(index)}
+                activeOpacity={0.85}
+              >
+                {isImage ? (
+                  <Image source={{ uri: media.uri }} style={styles.modalThumbImage} resizeMode="cover" />
+                ) : (
+                  <View style={styles.modalThumbFallback}>
+                    <Ionicons name="videocam-outline" size={20} color="#16a34a" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      ) : null}
+    </View>
+  );
 };
 
 const InfoRow = ({ icon, label, value }) => {
@@ -333,320 +202,203 @@ const InfoRow = ({ icon, label, value }) => {
   );
 };
 
-// ── Confirm Dialog ──
-const ConfirmDialog = ({ visible, onOk, onCancel }) => (
-  <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-    <View style={bfStyles.confirmBackdrop}>
-      <View style={bfStyles.confirmBox}>
-        <Text style={bfStyles.confirmText}>Are you sure you want to save this price?</Text>
-        <View style={bfStyles.confirmBtns}>
-          <TouchableOpacity style={bfStyles.confirmOkBtn} onPress={onOk} activeOpacity={0.85}>
-            <Text style={bfStyles.confirmOkText}>OK</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={bfStyles.confirmCancelBtn} onPress={onCancel} activeOpacity={0.85}>
-            <Text style={bfStyles.confirmCancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  </Modal>
-);
+const EnquiryFormModal = ({ product, onClose, onSaved }) => {
+  const { showToast } = useToast();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [contact, setContact] = useState('');
+  const [quantity, setQuantity] = useState(product?.quantity || '');
+  const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
-// ── Success Modal ──
-const SuccessModal = ({ visible, userName, productTitle, onClose }) => {
-  const handleShare = () => {
-    const msg = encodeURIComponent(
-      `I just listed "${productTitle}" on the marketplace! Come check the latest prices and trade with me.`
-    );
-    const url = `https://wa.me/?text=${msg}`;
-    if (Platform.OS === 'web') { window.open(url, '_blank'); return; }
-    Linking.openURL(url);
+  useEffect(() => {
+    let alive = true;
+    const loadBuyerDetails = async () => {
+      const user = await UserStore.getCurrentUser();
+      if (!alive || !user) return;
+      const nameParts = splitName(user.name);
+      setFirstName(String(user.first_name || user.firstName || nameParts.firstName || '').trim());
+      setLastName(String(user.last_name || user.lastName || nameParts.lastName || '').trim());
+      setEmail(String(user.email || '').trim());
+      setContact(normalizeIndianMobileNumber(user.mobile || user.mobile_number || user.contact_number || ''));
+    };
+    loadBuyerDetails();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const handleSubmit = async () => {
+    if (saving) return;
+    const normalizedContact = normalizeIndianMobileNumber(contact);
+    if (!firstName.trim()) {
+      showToast('Please enter your first name.', 'error');
+      return;
+    }
+    if (!email.trim()) {
+      showToast('Please enter your email.', 'error');
+      return;
+    }
+    if (!normalizedContact) {
+      showToast('Please enter your contact number.', 'error');
+      return;
+    }
+    if (!isValidIndianMobileNumber(normalizedContact)) {
+      showToast('Please enter a valid 10 digit contact number.', 'error');
+      return;
+    }
+
+    setSaving(true);
+    const result = await UserStore.createEcomeEnquiry(product.id, {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      contact: normalizedContact,
+      quantity: quantity || product.quantity,
+      message: message.trim(),
+    });
+    setSaving(false);
+
+    if (!result.ok) {
+      showToast(result.message || 'Unable to submit enquiry.', 'error');
+      return;
+    }
+
+    showToast('Your enquiry has been submitted.', 'success');
+    onSaved?.();
+    onClose();
   };
 
+  if (!product) return null;
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={bfStyles.successBackdrop}>
-        <View style={bfStyles.successBox}>
-          <TouchableOpacity style={bfStyles.successClose} onPress={onClose} activeOpacity={0.8}>
-            <Ionicons name="close" size={20} color="#64748b" />
-          </TouchableOpacity>
-
-          <Text style={bfStyles.successTitle}>Thank you {userName || 'User'}</Text>
-
-          <View style={bfStyles.successRow}>
-            <Text style={bfStyles.successRowIcon}>🙏</Text>
-            <Text style={bfStyles.successRowText}>
-              Your contribution will help thousands of traders make the right decision at the right time.
-            </Text>
-          </View>
-          <View style={bfStyles.successRow}>
-            <Text style={bfStyles.successRowIcon}>🏆</Text>
-            <Text style={bfStyles.successRowText}>
-              Your name will be added to the list of contributors on this page.
-            </Text>
-          </View>
-          <View style={bfStyles.successRow}>
-            <Text style={bfStyles.successRowIcon}>🔗</Text>
-            <Text style={bfStyles.successRowText}>
-              Share this page with your trading friends.
-            </Text>
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={[styles.detailSheet, { maxHeight: '82%' }]} onPress={() => {}}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>Send Enquiry</Text>
+            <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn} activeOpacity={0.8}>
+              <Ionicons name="close" size={18} color="#64748b" />
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={bfStyles.shareBtn} onPress={handleShare} activeOpacity={0.85}>
-            <Ionicons name="logo-whatsapp" size={20} color="#fff" />
-            <Text style={bfStyles.shareBtnText}>Share this page</Text>
-          </TouchableOpacity>
+          <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
+            <View style={styles.productInfoBox}>
+              <Text style={styles.productInfoLabel}>Product</Text>
+              <Text style={styles.productInfoValue}>{product.title}</Text>
+            </View>
 
-          <View style={bfStyles.illustrationWrap}>
-            <Text style={{ fontSize: 72, textAlign: 'center' }}>🐂🌾</Text>
-          </View>
-        </View>
-      </View>
+            <Text style={styles.formLabel}>First Name</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="person-outline" size={16} color="#94a3b8" />
+              <TextInput
+                style={styles.input}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Enter first name"
+                placeholderTextColor="#94a3b8"
+              />
+            </View>
+
+            <Text style={styles.formLabel}>Last Name</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="person-outline" size={16} color="#94a3b8" />
+              <TextInput
+                style={styles.input}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Enter last name"
+                placeholderTextColor="#94a3b8"
+              />
+            </View>
+
+            <Text style={styles.formLabel}>Email</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="mail-outline" size={16} color="#94a3b8" />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter email"
+                placeholderTextColor="#94a3b8"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <Text style={styles.formLabel}>Contact Number</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="call-outline" size={16} color="#94a3b8" />
+              <TextInput
+                style={styles.input}
+                value={contact}
+                onChangeText={(value) => setContact(normalizeIndianMobileNumber(value))}
+                placeholder="Enter contact number"
+                placeholderTextColor="#94a3b8"
+                keyboardType="phone-pad"
+                maxLength={10}
+              />
+            </View>
+
+            <Text style={styles.formLabel}>Quantity</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="layers-outline" size={16} color="#94a3b8" />
+              <TextInput
+                style={styles.input}
+                value={quantity}
+                onChangeText={setQuantity}
+                placeholder={product.quantity || 'Enter quantity'}
+                placeholderTextColor="#94a3b8"
+              />
+            </View>
+
+            <Text style={styles.formLabel}>Message</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={message}
+              onChangeText={setMessage}
+              placeholder="e.g. What is the final price?"
+              placeholderTextColor="#94a3b8"
+              multiline
+            />
+
+            <TouchableOpacity
+              style={[styles.submitEnquiryBtn, saving && { opacity: 0.65 }]}
+              onPress={handleSubmit}
+              activeOpacity={0.85}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="send" size={16} color="#fff" />
+                  <Text style={styles.submitEnquiryText}>Send Enquiry</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };
 
-// ── Buy Form Modal ──
-const BuyFormModal = ({ product, onClose, onSaved }) => {
-  const [mode, setMode] = useState('buy');
-  const [quantity, setQuantity] = useState('100');
-  const [price, setPrice] = useState('');
-  const [callAllow, setCallAllow] = useState(true);
-  const [mediaFiles, setMediaFiles] = useState([]);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const MAX_MEDIA = 5;
-
-  const handlePickMedia = () => {
-    if (mediaFiles.length >= MAX_MEDIA) return;
-    if (Platform.OS === 'web') {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*,video/*';
-      input.multiple = true;
-      input.onchange = (e) => {
-        const files = Array.from(e.target.files || []);
-        const remaining = MAX_MEDIA - mediaFiles.length;
-        const toAdd = files.slice(0, remaining).map((f) => ({
-          uri: URL.createObjectURL(f),
-          name: f.name,
-          type: f.type,
-        }));
-        setMediaFiles((prev) => [...prev, ...toAdd]);
-      };
-      input.click();
-    }
-  };
-
-  const removeMedia = (index) => {
-    setMediaFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSavePress = () => {
-    if (!price) {
-      notify('Enter price', 'Please enter the price.');
-      return;
-    }
-    if (!quantity) {
-      notify('Enter quantity', 'Please enter the quantity.');
-      return;
-    }
-    setShowConfirm(true);
-  };
-
-  const handleConfirmOk = async () => {
-    if (saving) return;
-    setSaving(true);
-    const payload = {
-      quantity,
-      price,
-      callAllow,
-      message: mode === 'sell'
-        ? 'Seller submitted a sell offer from Farming Buy page.'
-        : 'Buyer submitted a buy request from Farming Buy page.',
-    };
-    const result = mode === 'sell'
-      ? await UserStore.createFarmingSellOffer(product.id, payload)
-      : await UserStore.createFarmingPurchase(product.id, payload);
-    setSaving(false);
-    if (!result.ok) {
-      setShowConfirm(false);
-      notify(mode === 'sell' ? 'Sell offer failed' : 'Buy request failed', result.message || 'Unable to save your request.');
-      return;
-    }
-    setShowConfirm(false);
-    onSaved?.();
-    setShowSuccess(true);
-  };
-
-  const handleSuccessClose = () => {
-    setShowSuccess(false);
-    onClose();
-  };
-
-  return (
-    <>
-      <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-        <Pressable style={styles.modalBackdrop} onPress={onClose}>
-          <Pressable style={[styles.detailSheet, { maxHeight: '95%' }]} onPress={() => {}}>
-            <View style={bfStyles.header}>
-              <Text style={bfStyles.title}>Fill details to buy/sell product:</Text>
-              <TouchableOpacity onPress={onClose} style={styles.modalCloseBtn} activeOpacity={0.8}>
-                <Ionicons name="close" size={18} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              <Text style={bfStyles.label}>
-                What do you want to do? <Text style={{ color: 'red' }}>*</Text>
-              </Text>
-              <View style={bfStyles.toggleRow}>
-                <TouchableOpacity
-                  style={[bfStyles.toggleBtn, mode === 'buy' && bfStyles.toggleBtnActiveBuy]}
-                  onPress={() => setMode('buy')}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="cart-outline" size={18} color={mode === 'buy' ? '#fff' : '#475569'} />
-                  <Text style={[bfStyles.toggleBtnText, mode === 'buy' && { color: '#fff' }]}>Buy</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[bfStyles.toggleBtn, mode === 'sell' && bfStyles.toggleBtnActiveSell]}
-                  onPress={() => setMode('sell')}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="cash-outline" size={18} color={mode === 'sell' ? '#fff' : '#475569'} />
-                  <Text style={[bfStyles.toggleBtnText, mode === 'sell' && { color: '#fff' }]}>Sell</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={bfStyles.label}>
-                Quantity (kg) <Text style={{ color: 'red' }}>*</Text>
-              </Text>
-              <View style={bfStyles.inputWrap}>
-                <Ionicons name="scale-outline" size={16} color="#94a3b8" />
-                <TextInput
-                  style={bfStyles.input}
-                  value={quantity}
-                  onChangeText={setQuantity}
-                  keyboardType="numeric"
-                  placeholder="100"
-                  placeholderTextColor="#94a3b8"
-                />
-              </View>
-
-              <Text style={bfStyles.label}>
-                Price (per quintal) <Text style={{ color: 'red' }}>*</Text>
-              </Text>
-              <View style={bfStyles.inputWrap}>
-                <Text style={{ fontSize: 16, color: '#94a3b8', fontWeight: '700' }}>₹</Text>
-                <TextInput
-                  style={bfStyles.input}
-                  value={price}
-                  onChangeText={setPrice}
-                  keyboardType="numeric"
-                  placeholder="Enter price"
-                  placeholderTextColor="#94a3b8"
-                />
-              </View>
-
-              <TouchableOpacity
-                style={bfStyles.checkRow}
-                onPress={() => setCallAllow(!callAllow)}
-                activeOpacity={0.8}
-              >
-                <View style={[bfStyles.checkbox, callAllow && bfStyles.checkboxActive]}>
-                  {callAllow && <Ionicons name="checkmark" size={14} color="#fff" />}
-                </View>
-                <Text style={bfStyles.checkLabel}>Allow customers to call me for price enquiry</Text>
-              </TouchableOpacity>
-
-              <Text style={bfStyles.label}>Add photo/video of your product:</Text>
-
-              {mediaFiles.length > 0 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {mediaFiles.map((f, i) => (
-                      <View key={i} style={bfStyles.thumbWrap}>
-                        <Image source={{ uri: f.uri }} style={bfStyles.thumb} resizeMode="cover" />
-                        <TouchableOpacity
-                          style={bfStyles.thumbRemove}
-                          onPress={() => removeMedia(i)}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons name="close-circle" size={20} color="#ef4444" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              )}
-
-              <TouchableOpacity
-                style={[bfStyles.mediaPicker, mediaFiles.length >= MAX_MEDIA && { opacity: 0.5 }]}
-                onPress={handlePickMedia}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add-circle" size={40} color="#16a34a" />
-                <Text style={bfStyles.mediaPickerText}>
-                  {mediaFiles.length >= MAX_MEDIA
-                    ? 'Max photos/videos added'
-                    : `Choose photo/video\nAdd ${MAX_MEDIA - mediaFiles.length} more\n(Optional)`}
-                </Text>
-              </TouchableOpacity>
-
-              <View style={bfStyles.mediaTip}>
-                <Text style={bfStyles.mediaTipText}>
-                  Tip: Show all available stock clearly in the video
-                </Text>
-              </View>
-
-              <TouchableOpacity style={bfStyles.saveBtn} onPress={handleSavePress} activeOpacity={0.85}>
-                <Text style={bfStyles.saveBtnText}>Save Price ›</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <ConfirmDialog
-        visible={showConfirm}
-        onOk={handleConfirmOk}
-        onCancel={() => setShowConfirm(false)}
-      />
-
-      <SuccessModal
-        visible={showSuccess}
-        userName={product?.owner_name || ''}
-        productTitle={product?.title || 'this product'}
-        onClose={handleSuccessClose}
-      />
-    </>
-  );
-};
-
-
 export default function FarmingBuyScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
-  const isCompactWeb = Platform.OS === 'web' && windowWidth <= 640;
+  const { width } = useWindowDimensions();
+  const isCompactWeb = Platform.OS === 'web' && width <= 640;
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState([]);
-  const [priceFeedback, setPriceFeedback] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [contactProduct, setContactProduct] = useState(null);
-  const [buyFormProduct, setBuyFormProduct] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [enquiryProduct, setEnquiryProduct] = useState(null);
 
   const loadListings = useCallback(async () => {
     setLoading(true);
-    const summary = await UserStore.getFarmingMarketplaceSummary();
+    const summary = await UserStore.getEcomeMarketplaceSummary();
     setListings(Array.isArray(summary?.listings) ? summary.listings : []);
-    setPriceFeedback(Array.isArray(summary?.priceFeedback) ? summary.priceFeedback : []);
     setLoading(false);
   }, []);
 
@@ -656,26 +408,38 @@ export default function FarmingBuyScreen({ navigation }) {
     }, [loadListings])
   );
 
-  const handleWhatsApp = (contact, person) => {
+  const handleCall = (contact) => {
     const phone = String(contact || '').replace(/\D/g, '');
-    if (!phone) { notify('No Contact', 'No contact information available.'); return; }
-    const msg = encodeURIComponent(
-      `Hi, I am interested in: ${person?.crop || person?.title || ''}\nPrice: ${money(person?.price)}\nQuantity: ${person?.quantity || 'N/A'}`
-    );
-    const url = `https://wa.me/91${phone}?text=${msg}`;
-    if (Platform.OS === 'web') { window.open(url, '_blank'); return; }
+    if (!phone) {
+      notify('No contact', 'Seller phone number is not available.');
+      return;
+    }
+    const url = `tel:+91${phone}`;
+    if (Platform.OS === 'web') {
+      window.open(url);
+      return;
+    }
     Linking.openURL(url);
   };
 
-  const handleFeedbackSaved = (feedback) => {
-    if (!feedback) return;
-    setPriceFeedback((prev) => {
-      const exists = prev.some((item) => (
-        String(item.product_id || '') === String(feedback.product_id || '')
-        && String(item.contact_key || '') === String(feedback.contact_key || '')
-      ));
-      return exists ? prev : [feedback, ...prev];
-    });
+  const handleWhatsApp = (product) => {
+    const phone = String(product?.contact || '').replace(/\D/g, '');
+    if (!phone) {
+      notify('No contact', 'Seller phone number is not available.');
+      return;
+    }
+    const msg = encodeURIComponent(`Hi, I am interested in ${product.title}. Price: ${money(product.price)}`);
+    const url = `https://wa.me/91${phone}?text=${msg}`;
+    if (Platform.OS === 'web') {
+      window.open(url, '_blank');
+      return;
+    }
+    Linking.openURL(url);
+  };
+
+  const openEnquiry = (product) => {
+    setSelectedProduct(null);
+    setEnquiryProduct(product);
   };
 
   return (
@@ -689,7 +453,7 @@ export default function FarmingBuyScreen({ navigation }) {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Buy</Text>
-          <Text style={styles.headerSub}>Products uploaded from Sell page</Text>
+          <Text style={styles.headerSub}>Browse ecommerce products</Text>
         </View>
         <TouchableOpacity onPress={() => navigation.navigate('Sell')} style={styles.sellBtn} activeOpacity={0.85}>
           <Ionicons name="add" size={18} color="#fff" />
@@ -711,8 +475,8 @@ export default function FarmingBuyScreen({ navigation }) {
             <Ionicons name="cart-outline" size={28} color="#d97706" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.heroTitle}>Farming Marketplace</Text>
-            <Text style={styles.heroText}>Tap any product to see full details and contact seller.</Text>
+            <Text style={styles.heroTitle}>Ecome Marketplace</Text>
+            <Text style={styles.heroText}>View products, contact sellers, or send an enquiry.</Text>
           </View>
         </View>
 
@@ -723,40 +487,49 @@ export default function FarmingBuyScreen({ navigation }) {
           </View>
         ) : listings.length ? (
           listings.map((item) => {
+            const hasMultipleImages = getProductImages(item).length > 1;
             return (
               <TouchableOpacity
                 key={`${item.owner_email}-${item.id}`}
-                style={[styles.card, isCompactWeb && styles.cardCompact]}
-                onPress={() => setSelectedProduct(item)}
+                style={[styles.card, (isCompactWeb || hasMultipleImages) && styles.cardCompact]}
+                onPress={() => {
+                  setSelectedImageIndex(0);
+                  setSelectedProduct(item);
+                }}
                 activeOpacity={0.88}
               >
-                <ProductMedia item={item} size={isCompactWeb ? 'compact' : 'card'} />
+                <ProductMedia
+                  item={item}
+                  compact={isCompactWeb}
+                  onOpen={(index = 0) => {
+                    setSelectedImageIndex(index);
+                    setSelectedProduct(item);
+                  }}
+                />
                 <View style={styles.cardBody}>
                   <View style={styles.cardTop}>
                     <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
                     <Text style={styles.cardPrice}>{money(item.price)}</Text>
                   </View>
-                  <Text style={styles.cardMeta}>{item.sector || 'Farming'} · {item.city || 'Location N/A'}</Text>
+                  <Text style={styles.cardMeta}>{item.sector || 'General'} | {item.city || 'Location N/A'}</Text>
                   <Text style={styles.cardDesc} numberOfLines={2}>{item.description || 'No description added.'}</Text>
 
-                  {/* ── Only Enquire + Buy Now buttons ── */}
                   <View style={styles.cardBottomRow}>
                     <TouchableOpacity
+                      style={styles.callBtn}
+                      onPress={(event) => { event.stopPropagation?.(); handleCall(item.contact); }}
+                      activeOpacity={0.85}
+                    >
+                      <Ionicons name="call-outline" size={15} color="#fff" />
+                      <Text style={styles.actionBtnText}>Call</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
                       style={styles.enquireBtn}
-                      onPress={(e) => { e.stopPropagation?.(); setContactProduct(item); }}
+                      onPress={(event) => { event.stopPropagation?.(); openEnquiry(item); }}
                       activeOpacity={0.85}
                     >
                       <Ionicons name="chatbubble-ellipses-outline" size={15} color="#fff" />
-                      <Text style={styles.enquireBtnText}>Enquire</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.cardBuyBtn}
-                      onPress={(e) => { e.stopPropagation?.(); setBuyFormProduct(item); }}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name="bag-check-outline" size={15} color="#fff" />
-                      <Text style={styles.cardBuyBtnText}>Buy Now</Text>
+                      <Text style={styles.actionBtnText}>Enquire</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -767,15 +540,11 @@ export default function FarmingBuyScreen({ navigation }) {
           <View style={styles.stateBox}>
             <Ionicons name="basket-outline" size={28} color="#94a3b8" />
             <Text style={styles.emptyTitle}>No products yet</Text>
-            <Text style={styles.stateText}>Sell products on the Sell page to see them here.</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Sell')} style={styles.emptyBtn} activeOpacity={0.85}>
-              <Text style={styles.emptyBtnText}>Add Product</Text>
-            </TouchableOpacity>
+            <Text style={styles.stateText}>Subscribed sellers can add products from the Sell page.</Text>
           </View>
         )}
       </ScrollView>
 
-      {/* ─── Product Detail Modal ─── */}
       <Modal
         visible={Boolean(selectedProduct)}
         transparent
@@ -794,11 +563,12 @@ export default function FarmingBuyScreen({ navigation }) {
                   <Ionicons name="close" size={18} color="#64748b" />
                 </TouchableOpacity>
 
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ paddingBottom: 24 }}
-                >
-                  <ModalProductMedia item={selectedProduct} />
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+                  <ProductGallery
+                    item={selectedProduct}
+                    selectedIndex={selectedImageIndex}
+                    onSelectIndex={setSelectedImageIndex}
+                  />
 
                   <View style={styles.modalProductInfo}>
                     <View style={styles.modalTitlePriceRow}>
@@ -829,8 +599,6 @@ export default function FarmingBuyScreen({ navigation }) {
                       ) : null}
                     </View>
 
-                    <View style={styles.modalDivider} />
-
                     {selectedProduct.description ? (
                       <View style={styles.modalDescSection}>
                         <Text style={styles.modalSectionLabel}>Description</Text>
@@ -839,19 +607,36 @@ export default function FarmingBuyScreen({ navigation }) {
                     ) : null}
 
                     <View style={styles.modalInfoGrid}>
-                      <InfoRow icon="time-outline" label="Listed" value={selectedProduct.created_at ? getRelativeTime(selectedProduct.created_at) : null} />
+                      <InfoRow icon="person-outline" label="Seller" value={selectedProduct.owner_name || selectedProduct.author_name} />
+                      <InfoRow icon="call-outline" label="Contact" value={selectedProduct.contact} />
+                      <InfoRow icon="time-outline" label="Listed" value={selectedProduct.createdAt ? getRelativeTime(selectedProduct.createdAt) : null} />
                     </View>
 
+                    <View style={styles.modalActions}>
+                      <TouchableOpacity
+                        style={styles.modalCallBtn}
+                        onPress={() => handleCall(selectedProduct.contact)}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons name="call" size={18} color="#fff" />
+                        <Text style={styles.modalActionText}>Call Seller</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.modalWhatsappBtn}
+                        onPress={() => handleWhatsApp(selectedProduct)}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+                        <Text style={styles.modalActionText}>WhatsApp</Text>
+                      </TouchableOpacity>
+                    </View>
                     <TouchableOpacity
-                      style={styles.modalBuyBtn}
-                      onPress={() => {
-                        setSelectedProduct(null);
-                        setBuyFormProduct(selectedProduct);
-                      }}
+                      style={styles.modalEnquiryBtn}
+                      onPress={() => openEnquiry(selectedProduct)}
                       activeOpacity={0.85}
                     >
-                      <Ionicons name="bag-check-outline" size={18} color="#fff" />
-                      <Text style={styles.modalBuyBtnText}>Buy Now</Text>
+                      <Ionicons name="send" size={18} color="#fff" />
+                      <Text style={styles.modalActionText}>Send Enquiry</Text>
                     </TouchableOpacity>
                   </View>
                 </ScrollView>
@@ -861,23 +646,11 @@ export default function FarmingBuyScreen({ navigation }) {
         </Pressable>
       </Modal>
 
-      {/* ─── Contact List Modal (Enquire button tap) ─── */}
-      <ContactListModal
-        item={contactProduct}
-        onClose={() => setContactProduct(null)}
-        onWhatsApp={handleWhatsApp}
-        priceFeedback={priceFeedback}
-        onFeedbackSaved={handleFeedbackSaved}
+      <EnquiryFormModal
+        product={enquiryProduct}
+        onClose={() => setEnquiryProduct(null)}
+        onSaved={loadListings}
       />
-
-      {/* ─── Buy Form Modal ─── */}
-      {buyFormProduct && (
-        <BuyFormModal
-          product={buyFormProduct}
-          onClose={() => setBuyFormProduct(null)}
-          onSaved={loadListings}
-        />
-      )}
     </View>
   );
 }
@@ -913,7 +686,6 @@ const styles = StyleSheet.create({
   },
   heroTitle: { fontSize: 16, fontWeight: '900', color: '#92400e' },
   heroText: { fontSize: 12, color: '#b45309', marginTop: 4, lineHeight: 18 },
-
   card: {
     flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     backgroundColor: '#fff', borderRadius: 16, borderWidth: 1,
@@ -922,6 +694,50 @@ const styles = StyleSheet.create({
   cardCompact: { flexDirection: 'column' },
   cardImage: { width: Platform.OS === 'web' ? 190 : '100%', height: 150, backgroundColor: '#dcfce7' },
   cardImageCompact: { width: '100%', height: 154, backgroundColor: '#dcfce7' },
+  cardImageGallery: {
+    width: '100%',
+    minHeight: 150,
+    backgroundColor: '#f0fdf4',
+  },
+  cardImageGalleryCompact: { width: '100%', minHeight: 154, backgroundColor: '#f0fdf4' },
+  cardImageGalleryContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 8,
+    gap: 8,
+  },
+  cardGalleryThumbWrap: {
+    width: Platform.OS === 'web' ? 170 : '31%',
+    height: 136,
+    minWidth: Platform.OS === 'web' ? 150 : 96,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#dcfce7',
+    position: 'relative',
+  },
+  cardGalleryThumbWrapCompact: {
+    width: '31%',
+    minWidth: 96,
+    height: 116,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#dcfce7',
+    position: 'relative',
+  },
+  cardGalleryThumb: { width: '100%', height: '100%' },
+  cardGalleryCounter: {
+    position: 'absolute',
+    right: 7,
+    bottom: 7,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15,23,42,0.72)',
+    paddingHorizontal: 6,
+  },
+  cardGalleryCounterText: { color: '#fff', fontSize: 11, fontWeight: '900' },
   cardMediaFallback: {
     width: Platform.OS === 'web' ? 190 : '100%', height: 150,
     alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0fdf4',
@@ -936,38 +752,28 @@ const styles = StyleSheet.create({
   cardPrice: { fontSize: 14, fontWeight: '900', color: '#ea580c' },
   cardMeta: { fontSize: 12, color: '#64748b', marginTop: 5 },
   cardDesc: { fontSize: 13, color: '#475569', lineHeight: 19, marginTop: 9 },
-
-  cardBottomRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14,
+  cardBottomRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
+  callBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, backgroundColor: '#0369a1', borderRadius: 12, paddingVertical: 13,
   },
   enquireBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, backgroundColor: '#16a34a', borderRadius: 12,
-    paddingVertical: 13,
+    gap: 6, backgroundColor: '#16a34a', borderRadius: 12, paddingVertical: 13,
   },
-  enquireBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
-  cardBuyBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, backgroundColor: '#ea580c', borderRadius: 12,
-    paddingVertical: 13,
-  },
-  cardBuyBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
-
+  actionBtnText: { color: '#fff', fontWeight: '900', fontSize: 14 },
   stateBox: {
     alignItems: 'center', justifyContent: 'center', padding: 28,
     borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff',
   },
   stateText: { marginTop: 8, color: '#64748b', textAlign: 'center', lineHeight: 20 },
   emptyTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', marginTop: 8 },
-  emptyBtn: { marginTop: 14, backgroundColor: '#16a34a', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 11 },
-  emptyBtnText: { color: '#fff', fontWeight: '900' },
-
   modalBackdrop: {
     flex: 1, backgroundColor: 'rgba(15,23,42,0.55)',
     justifyContent: 'flex-end', alignItems: 'center',
   },
   detailSheet: {
-    width: '100%', maxWidth: 480, maxHeight: '92%',
+    width: '100%', maxWidth: 520, maxHeight: '92%',
     backgroundColor: '#f8fafc', borderTopLeftRadius: 24, borderTopRightRadius: 24,
     overflow: 'hidden',
   },
@@ -977,51 +783,54 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0',
     alignItems: 'center', justifyContent: 'center',
   },
-
-  contactModalHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, paddingRight: 52,
-    borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
-  },
-  contactModalHeaderLeft: { flex: 1 },
-  contactModalTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
-  contactModalSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
-
-  modalProductImage: {
-    width: '100%', height: 220, backgroundColor: '#dcfce7',
-  },
+  gallery: { width: '100%', backgroundColor: '#f0fdf4' },
+  galleryItem: { width: '100%', height: 240 },
+  modalProductImage: { width: '100%', height: 240, backgroundColor: '#dcfce7' },
   modalProductImageFallback: {
-    width: '100%', height: 220, backgroundColor: '#f0fdf4',
+    width: '100%', height: 240, backgroundColor: '#f0fdf4',
     alignItems: 'center', justifyContent: 'center',
   },
-
+  modalThumbRow: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  modalThumbWrap: {
+    width: 74,
+    height: 58,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#dcfce7',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  modalThumbWrapActive: { borderColor: '#ea580c' },
+  modalThumbImage: { width: '100%', height: '100%' },
+  modalThumbFallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0fdf4',
+  },
+  videoLabel: { marginTop: 8, fontSize: 12, color: '#16a34a', fontWeight: '700' },
+  imageCounter: {
+    position: 'absolute', right: 12, bottom: 12,
+    backgroundColor: 'rgba(15,23,42,0.75)', borderRadius: 999,
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  imageCounterText: { color: '#fff', fontSize: 11, fontWeight: '800' },
   modalProductInfo: {
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    padding: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderTopWidth: 0,
+    backgroundColor: '#fff', padding: 16, marginBottom: 10,
+    borderWidth: 1, borderColor: '#e2e8f0', borderTopWidth: 0,
   },
   modalTitlePriceRow: {
     flexDirection: 'row', alignItems: 'flex-start',
     justifyContent: 'space-between', gap: 10, marginTop: 4,
   },
-  modalProductTitle: {
-    flex: 1, fontSize: 20, fontWeight: '900', color: '#0f172a', lineHeight: 26,
-  },
+  modalProductTitle: { flex: 1, fontSize: 20, fontWeight: '900', color: '#0f172a', lineHeight: 26 },
   modalPriceBadge: {
     backgroundColor: '#fff7ed', borderRadius: 10,
     paddingHorizontal: 12, paddingVertical: 6,
     borderWidth: 1, borderColor: '#fed7aa',
   },
   modalPriceText: { fontSize: 16, fontWeight: '900', color: '#ea580c' },
-
-  modalMetaChipsRow: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10,
-  },
+  modalMetaChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10, marginBottom: 14 },
   metaChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#eff6ff', borderRadius: 999,
@@ -1029,194 +838,62 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#bfdbfe',
   },
   metaChipText: { fontSize: 12, color: '#0369a1', fontWeight: '600' },
-
-  modalDivider: {
-    height: 1, backgroundColor: '#f1f5f9', marginVertical: 14,
-  },
-
-  modalDescSection: { marginBottom: 12 },
+  modalDescSection: { marginBottom: 14 },
   modalSectionLabel: {
     fontSize: 12, fontWeight: '800', color: '#94a3b8',
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6,
   },
-  modalDescText: {
-    fontSize: 14, color: '#334155', lineHeight: 21,
-  },
-
+  modalDescText: { fontSize: 14, color: '#334155', lineHeight: 21 },
   modalInfoGrid: { gap: 8, marginBottom: 16 },
-  infoRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-  },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   infoIconWrap: {
     width: 22, height: 22, borderRadius: 6,
     backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center',
   },
   infoLabel: { fontSize: 13, color: '#94a3b8', fontWeight: '600' },
   infoValue: { fontSize: 13, color: '#0f172a', fontWeight: '700', flex: 1 },
-
-  modalBuyBtn: {
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  modalCallBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: '#0369a1', borderRadius: 14, paddingVertical: 14,
+  },
+  modalWhatsappBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: '#16a34a', borderRadius: 14, paddingVertical: 14,
+  },
+  modalEnquiryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: '#ea580c', borderRadius: 14,
-    paddingVertical: 15, marginTop: 4,
+    gap: 8, backgroundColor: '#ea580c', borderRadius: 14, paddingVertical: 14, marginTop: 10,
   },
-  modalBuyBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
-
-  modalEmptyBox: { alignItems: 'center', padding: 24, gap: 8 },
-  modalEmptyText: { fontSize: 14, color: '#94a3b8', textAlign: 'center' },
-
-  detailContactCard: {
-    marginHorizontal: 12, marginBottom: 10, borderRadius: 16,
-    borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#fff', padding: 16,
-  },
-  detailContactTopRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginBottom: 12,
-  },
-  detailBadgeSell: {
-    backgroundColor: '#dc2626', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5,
-  },
-  detailBadgeBuy: {
-    backgroundColor: '#16a34a', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5,
-  },
-  detailBadgeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  detailTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  detailTimeText: { fontSize: 12, color: '#94a3b8' },
-  detailContactInfoRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-start', marginBottom: 14,
-  },
-  detailContactName: { fontSize: 20, fontWeight: '900', color: '#0f172a' },
-  detailContactCrop: { fontSize: 13, color: '#64748b', marginTop: 3 },
-  detailContactPriceLabel: { fontSize: 12, color: '#64748b' },
-  detailContactPrice: { fontSize: 26, fontWeight: '900', color: '#16a34a' },
-  detailContactQty: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  detailCallBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: '#3b82f6', borderRadius: 12, paddingVertical: 14, marginBottom: 14,
-  },
-  detailCallBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
-
-  priceFeedbackRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: '#f1f5f9',
-  },
-  priceFeedbackLabel: { fontSize: 13, color: '#475569', fontWeight: '600' },
-  priceFeedbackBtns: { flexDirection: 'row', gap: 10 },
-  thumbBtn: {
-    flexDirection: 'column', alignItems: 'center', gap: 3,
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#f1f5f9', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#e2e8f0',
-  },
-  thumbBtnDisabled: { opacity: 0.55 },
-  thumbBtnActiveUp: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
-  thumbBtnActiveDown: { backgroundColor: '#dc2626', borderColor: '#dc2626' },
-  thumbLabel: { fontSize: 10, fontWeight: '700', color: '#334155' },
-
-  thankyouRow: {
-    backgroundColor: '#f0fdf4',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-    marginTop: 12,
-  },
-  thankyouText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#15803d',
-    textAlign: 'center',
-  },
-  topToast: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#16a34a',
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  topToastText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-});
-
-const bfStyles = StyleSheet.create({
-  header: {
+  modalActionText: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  sheetHeader: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, paddingRight: 52,
     borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
   },
-  title: { fontSize: 15, fontWeight: '800', color: '#0f172a', flex: 1 },
-  label: { fontSize: 14, fontWeight: '700', color: '#334155', marginBottom: 8, marginTop: 16 },
-  toggleRow: { flexDirection: 'row', gap: 10 },
-  toggleBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0',
-    backgroundColor: '#f8fafc', paddingVertical: 14,
+  sheetTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', flex: 1 },
+  formContent: { padding: 16, paddingBottom: 32 },
+  productInfoBox: {
+    backgroundColor: '#f8fafc', borderRadius: 12, borderLeftWidth: 4,
+    borderLeftColor: '#0369a1', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
   },
-  toggleBtnActiveBuy: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-  toggleBtnActiveSell: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
-  toggleBtnText: { fontSize: 15, fontWeight: '800', color: '#475569' },
-  thumbWrap: { position: 'relative', width: 80, height: 80 },
-  thumb: { width: 80, height: 80, borderRadius: 10, backgroundColor: '#dcfce7' },
-  thumbRemove: { position: 'absolute', top: -6, right: -6 },
-
-  confirmBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'center', alignItems: 'center', padding: 32 },
-  confirmBox: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 340 },
-  confirmText: { fontSize: 15, color: '#0f172a', fontWeight: '700', marginBottom: 20, textAlign: 'center' },
-  confirmBtns: { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' },
-  confirmOkBtn: { backgroundColor: '#3b82f6', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 10 },
-  confirmOkText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  confirmCancelBtn: { backgroundColor: '#1e293b', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 10 },
-  confirmCancelText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  successBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  successBox: { backgroundColor: '#fff', borderRadius: 20, padding: 24, width: '100%', maxWidth: 380 },
-  successClose: { alignSelf: 'flex-end', width: 32, height: 32, borderRadius: 16, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  successTitle: { fontSize: 22, fontWeight: '900', color: '#0f172a', marginBottom: 18 },
-  successRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
-  successRowIcon: { fontSize: 22 },
-  successRowText: { flex: 1, fontSize: 14, color: '#334155', lineHeight: 20, fontWeight: '600' },
-  shareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#16a34a', borderRadius: 14, paddingVertical: 15, marginTop: 8 },
-  shareBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
-  illustrationWrap: { alignItems: 'center', marginTop: 20 },
+  productInfoLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginBottom: 4 },
+  productInfoValue: { fontSize: 14, color: '#0f172a', fontWeight: '800' },
+  formLabel: { fontSize: 14, fontWeight: '700', color: '#334155', marginBottom: 8, marginTop: 14 },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12,
     backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 2,
   },
   input: { flex: 1, fontSize: 15, color: '#0f172a', paddingVertical: 12 },
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
-  checkbox: {
-    width: 24, height: 24, borderRadius: 6, borderWidth: 2,
-    borderColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#fff',
+  textArea: {
+    minHeight: 90, textAlignVertical: 'top',
+    borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12,
+    backgroundColor: '#fff', paddingHorizontal: 14,
   },
-  checkboxActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
-  checkLabel: { flex: 1, fontSize: 13, color: '#334155', fontWeight: '600', lineHeight: 18 },
-  mediaPicker: {
-    borderWidth: 2, borderColor: '#16a34a', borderStyle: 'dashed',
-    borderRadius: 16, height: 160, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#f0fdf4', gap: 10,
+  submitEnquiryBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#16a34a', borderRadius: 14, paddingVertical: 16, marginTop: 20,
   },
-  mediaPickerText: {
-    fontSize: 14, color: '#16a34a', fontWeight: '700',
-    textAlign: 'center', lineHeight: 22,
-  },
-  mediaTip: {
-    backgroundColor: '#ef4444', borderRadius: 10, padding: 12, marginTop: 10,
-  },
-  mediaTipText: { color: '#fff', fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 18 },
-  saveBtn: {
-    backgroundColor: '#334155', borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center', marginTop: 20,
-  },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  submitEnquiryText: { color: '#fff', fontSize: 16, fontWeight: '900' },
 });

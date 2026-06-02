@@ -52,6 +52,10 @@ import SellScreen from '../screens/SellScreen';
 import FarmingBuyScreen from '../screens/FarmingBuyScreen';
 import AdPlansScreen from '../pages/AdPlansScreen';
 import MyAdsScreen   from '../pages/MyAdsScreen';
+import SellerEnquiryDashboardScreen from '../pages/SellerEnquiryDashboardScreen';
+import MyEnquiriesScreen from '../pages/MyEnquiriesScreen';
+import MyListingsScreen from '../pages/MyListingsScreen';
+import SellerReportsScreen from '../pages/SellerReportsScreen';
 
 const Stack = createNativeStackNavigator();
 const NAVIGATION_STATE_KEY = 'rti-news-navigation-state';
@@ -141,6 +145,10 @@ export default function AppNavigator() {
     { name: 'FarmingBuy', component: FarmingBuyScreen },
     { name: 'AdPlans', component: AdPlansScreen },
     { name: 'MyAds', component: MyAdsScreen },
+    { name: 'SellerEnquiryDashboard', component: SellerEnquiryDashboardScreen },
+    { name: 'MyEnquiries', component: MyEnquiriesScreen },
+    { name: 'MyListings', component: MyListingsScreen },
+    { name: 'SellerReports', component: SellerReportsScreen },
   ];
 
   useEffect(() => {

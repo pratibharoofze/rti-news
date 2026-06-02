@@ -15,26 +15,27 @@ import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserStore } from '../store/UserStore';
 import { useToast } from '../components/ui/ToastProvider';
+import { getDistricts } from '../pages/locationData';
 
 const ECOME_SECTORS = [
-  'Crops',
-  'Farm Supplies',
-  'Machinery',
-  'Equipment',
-  'Livestock',
-  'Dairy',
-  'Fruits & Vegetables',
-  'Ready Crop (कटी फसल)',
-  'Farm Help Service',
-  'Storage',
-  'Transport',
+  'Electronics',
+  'Mobiles & Tablets',
+  'Computers & Laptops',
+  'Home Appliances',
+  'Furniture',
+  'Fashion',
+  'Vehicles',
+  'Books & Stationery',
+  'Sports & Fitness',
+  'Tools & Equipment',
+  'Services',
   'Other',
 ];
 
 const ECOME_CREDIT_PLANS = [
-  { plan_id: 'ecome-10', plan_name: 'Starter', price: 999, credits: 10, duration: '30 Days', validity_days: 30 },
-  { plan_id: 'ecome-20', plan_name: 'Growth', price: 899, credits: 20, duration: '30 Days', validity_days: 30 },
-  { plan_id: 'ecome-50', plan_name: 'Power', price: 1299, credits: 50, duration: '30 Days', validity_days: 30 },
+  { plan_id: 'ecome-starter-monthly', plan_name: 'Starter', price: 499, credits: 10, duration: '30 Days', validity_days: 30 },
+  { plan_id: 'ecome-growth-monthly', plan_name: 'Growth', price: 899, credits: 25, duration: '30 Days', validity_days: 30 },
+  { plan_id: 'ecome-power-monthly', plan_name: 'Power', price: 1499, credits: 50, duration: '30 Days', validity_days: 30 },
 ];
 
 const getAssetMimeType = (asset = {}) => {
@@ -54,6 +55,25 @@ const getPersistentMediaUri = (asset = {}) => {
   return asset.uri || '';
 };
 
+const getMediaItemFromAsset = (asset = {}) => {
+  const uri = getPersistentMediaUri(asset);
+  return {
+    uri,
+    type: String(asset.type || (String(asset.uri || '').toLowerCase().endsWith('.mp4') ? 'video' : 'image')).trim(),
+  };
+};
+
+const getMediaItemsFromPickerResult = (result = {}) => {
+  const assets = Array.isArray(result.selected)
+    ? result.selected
+    : Array.isArray(result.assets)
+      ? result.assets
+      : [result];
+  return (assets || [])
+    .filter((asset) => asset && asset.uri)
+    .map(getMediaItemFromAsset);
+};
+
 const normalizeIndianMobileNumber = (value = '') => {
   const digits = String(value || '').replace(/\D+/g, '');
   if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
@@ -62,6 +82,23 @@ const normalizeIndianMobileNumber = (value = '') => {
 };
 
 const isValidIndianMobileNumber = (value = '') => /^[6-9]\d{9}$/.test(normalizeIndianMobileNumber(value));
+
+const getProfileLocationText = (user = {}) => {
+  const parts = [user.taluka, user.district, user.state]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+  return parts.join(', ');
+};
+
+const getCityChoices = (user = {}) => {
+  const choices = [
+    getProfileLocationText(user),
+    user.taluka,
+    user.district,
+    ...getDistricts(user.state || ''),
+  ];
+  return Array.from(new Set(choices.map((value) => String(value || '').trim()).filter(Boolean)));
+};
 
 // ─── Mobile Layout ────────────────────────────────────────────────────────────
 
@@ -76,22 +113,38 @@ function EcomeSellMobile({ navigation }) {
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
+  const [cityOpen, setCityOpen] = useState(false);
+  const [cityChoices, setCityChoices] = useState([]);
   const [contact, setContact] = useState('');
+  const [mediaItems, setMediaItems] = useState([]);
   const [mediaUri, setMediaUri] = useState('');
   const [mediaType, setMediaType] = useState('');
   const [saving, setSaving] = useState(false);
   const [credits, setCredits] = useState(0);
+  const [subscriptionExpired, setSubscriptionExpired] = useState(false);
+  const [showSubscriptionAlert, setShowSubscriptionAlert] = useState(false);
 
   React.useEffect(() => {
     let alive = true;
-    UserStore.getFarmingMarketplaceSummary().then((summary) => {
-      if (alive) setCredits(summary.credits || 0);
-    });
+    const loadSummary = async () => {
+      const summary = await UserStore.getEcomeMarketplaceSummary();
+      if (alive) {
+        setCredits(summary.credits || 0);
+        const locationChoices = getCityChoices(summary.currentUser || {});
+        setCityChoices(locationChoices);
+        if (!city && locationChoices[0]) setCity(locationChoices[0]);
+        if (summary.expired) {
+          setSubscriptionExpired(true);
+          setShowSubscriptionAlert(true);
+        }
+      }
+    };
+    loadSummary();
     return () => { alive = false; };
   }, []);
 
   const handleBuyPlan = async (plan) => {
-    const result = await UserStore.buyFarmingCredits(plan);
+    const result = await UserStore.buyEcomeCredits(plan);
     if (result.ok) {
       setCredits(result.credits || 0);
       showToast(`${plan.credits} ecome credits added for 30 days. Total: ${result.credits}`, 'success');
@@ -114,20 +167,45 @@ function EcomeSellMobile({ navigation }) {
       allowsEditing: false,
       quality: 0.7,
       base64: true,
+      allowsMultipleSelection: true,
     });
 
     if (result.canceled) return;
-    const asset = result.assets?.[0] || result;
-    if (asset?.uri) {
-      setMediaUri(getPersistentMediaUri(asset));
-      setMediaType(asset.type || (asset.uri.endsWith('.mp4') ? 'video' : 'image'));
-    }
+    const items = getMediaItemsFromPickerResult(result);
+    if (!items.length) return;
+    setMediaItems((prev) => {
+      const next = [...prev, ...items].slice(0, 6);
+      setMediaUri(next[0]?.uri || '');
+      setMediaType(next[0]?.type || '');
+      return next;
+    });
+  };
+
+  const removeMediaItem = (index) => {
+    setMediaItems((prev) => {
+      const next = [...prev];
+      next.splice(index, 1);
+      setMediaUri(next[0]?.uri || '');
+      setMediaType(next[0]?.type || '');
+      return next;
+    });
   };
 
   const handleSubmit = async () => {
     if (saving) return;
+
+    // Check if subscription is expired
+    if (subscriptionExpired) {
+      showToast('Your subscription has expired. Please buy a new plan to continue selling.', 'error');
+      return;
+    }
+
     if (!sector || !whatSelling) {
       showToast('Please fill Category and What are you selling.', 'error');
+      return;
+    }
+    if (!mediaItems.length) {
+      showToast('Please upload at least one product image.', 'error');
       return;
     }
     if (contact.trim() && !isValidIndianMobileNumber(contact)) {
@@ -153,6 +231,7 @@ function EcomeSellMobile({ navigation }) {
       price: price.trim(),
       city: city.trim(),
       contact: normalizeIndianMobileNumber(contact),
+      mediaItems,
       mediaType,
       mediaUri,
       author_name: user.name || 'User',
@@ -160,7 +239,7 @@ function EcomeSellMobile({ navigation }) {
       createdBy: user.email,
     };
 
-    const result = await UserStore.createFarmingListing(listing);
+    const result = await UserStore.createEcomeListing(listing);
     setSaving(false);
     if (!result.ok) {
       showToast(result.message || 'Unable to save your listing. Please try again.', 'error');
@@ -176,6 +255,7 @@ function EcomeSellMobile({ navigation }) {
     setDescription('');
     setCity('');
     setContact('');
+    setMediaItems([]);
     setMediaUri('');
     setMediaType('');
     navigation.navigate('Ecome');
@@ -185,6 +265,22 @@ function EcomeSellMobile({ navigation }) {
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={{ height: insets.top, backgroundColor: '#fff' }} />
+
+      {/* Subscription Expired Alert */}
+      {showSubscriptionAlert && (
+        <View style={styles.alertBox}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name="alert-circle" size={20} color="#dc2626" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.alertTitle}>Subscription Expired</Text>
+              <Text style={styles.alertSub}>Buy a new plan to list products</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowSubscriptionAlert(false)}>
+              <Ionicons name="close" size={18} color="#dc2626" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Header */}
       <View style={styles.header}>
@@ -213,15 +309,15 @@ function EcomeSellMobile({ navigation }) {
         {/* Credits Card */}
         <View style={styles.creditCard}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.creditTitle}>Ecome Credits</Text>
-            <Text style={styles.creditSub}>{credits} credits available · monthly validity · 1 credit per listing</Text>
+            <Text style={styles.creditTitle}>Monthly E-Commerce Subscription</Text>
+            <Text style={styles.creditSub}>{credits} credits available · 30 days validity · 1 credit per product listing</Text>
           </View>
         </View>
         <View style={styles.planRow}>
           {ECOME_CREDIT_PLANS.map((plan) => (
             <TouchableOpacity key={plan.plan_id} style={styles.planCard} onPress={() => handleBuyPlan(plan)} activeOpacity={0.85}>
               <Text style={styles.planPrice}>₹{plan.price}</Text>
-              <Text style={styles.planCredits}>{plan.credits} credits · 30 days</Text>
+              <Text style={styles.planCredits}>{plan.plan_name} · {plan.credits} listings</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -262,7 +358,7 @@ function EcomeSellMobile({ navigation }) {
         <Text style={styles.fieldLabel}>What are you selling?<Text style={styles.required}>*</Text></Text>
         <TextInput
           style={styles.inputBox}
-          placeholder="e.g. Paddy seeds, tractor, fresh tomatoes"
+          placeholder="e.g. Laptop, mobile, sofa, washing machine"
           placeholderTextColor="#b0b8c4"
           value={whatSelling}
           onChangeText={setWhatSelling}
@@ -296,19 +392,25 @@ function EcomeSellMobile({ navigation }) {
           <Ionicons name="camera-outline" size={30} color="#64748b" />
           <Text style={styles.mediaBtnText}>Media</Text>
         </TouchableOpacity>
-        {mediaUri ? (
+        {mediaItems.length > 0 ? (
           <View style={styles.mediaPreview}>
-            {mediaType === 'video' ? (
-              <>
-                <Ionicons name="videocam-outline" size={22} color="#64748b" />
-                <Text style={styles.mediaPreviewText}>Video selected</Text>
-              </>
-            ) : (
-              <>
-                <Image source={{ uri: mediaUri }} style={styles.mediaPreviewImage} resizeMode="cover" />
-                <Text style={styles.mediaPreviewText}>Image selected</Text>
-              </>
-            )}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mediaThumbRow}>
+              {mediaItems.map((item, index) => (
+                <View key={`${item.uri}-${index}`} style={styles.mediaThumbWrap}>
+                  {item.type === 'video' ? (
+                    <View style={styles.mediaVideoThumb}>
+                      <Ionicons name="videocam-outline" size={20} color="#64748b" />
+                    </View>
+                  ) : (
+                    <Image source={{ uri: item.uri }} style={styles.mediaThumb} resizeMode="cover" />
+                  )}
+                  <TouchableOpacity style={styles.removeMediaBtn} onPress={() => removeMediaItem(index)} activeOpacity={0.7}>
+                    <Ionicons name="close" size={14} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+            <Text style={styles.mediaPreviewText}>{mediaItems.length} media item{mediaItems.length !== 1 ? 's' : ''} selected</Text>
           </View>
         ) : null}
 
@@ -327,9 +429,40 @@ function EcomeSellMobile({ navigation }) {
 
         {/* City / Locality */}
         <Text style={styles.fieldLabel}>City / Locality</Text>
+        <TouchableOpacity
+          style={styles.selectBox}
+          onPress={() => setCityOpen(!cityOpen)}
+          activeOpacity={0.8}
+        >
+          <Text style={city ? styles.selectValue : styles.selectPlaceholder}>
+            {city || 'Use profile location or choose city'}
+          </Text>
+          <Ionicons name={cityOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#94a3b8" />
+        </TouchableOpacity>
+        {cityOpen && (
+          <View style={styles.dropdown}>
+            {cityChoices.length > 0 ? cityChoices.map((item) => (
+              <TouchableOpacity
+                key={item}
+                style={[styles.dropdownItem, city === item && styles.dropdownItemActive]}
+                onPress={() => { setCity(item); setCityOpen(false); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.dropdownItemText, city === item && styles.dropdownItemTextActive]}>
+                  {item}
+                </Text>
+                {city === item && <Ionicons name="checkmark" size={16} color="#ea580c" />}
+              </TouchableOpacity>
+            )) : (
+              <View style={styles.dropdownItem}>
+                <Text style={styles.dropdownItemText}>No saved location found</Text>
+              </View>
+            )}
+          </View>
+        )}
         <TextInput
-          style={styles.inputBox}
-          placeholder="Enter your city or locality"
+          style={[styles.inputBox, styles.cityInput]}
+          placeholder="Or type city/locality"
           placeholderTextColor="#b0b8c4"
           value={city}
           onChangeText={setCity}
@@ -369,7 +502,10 @@ function EcomeSellWeb({ navigation }) {
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
+  const [cityOpen, setCityOpen] = useState(false);
+  const [cityChoices, setCityChoices] = useState([]);
   const [contact, setContact] = useState('');
+  const [mediaItems, setMediaItems] = useState([]);
   const [mediaUri, setMediaUri] = useState('');
   const [mediaType, setMediaType] = useState('');
   const [saving, setSaving] = useState(false);
@@ -389,14 +525,28 @@ function EcomeSellWeb({ navigation }) {
       allowsEditing: false,
       quality: 0.7,
       base64: true,
+      allowsMultipleSelection: true,
     });
 
     if (result.canceled) return;
-    const asset = result.assets?.[0] || result;
-    if (asset?.uri) {
-      setMediaUri(getPersistentMediaUri(asset));
-      setMediaType(asset.type || (asset.uri.endsWith('.mp4') ? 'video' : 'image'));
-    }
+    const items = getMediaItemsFromPickerResult(result);
+    if (!items.length) return;
+    setMediaItems((prev) => {
+      const next = [...prev, ...items].slice(0, 6);
+      setMediaUri(next[0]?.uri || '');
+      setMediaType(next[0]?.type || '');
+      return next;
+    });
+  };
+
+  const removeMediaItem = (index) => {
+    setMediaItems((prev) => {
+      const next = [...prev];
+      next.splice(index, 1);
+      setMediaUri(next[0]?.uri || '');
+      setMediaType(next[0]?.type || '');
+      return next;
+    });
   };
 
   // ─── Inject CSS ───────────────────────────────────────────────────────────────
@@ -479,14 +629,18 @@ function EcomeSellWeb({ navigation }) {
 
   React.useEffect(() => {
     let alive = true;
-    UserStore.getFarmingMarketplaceSummary().then((summary) => {
-      if (alive) setCredits(summary.credits || 0);
+    UserStore.getEcomeMarketplaceSummary().then((summary) => {
+      if (!alive) return;
+      setCredits(summary.credits || 0);
+      const locationChoices = getCityChoices(summary.currentUser || {});
+      setCityChoices(locationChoices);
+      if (!city && locationChoices[0]) setCity(locationChoices[0]);
     });
     return () => { alive = false; };
   }, []);
 
   const handleBuyPlan = async (plan) => {
-    const result = await UserStore.buyFarmingCredits(plan);
+    const result = await UserStore.buyEcomeCredits(plan);
     if (result.ok) {
       setCredits(result.credits || 0);
       showToast(`${plan.credits} ecome credits added for 30 days. Total: ${result.credits}`, 'success');
@@ -499,6 +653,10 @@ function EcomeSellWeb({ navigation }) {
     if (saving) return;
     if (!sector || !whatSelling) {
       showToast('Please fill Category and What are you selling.', 'error');
+      return;
+    }
+    if (!mediaItems.length) {
+      showToast('Please upload at least one product image.', 'error');
       return;
     }
     if (contact.trim() && !isValidIndianMobileNumber(contact)) {
@@ -524,6 +682,7 @@ function EcomeSellWeb({ navigation }) {
       price: price.trim(),
       city: city.trim(),
       contact: normalizeIndianMobileNumber(contact),
+      mediaItems,
       mediaType,
       mediaUri,
       author_name: user.name || 'User',
@@ -531,7 +690,7 @@ function EcomeSellWeb({ navigation }) {
       createdBy: user.email,
     };
 
-    const result = await UserStore.createFarmingListing(listing);
+    const result = await UserStore.createEcomeListing(listing);
     setSaving(false);
 
     if (!result.ok) {
@@ -548,6 +707,7 @@ function EcomeSellWeb({ navigation }) {
     setDescription('');
     setCity('');
     setContact('');
+    setMediaItems([]);
     setMediaUri('');
     setMediaType('');
     navigation.navigate('Ecome');
@@ -569,11 +729,11 @@ function EcomeSellWeb({ navigation }) {
         <main className="fs-main">
           <div className="fs-form-wrap">
             <div className="fs-page-title">Sell</div>
-            <div className="fs-page-sub">Ecome (buy / sell) — List your produce or equipment for sale</div>
+            <div className="fs-page-sub">Ecome (buy / sell) — List your product for sale</div>
 
             <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 16, marginBottom: 18 }}>
-              <div style={{ fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Ecome Credits</div>
-              <div style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>{credits} credits available · monthly validity · 1 credit per product listing</div>
+              <div style={{ fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Monthly E-Commerce Subscription</div>
+              <div style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>{credits} credits available · 30 days validity · 1 credit per product listing</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {ECOME_CREDIT_PLANS.map((plan) => (
                   <button
@@ -582,7 +742,7 @@ function EcomeSellWeb({ navigation }) {
                     onClick={() => handleBuyPlan(plan)}
                     style={{ border: '1px solid #fed7aa', background: '#fff7ed', borderRadius: 12, padding: '10px 14px', cursor: 'pointer', fontWeight: 800, color: '#ea580c' }}
                   >
-                    ₹{plan.price} → {plan.credits} credits · 30 days
+                    ₹{plan.price} → {plan.plan_name} · {plan.credits} listings
                   </button>
                 ))}
               </div>
@@ -626,7 +786,7 @@ function EcomeSellWeb({ navigation }) {
               <label className="fs-label">What are you selling? <span className="fs-required">*</span></label>
               <input
                 className="fs-input"
-                placeholder="e.g. Paddy seeds, tractor, fresh tomatoes"
+                placeholder="e.g. Laptop, mobile, sofa, washing machine"
                 value={whatSelling}
                 onChange={(e) => setWhatSelling(e.target.value)}
               />
@@ -662,25 +822,38 @@ function EcomeSellWeb({ navigation }) {
                 <span className="fs-media-icon">📷</span>
                 <span className="fs-media-label">Media</span>
               </button>
-              {mediaUri ? (
+              {mediaItems.length > 0 ? (
                 <div style={{ marginTop: 10, maxWidth: '100%', color: '#334155', fontSize: 13, overflow: 'hidden' }}>
-                  <div style={{ marginBottom: 10 }}>
-                    {mediaType === 'video' ? (
-                      <video
-                        src={mediaUri}
-                        controls
-                        style={{ width: '100%', borderRadius: 12, maxHeight: 240, objectFit: 'cover', background: '#000' }}
-                      />
-                    ) : (
-                      <img
-                        src={mediaUri}
-                        alt="Selected media"
-                        style={{ width: '100%', maxWidth: '100%', maxHeight: 240, borderRadius: 12, objectFit: 'cover', display: 'block' }}
-                      />
-                    )}
+                  <div style={{ display: 'flex', gap: 10, overflowX: 'auto', marginBottom: 10 }}>
+                    {mediaItems.map((item, index) => (
+                      <div key={`${item.uri}-${index}`} style={{ position: 'relative', minWidth: 110, minHeight: 110, borderRadius: 12, overflow: 'hidden', background: '#e2e8f0' }}>
+                        {item.type === 'video' ? (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                            <span style={{ fontSize: 22 }}>🎬</span>
+                          </div>
+                        ) : (
+                          <img
+                            src={item.uri}
+                            alt={`Media ${index + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeMediaItem(index)}
+                          style={{
+                            position: 'absolute', top: 8, right: 8,
+                            width: 24, height: 24, borderRadius: 12,
+                            border: 'none', background: 'rgba(15,23,42,0.8)', color: '#fff', cursor: 'pointer',
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                    {mediaType === 'video' ? 'Video selected' : 'Image selected'}
+                    {mediaItems.length} media item{mediaItems.length !== 1 ? 's' : ''} selected
                   </div>
                 </div>
               ) : null}
@@ -701,9 +874,39 @@ function EcomeSellWeb({ navigation }) {
             {/* City / Locality */}
             <div className="fs-field">
               <label className="fs-label">City / Locality</label>
+              <div className="fs-select-wrap" style={{ marginBottom: 10 }}>
+                <button
+                  className={`fs-select-btn${cityOpen ? ' open' : ''}`}
+                  onClick={() => setCityOpen(!cityOpen)}
+                  type="button"
+                >
+                  <span className={city ? '' : 'fs-select-placeholder'}>
+                    {city || 'Use profile location or choose city'}
+                  </span>
+                  <span style={{ fontSize: 13, color: '#94a3b8' }}>{cityOpen ? '▲' : '▼'}</span>
+                </button>
+                {cityOpen && (
+                  <div className="fs-dropdown">
+                    {cityChoices.length > 0 ? cityChoices.map((item, i) => (
+                      <div key={item}>
+                        <div
+                          className={`fs-dropdown-item${city === item ? ' selected' : ''}`}
+                          onClick={() => { setCity(item); setCityOpen(false); }}
+                        >
+                          {item}
+                          {city === item && <span>✓</span>}
+                        </div>
+                        {i < cityChoices.length - 1 && <div className="fs-dropdown-divider" />}
+                      </div>
+                    )) : (
+                      <div className="fs-dropdown-item">No saved location found</div>
+                    )}
+                  </div>
+                )}
+              </div>
               <input
                 className="fs-input"
-                placeholder="Enter your city or locality"
+                placeholder="Or type city/locality"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
               />
@@ -744,6 +947,16 @@ export default function EcomeSellScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#ffffff' },
+
+  alertBox: {
+    backgroundColor: '#fee2e2',
+    borderBottomWidth: 1,
+    borderBottomColor: '#fca5a5',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  alertTitle: { fontSize: 14, fontWeight: '700', color: '#dc2626', marginBottom: 2 },
+  alertSub: { fontSize: 12, color: '#991b1b' },
 
   header: {
     flexDirection: 'row',
@@ -837,6 +1050,9 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     backgroundColor: '#fff',
   },
+  cityInput: {
+    marginTop: 10,
+  },
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
@@ -863,6 +1079,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
+  },
+  mediaThumbRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  mediaThumbWrap: {
+    width: 92,
+    height: 92,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#e2e8f0',
+    position: 'relative',
+    marginRight: 10,
+  },
+  mediaThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  mediaVideoThumb: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeMediaBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(15,23,42,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mediaPreviewImage: {
     width: '100%',

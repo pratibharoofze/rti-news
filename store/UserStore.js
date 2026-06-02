@@ -1225,8 +1225,10 @@ const normalizeUser = (user = {}) => {
     ad_credits:          Number(user.ad_credits ?? 0),
     ad_subscription:     user.ad_subscription || null,
     ads:                 Array.isArray(user.ads) ? user.ads : [],
-    farming_credits:     Number(user.farming_credits ?? 0),
-    farming_subscription:user.farming_subscription || null,
+    ecome_credits:       Number(user.ecome_credits ?? 0),
+    ecome_subscription:  user.ecome_subscription || null,
+    ecome_listings:      Array.isArray(user.ecome_listings) ? user.ecome_listings : [],
+    ecome_enquiries:     Array.isArray(user.ecome_enquiries) ? user.ecome_enquiries : [],
     farming_listings:    Array.isArray(user.farming_listings) ? user.farming_listings : [],
     farming_enquiries:   Array.isArray(user.farming_enquiries) ? user.farming_enquiries : [],
     farming_purchases:   Array.isArray(user.farming_purchases) ? user.farming_purchases : [],
@@ -3450,20 +3452,19 @@ export const UserStore = {
     } catch { return { ok: false, message: 'Unable to delete ad.' }; }
   },
 
-  getFarmingPlans: () => ([
-    { plan_id: 'farming-10', plan_name: 'Starter Farming Credits', price: 999, credits: 10, duration: '30 Days', validity_days: 30 },
-    { plan_id: 'farming-20', plan_name: 'Growth Farming Credits', price: 899, credits: 20, duration: '30 Days', validity_days: 30 },
-    { plan_id: 'farming-50', plan_name: 'Power Farming Credits', price: 1299, credits: 50, duration: '30 Days', validity_days: 30 },
+  getEcomePlans: () => ([
+    { plan_id: 'ecome-starter-monthly', plan_name: 'Starter E-Commerce', price: 499, credits: 10, duration: '30 Days', validity_days: 30 },
+    { plan_id: 'ecome-growth-monthly', plan_name: 'Growth E-Commerce', price: 899, credits: 25, duration: '30 Days', validity_days: 30 },
+    { plan_id: 'ecome-power-monthly', plan_name: 'Power E-Commerce', price: 1499, credits: 50, duration: '30 Days', validity_days: 30 },
   ]),
-
-  getFarmingMarketplaceSummary: async () => {
+  getEcomeMarketplaceSummary: async () => {
     try {
       const currentUser = await UserStore.getCurrentUser();
-      const farmingState = getCreditExpiryState(currentUser?.farming_credits, currentUser?.farming_subscription);
-      if (currentUser && farmingState.expired && Number(currentUser.farming_credits ?? 0) > 0) {
+      const ecomeState = getCreditExpiryState(currentUser?.ecome_credits, currentUser?.ecome_subscription);
+      if (currentUser && ecomeState.expired && Number(currentUser.ecome_credits ?? 0) > 0) {
         await UserStore.updateUser(currentUser.email, {
-          farming_credits: 0,
-          farming_subscription: farmingState.subscription,
+          ecome_credits: 0,
+          ecome_subscription: ecomeState.subscription,
         });
       }
       const users = await getUsersFromStorage();
@@ -3504,7 +3505,7 @@ export const UserStore = {
           });
         });
 
-        (Array.isArray(user.farming_enquiries) ? user.farming_enquiries : []).forEach((enquiry) => {
+        (Array.isArray(user.ecome_enquiries) ? user.ecome_enquiries : []).forEach((enquiry) => {
           addByProduct(buyersByProduct, enquiry.product_id, enquiry.id, {
             id: enquiry.id,
             name: enquiry.buyer_name || user.name || 'Buyer',
@@ -3521,7 +3522,7 @@ export const UserStore = {
       const listings = users
         .flatMap((user) => {
           const ownerEmail = String(user.email || '').trim().toLowerCase();
-          return (Array.isArray(user.farming_listings) ? user.farming_listings : []).map((item) => ({
+          return (Array.isArray(user.ecome_listings) ? user.ecome_listings : []).map((item) => ({
             ...item,
             owner_email: ownerEmail,
             owner_name: item.author_name || user.name || user.email || 'Seller',
@@ -3538,12 +3539,12 @@ export const UserStore = {
 
       return {
         currentUser,
-        credits: farmingState.credits,
-        subscription: farmingState.subscription,
-        expired: farmingState.expired,
-        expires_at: farmingState.expires_at,
+        credits: ecomeState.credits,
+        subscription: ecomeState.subscription,
+        expired: ecomeState.expired,
+        expires_at: ecomeState.expires_at,
         listings,
-        enquiries: Array.isArray(currentUser?.farming_enquiries) ? currentUser.farming_enquiries : [],
+        enquiries: Array.isArray(currentUser?.ecome_enquiries) ? currentUser.ecome_enquiries : [],
         priceFeedback: Array.isArray(currentUser?.farming_price_feedback) ? currentUser.farming_price_feedback : [],
       };
     } catch {
@@ -3595,12 +3596,12 @@ export const UserStore = {
     }
   },
 
-  buyFarmingCredits: async ({ plan_id, plan_name, price, credits, duration, validity_days }) => {
+  buyEcomeCredits: async ({ plan_id, plan_name, price, credits, duration, validity_days }) => {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
       const today = new Date().toISOString().slice(0, 10);
-      const currentState = getCreditExpiryState(user.farming_credits, user.farming_subscription);
+      const currentState = getCreditExpiryState(user.ecome_credits, user.ecome_subscription);
       const validDays = Number(validity_days || CREDIT_VALIDITY_DAYS);
       const nextCredits = Number(currentState.credits ?? 0) + Number(credits || 0);
       const plan = {
@@ -3615,37 +3616,37 @@ export const UserStore = {
         status: 'active',
       };
       const updatedUser = await UserStore.updateUser(user.email, {
-        farming_credits: nextCredits,
-        farming_subscription: plan,
+        ecome_credits: nextCredits,
+        ecome_subscription: plan,
       });
-      if (!updatedUser) return { ok: false, message: 'Unable to activate farming credits.' };
+      if (!updatedUser) return { ok: false, message: 'Unable to activate E-Commerce credits.' };
       return { ok: true, credits: nextCredits, plan };
     } catch {
-      return { ok: false, message: 'Unable to activate farming credits.' };
+      return { ok: false, message: 'Unable to activate E-Commerce credits.' };
     }
   },
 
-  createFarmingListing: async (listingData = {}) => {
+  createEcomeListing: async (listingData = {}) => {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return { ok: false, message: 'Please login again.' };
-      const creditState = getCreditExpiryState(user.farming_credits, user.farming_subscription);
+      const creditState = getCreditExpiryState(user.ecome_credits, user.ecome_subscription);
       if (creditState.expired) {
         await UserStore.updateUser(user.email, {
-          farming_credits: 0,
-          farming_subscription: creditState.subscription,
+          ecome_credits: 0,
+          ecome_subscription: creditState.subscription,
         });
-        return { ok: false, code: 'CREDITS_EXPIRED', message: 'Your farming credits have expired. Please buy a new monthly plan.' };
+        return { ok: false, code: 'CREDITS_EXPIRED', message: 'Your E-Commerce credits have expired. Please buy a new monthly plan.' };
       }
 
       const currentCredits = Number(creditState.credits ?? 0);
-      if (currentCredits <= 0) return { ok: false, code: 'NO_CREDITS', message: 'No farming credits left. Please buy a farming credit plan.' };
+      if (currentCredits <= 0) return { ok: false, code: 'NO_CREDITS', message: 'No E-Commerce credits left. Please buy an E-Commerce credit plan.' };
 
       const now = new Date().toISOString();
       const listing = {
-        id: listingData.id || `farm-${Date.now()}`,
-        type: 'farming_sell',
-        title: String(listingData.title || '').trim() || 'Farming Product',
+        id: listingData.id || `ecome-${Date.now()}`,
+        type: 'ecome_sell',
+        title: String(listingData.title || '').trim() || 'E-Commerce Product',
         sector: String(listingData.sector || '').trim(),
         description: String(listingData.description || '').trim(),
         quantity: String(listingData.quantity || '').trim(),
@@ -3654,6 +3655,15 @@ export const UserStore = {
         contact: String(listingData.contact || '').trim(),
         mediaType: String(listingData.mediaType || '').trim(),
         mediaUri: String(listingData.mediaUri || '').trim(),
+        mediaItems: Array.isArray(listingData.mediaItems)
+          ? listingData.mediaItems
+              .filter((item) => item && item.uri)
+              .slice(0, 6)
+              .map((item) => ({
+                uri: String(item.uri || '').trim(),
+                type: String(item.type || 'image').trim(),
+              }))
+          : [],
         author_name: user.name || 'User',
         author_profile_image: user.profile_image || '',
         createdBy: user.email,
@@ -3664,8 +3674,8 @@ export const UserStore = {
       };
 
       const updatedUser = await UserStore.updateUser(user.email, {
-        farming_credits: currentCredits - 1,
-        farming_listings: [listing, ...(Array.isArray(user.farming_listings) ? user.farming_listings : [])],
+        ecome_credits: currentCredits - 1,
+        ecome_listings: [listing, ...(Array.isArray(user.ecome_listings) ? user.ecome_listings : [])],
       });
       if (!updatedUser) return { ok: false, message: 'Unable to save your listing.' };
       return { ok: true, credits: currentCredits - 1, listing };
@@ -3674,7 +3684,7 @@ export const UserStore = {
     }
   },
 
-  createFarmingEnquiry: async (productId, enquiryData = {}) => {
+  createEcomeEnquiry: async (productId, enquiryData = {}) => {
     try {
       const currentUser = await UserStore.getCurrentUser();
       if (!currentUser) return { ok: false, message: 'Please login again.' };
@@ -3683,7 +3693,7 @@ export const UserStore = {
       let product = null;
       let sellerEmail = '';
       users.some((user) => {
-        const match = (Array.isArray(user.farming_listings) ? user.farming_listings : [])
+        const match = (Array.isArray(user.ecome_listings) ? user.ecome_listings : [])
           .find((item) => String(item.id) === String(productId));
         if (match) {
           product = match;
@@ -3697,8 +3707,13 @@ export const UserStore = {
 
       const now = new Date().toISOString();
       const buyerEmail = String(currentUser.email || '').trim().toLowerCase();
+      const submittedFirstName = String(enquiryData.firstName || enquiryData.first_name || '').trim();
+      const submittedLastName = String(enquiryData.lastName || enquiryData.last_name || '').trim();
+      const submittedEmail = String(enquiryData.email || '').trim().toLowerCase();
+      const submittedContact = String(enquiryData.contact || enquiryData.mobile || '').trim();
+      const submittedName = [submittedFirstName, submittedLastName].filter(Boolean).join(' ').trim();
       const enquiry = {
-        id: `farm-enq-${Date.now()}`,
+        id: `ecome-enq-${Date.now()}`,
         product_id: product.id,
         product_name: product.title,
         product_sector: product.sector,
@@ -3707,8 +3722,14 @@ export const UserStore = {
         product_city: product.city,
         product_contact: product.contact,
         buyer_email: buyerEmail,
-        buyer_name: currentUser.name || buyerEmail || 'Buyer',
-        buyer_mobile: currentUser.mobile || currentUser.mobile_number || currentUser.contact_number || '',
+        buyer_first_name: submittedFirstName,
+        buyer_last_name: submittedLastName,
+        buyer_name: submittedName || currentUser.name || buyerEmail || 'Buyer',
+        buyer_contact_email: submittedEmail || buyerEmail,
+        buyer_mobile: submittedContact || currentUser.mobile || currentUser.mobile_number || currentUser.contact_number || '',
+        name: submittedName || currentUser.name || buyerEmail || 'Buyer',
+        email: submittedEmail || buyerEmail,
+        contact: submittedContact || currentUser.mobile || currentUser.mobile_number || currentUser.contact_number || '',
         seller_email: sellerEmail,
         seller_name: product.author_name || 'Seller',
         message: String(enquiryData.message || '').trim(),
@@ -3726,8 +3747,8 @@ export const UserStore = {
       recipients.delete('');
 
       const notification = {
-        id: `notif-farm-enq-${Date.now()}`,
-        title: 'New Farming Product Enquiry',
+        id: `notif-ecome-enq-${Date.now()}`,
+        title: 'New E-Commerce Product Enquiry',
         message: `${enquiry.buyer_name} enquired for ${enquiry.product_name} (${enquiry.product_id}). Quantity: ${enquiry.requested_quantity || enquiry.product_quantity || 'N/A'}.`,
         date: now.slice(0, 10),
         status: 'Unread',
@@ -3740,7 +3761,7 @@ export const UserStore = {
         if (!recipients.has(email)) return user;
         return normalizeUser({
           ...user,
-          farming_enquiries: [enquiry, ...(Array.isArray(user.farming_enquiries) ? user.farming_enquiries : [])],
+          ecome_enquiries: [enquiry, ...(Array.isArray(user.ecome_enquiries) ? user.ecome_enquiries : [])],
           notifications: [notification, ...normalizeNotifications(user.notifications)],
         });
       });

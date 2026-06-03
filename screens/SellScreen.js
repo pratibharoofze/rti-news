@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserStore } from '../store/UserStore';
 import { useToast } from '../components/ui/ToastProvider';
 import { getDistricts } from '../pages/locationData';
+import { storeWebUriToIdbMedia } from '../utils/webMediaStore';
 
 const ECOME_SECTORS = [
   'Electronics',
@@ -55,23 +56,35 @@ const getPersistentMediaUri = (asset = {}) => {
   return asset.uri || '';
 };
 
-const getMediaItemFromAsset = (asset = {}) => {
-  const uri = getPersistentMediaUri(asset);
+const getMediaItemFromAsset = async (asset = {}) => {
+  const rawUri = getPersistentMediaUri(asset);
+  const type = String(asset.type || (String(asset.uri || '').toLowerCase().endsWith('.mp4') ? 'video' : 'image')).trim();
+  const storedUri = Platform.OS === 'web'
+    ? await storeWebUriToIdbMedia(rawUri, {
+        prefix: type === 'video' ? 'ecome-video' : 'ecome-image',
+        mimeType: asset.mimeType || '',
+      })
+    : rawUri;
+  const uri = Platform.OS === 'web' && storedUri === rawUri && /^data:/i.test(rawUri)
+    ? ''
+    : storedUri;
   return {
     uri,
-    type: String(asset.type || (String(asset.uri || '').toLowerCase().endsWith('.mp4') ? 'video' : 'image')).trim(),
+    previewUri: Platform.OS === 'web' ? rawUri : '',
+    type,
   };
 };
 
-const getMediaItemsFromPickerResult = (result = {}) => {
+const getMediaItemsFromPickerResult = async (result = {}) => {
   const assets = Array.isArray(result.selected)
     ? result.selected
     : Array.isArray(result.assets)
       ? result.assets
       : [result];
-  return (assets || [])
+  const mediaAssets = (assets || [])
     .filter((asset) => asset && asset.uri)
-    .map(getMediaItemFromAsset);
+    .slice(0, 6);
+  return Promise.all(mediaAssets.map(getMediaItemFromAsset));
 };
 
 const normalizeIndianMobileNumber = (value = '') => {
@@ -166,12 +179,12 @@ function EcomeSellMobile({ navigation }) {
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: false,
       quality: 0.7,
-      base64: true,
+      base64: Platform.OS !== 'web',
       allowsMultipleSelection: true,
     });
 
     if (result.canceled) return;
-    const items = getMediaItemsFromPickerResult(result);
+    const items = await getMediaItemsFromPickerResult(result);
     if (!items.length) return;
     setMediaItems((prev) => {
       const next = [...prev, ...items].slice(0, 6);
@@ -402,7 +415,7 @@ function EcomeSellMobile({ navigation }) {
                       <Ionicons name="videocam-outline" size={20} color="#64748b" />
                     </View>
                   ) : (
-                    <Image source={{ uri: item.uri }} style={styles.mediaThumb} resizeMode="cover" />
+                    <Image source={{ uri: item.previewUri || item.uri }} style={styles.mediaThumb} resizeMode="cover" />
                   )}
                   <TouchableOpacity style={styles.removeMediaBtn} onPress={() => removeMediaItem(index)} activeOpacity={0.7}>
                     <Ionicons name="close" size={14} color="#fff" />
@@ -524,12 +537,12 @@ function EcomeSellWeb({ navigation }) {
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: false,
       quality: 0.7,
-      base64: true,
+      base64: Platform.OS !== 'web',
       allowsMultipleSelection: true,
     });
 
     if (result.canceled) return;
-    const items = getMediaItemsFromPickerResult(result);
+    const items = await getMediaItemsFromPickerResult(result);
     if (!items.length) return;
     setMediaItems((prev) => {
       const next = [...prev, ...items].slice(0, 6);
@@ -833,7 +846,7 @@ function EcomeSellWeb({ navigation }) {
                           </div>
                         ) : (
                           <img
-                            src={item.uri}
+                            src={item.previewUri || item.uri}
                             alt={`Media ${index + 1}`}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                           />

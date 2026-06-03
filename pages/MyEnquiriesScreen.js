@@ -14,123 +14,129 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserStore } from '../store/UserStore';
+
+const IS_WEB = Platform.OS === 'web';
 
 const money = (val) => {
   if (!val) return '₹0';
   return `₹${Number(val).toLocaleString('en-IN')}`;
 };
 
-const getEnquiryQuantity = (enquiry = {}) => (
-  enquiry.quantity || enquiry.requested_quantity || enquiry.product_quantity || 'N/A'
-);
-
-const getEnquiryDate = (enquiry = {}) => (
-  enquiry.created_at || enquiry.createdAt || enquiry.date || 'Unknown'
-);
-
-const getBuyerName = (enquiry = {}) => (
-  enquiry.name || enquiry.buyer_name || [enquiry.buyer_first_name, enquiry.buyer_last_name].filter(Boolean).join(' ')
-);
-
-const getBuyerEmail = (enquiry = {}) => enquiry.email || enquiry.buyer_contact_email || enquiry.buyer_email;
-
-const getBuyerContact = (enquiry = {}) => enquiry.contact || enquiry.buyer_mobile || '';
+const getEnquiryQuantity = (e = {}) => e.quantity || e.requested_quantity || e.product_quantity || 'N/A';
+const getEnquiryDate = (e = {}) => {
+  const raw = e.created_at || e.createdAt || e.date;
+  if (!raw) return 'Unknown';
+  const d = new Date(raw);
+  if (isNaN(d)) return raw;
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+const getBuyerName    = (e = {}) => e.name || e.buyer_name || [e.buyer_first_name, e.buyer_last_name].filter(Boolean).join(' ') || 'N/A';
+const getBuyerEmail   = (e = {}) => e.email || e.buyer_contact_email || e.buyer_email || 'N/A';
+const getBuyerContact = (e = {}) => e.contact || e.buyer_mobile || 'N/A';
 
 const notify = (title, msg) => {
-  if (Platform.OS === 'web') {
-    alert(`${title}\n${msg}`);
-  } else {
-    Alert.alert(title, msg);
-  }
+  if (IS_WEB) { alert(`${title}\n${msg}`); } else { Alert.alert(title, msg); }
 };
 
-const DetailItem = ({ label, value }) => (
-  <View style={styles.detailItem}>
-    <Text style={styles.detailLabel}>{label}:</Text>
-    <Text style={styles.detailValue}>{value || 'N/A'}</Text>
-  </View>
-);
+const STATUS_MAP = {
+  replied:  { bg: '#dcfce7', text: '#15803d', icon: 'checkmark-circle',   label: 'Replied'  },
+  closed:   { bg: '#f1f5f9', text: '#475569', icon: 'close-circle',       label: 'Closed'   },
+  new:      { bg: '#fff7ed', text: '#ea580c', icon: 'information-circle',  label: 'New'      },
+};
+const getStatus = (s) => STATUS_MAP[(s || 'new').toLowerCase()] || STATUS_MAP.new;
 
+// ─── Enquiry Detail Modal ──────────────────────────────────────────────────────
 const EnquiryDetailModal = ({ visible, enquiry, product, onClose, onCall, onWhatsApp }) => {
   if (!enquiry || !product) return null;
+  const st = getStatus(enquiry.status);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.modalContent} onPress={() => {}}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Enquiry Details</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.8}>
-              <Ionicons name="close" size={20} color="#64748b" />
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={mStyles.backdrop} onPress={onClose}>
+        <Pressable style={mStyles.sheet} onPress={() => {}}>
+
+          {/* ── Handle bar ── */}
+          <View style={mStyles.handle} />
+
+          {/* ── Header ── */}
+          <View style={mStyles.header}>
+            <View style={mStyles.headerLeft}>
+              <View style={mStyles.headerIcon}>
+                <Ionicons name="receipt-outline" size={18} color="#ea580c" />
+              </View>
+              <View>
+                <Text style={mStyles.title}>Enquiry Details</Text>
+                <Text style={mStyles.titleSub}>{product.title || 'Product'}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={onClose} style={mStyles.closeBtn}>
+              <Ionicons name="close" size={18} color="#64748b" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-          >
-            {/* Product Info */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Product</Text>
-              <DetailItem label="Name" value={product.title} />
-              <DetailItem label="Price" value={money(product.price)} />
-              <DetailItem label="Location" value={product.city} />
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={mStyles.body}>
+
+            {/* ── Status banner ── */}
+            <View style={[mStyles.statusBanner, { backgroundColor: st.bg }]}>
+              <Ionicons name={st.icon} size={18} color={st.text} />
+              <Text style={[mStyles.statusBannerText, { color: st.text }]}>Status: {st.label}</Text>
             </View>
 
-            {/* Enquiry Info */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Your Enquiry</Text>
-              <DetailItem label="Name" value={getBuyerName(enquiry)} />
-              <DetailItem label="Email" value={getBuyerEmail(enquiry)} />
-              <DetailItem label="Contact" value={getBuyerContact(enquiry)} />
-              <DetailItem label="Quantity" value={getEnquiryQuantity(enquiry)} />
-              {enquiry.message && <DetailItem label="Message" value={enquiry.message} />}
-              <DetailItem label="Submitted" value={getEnquiryDate(enquiry)} />
-            </View>
-
-            {/* Status */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Status</Text>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(enquiry.status) }]}>
-                <Ionicons
-                  name={getStatusIcon(enquiry.status)}
-                  size={16}
-                  color="#fff"
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={styles.statusText}>
-                  {enquiry.status?.charAt(0).toUpperCase() + enquiry.status?.slice(1) || 'New'}
-                </Text>
+            {/* ── Product card ── */}
+            <View style={mStyles.card}>
+              <View style={mStyles.cardHeader}>
+                <View style={mStyles.cardIconWrap}>
+                  <Ionicons name="cube-outline" size={16} color="#ea580c" />
+                </View>
+                <Text style={mStyles.cardTitle}>Product</Text>
               </View>
+              <Row label="Name"     value={product.title}    />
+              <Row label="Price"    value={money(product.price)} highlight />
+              <Row label="Location" value={product.city}     />
             </View>
 
-            {/* Seller Info */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Seller Contact</Text>
-              <DetailItem label="Email" value={product.createdBy} />
-              <DetailItem label="Phone" value={product.contact} />
+            {/* ── Buyer card ── */}
+            <View style={mStyles.card}>
+              <View style={mStyles.cardHeader}>
+                <View style={[mStyles.cardIconWrap, { backgroundColor: '#eff6ff' }]}>
+                  <Ionicons name="person-outline" size={16} color="#2563eb" />
+                </View>
+                <Text style={mStyles.cardTitle}>Your Enquiry</Text>
+              </View>
+              <Row label="Name"      value={getBuyerName(enquiry)}    />
+              <Row label="Email"     value={getBuyerEmail(enquiry)}   />
+              <Row label="Contact"   value={getBuyerContact(enquiry)} />
+              <Row label="Quantity"  value={getEnquiryQuantity(enquiry)} />
+              {enquiry.message && <Row label="Message" value={enquiry.message} multiline />}
+              <Row label="Submitted" value={getEnquiryDate(enquiry)}  />
             </View>
 
-            {/* Action Buttons */}
-            <View style={styles.actionButtonsRow}>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => onCall(product.contact)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="call" size={18} color="#fff" />
-                <Text style={styles.actionBtnText}>Call</Text>
+            {/* ── Seller card ── */}
+            <View style={mStyles.card}>
+              <View style={mStyles.cardHeader}>
+                <View style={[mStyles.cardIconWrap, { backgroundColor: '#f0fdf4' }]}>
+                  <Ionicons name="storefront-outline" size={16} color="#16a34a" />
+                </View>
+                <Text style={mStyles.cardTitle}>Seller Contact</Text>
+              </View>
+              <Row label="Email" value={product.createdBy} />
+              <Row label="Phone" value={product.contact}   />
+            </View>
+
+            {/* ── Action buttons ── */}
+            <View style={mStyles.actions}>
+              <TouchableOpacity style={mStyles.callBtn} onPress={() => onCall(product.contact)} activeOpacity={0.85}>
+                <Ionicons name="call" size={17} color="#fff" />
+                <Text style={mStyles.actionBtnText}>Call Seller</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: '#16a34a' }]}
-                onPress={() => onWhatsApp(product.contact, product)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="logo-whatsapp" size={18} color="#fff" />
-                <Text style={styles.actionBtnText}>WhatsApp</Text>
+              <TouchableOpacity style={mStyles.waBtn} onPress={() => onWhatsApp(product.contact, product)} activeOpacity={0.85}>
+                <Ionicons name="logo-whatsapp" size={17} color="#fff" />
+                <Text style={mStyles.actionBtnText}>WhatsApp</Text>
               </TouchableOpacity>
             </View>
+
           </ScrollView>
         </Pressable>
       </Pressable>
@@ -138,188 +144,183 @@ const EnquiryDetailModal = ({ visible, enquiry, product, onClose, onCall, onWhat
   );
 };
 
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'replied':
-      return '#16a34a';
-    case 'closed':
-      return '#94a3b8';
-    default:
-      return '#0369a1';
-  }
-};
+const Row = ({ label, value, highlight, multiline }) => (
+  <View style={[mStyles.row, multiline && { alignItems: 'flex-start' }]}>
+    <Text style={mStyles.rowLabel}>{label}</Text>
+    <Text
+      style={[mStyles.rowValue, highlight && mStyles.rowValueHighlight, multiline && mStyles.rowValueMulti]}
+      numberOfLines={multiline ? 0 : 2}
+    >
+      {value || 'N/A'}
+    </Text>
+  </View>
+);
 
-const getStatusIcon = (status) => {
-  switch (status) {
-    case 'replied':
-      return 'checkmark-circle';
-    case 'closed':
-      return 'close-circle';
-    default:
-      return 'information-circle';
-  }
-};
-
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function MyEnquiriesScreen({ navigation }) {
-  const [loading, setLoading] = useState(true);
-  const [enquiries, setEnquiries] = useState([]);
-  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const insets = useSafeAreaInsets();
+  const [loading, setLoading]           = useState(true);
+  const [enquiries, setEnquiries]       = useState([]);
+  const [selectedEnquiry, setSelected]  = useState(null);
+  const [selectedProduct, setProduct]   = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const currentUser = await UserStore.getCurrentUser();
-      if (!currentUser) {
-        notify('Not Logged In', 'Please login to view your enquiries.');
-        setLoading(false);
-        return;
-      }
-
+      if (!currentUser) { notify('Not Logged In', 'Please login.'); setLoading(false); return; }
       const summary = await UserStore.getEcomeMarketplaceSummary();
-      if (!summary) {
-        setLoading(false);
-        return;
-      }
-
+      if (!summary) { setLoading(false); return; }
       const userEmail = String(currentUser.email || '').trim().toLowerCase();
-      const userEnquiries = (Array.isArray(summary.enquiries) ? summary.enquiries : [])
-        .filter((eq) => String(eq.buyer_email || '').trim().toLowerCase() === userEmail);
-
-      const listings = Array.isArray(summary.listings) ? summary.listings : [];
-      const enrichedEnquiries = userEnquiries.map((eq) => ({
-        ...eq,
-        product: listings.find((l) => String(l.id) === String(eq.product_id)),
-      }));
-
-      setEnquiries(enrichedEnquiries);
-    } catch (error) {
-      console.error('Error loading enquiries:', error);
+      const listings  = Array.isArray(summary.listings) ? summary.listings : [];
+      const enriched  = (Array.isArray(summary.enquiries) ? summary.enquiries : [])
+        .filter((eq) => String(eq.buyer_email || '').trim().toLowerCase() === userEmail)
+        .map((eq) => ({ ...eq, product: listings.find((l) => String(l.id) === String(eq.product_id)) }));
+      setEnquiries(enriched);
+    } catch (e) {
+      console.error(e);
     }
     setLoading(false);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const handleCall = (contact) => {
     const phone = String(contact || '').replace(/\D/g, '');
-    if (!phone) {
-      notify('No Contact', 'No phone number available.');
-      return;
-    }
-    if (Platform.OS === 'web') {
-      window.open(`tel:+91${phone}`);
-    } else {
-      Linking.openURL(`tel:+91${phone}`);
-    }
+    if (!phone) { notify('No Contact', 'No phone number available.'); return; }
+    const url = `tel:+91${phone}`;
+    IS_WEB ? window.open(url) : Linking.openURL(url);
   };
 
   const handleWhatsApp = (contact, product) => {
     const phone = String(contact || '').replace(/\D/g, '');
-    if (!phone) {
-      notify('No Contact', 'No phone number available.');
-      return;
-    }
-    const msg = encodeURIComponent(
-      `Hi, I am interested in: ${product.title}\nPrice: ${money(product.price)}`
-    );
+    if (!phone) { notify('No Contact', 'No phone number available.'); return; }
+    const msg = encodeURIComponent(`Hi, I am interested in: ${product.title}\nPrice: ${money(product.price)}`);
     const url = `https://wa.me/91${phone}?text=${msg}`;
-    if (Platform.OS === 'web') {
-      window.open(url, '_blank');
-    } else {
-      Linking.openURL(url);
-    }
+    IS_WEB ? window.open(url, '_blank') : Linking.openURL(url);
   };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.root}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading your enquiries...</Text>
+        <View style={styles.loadingWrap}>
+          <View style={styles.loadingDot} />
+          <Text style={styles.loadingText}>Loading enquiries...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  const newCount     = enquiries.filter((e) => (e.status || 'new').toLowerCase() === 'new').length;
+  const repliedCount = enquiries.filter((e) => (e.status || '').toLowerCase() === 'replied').length;
+
   return (
     <SafeAreaView style={styles.root}>
+      <View style={{ height: IS_WEB ? 0 : insets.top, backgroundColor: '#111' }} />
+
+      {/* ── Topbar ── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation?.goBack?.()}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="chevron-back" size={24} color="#0f172a" />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation?.goBack?.()} activeOpacity={0.8}>
+          <Ionicons name="chevron-back" size={20} color={IS_WEB ? '#ea580c' : '#fff'} />
+          {IS_WEB && <Text style={styles.backLabel}>Back</Text>}
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>My Enquiries</Text>
-          <Text style={styles.headerSub}>{enquiries.length} enquiry(s)</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.refreshBtn}
-          onPress={loadData}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="refresh" size={20} color="#0f172a" />
+        <Text style={styles.headerTitle}>My Enquiries</Text>
+        <TouchableOpacity style={styles.refreshBtn} onPress={loadData} activeOpacity={0.8}>
+          <Ionicons name="refresh-outline" size={18} color={IS_WEB ? '#ea580c' : '#fff'} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 12, paddingBottom: 32 }}
+        contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 32 }]}
       >
+        {/* ── Page title (web) ── */}
+        {IS_WEB && (
+          <View style={styles.pageHeader}>
+            <Text style={styles.pageTitle}>My Enquiries</Text>
+            <Text style={styles.pageSub}>{enquiries.length} total enquiries</Text>
+          </View>
+        )}
+
+        {/* ── Stat row ── */}
+        {enquiries.length > 0 && (
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statVal}>{enquiries.length}</Text>
+            </View>
+            <View style={[styles.statBox, { borderColor: '#fed7aa' }]}>
+              <Text style={[styles.statLabel, { color: '#9a3412' }]}>New</Text>
+              <Text style={[styles.statVal, { color: '#ea580c' }]}>{newCount}</Text>
+            </View>
+            <View style={[styles.statBox, { borderColor: '#bbf7d0' }]}>
+              <Text style={[styles.statLabel, { color: '#166534' }]}>Replied</Text>
+              <Text style={[styles.statVal, { color: '#16a34a' }]}>{repliedCount}</Text>
+            </View>
+          </View>
+        )}
+
         {enquiries.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Ionicons name="chatbubbles-outline" size={48} color="#cbd5e1" />
-            <Text style={styles.emptyText}>No enquiries yet</Text>
-            <Text style={styles.emptySubText}>Your submitted enquiries will appear here</Text>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="chatbubbles-outline" size={32} color="#fed7aa" />
+            </View>
+            <Text style={styles.emptyTitle}>No enquiries yet</Text>
+            <Text style={styles.emptySub}>Your submitted enquiries will appear here</Text>
           </View>
         ) : (
-          enquiries.map((enquiry, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={styles.enquiryCard}
-              onPress={() => {
-                setSelectedEnquiry(enquiry);
-                setSelectedProduct(enquiry.product);
-              }}
-              activeOpacity={0.85}
-            >
-              <View style={styles.enquiryTop}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.enquiryProduct} numberOfLines={2}>
-                    {enquiry.product?.title || 'Unknown Product'}
-                  </Text>
-                  <View style={styles.enquiryMeta}>
-                    <Ionicons name="location-outline" size={12} color="#64748b" />
-                    <Text style={styles.enquiryCity}>{enquiry.product?.city || 'Unknown'}</Text>
+          enquiries.map((enquiry, idx) => {
+            const st = getStatus(enquiry.status);
+            return (
+              <TouchableOpacity
+                key={idx}
+                style={styles.card}
+                onPress={() => { setSelected(enquiry); setProduct(enquiry.product); }}
+                activeOpacity={0.85}
+              >
+                {/* left accent */}
+                <View style={[styles.cardAccent, { backgroundColor: st.text }]} />
+
+                <View style={styles.cardInner}>
+                  {/* Top row */}
+                  <View style={styles.cardTop}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.cardProductName} numberOfLines={1}>
+                        {enquiry.product?.title || 'Unknown Product'}
+                      </Text>
+                      <View style={styles.cardLocation}>
+                        <Ionicons name="location-outline" size={11} color="#94a3b8" />
+                        <Text style={styles.cardLocationText}>
+                          {enquiry.product?.city || 'Unknown location'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.statusPill, { backgroundColor: st.bg }]}>
+                      <Text style={[styles.statusPillText, { color: st.text }]}>{st.label}</Text>
+                    </View>
+                  </View>
+
+                  {/* Bottom row */}
+                  <View style={styles.cardBottom}>
+                    <View style={styles.cardChips}>
+                      <View style={styles.priceChip}>
+                        <Ionicons name="cash-outline" size={12} color="#ea580c" />
+                        <Text style={styles.priceChipText}>{money(enquiry.product?.price)}</Text>
+                      </View>
+                      <View style={styles.qtyChip}>
+                        <Ionicons name="layers-outline" size={12} color="#64748b" />
+                        <Text style={styles.qtyChipText}>Qty: {getEnquiryQuantity(enquiry)}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.viewBtn}>
+                      <Text style={styles.viewBtnText}>View</Text>
+                      <Ionicons name="chevron-forward" size={13} color="#ea580c" />
+                    </View>
                   </View>
                 </View>
-                <View
-                  style={[
-                    styles.statusBadgeSmall,
-                    { backgroundColor: getStatusColor(enquiry.status) },
-                  ]}
-                >
-                  <Text style={styles.statusBadgeText}>
-                    {enquiry.status?.charAt(0).toUpperCase() + enquiry.status?.slice(1) || 'New'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.enquiryBottom}>
-                <View style={styles.priceQtyRow}>
-                  <Text style={styles.priceLabel}>{money(enquiry.product?.price)}</Text>
-                  <Text style={styles.qtyLabel}>Qty: {getEnquiryQuantity(enquiry)}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
-              </View>
-            </TouchableOpacity>
-          ))
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
 
@@ -327,10 +328,7 @@ export default function MyEnquiriesScreen({ navigation }) {
         visible={Boolean(selectedEnquiry && selectedProduct)}
         enquiry={selectedEnquiry}
         product={selectedProduct}
-        onClose={() => {
-          setSelectedEnquiry(null);
-          setSelectedProduct(null);
-        }}
+        onClose={() => { setSelected(null); setProduct(null); }}
         onCall={handleCall}
         onWhatsApp={handleWhatsApp}
       />
@@ -338,223 +336,198 @@ export default function MyEnquiriesScreen({ navigation }) {
   );
 }
 
+// ─── Main Styles ──────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: {
+  root: { flex: 1, backgroundColor: IS_WEB ? '#fff' : '#f8fafc' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: IS_WEB ? 32 : 16,
+    height: IS_WEB ? 52 : 52,
+    backgroundColor: IS_WEB ? '#fff' : '#111',
+    borderBottomWidth: 1,
+    borderBottomColor: IS_WEB ? '#f0e8e0' : '#1e1e1e',
+  },
+  backBtn:    { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
+  backLabel:  { fontSize: 13, color: '#ea580c', fontWeight: '500' },
+  headerTitle: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    fontSize: 15,
+    fontWeight: '600',
+    color: IS_WEB ? '#0f172a' : '#fff',
+  },
+  refreshBtn: { padding: 6 },
+
+  container: {
+    paddingHorizontal: IS_WEB ? 32 : 14,
+    paddingTop: 4,
+    maxWidth: IS_WEB ? 760 : undefined,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  loadingDot:  { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff7ed', borderWidth: 2, borderColor: '#ea580c' },
+  loadingText: { fontSize: 13, color: '#94a3b8' },
+
+  pageHeader: { paddingTop: 24, paddingBottom: 4 },
+  pageTitle:  { fontSize: 26, fontWeight: '600', color: '#0f172a', letterSpacing: -0.4 },
+  pageSub:    { fontSize: 13, color: '#94a3b8', marginTop: 4 },
+
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 10, marginTop: 14, marginBottom: 16 },
+  statBox:  {
+    flex: 1, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: '#e2e8f0',
+    borderRadius: 12, padding: 12, alignItems: 'center',
+  },
+  statLabel: { fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' },
+  statVal:   { fontSize: 22, fontWeight: '600', color: '#0f172a', marginTop: 4 },
+
+  // Card
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  cardAccent: { width: 3, backgroundColor: '#ea580c' },
+  cardInner:  { flex: 1, padding: 14 },
+  cardTop:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
+  cardProductName: { fontSize: 14, fontWeight: '600', color: '#0f172a' },
+  cardLocation:    { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  cardLocationText:{ fontSize: 11, color: '#94a3b8' },
+  statusPill:      { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  statusPillText:  { fontSize: 10, fontWeight: '600' },
+  cardBottom:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  cardChips:       { flexDirection: 'row', gap: 8 },
+  priceChip:       { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fff7ed', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#fed7aa' },
+  priceChipText:   { fontSize: 11, fontWeight: '600', color: '#ea580c' },
+  qtyChip:         { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f8fafc', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#e2e8f0' },
+  qtyChipText:     { fontSize: 11, fontWeight: '600', color: '#64748b' },
+  viewBtn:         { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  viewBtnText:     { fontSize: 12, fontWeight: '600', color: '#ea580c' },
+
+  // Empty
+  emptyBox:      { alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', paddingVertical: 52, marginTop: 12 },
+  emptyIconWrap: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  emptyTitle:    { fontSize: 16, fontWeight: '700', color: '#0f172a' },
+  emptySub:      { fontSize: 12, color: '#64748b', marginTop: 6, textAlign: 'center', paddingHorizontal: 32 },
+});
+
+// ─── Modal Styles ─────────────────────────────────────────────────────────────
+const mStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.55)',
+    justifyContent: IS_WEB ? 'center' : 'flex-end',
+    alignItems: IS_WEB ? 'center' : 'stretch',
+    padding: IS_WEB ? 24 : 0,
+  },
+  sheet: {
+    backgroundColor: '#fff',
+    borderRadius: IS_WEB ? 20 : 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: IS_WEB ? '85%' : '90%',
+    width: IS_WEB ? '100%' : undefined,
+    maxWidth: IS_WEB ? 520 : undefined,
+    paddingBottom: 16,
+  },
+  handle: {
+    width: 40, height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 4,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  headerSub: {
-    fontSize: 11,
-    color: '#94a3b8',
-    marginTop: 2,
-  },
-  refreshBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  emptyBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginTop: 12,
-  },
-  emptySubText: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 4,
-  },
-  enquiryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  enquiryTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-    gap: 10,
-  },
-  enquiryProduct: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  enquiryMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  enquiryCity: {
-    fontSize: 11,
-    color: '#64748b',
-  },
-  statusBadgeSmall: {
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  enquiryBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-  },
-  priceQtyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  priceLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#16a34a',
-  },
-  qtyLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '85%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 10,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
-  detailLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: '#fff7ed',
+    alignItems: 'center', justifyContent: 'center',
   },
-  detailValue: {
-    fontSize: 12,
-    color: '#0f172a',
-    fontWeight: '700',
-    flex: 1,
-    textAlign: 'right',
+  title:    { fontSize: 15, fontWeight: '700', color: '#0f172a' },
+  titleSub: { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center', justifyContent: 'center',
   },
-  statusBadge: {
+  body: { padding: 16, paddingBottom: 32, gap: 12 },
+
+  statusBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    gap: 8,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 4,
+  },
+  statusBannerText: { fontSize: 13, fontWeight: '600' },
+
+  card: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    backgroundColor: '#fafafa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  cardIconWrap: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: '#fff7ed',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cardTitle: { fontSize: 12, fontWeight: '700', color: '#0f172a', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
     paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f8fafc',
+    gap: 12,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
+  rowLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '500', minWidth: 70 },
+  rowValue: { fontSize: 12, color: '#0f172a', fontWeight: '600', flex: 1, textAlign: 'right' },
+  rowValueHighlight: { color: '#ea580c', fontSize: 13 },
+  rowValueMulti: { textAlign: 'left', lineHeight: 18 },
+
+  actions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  callBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 7, backgroundColor: '#111', borderRadius: 12, paddingVertical: 13,
   },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 20,
+  waBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 7, backgroundColor: '#16a34a', borderRadius: 12, paddingVertical: 13,
   },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#0369a1',
-    borderRadius: 10,
-    paddingVertical: 12,
-  },
-  actionBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  actionBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });

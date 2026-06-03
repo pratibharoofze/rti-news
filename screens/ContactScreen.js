@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Linking, Alert, Platform, Modal,
+  StyleSheet, Linking, Alert, Platform, Modal, useWindowDimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AppNavbar from '../components/AppNavbar';
 import AppFooter from '../components/AppFooter';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getSiteCopy } from '../constants/siteCopy';
+import { getResponsiveWindowWidth, isMobileWebDevice } from '../utils/webDevice';
 
 const faqs = [
   {
@@ -126,6 +127,7 @@ function SubjectPicker({ value, onChange, subjects, contactCopy }) {
 const isWeb = Platform.OS === 'web';
 
 export default function ContactScreen({ navigation }) {
+  const { width } = useWindowDimensions();
   const { language } = useLanguage();
   const copy = getSiteCopy(language);
   const contactCopy = copy.contact;
@@ -133,6 +135,13 @@ export default function ContactScreen({ navigation }) {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [openFaq, setOpenFaq] = useState(null);
   const subjects = contactCopy.subjects;
+  const responsiveWidth = getResponsiveWindowWidth(width);
+  const isMobileWeb = isWeb && (isMobileWebDevice() || responsiveWidth < 768);
+  const scrollContentStyle = !isWeb
+    ? s.mobileScrollContent
+    : isMobileWeb
+      ? s.mobileWebScrollContent
+      : null;
 
   const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -154,9 +163,17 @@ export default function ContactScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <AppNavbar navigation={navigation} activeScreen="Contact" />
+      {isWeb ? (
+        <AppNavbar navigation={navigation} activeScreen="Contact" />
+      ) : (
+        <AppNavbar navigation={navigation} activeScreen="Contact" hideBottomBar />
+      )}
 
-      <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={s.container}
+        contentContainerStyle={scrollContentStyle}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Smaller Hero Section - No Curves */}
         <View style={s.hero}>
           <View style={s.heroContent}>
@@ -329,13 +346,15 @@ export default function ContactScreen({ navigation }) {
         {isWeb ? <AppFooter navigation={navigation} /> : null}
       </ScrollView>
 
-      
+      {!isWeb ? <AppNavbar navigation={navigation} activeScreen="Contact" hideTopHeader /> : null}
     </View>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fa' },
+  mobileScrollContent: { paddingBottom: 8 },
+  mobileWebScrollContent: { paddingBottom: 140 },
 
   // Smaller Hero Section - No Curves
   hero: { 

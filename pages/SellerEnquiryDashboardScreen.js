@@ -2,9 +2,7 @@ import React, { useCallback, useState } from 'react';
 import {
   Alert,
   Linking,
-  Modal,
   Platform,
-  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -14,7 +12,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { UserStore } from '../store/UserStore';
+
+const IS_WEB = Platform.OS === 'web';
 
 const money = (val) => {
   if (!val) return '₹0';
@@ -22,156 +23,138 @@ const money = (val) => {
 };
 
 const notify = (title, msg) => {
-  if (Platform.OS === 'web') {
-    alert(`${title}\n${msg}`);
-  } else {
-    Alert.alert(title, msg);
-  }
+  if (IS_WEB) { alert(`${title}\n${msg}`); } else { Alert.alert(title, msg); }
 };
 
-const getBuyerName = (person = {}) => (
-  person.name || person.buyer_name || [person.buyer_first_name, person.buyer_last_name].filter(Boolean).join(' ') || 'Unknown'
-);
-const getBuyerEmail = (person = {}) => (
-  person.email || person.buyer_contact_email || person.buyer_email || 'No email'
-);
-const getBuyerContact = (person = {}) => person.contact || person.buyer_mobile || person.mobile || '';
-const getEnquiryQuantity = (person = {}) => (
-  person.quantity || person.requested_quantity || person.product_quantity || 'N/A'
-);
-const getEnquiryDate = (person = {}) => person.date || person.created_at || person.createdAt || 'N/A';
+const getBuyerName    = (p = {}) => p.name || p.buyer_name || [p.buyer_first_name, p.buyer_last_name].filter(Boolean).join(' ') || 'Unknown';
+const getBuyerEmail   = (p = {}) => p.email || p.buyer_contact_email || p.buyer_email || '—';
+const getBuyerContact = (p = {}) => p.contact || p.buyer_mobile || p.mobile || '';
+const getQty          = (p = {}) => p.quantity || p.requested_quantity || p.product_quantity || 'N/A';
+const getDate         = (p = {}) => {
+  const raw = p.created_at || p.createdAt || p.date;
+  if (!raw) return '—';
+  const d = new Date(raw);
+  if (isNaN(d)) return raw;
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
 
-const DetailContactCard = ({ person, product, onCall, onWhatsApp }) => {
+// ─── Enquiry card inside expanded product ─────────────────────────────────────
+const EnquiryBuyerCard = ({ enquiry, product, onCall, onWhatsApp, index }) => {
+  const initials = getBuyerName(enquiry).split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <View style={styles.contactCard}>
-      <View style={styles.contactHeader}>
-        <View>
-          <Text style={styles.contactName}>{getBuyerName(person)}</Text>
-          <Text style={styles.contactEmail}>{getBuyerEmail(person)}</Text>
+    <View style={styles.buyerCard}>
+      {/* buyer avatar + name */}
+      <View style={styles.buyerTop}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initials || '?'}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.buyerName}>{getBuyerName(enquiry)}</Text>
+          <Text style={styles.buyerEmail} numberOfLines={1}>{getBuyerEmail(enquiry)}</Text>
+        </View>
+        <View style={styles.buyerIndexBadge}>
+          <Text style={styles.buyerIndexText}>#{index + 1}</Text>
         </View>
       </View>
 
-      <View style={styles.contactInfo}>
-        <View style={styles.infoRow}>
-          <Ionicons name="layers-outline" size={14} color="#0369a1" />
-          <Text style={styles.infoLabel}>Quantity:</Text>
-          <Text style={styles.infoValue}>{getEnquiryQuantity(person)}</Text>
+      {/* info chips */}
+      <View style={styles.buyerChips}>
+        <View style={styles.chip}>
+          <Ionicons name="layers-outline" size={12} color="#ea580c" />
+          <Text style={styles.chipText}>Qty: {getQty(enquiry)}</Text>
         </View>
-        {person.message && (
-          <View style={styles.infoRow}>
-            <Ionicons name="chatbubble-outline" size={14} color="#0369a1" />
-            <Text style={styles.infoLabel}>Message:</Text>
-            <Text style={[styles.infoValue, { flex: 1 }]}>{person.message}</Text>
+        <View style={styles.chip}>
+          <Ionicons name="calendar-outline" size={12} color="#64748b" />
+          <Text style={[styles.chipText, { color: '#64748b' }]}>{getDate(enquiry)}</Text>
+        </View>
+        {getBuyerContact(enquiry) ? (
+          <View style={styles.chip}>
+            <Ionicons name="call-outline" size={12} color="#64748b" />
+            <Text style={[styles.chipText, { color: '#64748b' }]}>{getBuyerContact(enquiry)}</Text>
           </View>
-        )}
-        <View style={styles.infoRow}>
-          <Ionicons name="time-outline" size={14} color="#0369a1" />
-          <Text style={styles.infoLabel}>Date:</Text>
-          <Text style={styles.infoValue}>{getEnquiryDate(person)}</Text>
-        </View>
+        ) : null}
       </View>
 
-      <View style={styles.contactActions}>
+      {/* message */}
+      {enquiry.message ? (
+        <View style={styles.messageBox}>
+          <Ionicons name="chatbubble-outline" size={12} color="#94a3b8" style={{ marginTop: 1 }} />
+          <Text style={styles.messageText}>{enquiry.message}</Text>
+        </View>
+      ) : null}
+
+      {/* action buttons */}
+      <View style={styles.buyerActions}>
         <TouchableOpacity
           style={styles.callBtn}
-          onPress={() => onCall(getBuyerContact(person), person)}
+          onPress={() => onCall(getBuyerContact(enquiry))}
           activeOpacity={0.85}
         >
-          <Ionicons name="call" size={16} color="#fff" />
-          <Text style={styles.callBtnText}>Call</Text>
+          <Ionicons name="call" size={14} color="#fff" />
+          <Text style={styles.actionBtnText}>Call</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.whatsappBtn}
-          onPress={() => onWhatsApp(getBuyerContact(person), person, product)}
+          style={styles.waBtn}
+          onPress={() => onWhatsApp(getBuyerContact(enquiry), enquiry, product)}
           activeOpacity={0.85}
         >
-          <Ionicons name="logo-whatsapp" size={16} color="#fff" />
-          <Text style={styles.whatsappBtnText}>WhatsApp</Text>
+          <Ionicons name="logo-whatsapp" size={14} color="#fff" />
+          <Text style={styles.actionBtnText}>WhatsApp</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SellerEnquiryDashboardScreen({ navigation }) {
-  const [loading, setLoading] = useState(true);
-  const [listings, setListings] = useState([]);
-  const [expandedProduct, setExpandedProduct] = useState(null);
+  const insets = useSafeAreaInsets();
+  const [loading, setLoading]         = useState(true);
+  const [listings, setListings]       = useState([]);
+  const [expandedId, setExpandedId]   = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const currentUser = await UserStore.getCurrentUser();
-      if (!currentUser) {
-        notify('Not Logged In', 'Please login to view enquiries.');
-        setLoading(false);
-        return;
-      }
-
+      if (!currentUser) { notify('Not Logged In', 'Please login.'); setLoading(false); return; }
       const summary = await UserStore.getEcomeMarketplaceSummary();
-      if (!summary) {
-        setLoading(false);
-        return;
-      }
-
-      const userEmail = String(currentUser.email || '').trim().toLowerCase();
-      const userListings = (Array.isArray(summary.listings) ? summary.listings : [])
-        .filter((item) => String(item.createdBy || '').trim().toLowerCase() === userEmail);
-
-      const enquiries = Array.isArray(summary.enquiries) ? summary.enquiries : [];
-      
-      const listingsWithEnquiries = userListings.map((listing) => ({
-        ...listing,
-        enquiries: enquiries.filter((eq) => String(eq.product_id) === String(listing.id)),
-      }));
-
-      setListings(listingsWithEnquiries);
-    } catch (error) {
-      console.error('Error loading enquiries:', error);
-    }
+      if (!summary) { setLoading(false); return; }
+      const userEmail  = String(currentUser.email || '').trim().toLowerCase();
+      const enquiries  = Array.isArray(summary.enquiries) ? summary.enquiries : [];
+      const enriched   = (Array.isArray(summary.listings) ? summary.listings : [])
+        .filter((l) => String(l.createdBy || '').trim().toLowerCase() === userEmail)
+        .map((l) => ({ ...l, enquiries: enquiries.filter((eq) => String(eq.product_id) === String(l.id)) }));
+      setListings(enriched);
+    } catch (e) { console.error(e); }
     setLoading(false);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const handleCall = (contact, person) => {
+  const handleCall = (contact) => {
     const phone = String(contact || '').replace(/\D/g, '');
-    if (!phone) {
-      notify('No Contact', 'No phone number available.');
-      return;
-    }
-    if (Platform.OS === 'web') {
-      window.open(`tel:+91${phone}`);
-    } else {
-      Linking.openURL(`tel:+91${phone}`);
-    }
+    if (!phone) { notify('No Contact', 'No phone number available.'); return; }
+    IS_WEB ? window.open(`tel:+91${phone}`) : Linking.openURL(`tel:+91${phone}`);
   };
 
   const handleWhatsApp = (contact, person, product) => {
     const phone = String(contact || '').replace(/\D/g, '');
-    if (!phone) {
-      notify('No Contact', 'No phone number available.');
-      return;
-    }
-    const msg = encodeURIComponent(
-      `Hi, I am interested in your enquiry for: ${product.title}\nProduct: ${product.title}\nPrice: ${money(product.price)}`
-    );
+    if (!phone) { notify('No Contact', 'No phone number available.'); return; }
+    const msg = encodeURIComponent(`Hi, regarding your enquiry for: ${product.title}\nPrice: ${money(product.price)}`);
     const url = `https://wa.me/91${phone}?text=${msg}`;
-    if (Platform.OS === 'web') {
-      window.open(url, '_blank');
-    } else {
-      Linking.openURL(url);
-    }
+    IS_WEB ? window.open(url, '_blank') : Linking.openURL(url);
   };
+
+  // totals
+  const totalEnquiries = listings.reduce((s, l) => s + (l.enquiries?.length || 0), 0);
+  const productsWithEnquiries = listings.filter((l) => l.enquiries?.length > 0).length;
 
   if (loading) {
     return (
       <SafeAreaView style={styles.root}>
-        <View style={styles.loadingContainer}>
+        <View style={styles.loadingWrap}>
+          <View style={styles.loadingDot} />
           <Text style={styles.loadingText}>Loading enquiries...</Text>
         </View>
       </SafeAreaView>
@@ -180,85 +163,129 @@ export default function SellerEnquiryDashboardScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.root}>
+      <View style={{ height: IS_WEB ? 0 : insets.top, backgroundColor: '#111' }} />
+
+      {/* ── Topbar ── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => navigation?.goBack?.()}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="chevron-back" size={24} color="#0f172a" />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation?.goBack?.()} activeOpacity={0.8}>
+          <Ionicons name="chevron-back" size={20} color={IS_WEB ? '#ea580c' : '#fff'} />
+          {IS_WEB && <Text style={styles.backLabel}>Back</Text>}
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Enquiries Received</Text>
-          <Text style={styles.headerSub}>{listings.length} product(s)</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.refreshBtn}
-          onPress={loadData}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="refresh" size={20} color="#0f172a" />
+        <Text style={styles.headerTitle}>Enquiries Received</Text>
+        <TouchableOpacity style={styles.refreshBtn} onPress={loadData} activeOpacity={0.8}>
+          <Ionicons name="refresh-outline" size={18} color={IS_WEB ? '#ea580c' : '#fff'} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 12, paddingBottom: 32 }}
+        contentContainerStyle={[styles.container, { paddingBottom: insets.bottom + 32 }]}
       >
+        {/* ── Page title (web) ── */}
+        {IS_WEB && (
+          <View style={styles.pageHeader}>
+            <Text style={styles.pageTitle}>Enquiries Received</Text>
+            <Text style={styles.pageSub}>Buyers interested in your listings</Text>
+          </View>
+        )}
+
+        {/* ── Stat row ── */}
+        {listings.length > 0 && (
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>Products</Text>
+              <Text style={styles.statVal}>{listings.length}</Text>
+            </View>
+            <View style={[styles.statBox, { borderColor: '#fed7aa' }]}>
+              <Text style={[styles.statLabel, { color: '#9a3412' }]}>Total Enquiries</Text>
+              <Text style={[styles.statVal, { color: '#ea580c' }]}>{totalEnquiries}</Text>
+            </View>
+            <View style={[styles.statBox, { borderColor: '#bbf7d0' }]}>
+              <Text style={[styles.statLabel, { color: '#166534' }]}>Active</Text>
+              <Text style={[styles.statVal, { color: '#16a34a' }]}>{productsWithEnquiries}</Text>
+            </View>
+          </View>
+        )}
+
         {listings.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Ionicons name="inbox-outline" size={48} color="#cbd5e1" />
-            <Text style={styles.emptyText}>No enquiries yet</Text>
-            <Text style={styles.emptySubText}>Your received enquiries will appear here</Text>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="inbox-outline" size={32} color="#fed7aa" />
+            </View>
+            <Text style={styles.emptyTitle}>No enquiries yet</Text>
+            <Text style={styles.emptySub}>Buyers will appear here when they enquire about your listings</Text>
           </View>
         ) : (
-          listings.map((product) => (
-            <View key={product.id} style={styles.productCard}>
-              <TouchableOpacity
-                style={styles.productHeader}
-                onPress={() => setExpandedProduct(expandedProduct === product.id ? null : product.id)}
-                activeOpacity={0.8}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.productTitle} numberOfLines={2}>{product.title}</Text>
-                  <View style={styles.productMeta}>
-                    <View style={styles.metaBadge}>
-                      <Ionicons name="chatbubble-outline" size={12} color="#0369a1" />
-                      <Text style={styles.metaText}>{product.enquiries?.length || 0} enquiries</Text>
-                    </View>
-                    <Text style={styles.productPrice}>{money(product.price)}</Text>
-                  </View>
-                </View>
-                <Ionicons
-                  name={expandedProduct === product.id ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color="#64748b"
-                />
-              </TouchableOpacity>
+          listings.map((product) => {
+            const isOpen   = expandedId === product.id;
+            const eCount   = product.enquiries?.length || 0;
+            return (
+              <View key={String(product.id)} style={styles.productCard}>
+                {/* left accent */}
+                <View style={[styles.productAccent, eCount === 0 && { backgroundColor: '#e2e8f0' }]} />
 
-              {expandedProduct === product.id && (
-                <View style={styles.expandedContent}>
-                  {product.enquiries && product.enquiries.length > 0 ? (
-                    <ScrollView scrollEnabled={false}>
-                      {product.enquiries.map((enquiry, idx) => (
-                        <DetailContactCard
-                          key={idx}
-                          person={enquiry}
-                          product={product}
-                          onCall={handleCall}
-                          onWhatsApp={handleWhatsApp}
-                        />
-                      ))}
-                    </ScrollView>
-                  ) : (
-                    <View style={styles.noEnquiriesBox}>
-                      <Text style={styles.noEnquiriesText}>No enquiries for this product</Text>
+                <View style={{ flex: 1 }}>
+                  {/* ── Product header ── */}
+                  <TouchableOpacity
+                    style={styles.productHeader}
+                    onPress={() => setExpandedId(isOpen ? null : product.id)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.productIconWrap}>
+                      <Ionicons name="cube-outline" size={18} color={eCount > 0 ? '#ea580c' : '#94a3b8'} />
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.productTitle} numberOfLines={1}>{product.title}</Text>
+                      <View style={styles.productMetaRow}>
+                        <Text style={styles.productPrice}>{money(product.price)}</Text>
+                        {product.city ? (
+                          <>
+                            <Text style={styles.metaDot}>·</Text>
+                            <Ionicons name="location-outline" size={11} color="#94a3b8" />
+                            <Text style={styles.productCity}>{product.city}</Text>
+                          </>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    <View style={styles.enquiryCountBadge}>
+                      <Text style={styles.enquiryCountText}>{eCount}</Text>
+                    </View>
+                    <Ionicons
+                      name={isOpen ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color="#94a3b8"
+                      style={{ marginLeft: 6 }}
+                    />
+                  </TouchableOpacity>
+
+                  {/* ── Expanded buyers ── */}
+                  {isOpen && (
+                    <View style={styles.expandedWrap}>
+                      {eCount > 0 ? (
+                        product.enquiries.map((enquiry, idx) => (
+                          <EnquiryBuyerCard
+                            key={idx}
+                            index={idx}
+                            enquiry={enquiry}
+                            product={product}
+                            onCall={handleCall}
+                            onWhatsApp={handleWhatsApp}
+                          />
+                        ))
+                      ) : (
+                        <View style={styles.noEnquiryWrap}>
+                          <Ionicons name="chatbubbles-outline" size={22} color="#cbd5e1" />
+                          <Text style={styles.noEnquiryText}>No enquiries for this product yet</Text>
+                        </View>
+                      )}
                     </View>
                   )}
                 </View>
-              )}
-            </View>
-          ))
+              </View>
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
@@ -266,202 +293,133 @@ export default function SellerEnquiryDashboardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
+  root: { flex: 1, backgroundColor: IS_WEB ? '#fff' : '#f8fafc' },
+
+  // ── Header ──
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: IS_WEB ? 32 : 16,
+    height: 52,
+    backgroundColor: IS_WEB ? '#fff' : '#111',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: IS_WEB ? '#f0e8e0' : '#1e1e1e',
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
+  backBtn:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6 },
+  backLabel:   { fontSize: 13, color: '#ea580c', fontWeight: '500' },
+  headerTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: IS_WEB ? '#0f172a' : '#fff' },
+  refreshBtn:  { padding: 6 },
+
+  container: {
+    paddingHorizontal: IS_WEB ? 32 : 14,
+    paddingTop: 4,
+    maxWidth: IS_WEB ? 760 : undefined,
+    width: '100%',
+    alignSelf: 'center',
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  headerSub: {
-    fontSize: 11,
-    color: '#94a3b8',
-    marginTop: 2,
-  },
-  refreshBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  emptyBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginTop: 12,
-  },
-  emptySubText: {
-    fontSize: 13,
-    color: '#64748b',
-    marginTop: 4,
-  },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  loadingDot:  { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff7ed', borderWidth: 2, borderColor: '#ea580c' },
+  loadingText: { fontSize: 13, color: '#94a3b8' },
+
+  pageHeader: { paddingTop: 24, paddingBottom: 4 },
+  pageTitle:  { fontSize: 26, fontWeight: '600', color: '#0f172a', letterSpacing: -0.4 },
+  pageSub:    { fontSize: 13, color: '#94a3b8', marginTop: 4 },
+
+  // ── Stats ──
+  statsRow: { flexDirection: 'row', gap: 10, marginTop: 14, marginBottom: 16 },
+  statBox:  { flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12, alignItems: 'center' },
+  statLabel: { fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600', textAlign: 'center' },
+  statVal:   { fontSize: 22, fontWeight: '600', color: '#0f172a', marginTop: 4 },
+
+  // ── Product card ──
   productCard: {
+    flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderWidth: 1, borderColor: '#e2e8f0',
+    borderRadius: 14,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
     overflow: 'hidden',
   },
+  productAccent: { width: 3, backgroundColor: '#ea580c' },
   productHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 14,
   },
-  productTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0f172a',
+  productIconWrap: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: '#fff7ed',
+    alignItems: 'center', justifyContent: 'center',
   },
-  productMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  productTitle:   { fontSize: 14, fontWeight: '600', color: '#0f172a' },
+  productMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  productPrice:   { fontSize: 12, fontWeight: '600', color: '#ea580c' },
+  metaDot:        { fontSize: 11, color: '#cbd5e1' },
+  productCity:    { fontSize: 11, color: '#94a3b8' },
+  enquiryCountBadge: {
+    minWidth: 26, height: 26, borderRadius: 13,
+    backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
+  },
+  enquiryCountText: { fontSize: 12, fontWeight: '700', color: '#ea580c' },
+
+  // ── Expanded section ──
+  expandedWrap: {
+    paddingHorizontal: 12, paddingBottom: 12,
+    borderTopWidth: 1, borderTopColor: '#f1f5f9',
     gap: 8,
-    marginTop: 6,
   },
-  metaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#e0f2fe',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  metaText: {
-    fontSize: 11,
-    color: '#0369a1',
-    fontWeight: '600',
-  },
-  productPrice: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#16a34a',
-  },
-  expandedContent: {
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 10,
-  },
-  noEnquiriesBox: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  noEnquiriesText: {
-    fontSize: 13,
-    color: '#94a3b8',
-  },
-  contactCard: {
+  noEnquiryWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 16, paddingHorizontal: 4 },
+  noEnquiryText: { fontSize: 13, color: '#94a3b8' },
+
+  // ── Buyer card ──
+  buyerCard: {
     backgroundColor: '#f8fafc',
-    borderRadius: 10,
+    borderWidth: 1, borderColor: '#e2e8f0',
+    borderRadius: 12,
     padding: 12,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#0369a1',
+    marginTop: 8,
   },
-  contactHeader: {
-    marginBottom: 10,
+  buyerTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  avatar: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa',
+    alignItems: 'center', justifyContent: 'center',
   },
-  contactName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a',
+  avatarText:     { fontSize: 13, fontWeight: '700', color: '#ea580c' },
+  buyerName:      { fontSize: 13, fontWeight: '600', color: '#0f172a' },
+  buyerEmail:     { fontSize: 11, color: '#94a3b8', marginTop: 2 },
+  buyerIndexBadge:{ backgroundColor: '#f1f5f9', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  buyerIndexText: { fontSize: 10, fontWeight: '700', color: '#64748b' },
+
+  buyerChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0',
+    borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
   },
-  contactEmail: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 2,
+  chipText: { fontSize: 11, fontWeight: '600', color: '#ea580c' },
+
+  messageBox: {
+    flexDirection: 'row', gap: 6, alignItems: 'flex-start',
+    backgroundColor: '#fff', borderRadius: 10,
+    borderWidth: 1, borderColor: '#e2e8f0',
+    padding: 10, marginBottom: 10,
   },
-  contactInfo: {
-    marginBottom: 10,
-    gap: 6,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
-  },
-  infoLabel: {
-    fontSize: 11,
-    color: '#64748b',
-    fontWeight: '600',
-    minWidth: 70,
-  },
-  infoValue: {
-    fontSize: 11,
-    color: '#0f172a',
-    fontWeight: '600',
-  },
-  contactActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  messageText: { fontSize: 12, color: '#475569', lineHeight: 18, flex: 1 },
+
+  buyerActions: { flexDirection: 'row', gap: 8 },
   callBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#0369a1',
-    borderRadius: 8,
-    paddingVertical: 8,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, backgroundColor: '#111', borderRadius: 10, paddingVertical: 10,
   },
-  callBtnText: {
-    fontSize: 11,
-    color: '#fff',
-    fontWeight: '700',
+  waBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, backgroundColor: '#16a34a', borderRadius: 10, paddingVertical: 10,
   },
-  whatsappBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#16a34a',
-    borderRadius: 8,
-    paddingVertical: 8,
-  },
-  whatsappBtnText: {
-    fontSize: 11,
-    color: '#fff',
-    fontWeight: '700',
-  },
+  actionBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  // ── Empty ──
+  emptyBox:      { alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', paddingVertical: 52, marginTop: 12 },
+  emptyIconWrap: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#fff7ed', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  emptyTitle:    { fontSize: 16, fontWeight: '700', color: '#0f172a' },
+  emptySub:      { fontSize: 12, color: '#64748b', marginTop: 6, textAlign: 'center', paddingHorizontal: 32, lineHeight: 18 },
 });

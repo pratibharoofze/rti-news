@@ -16,6 +16,8 @@ import { UserStore } from '../store/UserStore';
 // ─── Amber/Orange tokens (web only) ──────────────────────────────────────────
 const O = { 50:'#FEF6EC', 100:'#FDECD8', 200:'#FBCFA0', 400:'#F09A3E', 600:'#C8700F', 800:'#7A420A' };
 
+const DEFAULT_STATE = 'Maharashtra';
+
 // ─── Web-only styles ──────────────────────────────────────────────────────────
 const w = {
   root: { flex:1, backgroundColor:'#F7F4F0', minHeight:'100vh' },
@@ -103,6 +105,9 @@ const w = {
   webFieldHint: { fontSize:12, color:'#888888', marginBottom:8 },
   webTextInput: { minHeight:80, borderWidth:1.5, borderColor:'#E5DDD5', borderRadius:12, padding:14, fontSize:14, color:'#111111', backgroundColor:'#ffffff', textAlignVertical:'top' },
   webTextInputDesc: { minHeight:140, borderWidth:1.5, borderColor:'#E5DDD5', borderRadius:12, padding:14, fontSize:14, color:'#111111', backgroundColor:'#ffffff', textAlignVertical:'top' },
+  webDateInput: { borderWidth:1.5, borderColor:'#E5DDD5', borderRadius:12, paddingHorizontal:14, paddingVertical:13, backgroundColor:'#ffffff', flexDirection:'row', alignItems:'center', gap:10 },
+  webDateInputText: { fontSize:13, fontWeight:'600', color:'#111111', flex:1 },
+  webDateInputPlaceholder: { color:'#AAAAAA', fontWeight:'400' },
   webStateSelector: { flexDirection:'row', alignItems:'center', gap:10, borderWidth:1.5, borderColor:'#E5DDD5', borderRadius:12, paddingHorizontal:14, paddingVertical:13, backgroundColor:'#ffffff', marginTop:4 },
   webStateSelectorText: { flex:1, fontSize:13, fontWeight:'600', color:'#111111' },
   webStateSelectorPlaceholder: { color:'#AAAAAA', fontWeight:'400' },
@@ -120,8 +125,6 @@ const w = {
   webMediaSectionTitle: { fontSize:13, fontWeight:'800', color:'#111111', marginBottom:10 },
   webPickBtn: { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:8, borderWidth:1.5, borderColor:O[400], borderStyle:'dashed', borderRadius:12, paddingVertical:14, backgroundColor:O[50] },
   webPickBtnTxt: { fontSize:13, fontWeight:'800', color:O[600] },
-  webVideoStatusRow: { flexDirection:'row', alignItems:'center', gap:8, marginTop:10 },
-  webVideoStatusTxt: { fontSize:12, color:'#16a34a', fontWeight:'700' },
   webAdminNote: { flexDirection:'row', alignItems:'flex-start', gap:8, backgroundColor:'#fefce8', borderWidth:1, borderColor:'#fde68a', borderRadius:12, padding:14, marginTop:10 },
   webAdminNoteTxt: { flex:1, fontSize:12, color:'#854d0e', fontWeight:'600', lineHeight:18 },
   emptyIcon: { width:56, height:56, borderRadius:14, backgroundColor:O[50], borderWidth:1, borderColor:O[200], alignItems:'center', justifyContent:'center', marginBottom:14 },
@@ -147,149 +150,35 @@ const getWebStyles = (windowWidth) => {
       paddingHorizontal: isPhone ? 16 : 24,
       paddingVertical: isPhone ? 12 : 14,
     },
-    topLeft: {
-      ...w.topLeft,
-      flexWrap: 'wrap',
-      maxWidth: '100%',
-    },
-    backBtn: {
-      ...w.backBtn,
-      alignSelf: isPhone ? 'flex-start' : 'auto',
-      paddingHorizontal: isPhone ? 12 : 16,
-    },
-    scrollContent: {
-      ...w.scrollContent,
-      paddingHorizontal: isPhone ? 14 : 24,
-      paddingTop: isPhone ? 22 : 28,
-    },
-    innerWrap: {
-      ...w.innerWrap,
-      maxWidth: isTablet ? 820 : 1100,
-    },
-    pageHeadRow: {
-      ...w.pageHeadRow,
-      alignItems: isPhone ? 'stretch' : 'flex-end',
-      flexDirection: isPhone ? 'column' : 'row',
-      gap: isPhone ? 14 : 18,
-      marginBottom: isPhone ? 18 : 24,
-    },
-    pageTitle: {
-      ...w.pageTitle,
-      fontSize: isPhone ? 22 : 24,
-    },
-    pageSub: {
-      ...w.pageSub,
-      flexShrink: 1,
-      lineHeight: 20,
-    },
-    addBtn: {
-      ...w.addBtn,
-      justifyContent: 'center',
-      alignSelf: isPhone ? 'stretch' : 'auto',
-      paddingVertical: isPhone ? 12 : 10,
-    },
-    metricsRow: {
-      ...w.metricsRow,
-      flexWrap: 'wrap',
-      gap: isPhone ? 10 : 12,
-      marginBottom: isPhone ? 20 : 24,
-    },
-    mc: {
-      ...w.mc,
-      flex: isPhone ? 0 : 1,
-      width: isPhone ? '100%' : 'calc(33.333% - 8px)',
-      minWidth: isPhone ? '100%' : 180,
-      padding: isPhone ? 16 : 18,
-    },
-    mcTop: {
-      ...w.mcTop,
-      marginBottom: isPhone ? 10 : 14,
-    },
-    sectionHead: {
-      ...w.sectionHead,
-      alignItems: isPhone ? 'flex-start' : 'center',
-      flexDirection: isPhone ? 'column' : 'row',
-      gap: isPhone ? 10 : 12,
-    },
-    grid: {
-      ...w.grid,
-      gap: isPhone ? 12 : 14,
-    },
-    articleCard: {
-      ...w.articleCard,
-      width: isNarrow ? '100%' : 'calc(50% - 7px)',
-    },
-    articleBody: {
-      ...w.articleBody,
-      padding: isPhone ? 14 : 18,
-    },
-    articleMeta: {
-      ...w.articleMeta,
-      alignItems: 'flex-start',
-      gap: 8,
-    },
-    statsRow: {
-      ...w.statsRow,
-      flexWrap: 'wrap',
-      gap: isPhone ? 10 : 14,
-    },
-    actionBtn: {
-      ...w.actionBtn,
-      justifyContent: 'center',
-      minWidth: isPhone ? 'calc(50% - 4px)' : 92,
-      flexGrow: isPhone ? 1 : 0,
-    },
-    actionBtnDanger: {
-      ...w.actionBtnDanger,
-      justifyContent: 'center',
-      minWidth: isPhone ? 'calc(50% - 4px)' : 92,
-      flexGrow: isPhone ? 1 : 0,
-    },
-    successOverlay: {
-      ...w.successOverlay,
-      top: isPhone ? 84 : 70,
-      paddingHorizontal: 14,
-    },
-    successBox: {
-      ...w.successBox,
-      maxWidth: '100%',
-    },
-    webModalHeader: {
-      ...w.webModalHeader,
-      paddingHorizontal: isPhone ? 14 : 24,
-      gap: isPhone ? 8 : 12,
-    },
-    webModalHeaderTitle: {
-      ...w.webModalHeaderTitle,
-      fontSize: isPhone ? 15 : 17,
-    },
-    webModalSaveBtn: {
-      ...w.webModalSaveBtn,
-      paddingHorizontal: isPhone ? 14 : 20,
-    },
-    webFormContent: {
-      ...w.webFormContent,
-      paddingHorizontal: isPhone ? 14 : 24,
-      paddingTop: isPhone ? 18 : 24,
-    },
-    webMediaCard: {
-      ...w.webMediaCard,
-      borderRadius: isPhone ? 16 : 20,
-      padding: isPhone ? 14 : 20,
-    },
-    webMediaBadgeRow: {
-      ...w.webMediaBadgeRow,
-      gap: 8,
-    },
-    webMediaPill: {
-      ...w.webMediaPill,
-      flexGrow: isPhone ? 1 : 0,
-      justifyContent: isPhone ? 'center' : 'flex-start',
-    },
-    webMediaSection: {
-      ...w.webMediaSection,
-      padding: isPhone ? 12 : 16,
-    },
+    topLeft: { ...w.topLeft, flexWrap: 'wrap', maxWidth: '100%' },
+    backBtn: { ...w.backBtn, alignSelf: isPhone ? 'flex-start' : 'auto', paddingHorizontal: isPhone ? 12 : 16 },
+    scrollContent: { ...w.scrollContent, paddingHorizontal: isPhone ? 14 : 24, paddingTop: isPhone ? 22 : 28 },
+    innerWrap: { ...w.innerWrap, maxWidth: isTablet ? 820 : 1100 },
+    pageHeadRow: { ...w.pageHeadRow, alignItems: isPhone ? 'stretch' : 'flex-end', flexDirection: isPhone ? 'column' : 'row', gap: isPhone ? 14 : 18, marginBottom: isPhone ? 18 : 24 },
+    pageTitle: { ...w.pageTitle, fontSize: isPhone ? 22 : 24 },
+    pageSub: { ...w.pageSub, flexShrink: 1, lineHeight: 20 },
+    addBtn: { ...w.addBtn, justifyContent: 'center', alignSelf: isPhone ? 'stretch' : 'auto', paddingVertical: isPhone ? 12 : 10 },
+    metricsRow: { ...w.metricsRow, flexWrap: 'wrap', gap: isPhone ? 10 : 12, marginBottom: isPhone ? 20 : 24 },
+    mc: { ...w.mc, flex: isPhone ? 0 : 1, width: isPhone ? '100%' : 'calc(33.333% - 8px)', minWidth: isPhone ? '100%' : 180, padding: isPhone ? 16 : 18 },
+    mcTop: { ...w.mcTop, marginBottom: isPhone ? 10 : 14 },
+    sectionHead: { ...w.sectionHead, alignItems: isPhone ? 'flex-start' : 'center', flexDirection: isPhone ? 'column' : 'row', gap: isPhone ? 10 : 12 },
+    grid: { ...w.grid, gap: isPhone ? 12 : 14 },
+    articleCard: { ...w.articleCard, width: isNarrow ? '100%' : 'calc(50% - 7px)' },
+    articleBody: { ...w.articleBody, padding: isPhone ? 14 : 18 },
+    articleMeta: { ...w.articleMeta, alignItems: 'flex-start', gap: 8 },
+    statsRow: { ...w.statsRow, flexWrap: 'wrap', gap: isPhone ? 10 : 14 },
+    actionBtn: { ...w.actionBtn, justifyContent: 'center', minWidth: isPhone ? 'calc(50% - 4px)' : 92, flexGrow: isPhone ? 1 : 0 },
+    actionBtnDanger: { ...w.actionBtnDanger, justifyContent: 'center', minWidth: isPhone ? 'calc(50% - 4px)' : 92, flexGrow: isPhone ? 1 : 0 },
+    successOverlay: { ...w.successOverlay, top: isPhone ? 84 : 70, paddingHorizontal: 14 },
+    successBox: { ...w.successBox, maxWidth: '100%' },
+    webModalHeader: { ...w.webModalHeader, paddingHorizontal: isPhone ? 14 : 24, gap: isPhone ? 8 : 12 },
+    webModalHeaderTitle: { ...w.webModalHeaderTitle, fontSize: isPhone ? 15 : 17 },
+    webModalSaveBtn: { ...w.webModalSaveBtn, paddingHorizontal: isPhone ? 14 : 20 },
+    webFormContent: { ...w.webFormContent, paddingHorizontal: isPhone ? 14 : 24, paddingTop: isPhone ? 18 : 24 },
+    webMediaCard: { ...w.webMediaCard, borderRadius: isPhone ? 16 : 20, padding: isPhone ? 14 : 20 },
+    webMediaBadgeRow: { ...w.webMediaBadgeRow, gap: 8 },
+    webMediaPill: { ...w.webMediaPill, flexGrow: isPhone ? 1 : 0, justifyContent: isPhone ? 'center' : 'flex-start' },
+    webMediaSection: { ...w.webMediaSection, padding: isPhone ? 12 : 16 },
   };
 };
 
@@ -312,6 +201,9 @@ const INDIA_STATES=['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhatt
 const IMAGE_PICKER_MEDIA_TYPE=ImagePicker.MediaType;
 const IMAGE_PICKER_MEDIA_TYPE_OPTIONS=ImagePicker.MediaTypeOptions;
 const normalizeEPaperMediaType=(typeValue)=>{if(!typeValue)return undefined;const n=String(typeValue).toLowerCase();if(n.includes('images'))return ImagePicker.MediaType?.Images||'images';if(n.includes('videos'))return ImagePicker.MediaType?.Videos||'videos';if(n.includes('all'))return ImagePicker.MediaType?.All||'all';return typeValue;};
+
+// ─── Helper: today's date as YYYY-MM-DD ──────────────────────────────────────
+const todayStr = () => new Date().toISOString().slice(0, 10);
 
 function StatePickerModal({visible,selected,onSelect,onClose}){
   const[search,setSearch]=useState('');
@@ -378,7 +270,7 @@ export default function EPaperScreen({navigation}){
   const{showToast}=useToast();
   const isWeb=Platform.OS==='web';
   const { width: windowWidth } = useWindowDimensions();
-  const w = React.useMemo(() => getWebStyles(windowWidth), [windowWidth]);
+  const ws = React.useMemo(() => getWebStyles(windowWidth), [windowWidth]);
   const htmlToPlain=(html)=>String(html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
   const escapeHtml=(text)=>String(text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const plainToHtml=(text)=>`<div>${escapeHtml(text).replace(/\n/g,'<br/>')}</div>`;
@@ -390,12 +282,11 @@ export default function EPaperScreen({navigation}){
   const[totalViews,setTotalViews]=useState(0);
   const[formVisible,setFormVisible]=useState(false);
   const[editItem,setEditItem]=useState(null);
-  const[fMediaType,setFMediaType]=useState('None');
   const[fImages,setFImages]=useState([]);
-  const[fVideo,setFVideo]=useState(null);
   const[fSaving,setFSaving]=useState(false);
-  const[selectedState,setSelectedState]=useState('');
+  const[selectedState,setSelectedState]=useState(DEFAULT_STATE);
   const[statePickerVisible,setStatePickerVisible]=useState(false);
+  const[fDate,setFDate]=useState(todayStr());
   const fTitleRef=useRef('');
   const fDescRef=useRef('');
   const[viewItem,setViewItem]=useState(null);
@@ -416,14 +307,33 @@ export default function EPaperScreen({navigation}){
   },[navigation]);
   useFocusEffect(useCallback(()=>{loadData();},[loadData]));
 
-  const openAddForm=()=>{setEditItem(null);fTitleRef.current='';fDescRef.current='';setFMediaType('None');setFImages([]);setFVideo(null);setSelectedState('');setStatePickerVisible(false);setFormVisible(true);};
-  const openEditForm=(item)=>{setEditItem(item);fTitleRef.current=item.title||'';fDescRef.current=item.description||'';setFMediaType(item.mediaType||'None');setFImages(item.images||[]);setFVideo(item.video||null);setSelectedState(item.state||'');setStatePickerVisible(false);setFormVisible(true);};
+  const openAddForm=()=>{
+    setEditItem(null);
+    fTitleRef.current='';
+    fDescRef.current='';
+    setFImages([]);
+    setSelectedState(DEFAULT_STATE);
+    setFDate(todayStr());
+    setStatePickerVisible(false);
+    setFormVisible(true);
+  };
+
+  const openEditForm=(item)=>{
+    setEditItem(item);
+    fTitleRef.current=item.title||'';
+    fDescRef.current=item.description||'';
+    setFImages(item.images||[]);
+    setSelectedState(item.state||DEFAULT_STATE);
+    setFDate(item.publishDate||item.createdAt?.slice(0,10)||todayStr());
+    setStatePickerVisible(false);
+    setFormVisible(true);
+  };
+
   const closeForm=()=>{setStatePickerVisible(false);setFormVisible(false);setEditItem(null);};
 
   const pickImages=async()=>{
     const{status}=await ImagePicker.requestMediaLibraryPermissionsAsync();
     if(status!=='granted'){showToast('Gallery permission needed.','error');return;}
-    setFMediaType('Images');setFVideo(null);
     const imageType=normalizeEPaperMediaType(IMAGE_PICKER_MEDIA_TYPE?.Images??IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Images);
     const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:imageType||undefined,allowsMultipleSelection:true,base64:false,quality:0.7,maxWidth:1280,maxHeight:1280,exif:false});
     if(!result.canceled&&result.assets?.length){
@@ -434,39 +344,51 @@ export default function EPaperScreen({navigation}){
     }
   };
   const removeImage=(idx)=>setFImages(prev=>prev.filter((_,i)=>i!==idx));
-  const isVideoAsset=(asset)=>{if(!asset)return false;return(asset.type==='video'||(asset.mimeType&&asset.mimeType.startsWith('video/'))||(asset.name&&/\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(asset.name))||(asset.uri&&/\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(asset.uri)));};
-
-  const pickVideo=async()=>{
-    setFMediaType('Video');setFImages([]);
-    if(Platform.OS==='web'){
-      const result=await DocumentPicker.getDocumentAsync({type:'video/*',multiple:false,copyToCacheDirectory:true});
-      if(result.canceled)return;
-      const asset=result.assets?.[0]||result;
-      if(!isVideoAsset(asset)||!asset?.uri){showToast('Please select a video file.','error');return;}
-      setFVideo(asset.uri);return;
-    }
-    const{status}=await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if(status!=='granted'){showToast('Gallery permission needed.','error');return;}
-    const videoType=normalizeEPaperMediaType(IMAGE_PICKER_MEDIA_TYPE?.Videos??IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Videos);
-    const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:videoType||undefined,allowsMultipleSelection:false,base64:false,quality:0.6,videoMaxDuration:60,allowsEditing:false});
-    if(!result.canceled&&result.assets?.[0]){if(!isVideoAsset(result.assets[0])){showToast('Please select a video file.','error');return;}setFVideo(result.assets[0].uri);}
-  };
 
   const handleSave=async()=>{
-    const titleHtml=fTitleRef.current||'';const descHtml=fDescRef.current||'';
-    const titlePlain=htmlToPlain(titleHtml);const descPlain=htmlToPlain(descHtml);
+    const titleHtml=fTitleRef.current||'';
+    const descHtml=fDescRef.current||'';
+    const titlePlain=htmlToPlain(titleHtml);
+    const descPlain=htmlToPlain(descHtml);
     if(!titlePlain){showToast('Title required.','error');return;}
     if(!descPlain){showToast('Description required.','error');return;}
     setFSaving(true);
     const user=await UserStore.getCurrentUser();
     if(!user){showToast('Login again.','error');setFSaving(false);return;}
     const all=[...(user.epapers||[])];
-    if(editItem){const idx=all.findIndex(e=>e.id===editItem.id);if(idx!==-1)all[idx]={...all[idx],title:titleHtml,description:descHtml,mediaType:fMediaType,images:fMediaType==='Images'?fImages:[],video:fMediaType==='Video'?fVideo:null,updatedAt:new Date().toISOString(),state:selectedState};}
-    else{all.push({id:`ep-${Date.now()}`,title:titleHtml,description:descHtml,mediaType:fMediaType,images:fMediaType==='Images'?fImages:[],video:fMediaType==='Video'?fVideo:null,status:user.role==='admin'?'approved':'pending',state:selectedState,createdBy:user.email,createdAt:new Date().toISOString(),views:0,downloads:0});}
+    if(editItem){
+      const idx=all.findIndex(e=>e.id===editItem.id);
+      if(idx!==-1)all[idx]={
+        ...all[idx],
+        title:titleHtml,
+        description:descHtml,
+        images:fImages,
+        updatedAt:new Date().toISOString(),
+        state:selectedState,
+        publishDate:fDate,
+      };
+    } else {
+      all.push({
+        id:`ep-${Date.now()}`,
+        title:titleHtml,
+        description:descHtml,
+        images:fImages,
+        mediaType: fImages.length > 0 ? 'Images' : 'None',
+        status:user.role==='admin'?'approved':'pending',
+        state:selectedState,
+        publishDate:fDate,
+        createdBy:user.email,
+        createdAt:new Date().toISOString(),
+        views:0,
+        downloads:0,
+      });
+    }
     const updated=await UserStore.updateUser(user.email,{epapers:all});
     setFSaving(false);
     if(!updated){showToast('Save failed.','error');return;}
-    closeForm();showSuccess(editItem?'E-Paper updated!':user.role==='admin'?'E-Paper added!':'Submitted! Waiting for admin approval.');loadData();
+    closeForm();
+    showSuccess(editItem?'E-Paper updated!':user.role==='admin'?'E-Paper added!':'Submitted! Waiting for admin approval.');
+    loadData();
   };
 
   const handleDelete=(item)=>{Alert.alert('Delete',`"${(item.title||'').replace(/<[^>]*>/g,'')||'This item'}" delete karein?`,[{text:'Cancel',style:'cancel'},{text:'Delete',style:'destructive',onPress:async()=>{const user=await UserStore.getCurrentUser();if(!user)return;await UserStore.updateUser(user.email,{epapers:(user.epapers||[]).filter(e=>e.id!==item.id)});showSuccess('Deleted.');loadData();}}]);};
@@ -476,13 +398,14 @@ export default function EPaperScreen({navigation}){
   const handleShare=async(item)=>{try{await Share.share({title:(item.title||'').replace(/<[^>]*>/g,''),message:(item.description||'').replace(/<[^>]*>/g,'')});showSuccess('Shared!');}catch{showToast('Share failed.','error');}};
 
   const FormModal = ({
-  visible, editItemValue, isWeb, isAdmin,
-  fTitleRef, fDescRef, fMediaType, fImages, fVideo, fSaving,
-  selectedState, statePickerVisible, setStatePickerVisible,
-  setSelectedState, setFMediaType, setFImages, setFVideo,
-  closeForm, handleSave, pickImages, pickVideo, removeImage,
-  w, windowWidth, htmlToPlain, plainToHtml, O,
-}) => {
+    visible, editItemValue, isWeb, isAdmin,
+    fTitleRef, fDescRef, fImages, fSaving,
+    selectedState, statePickerVisible, setStatePickerVisible,
+    setSelectedState, setFImages,
+    fDate, setFDate,
+    closeForm, handleSave, pickImages, removeImage,
+    ws, windowWidth, htmlToPlain, plainToHtml, O,
+  }) => {
     const titleEditorRef = useRef(null);
     const descEditorRef = useRef(null);
     const [ready, setReady] = useState(false);
@@ -499,26 +422,28 @@ export default function EPaperScreen({navigation}){
       setWebTitleText(htmlToPlain(fTitleRef.current));
       setWebDescText(htmlToPlain(fDescRef.current));
     }, [visible, editItemValue]);
-    
+
     if (isWeb) {
       return (
         <Modal visible={visible} animationType="fade" onRequestClose={closeForm}>
-          <View style={w.webModalRoot}>
-            <View style={w.webModalHeader}>
-              <TouchableOpacity style={w.webModalCloseBtn} onPress={closeForm}>
+          <View style={ws.webModalRoot}>
+            <View style={ws.webModalHeader}>
+              <TouchableOpacity style={ws.webModalCloseBtn} onPress={closeForm}>
                 <Feather name="x" size={18} color="#ffffff" />
               </TouchableOpacity>
-              <Text style={w.webModalHeaderTitle}>{editItemValue ? 'Edit E-Paper' : 'Add E-Paper'}</Text>
-              <TouchableOpacity style={w.webModalSaveBtn} onPress={handleSave} disabled={fSaving}>
-                <Text style={w.webModalSaveBtnText}>{fSaving ? 'Saving…' : 'Save'}</Text>
+              <Text style={ws.webModalHeaderTitle}>{editItemValue ? 'Edit E-Paper' : 'Add E-Paper'}</Text>
+              <TouchableOpacity style={ws.webModalSaveBtn} onPress={handleSave} disabled={fSaving}>
+                <Text style={ws.webModalSaveBtnText}>{fSaving ? 'Saving…' : 'Save'}</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={w.webFormScroll} contentContainerStyle={w.webFormContent} showsVerticalScrollIndicator={false}>
-              <View style={w.webFormInner}>
-                <Text style={w.webFieldLabel}>Title *</Text>
+            <ScrollView style={ws.webFormScroll} contentContainerStyle={ws.webFormContent} showsVerticalScrollIndicator={false}>
+              <View style={ws.webFormInner}>
+
+                {/* Title */}
+                <Text style={ws.webFieldLabel}>Title *</Text>
                 <TextInput
-                  style={w.webTextInput}
+                  style={ws.webTextInput}
                   placeholder="Title yahan likhein..."
                   placeholderTextColor="#BBBBBB"
                   value={webTitleText}
@@ -526,10 +451,11 @@ export default function EPaperScreen({navigation}){
                   multiline
                 />
 
-                <Text style={w.webFieldLabelSpaced}>Description *</Text>
-                <Text style={w.webFieldHint}>Bold, italic, lists — sab supported</Text>
+                {/* Description */}
+                <Text style={ws.webFieldLabelSpaced}>Description *</Text>
+                <Text style={ws.webFieldHint}>Article ka content yahan likhein</Text>
                 <TextInput
-                  style={w.webTextInputDesc}
+                  style={ws.webTextInputDesc}
                   placeholder="Description yahan likhein..."
                   placeholderTextColor="#BBBBBB"
                   value={webDescText}
@@ -537,43 +463,54 @@ export default function EPaperScreen({navigation}){
                   multiline
                 />
 
-                <Text style={w.webFieldLabelSpaced}>State</Text>
-                <Text style={w.webFieldHint}>Choose the state this e-paper belongs to.</Text>
-                <TouchableOpacity style={w.webStateSelector} onPress={() => setStatePickerVisible(true)}>
+                {/* Publish Date */}
+                <Text style={ws.webFieldLabelSpaced}>Publish Date</Text>
+                <Text style={ws.webFieldHint}>Article ki publish date select karein</Text>
+                <View style={ws.webDateInput}>
+                  <Feather name="calendar" size={16} color={O[400]} />
+                  <TextInput
+                    style={[ws.webDateInputText, !fDate && ws.webDateInputPlaceholder]}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#AAAAAA"
+                    value={fDate}
+                    onChangeText={setFDate}
+                    maxLength={10}
+                  />
+                </View>
+
+                {/* State */}
+                <Text style={ws.webFieldLabelSpaced}>State</Text>
+                <Text style={ws.webFieldHint}>Is e-paper ka state choose karein</Text>
+                <TouchableOpacity style={ws.webStateSelector} onPress={() => setStatePickerVisible(true)}>
                   <Feather name="map-pin" size={16} color={O[400]} />
-                  <Text style={[w.webStateSelectorText, !selectedState && w.webStateSelectorPlaceholder]}>
+                  <Text style={[ws.webStateSelectorText, !selectedState && ws.webStateSelectorPlaceholder]}>
                     {selectedState || 'Select a state...'}
                   </Text>
                   <Feather name="chevron-down" size={16} color="#AAAAAA" />
                 </TouchableOpacity>
                 {selectedState ? (
-                  <View style={w.webStateChip}>
+                  <View style={ws.webStateChip}>
                     <Feather name="map-pin" size={12} color={O[600]} />
-                    <Text style={w.webStateChipTxt}>{selectedState}</Text>
+                    <Text style={ws.webStateChipTxt}>{selectedState}</Text>
                   </View>
                 ) : null}
 
-                <View style={w.webMediaCard}>
-                  <Text style={w.webMediaEyebrow}>Creative Assets</Text>
-                  <Text style={w.webMediaTitle}>Media Upload</Text>
-                  <Text style={w.webMediaSubtitle}>By default aap image ya video dono me se kuch bhi select kar sakte hain.</Text>
-                  <View style={w.webMediaBadgeRow}>
-                    <View style={w.webMediaPill}>
+                {/* Images */}
+                <View style={ws.webMediaCard}>
+                  <Text style={ws.webMediaEyebrow}>Creative Assets</Text>
+                  <Text style={ws.webMediaTitle}>Image Gallery</Text>
+                  <Text style={ws.webMediaSubtitle}>E-paper ke saath images upload karein (max 10)</Text>
+                  <View style={ws.webMediaBadgeRow}>
+                    <View style={ws.webMediaPill}>
                       <Feather name="layers" size={13} color={O[600]} />
-                      <Text style={w.webMediaPillTxt}>{fImages.length > 0 ? `${fImages.length} image selected` : 'Gallery ready'}</Text>
-                    </View>
-                    <View style={w.webMediaPill}>
-                      <Feather name="film" size={13} color={O[600]} />
-                      <Text style={w.webMediaPillTxt}>{fVideo ? 'Video attached' : 'Video optional'}</Text>
+                      <Text style={ws.webMediaPillTxt}>{fImages.length > 0 ? `${fImages.length} image selected` : 'Gallery ready'}</Text>
                     </View>
                   </View>
-
-                  <View style={w.webMediaSection}>
-                    <Text style={w.webMediaSectionCaption}>Showcase multiple visuals for your e-paper story.</Text>
-                    <Text style={w.webMediaSectionTitle}>Image Gallery</Text>
-                    <TouchableOpacity style={w.webPickBtn} onPress={pickImages}>
+                  <View style={ws.webMediaSection}>
+                    <Text style={ws.webMediaSectionCaption}>Multiple images add kar sakte hain apne e-paper ke liye.</Text>
+                    <TouchableOpacity style={ws.webPickBtn} onPress={pickImages}>
                       <Feather name="image" size={16} color={O[600]} />
-                      <Text style={w.webPickBtnTxt}>{fImages.length > 0 ? 'Change Images' : 'Pick images (multiple)'}</Text>
+                      <Text style={ws.webPickBtnTxt}>{fImages.length > 0 ? 'Add More Images' : 'Pick Images (multiple)'}</Text>
                     </TouchableOpacity>
                     {fImages.length > 0 && (
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={EPaperStyles.thumbRow}>
@@ -588,30 +525,12 @@ export default function EPaperScreen({navigation}){
                       </ScrollView>
                     )}
                   </View>
-
-                  <View style={w.webMediaSection}>
-                    <Text style={w.webMediaSectionTitle}>Video Upload</Text>
-                    <Text style={w.webMediaSectionCaption}>Add one highlight clip for a richer presentation.</Text>
-                    <TouchableOpacity style={w.webPickBtn} onPress={pickVideo}>
-                      <Feather name="video" size={16} color={O[600]} />
-                      <Text style={w.webPickBtnTxt}>{fVideo ? 'Change Video' : 'Pick video (single)'}</Text>
-                    </TouchableOpacity>
-                    {Boolean(fVideo) && (
-                      <View style={w.webVideoStatusRow}>
-                        <Feather name="check-circle" size={14} color="#16a34a" />
-                        <Text style={w.webVideoStatusTxt}>Video selected</Text>
-                        <TouchableOpacity onPress={() => setFVideo(null)}>
-                          <Feather name="x-circle" size={14} color="#dc2626" />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
                 </View>
 
                 {!isAdmin && (
-                  <View style={w.webAdminNote}>
+                  <View style={ws.webAdminNote}>
                     <Feather name="info" size={14} color="#ca8a04" />
-                    <Text style={w.webAdminNoteTxt}>Your entry will appear in the news feed after it is approved by the admin.</Text>
+                    <Text style={ws.webAdminNoteTxt}>Your entry will appear in the news feed after it is approved by the admin.</Text>
                   </View>
                 )}
               </View>
@@ -622,6 +541,7 @@ export default function EPaperScreen({navigation}){
       );
     }
 
+    // ── Mobile form ──
     return (
       <Modal visible={visible} animationType="slide" onRequestClose={closeForm}>
         <SafeAreaView style={EPaperStyles.modalSafeArea}>
@@ -636,29 +556,31 @@ export default function EPaperScreen({navigation}){
                 <>
                   <Text style={EPaperStyles.fieldLabel}>Title *</Text>
                   <RichToolbar editor={titleEditorRef} actions={[actions.setBold, actions.setItalic, actions.setUnderline, actions.undo, actions.redo]} style={EPaperStyles.richToolbar} iconTint="#475569" selectedIconTint="#FF2D78" />
-                  <RichEditor
-                    ref={titleEditorRef}
-                    style={EPaperStyles.richEditorTitle}
-                    placeholder="Title yahan likhein…"
-                    initialContentHTML={fTitleRef.current}
-                    onChange={(html) => { fTitleRef.current = html; }}
-                    editorStyle={EPaperStyles.richEditorInner}
-                    useContainer={false}
-                  />
+                  <RichEditor ref={titleEditorRef} style={EPaperStyles.richEditorTitle} placeholder="Title yahan likhein…" initialContentHTML={fTitleRef.current} onChange={(html) => { fTitleRef.current = html; }} editorStyle={EPaperStyles.richEditorInner} useContainer={false} />
                   <Text style={EPaperStyles.fieldLabelSpaced}>Description *</Text>
                   <Text style={EPaperStyles.fieldHint}>Bold, italic, lists — sab supported</Text>
                   <RichToolbar editor={descEditorRef} actions={[actions.setBold, actions.setItalic, actions.setUnderline, actions.insertBulletsList, actions.insertOrderedList, actions.undo, actions.redo]} style={EPaperStyles.richToolbar} iconTint="#475569" selectedIconTint="#FF2D78" />
-                  <RichEditor
-                    ref={descEditorRef}
-                    style={EPaperStyles.richEditorDesc}
-                    placeholder="Description yahan likhein…"
-                    initialContentHTML={fDescRef.current}
-                    onChange={(html) => { fDescRef.current = html; }}
-                    editorStyle={EPaperStyles.richEditorInner}
-                    useContainer={false}
-                  />
+                  <RichEditor ref={descEditorRef} style={EPaperStyles.richEditorDesc} placeholder="Description yahan likhein…" initialContentHTML={fDescRef.current} onChange={(html) => { fDescRef.current = html; }} editorStyle={EPaperStyles.richEditorInner} useContainer={false} />
                 </>
               )}
+
+              {/* Publish Date — mobile */}
+              <Text style={EPaperStyles.fieldLabelSpaced}>Publish Date</Text>
+              <Text style={EPaperStyles.fieldHint}>Format: YYYY-MM-DD</Text>
+              <View style={[EPaperStyles.stateSelector, {gap:10}]}>
+                <Feather name="calendar" size={16} color="#F97316" />
+                <TextInput
+                  style={[EPaperStyles.stateSelectorText, {flex:1}]}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#94a3b8"
+                  value={fDate}
+                  onChangeText={setFDate}
+                  maxLength={10}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* State — mobile */}
               <Text style={EPaperStyles.fieldLabelSpaced}>State</Text>
               <Text style={EPaperStyles.fieldHint}>Choose the state this e-paper belongs to.</Text>
               <TouchableOpacity style={EPaperStyles.stateSelector} onPress={() => setStatePickerVisible(true)}>
@@ -667,27 +589,23 @@ export default function EPaperScreen({navigation}){
                 <Feather name="chevron-down" size={16} color="#64748b" />
               </TouchableOpacity>
               {selectedState ? (<View style={EPaperStyles.stateChip}><Feather name="map-pin" size={12} color="#FF2D78" /><Text style={EPaperStyles.stateChipText}>{selectedState}</Text></View>) : null}
+
+              {/* Images — mobile */}
               <View style={EPaperStyles.mediaShowcaseCard}>
                 <Text style={EPaperStyles.mediaShowcaseEyebrow}>Creative Assets</Text>
-                <Text style={EPaperStyles.mediaShowcaseTitle}>Media Upload</Text>
-                <Text style={EPaperStyles.mediaShowcaseSubtitle}>By default aap image ya video dono me se kuch bhi select kar sakte hain.</Text>
+                <Text style={EPaperStyles.mediaShowcaseTitle}>Image Gallery</Text>
+                <Text style={EPaperStyles.mediaShowcaseSubtitle}>E-paper ke saath images upload karein.</Text>
                 <View style={EPaperStyles.mediaBadgeRow}>
                   <View style={EPaperStyles.mediaInfoPill}><Feather name="layers" size={13} color="#FF2D78" /><Text style={EPaperStyles.mediaInfoPillText}>{fImages.length > 0 ? `${fImages.length} image selected` : 'Gallery ready'}</Text></View>
-                  <View style={EPaperStyles.mediaInfoPillAlt}><Feather name="film" size={13} color="#FF2D78" /><Text style={EPaperStyles.mediaInfoPillAltText}>{fVideo ? 'Video attached' : 'Video optional'}</Text></View>
                 </View>
                 <View style={EPaperStyles.mediaSection}>
                   <Text style={EPaperStyles.mediaSectionCaption}>Showcase multiple visuals for your e-paper story.</Text>
-                  <Text style={EPaperStyles.mediaSectionTitle}>Image Gallery</Text>
+                  <Text style={EPaperStyles.mediaSectionTitle}>Images</Text>
                   <TouchableOpacity style={EPaperStyles.mediaPickBtn} onPress={pickImages}><Feather name="image" size={16} color="#FF2D78" /><Text style={EPaperStyles.mediaPickBtnText}>{fImages.length > 0 ? 'Change Images' : 'Pick Images (multiple)'}</Text></TouchableOpacity>
                   {fImages.length > 0 && (<ScrollView horizontal showsHorizontalScrollIndicator={false} style={EPaperStyles.thumbRow}>{fImages.map((img, idx) => (<View key={idx} style={EPaperStyles.imageThumbContainer}><Image source={{uri: img}} style={EPaperStyles.imageThumb} /><TouchableOpacity style={EPaperStyles.imageRemoveBtn} onPress={() => removeImage(idx)}><Feather name="x" size={10} color="#fff" /></TouchableOpacity></View>))}</ScrollView>)}
                 </View>
-                <View style={EPaperStyles.mediaSection}>
-                  <Text style={EPaperStyles.mediaSectionTitle}>Video Upload</Text>
-                  <Text style={EPaperStyles.mediaSectionCaption}>Add one highlight clip for a richer presentation.</Text>
-                  <TouchableOpacity style={EPaperStyles.videoPickBtn} onPress={pickVideo}><Feather name="video" size={16} color="#FF2D78" /><Text style={EPaperStyles.mediaPickBtnText}>{fVideo ? 'Change Video' : 'Pick Video (single)'}</Text></TouchableOpacity>
-                  {Boolean(fVideo) && (<View style={EPaperStyles.videoStatusRow}><Feather name="check-circle" size={14} color="#16a34a" /><Text style={EPaperStyles.videoStatusText}>Video selected</Text><TouchableOpacity onPress={() => setFVideo(null)}><Feather name="x-circle" size={14} color="#dc2626" /></TouchableOpacity></View>)}
-                </View>
               </View>
+
               {!isAdmin && (<View style={EPaperStyles.adminNoteBox}><Feather name="info" size={14} color="#ca8a04" /><Text style={EPaperStyles.adminNoteText}>Your entry will appear in the news feed after it is approved by the admin.</Text></View>)}
             </ScrollView>
             <StatePickerModal visible={statePickerVisible} selected={selectedState} onSelect={setSelectedState} onClose={() => setStatePickerVisible(false)} />
@@ -705,36 +623,32 @@ export default function EPaperScreen({navigation}){
     if(isWeb){
       return(
         <Modal visible={!!viewItem} animationType="fade" onRequestClose={()=>setViewItem(null)}>
-          <View style={w.webModalRoot}>
-            <View style={w.webModalHeader}>
-              <TouchableOpacity onPress={()=>setViewItem(null)} style={w.webModalCloseBtn}>
+          <View style={ws.webModalRoot}>
+            <View style={ws.webModalHeader}>
+              <TouchableOpacity onPress={()=>setViewItem(null)} style={ws.webModalCloseBtn}>
                 <Feather name="arrow-left" size={18} color="#ffffff"/>
               </TouchableOpacity>
-              <Text style={[w.webModalHeaderTitle,{marginHorizontal:8}]} numberOfLines={1}>View E-Paper</Text>
+              <Text style={[ws.webModalHeaderTitle,{marginHorizontal:8}]} numberOfLines={1}>View E-Paper</Text>
               <View style={{width:36}}/>
             </View>
-
-            <ScrollView contentContainerStyle={w.webFormContent} showsVerticalScrollIndicator={false}>
-              <View style={w.webFormInner}>
+            <ScrollView contentContainerStyle={ws.webFormContent} showsVerticalScrollIndicator={false}>
+              <View style={ws.webFormInner}>
                 <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                   <StatusBadge status={viewItem.status} web/>
-                  <Text style={{fontSize:12,color:'#AAAAAA',fontWeight:'500'}}>{viewItem.createdAt?.slice(0,10)||''}</Text>
+                  <Text style={{fontSize:12,color:'#AAAAAA',fontWeight:'500'}}>{viewItem.publishDate||viewItem.createdAt?.slice(0,10)||''}</Text>
                 </View>
-
                 {viewItem.state?(
                   <View style={{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:6,backgroundColor:O[50],borderWidth:1,borderColor:O[200],borderRadius:999,paddingHorizontal:12,paddingVertical:5,marginBottom:16}}>
                     <Feather name="map-pin" size={12} color={O[600]}/>
                     <Text style={{fontSize:11,fontWeight:'800',color:O[800]}}>{viewItem.state}</Text>
                   </View>
                 ):null}
-
                 <View style={{backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:16,padding:windowWidth<=640?16:24,marginBottom:20}}>
                   <Text style={{fontSize:windowWidth<=640?19:22,fontWeight:'800',color:'#111111',lineHeight:windowWidth<=640?27:30,marginBottom:12}}>{plainTitle||'Untitled E-Paper'}</Text>
                   <View style={{height:1,backgroundColor:'#F0EBE4',marginBottom:14}}/>
                   <Text style={{fontSize:14,color:'#555555',lineHeight:24}}>{plainDescription||'No description available.'}</Text>
                 </View>
-
-                {viewItem.mediaType==='Images'&&viewItem.images?.length>0&&(
+                {viewItem.images?.length>0&&(
                   <View style={{backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:16,padding:windowWidth<=640?14:20,marginBottom:20}}>
                     <View style={{flexDirection:'row',alignItems:'center',gap:8,marginBottom:14}}>
                       <Feather name="image" size={15} color={O[600]}/>
@@ -747,14 +661,6 @@ export default function EPaperScreen({navigation}){
                     </ScrollView>
                   </View>
                 )}
-
-                {viewItem.mediaType==='Video'&&Boolean(viewItem.video)&&(
-                  <View style={{flexDirection:'row',alignItems:'center',gap:10,backgroundColor:O[50],borderWidth:1.5,borderColor:O[200],borderRadius:14,padding:16,marginBottom:20}}>
-                    <Feather name="video" size={16} color={O[600]}/>
-                    <Text style={{fontSize:13,color:O[800],fontWeight:'700'}}>Video attached</Text>
-                  </View>
-                )}
-
                 <View style={{flexDirection:'row',flexWrap:'wrap',gap:windowWidth<=640?12:20,backgroundColor:'#ffffff',borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:14,padding:16}}>
                   <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
                     <Feather name="eye" size={14} color={O[400]}/>
@@ -765,8 +671,8 @@ export default function EPaperScreen({navigation}){
                     <Text style={{fontSize:13,fontWeight:'700',color:'#555555'}}>{viewItem.createdBy?.split('@')[0]||'user'}</Text>
                   </View>
                   <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
-                    <Feather name="clock" size={14} color={O[400]}/>
-                    <Text style={{fontSize:13,fontWeight:'700',color:'#555555'}}>{viewItem.createdAt?.slice(0,10)||''}</Text>
+                    <Feather name="calendar" size={14} color={O[400]}/>
+                    <Text style={{fontSize:13,fontWeight:'700',color:'#555555'}}>{viewItem.publishDate||viewItem.createdAt?.slice(0,10)||''}</Text>
                   </View>
                 </View>
               </View>
@@ -788,9 +694,11 @@ export default function EPaperScreen({navigation}){
             <StatusBadge status={viewItem.status}/>
             <View style={EPaperStyles.viewTextCard}><Text style={EPaperStyles.viewTitleText}>{plainTitle||'Untitled E-Paper'}</Text><Text style={EPaperStyles.viewDescriptionText}>{plainDescription||'No description available.'}</Text></View>
             {viewItem.state?(<View style={EPaperStyles.stateChip}><Feather name="map-pin" size={12} color="#FF2D78"/><Text style={EPaperStyles.stateChipText}>{viewItem.state}</Text></View>):null}
-            {viewItem.mediaType==='Images'&&viewItem.images?.length>0&&(<View style={EPaperStyles.viewImagesSection}><Text style={EPaperStyles.fieldLabel}>Images</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} style={EPaperStyles.thumbRow}>{viewItem.images.map((img,idx)=>(<Image key={idx} source={{uri:img}} style={EPaperStyles.viewImage}/>))}</ScrollView></View>)}
-            {viewItem.mediaType==='Video'&&Boolean(viewItem.video)&&(<View style={EPaperStyles.videoAttachedRow}><Feather name="video" size={14} color="#FF2D78"/><Text style={EPaperStyles.videoAttachedText}>Video attached</Text></View>)}
-            <View style={EPaperStyles.statsRow}><View style={EPaperStyles.statItem}><Feather name="eye" size={12} color="#64748b"/><Text style={EPaperStyles.statText}>{viewItem.views??0} Views</Text></View><View style={EPaperStyles.statItem}><Feather name="clock" size={12} color="#64748b"/><Text style={EPaperStyles.statText}>{viewItem.createdAt?.slice(0,10)||''}</Text></View></View>
+            {viewItem.images?.length>0&&(<View style={EPaperStyles.viewImagesSection}><Text style={EPaperStyles.fieldLabel}>Images</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} style={EPaperStyles.thumbRow}>{viewItem.images.map((img,idx)=>(<Image key={idx} source={{uri:img}} style={EPaperStyles.viewImage}/>))}</ScrollView></View>)}
+            <View style={EPaperStyles.statsRow}>
+              <View style={EPaperStyles.statItem}><Feather name="eye" size={12} color="#64748b"/><Text style={EPaperStyles.statText}>{viewItem.views??0} Views</Text></View>
+              <View style={EPaperStyles.statItem}><Feather name="calendar" size={12} color="#64748b"/><Text style={EPaperStyles.statText}>{viewItem.publishDate||viewItem.createdAt?.slice(0,10)||''}</Text></View>
+            </View>
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -802,103 +710,102 @@ export default function EPaperScreen({navigation}){
   // ══════════════════════════════════════════════════════════════════════════
   if(isWeb){
     const stripeStyle=(status)=>{
-      const base=w.articleStripe;
-      if(status==='approved')return[base,w.articleStripeApproved];
-      if(status==='rejected')return[base,w.articleStripeRejected];
-      return[base,w.articleStripePending];
+      const base=ws.articleStripe;
+      if(status==='approved')return[base,ws.articleStripeApproved];
+      if(status==='rejected')return[base,ws.articleStripeRejected];
+      return[base,ws.articleStripePending];
     };
     return(
-      <View style={w.root}>
-        <View style={w.topBar}>
-          <View style={w.topLeft}>
+      <View style={ws.root}>
+        <View style={ws.topBar}>
+          <View style={ws.topLeft}>
             <Feather name="home" size={14} color="#888888"/>
-            <Text style={w.bcSep}>›</Text><Text style={w.bcStep}>Dashboard</Text>
-            <Text style={w.bcSep}>›</Text><Text style={w.bcCur}>E-Paper</Text>
+            <Text style={ws.bcSep}>›</Text><Text style={ws.bcStep}>Dashboard</Text>
+            <Text style={ws.bcSep}>›</Text><Text style={ws.bcCur}>E-Paper</Text>
           </View>
-          <TouchableOpacity style={w.backBtn} onPress={()=>navigation.navigate('QuickMenu')} activeOpacity={0.8}>
-            <Feather name="arrow-left" size={13} color={O[800]}/><Text style={w.backBtnText}>Back to menu</Text>
+          <TouchableOpacity style={ws.backBtn} onPress={()=>navigation.navigate('QuickMenu')} activeOpacity={0.8}>
+            <Feather name="arrow-left" size={13} color={O[800]}/><Text style={ws.backBtnText}>Back to menu</Text>
           </TouchableOpacity>
         </View>
 
-        {successMsg?(<View style={w.successOverlay}><View style={w.successBox}><Feather name="check-circle" size={16} color="#16A34A"/><Text style={w.successTxt}>{successMsg}</Text></View></View>):null}
+        {successMsg?(<View style={ws.successOverlay}><View style={ws.successBox}><Feather name="check-circle" size={16} color="#16A34A"/><Text style={ws.successTxt}>{successMsg}</Text></View></View>):null}
 
-        <ScrollView style={w.scroll} contentContainerStyle={w.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={w.innerWrap}>
-
-            <View style={w.pageHeadRow}>
+        <ScrollView style={ws.scroll} contentContainerStyle={ws.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={ws.innerWrap}>
+            <View style={ws.pageHeadRow}>
               <View>
-                <Text style={w.pageTitle}>E-Paper</Text>
-                <Text style={w.pageSub}>Digital newspaper — rich-text articles with images or video.</Text>
+                <Text style={ws.pageTitle}>E-Paper</Text>
+                <Text style={ws.pageSub}>Digital newspaper — rich-text articles with images.</Text>
               </View>
-              <TouchableOpacity style={w.addBtn} onPress={openAddForm} activeOpacity={0.85}>
-                <Feather name="plus" size={15} color="#ffffff"/><Text style={w.addBtnText}>Add E-Paper</Text>
+              <TouchableOpacity style={ws.addBtn} onPress={openAddForm} activeOpacity={0.85}>
+                <Feather name="plus" size={15} color="#ffffff"/><Text style={ws.addBtnText}>Add E-Paper</Text>
               </TouchableOpacity>
             </View>
 
-            <View style={w.metricsRow}>
-              <View style={w.mc}>
-                <View style={[w.mcBar,w.mcBarArticles]}/>
-                <View style={w.mcTop}><View style={w.mcIcon}><Feather name="file-text" size={16} color={O[600]}/></View><Text style={w.mcBadge}>Total</Text></View>
-                <Text style={w.mcVal}>{items.length}</Text><Text style={w.mcLbl}>Articles</Text>
+            <View style={ws.metricsRow}>
+              <View style={ws.mc}>
+                <View style={[ws.mcBar,ws.mcBarArticles]}/>
+                <View style={ws.mcTop}><View style={ws.mcIcon}><Feather name="file-text" size={16} color={O[600]}/></View><Text style={ws.mcBadge}>Total</Text></View>
+                <Text style={ws.mcVal}>{items.length}</Text><Text style={ws.mcLbl}>Articles</Text>
               </View>
-              <View style={w.mc}>
-                <View style={[w.mcBar,w.mcBarViews]}/>
-                <View style={w.mcTop}><View style={[w.mcIcon,w.mcIconBlue]}><Feather name="eye" size={16} color="#3B82F6"/></View><Text style={[w.mcBadge,w.mcBadgeBlue]}>All time</Text></View>
-                <Text style={w.mcVal}>{totalViews}</Text><Text style={w.mcLbl}>Total views</Text>
+              <View style={ws.mc}>
+                <View style={[ws.mcBar,ws.mcBarViews]}/>
+                <View style={ws.mcTop}><View style={[ws.mcIcon,ws.mcIconBlue]}><Feather name="eye" size={16} color="#3B82F6"/></View><Text style={[ws.mcBadge,ws.mcBadgeBlue]}>All time</Text></View>
+                <Text style={ws.mcVal}>{totalViews}</Text><Text style={ws.mcLbl}>Total views</Text>
               </View>
-              <View style={w.mc}>
-                <View style={[w.mcBar,w.mcBarPending]}/>
-                <View style={w.mcTop}><View style={[w.mcIcon,w.mcIconYellow]}><Feather name="clock" size={16} color="#F59E0B"/></View><Text style={[w.mcBadge,w.mcBadgeYellow]}>Review</Text></View>
-                <Text style={w.mcVal}>{items.filter(i=>i.status==='pending').length}</Text><Text style={w.mcLbl}>Pending</Text>
+              <View style={ws.mc}>
+                <View style={[ws.mcBar,ws.mcBarPending]}/>
+                <View style={ws.mcTop}><View style={[ws.mcIcon,ws.mcIconYellow]}><Feather name="clock" size={16} color="#F59E0B"/></View><Text style={[ws.mcBadge,ws.mcBadgeYellow]}>Review</Text></View>
+                <Text style={ws.mcVal}>{items.filter(i=>i.status==='pending').length}</Text><Text style={ws.mcLbl}>Pending</Text>
               </View>
             </View>
 
-            <View style={w.sectionHead}>
-              <View><Text style={w.sectionTitle}>E-Paper Articles</Text><Text style={w.sectionSub}>All published and pending articles</Text></View>
-              <View style={w.pill}><Feather name="layers" size={12} color={O[600]}/><Text style={w.pillTxt}>{items.length} article{items.length!==1?'s':''}</Text></View>
+            <View style={ws.sectionHead}>
+              <View><Text style={ws.sectionTitle}>E-Paper Articles</Text><Text style={ws.sectionSub}>All published and pending articles</Text></View>
+              <View style={ws.pill}><Feather name="layers" size={12} color={O[600]}/><Text style={ws.pillTxt}>{items.length} article{items.length!==1?'s':''}</Text></View>
             </View>
 
-            {loading?(<Text style={w.loadingTxt}>Loading articles…</Text>
+            {loading?(<Text style={ws.loadingTxt}>Loading articles…</Text>
             ):items.length===0?(
-              <View style={w.emptyWrap}>
-                <View style={w.emptyIcon}><Feather name="file-text" size={24} color={O[400]}/></View>
-                <Text style={w.emptyTxt}>No articles yet</Text>
-                <Text style={w.emptySub}>Click "Add E-Paper" to create your first article.</Text>
+              <View style={ws.emptyWrap}>
+                <View style={ws.emptyIcon}><Feather name="file-text" size={24} color={O[400]}/></View>
+                <Text style={ws.emptyTxt}>No articles yet</Text>
+                <Text style={ws.emptySub}>Click "Add E-Paper" to create your first article.</Text>
               </View>
             ):(
-              <View style={w.grid}>
+              <View style={ws.grid}>
                 {items.map(item=>{
                   const plainTitle=(item.title||'').replace(/<[^>]*>/g,'').trim();
                   const plainDesc=(item.description||'').replace(/<[^>]*>/g,'').trim();
                   return(
-                    <View key={item.id} style={w.articleCard}>
+                    <View key={item.id} style={ws.articleCard}>
                       <View style={stripeStyle(item.status)}/>
-                      <View style={w.articleBody}>
-                        <View style={w.articleMeta}>
+                      <View style={ws.articleBody}>
+                        <View style={ws.articleMeta}>
                           <StatusBadge status={item.status} web/>
-                          <Text style={w.articleDate}>{item.createdAt?.slice(0,10)||''}</Text>
+                          <Text style={ws.articleDate}>{item.publishDate||item.createdAt?.slice(0,10)||''}</Text>
                         </View>
-                        {item.state?(<View style={w.stateChip}><Feather name="map-pin" size={11} color={O[600]}/><Text style={w.stateChipTxt}>{item.state}</Text></View>):null}
-                        <Text style={w.articleTitle} numberOfLines={2}>{plainTitle||'Untitled'}</Text>
-                        <Text style={w.articleDesc} numberOfLines={3}>{plainDesc||'No description.'}</Text>
-                        {Boolean(item.mediaType)&&item.mediaType!=='None'&&(
-                          <View style={w.mediaBadge}><Feather name={item.mediaType==='Images'?'image':'video'} size={11} color={O[600]}/><Text style={w.mediaBadgeTxt}>{item.mediaType==='Images'?`${item.images?.length||0} Image(s)`:'Video attached'}</Text></View>
+                        {item.state?(<View style={ws.stateChip}><Feather name="map-pin" size={11} color={O[600]}/><Text style={ws.stateChipTxt}>{item.state}</Text></View>):null}
+                        <Text style={ws.articleTitle} numberOfLines={2}>{plainTitle||'Untitled'}</Text>
+                        <Text style={ws.articleDesc} numberOfLines={3}>{plainDesc||'No description.'}</Text>
+                        {item.images?.length>0&&(
+                          <View style={ws.mediaBadge}><Feather name="image" size={11} color={O[600]}/><Text style={ws.mediaBadgeTxt}>{item.images.length} Image(s)</Text></View>
                         )}
-                        <View style={w.statsRow}>
-                          <View style={w.statItem}><Feather name="eye" size={12} color="#AAAAAA"/><Text style={w.statTxt}>{item.views??0} views</Text></View>
-                          <View style={w.statItem}><Feather name="user" size={12} color="#AAAAAA"/><Text style={w.statTxt}>{item.createdBy?.split('@')[0]||'user'}</Text></View>
+                        <View style={ws.statsRow}>
+                          <View style={ws.statItem}><Feather name="eye" size={12} color="#AAAAAA"/><Text style={ws.statTxt}>{item.views??0} views</Text></View>
+                          <View style={ws.statItem}><Feather name="user" size={12} color="#AAAAAA"/><Text style={ws.statTxt}>{item.createdBy?.split('@')[0]||'user'}</Text></View>
                         </View>
-                        <View style={w.divider}/>
-                        <View style={w.actionRow}>
-                          <TouchableOpacity style={w.actionBtn} onPress={()=>handleView(item)}><Feather name="eye" size={13} color={O[600]}/><Text style={w.actionBtnTxt}>View</Text></TouchableOpacity>
-                          {(isAdmin||item.createdBy===currentUser?.email)&&(<TouchableOpacity style={w.actionBtn} onPress={()=>openEditForm(item)}><Feather name="edit-2" size={13} color={O[600]}/><Text style={w.actionBtnTxt}>Edit</Text></TouchableOpacity>)}
-                          <TouchableOpacity style={w.actionBtn} onPress={()=>handleShare(item)}><Feather name="share-2" size={13} color={O[600]}/><Text style={w.actionBtnTxt}>Share</Text></TouchableOpacity>
-                          {(isAdmin||item.createdBy===currentUser?.email)&&(<TouchableOpacity style={w.actionBtnDanger} onPress={()=>handleDelete(item)}><Feather name="trash-2" size={13} color="#DC2626"/><Text style={w.actionBtnDangerTxt}>Delete</Text></TouchableOpacity>)}
+                        <View style={ws.divider}/>
+                        <View style={ws.actionRow}>
+                          <TouchableOpacity style={ws.actionBtn} onPress={()=>handleView(item)}><Feather name="eye" size={13} color={O[600]}/><Text style={ws.actionBtnTxt}>View</Text></TouchableOpacity>
+                          {(isAdmin||item.createdBy===currentUser?.email)&&(<TouchableOpacity style={ws.actionBtn} onPress={()=>openEditForm(item)}><Feather name="edit-2" size={13} color={O[600]}/><Text style={ws.actionBtnTxt}>Edit</Text></TouchableOpacity>)}
+                          <TouchableOpacity style={ws.actionBtn} onPress={()=>handleShare(item)}><Feather name="share-2" size={13} color={O[600]}/><Text style={ws.actionBtnTxt}>Share</Text></TouchableOpacity>
+                          {(isAdmin||item.createdBy===currentUser?.email)&&(<TouchableOpacity style={ws.actionBtnDanger} onPress={()=>handleDelete(item)}><Feather name="trash-2" size={13} color="#DC2626"/><Text style={ws.actionBtnDangerTxt}>Delete</Text></TouchableOpacity>)}
                         </View>
                         {isAdmin&&item.status==='pending'&&(
-                          <View style={w.adminRow}>
-                            <TouchableOpacity style={w.approveBtn} onPress={()=>handleApprove(item)}><Feather name="check" size={13} color="#16A34A"/><Text style={w.approveBtnTxt}>Approve</Text></TouchableOpacity>
-                            <TouchableOpacity style={w.rejectBtn} onPress={()=>handleReject(item)}><Feather name="x" size={13} color="#DC2626"/><Text style={w.rejectBtnTxt}>Reject</Text></TouchableOpacity>
+                          <View style={ws.adminRow}>
+                            <TouchableOpacity style={ws.approveBtn} onPress={()=>handleApprove(item)}><Feather name="check" size={13} color="#16A34A"/><Text style={ws.approveBtnTxt}>Approve</Text></TouchableOpacity>
+                            <TouchableOpacity style={ws.rejectBtn} onPress={()=>handleReject(item)}><Feather name="x" size={13} color="#DC2626"/><Text style={ws.rejectBtnTxt}>Reject</Text></TouchableOpacity>
                           </View>
                         )}
                       </View>
@@ -909,42 +816,40 @@ export default function EPaperScreen({navigation}){
             )}
           </View>
         </ScrollView>
+
         <FormModal
-  visible={formVisible}
-  editItemValue={editItem}
-  isWeb={isWeb}
-  isAdmin={isAdmin}
-  fTitleRef={fTitleRef}
-  fDescRef={fDescRef}
-  fMediaType={fMediaType}
-  fImages={fImages}
-  fVideo={fVideo}
-  fSaving={fSaving}
-  selectedState={selectedState}
-  statePickerVisible={statePickerVisible}
-  setStatePickerVisible={setStatePickerVisible}
-  setSelectedState={setSelectedState}
-  setFMediaType={setFMediaType}
-  setFImages={setFImages}
-  setFVideo={setFVideo}
-  closeForm={closeForm}
-  handleSave={handleSave}
-  pickImages={pickImages}
-  pickVideo={pickVideo}
-  removeImage={removeImage}
-  w={w}
-  windowWidth={windowWidth}
-  htmlToPlain={htmlToPlain}
-  plainToHtml={plainToHtml}
-  O={O}
-/>
+          visible={formVisible}
+          editItemValue={editItem}
+          isWeb={isWeb}
+          isAdmin={isAdmin}
+          fTitleRef={fTitleRef}
+          fDescRef={fDescRef}
+          fImages={fImages}
+          fSaving={fSaving}
+          selectedState={selectedState}
+          statePickerVisible={statePickerVisible}
+          setStatePickerVisible={setStatePickerVisible}
+          setSelectedState={setSelectedState}
+          setFImages={setFImages}
+          fDate={fDate}
+          setFDate={setFDate}
+          closeForm={closeForm}
+          handleSave={handleSave}
+          pickImages={pickImages}
+          removeImage={removeImage}
+          ws={ws}
+          windowWidth={windowWidth}
+          htmlToPlain={htmlToPlain}
+          plainToHtml={plainToHtml}
+          O={O}
+        />
         <ViewModal/>
       </View>
     );
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // MOBILE LAYOUT — bilkul same, koi change nahi
+  // MOBILE LAYOUT
   // ══════════════════════════════════════════════════════════════════════════
   return(
     <SafeAreaView style={EPaperStyles.safeArea}>
@@ -958,7 +863,7 @@ export default function EPaperScreen({navigation}){
           <View style={EPaperStyles.heroCard}>
             <Text style={EPaperStyles.heroEyebrow}>Digital Newspaper</Text>
             <Text style={EPaperStyles.heroTitle}>E-Paper</Text>
-            <Text style={EPaperStyles.heroSubtitle}>Rich-text articles with images or video.</Text>
+            <Text style={EPaperStyles.heroSubtitle}>Rich-text articles with images.</Text>
           </View>
           <View style={EPaperStyles.metricsRow}>
             <View style={[EPaperStyles.metricCard,EPaperStyles.metricPrimary]}><Text style={EPaperStyles.metricValue}>{items.length}</Text><Text style={EPaperStyles.metricLabel}>Articles</Text></View>
@@ -971,11 +876,14 @@ export default function EPaperScreen({navigation}){
             {loading?(<Text style={EPaperStyles.loadingText}>Loading…</Text>):items.length===0?(<Text style={EPaperStyles.emptyText}>No e-paper records found.</Text>):(
               items.map(item=>(
                 <View key={item.id} style={EPaperStyles.paperCard}>
-                  <View style={EPaperStyles.paperTopRow}><StatusBadge status={item.status}/><Text style={EPaperStyles.publishDate}>{item.createdAt?.slice(0,10)||''}</Text></View>
+                  <View style={EPaperStyles.paperTopRow}>
+                    <StatusBadge status={item.status}/>
+                    <Text style={EPaperStyles.publishDate}>{item.publishDate||item.createdAt?.slice(0,10)||''}</Text>
+                  </View>
                   {item.state?(<View style={EPaperStyles.stateChip}><Feather name="map-pin" size={12} color="#FF2D78"/><Text style={EPaperStyles.stateChipText}>{item.state}</Text></View>):null}
                   <Text style={EPaperStyles.paperTitle} numberOfLines={2}>{(item.title||'').replace(/<[^>]*>/g,'')}</Text>
                   <Text style={EPaperStyles.paperDesc} numberOfLines={2}>{(item.description||'').replace(/<[^>]*>/g,'')}</Text>
-                  {Boolean(item.mediaType)&&item.mediaType!=='None'&&(<View style={EPaperStyles.mediaBadge}><Feather name={item.mediaType==='Images'?'image':'video'} size={11} color="#FF2D78"/><Text style={EPaperStyles.mediaBadgeText}>{item.mediaType==='Images'?`${item.images?.length||0} Image(s)`:'Video attached'}</Text></View>)}
+                  {item.images?.length>0&&(<View style={EPaperStyles.mediaBadge}><Feather name="image" size={11} color="#FF2D78"/><Text style={EPaperStyles.mediaBadgeText}>{item.images.length} Image(s)</Text></View>)}
                   <View style={EPaperStyles.statsRow}><View style={EPaperStyles.statItem}><Feather name="eye" size={12} color="#64748b"/><Text style={EPaperStyles.statText}>{item.views??0} Views</Text></View><View style={EPaperStyles.statItem}><Feather name="user" size={12} color="#64748b"/><Text style={EPaperStyles.statText}>{item.createdBy?.split('@')[0]||'user'}</Text></View></View>
                   <View style={EPaperStyles.actionRow}>
                     <TouchableOpacity style={EPaperStyles.actionBtn} onPress={()=>handleView(item)}><Feather name="eye" size={13} color="#FF2D78"/><Text style={EPaperStyles.actionBtnText}>View</Text></TouchableOpacity>
@@ -990,34 +898,31 @@ export default function EPaperScreen({navigation}){
           </View>
         </ScrollView>
         <FormModal
-  visible={formVisible}
-  editItemValue={editItem}
-  isWeb={isWeb}
-  isAdmin={isAdmin}
-  fTitleRef={fTitleRef}
-  fDescRef={fDescRef}
-  fMediaType={fMediaType}
-  fImages={fImages}
-  fVideo={fVideo}
-  fSaving={fSaving}
-  selectedState={selectedState}
-  statePickerVisible={statePickerVisible}
-  setStatePickerVisible={setStatePickerVisible}
-  setSelectedState={setSelectedState}
-  setFMediaType={setFMediaType}
-  setFImages={setFImages}
-  setFVideo={setFVideo}
-  closeForm={closeForm}
-  handleSave={handleSave}
-  pickImages={pickImages}
-  pickVideo={pickVideo}
-  removeImage={removeImage}
-  w={w}
-  windowWidth={windowWidth}
-  htmlToPlain={htmlToPlain}
-  plainToHtml={plainToHtml}
-  O={O}
-/>
+          visible={formVisible}
+          editItemValue={editItem}
+          isWeb={isWeb}
+          isAdmin={isAdmin}
+          fTitleRef={fTitleRef}
+          fDescRef={fDescRef}
+          fImages={fImages}
+          fSaving={fSaving}
+          selectedState={selectedState}
+          statePickerVisible={statePickerVisible}
+          setStatePickerVisible={setStatePickerVisible}
+          setSelectedState={setSelectedState}
+          setFImages={setFImages}
+          fDate={fDate}
+          setFDate={setFDate}
+          closeForm={closeForm}
+          handleSave={handleSave}
+          pickImages={pickImages}
+          removeImage={removeImage}
+          ws={ws}
+          windowWidth={windowWidth}
+          htmlToPlain={htmlToPlain}
+          plainToHtml={plainToHtml}
+          O={O}
+        />
         <ViewModal/>
       </View>
     </SafeAreaView>

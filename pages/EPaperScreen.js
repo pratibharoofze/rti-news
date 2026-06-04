@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useToast } from '../components/ui/ToastProvider';
 import EPaperStyles from '../styles/EPaperStyles';
 import { UserStore } from '../store/UserStore';
@@ -271,7 +272,7 @@ export default function EPaperScreen({navigation}){
   const isWeb=Platform.OS==='web';
   const { width: windowWidth } = useWindowDimensions();
   const ws = React.useMemo(() => getWebStyles(windowWidth), [windowWidth]);
-  const htmlToPlain=(html)=>String(html||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+  const htmlToPlain=(html)=>String(html||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
   const escapeHtml=(text)=>String(text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const plainToHtml=(text)=>`<div>${escapeHtml(text).replace(/\n/g,'<br/>')}</div>`;
 
@@ -290,6 +291,8 @@ export default function EPaperScreen({navigation}){
   const fTitleRef=useRef('');
   const fDescRef=useRef('');
   const[viewItem,setViewItem]=useState(null);
+  const[manageDateKey,setManageDateKey]=useState(null);
+const[manageDateFilter,setManageDateFilter]=useState('all');
   const[successMsg,setSuccessMsg]=useState('');
   const showSuccess=(msg)=>{setSuccessMsg(msg);setTimeout(()=>setSuccessMsg(''),3000);};
 
@@ -335,10 +338,19 @@ export default function EPaperScreen({navigation}){
     const{status}=await ImagePicker.requestMediaLibraryPermissionsAsync();
     if(status!=='granted'){showToast('Gallery permission needed.','error');return;}
     const imageType=normalizeEPaperMediaType(IMAGE_PICKER_MEDIA_TYPE?.Images??IMAGE_PICKER_MEDIA_TYPE_OPTIONS?.Images);
-    const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:imageType||undefined,allowsMultipleSelection:true,base64:false,quality:0.7,maxWidth:1280,maxHeight:1280,exif:false});
+    const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:imageType||undefined,allowsMultipleSelection:true,base64:true,quality:0.5,maxWidth:1280,maxHeight:1280,exif:false});
     if(!result.canceled&&result.assets?.length){
       const processed=[];
-      for(let i=0;i<Math.min(result.assets.length,10);i++){const asset=result.assets[i];if(asset.fileSize&&asset.fileSize>10*1024*1024){showToast(`Image ${i+1} too large. Skipping.`,'warning');continue;}processed.push(asset.uri);}
+      for(let i=0;i<Math.min(result.assets.length,10);i++){
+        const asset=result.assets[i];
+        if(asset.fileSize&&asset.fileSize>10*1024*1024){showToast(`Image ${i+1} too large. Skipping.`,'warning');continue;}
+        if(asset.base64){
+          const mime=asset.mimeType||'image/jpeg';
+          processed.push(`data:${mime};base64,${asset.base64}`);
+        } else {
+          processed.push(asset.uri);
+        }
+      }
       if(processed.length>0)setFImages(prev=>[...prev,...processed]);
       if(result.assets.length>10)showToast('Only first 10 images added.','info');
     }
@@ -411,6 +423,7 @@ export default function EPaperScreen({navigation}){
     const [ready, setReady] = useState(false);
     const [webTitleText, setWebTitleText] = useState('');
     const [webDescText, setWebDescText] = useState('');
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     useEffect(() => {
       const t = setTimeout(() => setReady(true), 350);
@@ -468,16 +481,23 @@ export default function EPaperScreen({navigation}){
                 <Text style={ws.webFieldHint}>Article ki publish date select karein</Text>
                 <View style={ws.webDateInput}>
                   <Feather name="calendar" size={16} color={O[400]} />
-                  <TextInput
-                    style={[ws.webDateInputText, !fDate && ws.webDateInputPlaceholder]}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#AAAAAA"
-                    value={fDate}
-                    onChangeText={setFDate}
-                    maxLength={10}
+                  <input
+                    type="date"
+                    value={fDate || todayStr()}
+                    onChange={(e) => setFDate(e.target.value)}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: 13,
+                      fontWeight: '600',
+                      color: '#111111',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
                   />
                 </View>
-
                 {/* State */}
                 <Text style={ws.webFieldLabelSpaced}>State</Text>
                 <Text style={ws.webFieldHint}>Is e-paper ka state choose karein</Text>
@@ -566,19 +586,31 @@ export default function EPaperScreen({navigation}){
 
               {/* Publish Date — mobile */}
               <Text style={EPaperStyles.fieldLabelSpaced}>Publish Date</Text>
-              <Text style={EPaperStyles.fieldHint}>Format: YYYY-MM-DD</Text>
-              <View style={[EPaperStyles.stateSelector, {gap:10}]}>
+              <Text style={EPaperStyles.fieldHint}>Calendar se date choose karein</Text>
+              <TouchableOpacity
+                style={[EPaperStyles.stateSelector, {gap:10}]}
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.7}
+              >
                 <Feather name="calendar" size={16} color="#F97316" />
-                <TextInput
-                  style={[EPaperStyles.stateSelectorText, {flex:1}]}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#94a3b8"
-                  value={fDate}
-                  onChangeText={setFDate}
-                  maxLength={10}
-                  keyboardType="numeric"
+                <Text style={[EPaperStyles.stateSelectorText, !fDate && EPaperStyles.stateSelectorPlaceholder]}>
+                  {fDate || todayStr()}
+                </Text>
+                <Feather name="chevron-down" size={16} color="#94a3b8" />
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={fDate ? new Date(fDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (selectedDate) {
+                      setFDate(selectedDate.toISOString().slice(0, 10));
+                    }
+                  }}
                 />
-              </View>
+              )}
 
               {/* State — mobile */}
               <Text style={EPaperStyles.fieldLabelSpaced}>State</Text>
@@ -617,8 +649,8 @@ export default function EPaperScreen({navigation}){
 
   const ViewModal=()=>{
     if(!viewItem)return null;
-    const plainTitle=(viewItem.title||'').replace(/<[^>]*>/g,' ').trim();
-    const plainDescription=(viewItem.description||'').replace(/<[^>]*>/g,' ').trim();
+    const plainTitle=(viewItem.title||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ').trim();
+    const plainDescription=(viewItem.description||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ').trim();
 
     if(isWeb){
       return(
@@ -709,6 +741,13 @@ export default function EPaperScreen({navigation}){
   // WEB LAYOUT
   // ══════════════════════════════════════════════════════════════════════════
   if(isWeb){
+    const grouped_manage = manageDateKey ? items.filter(i=>{
+  const dateMatch=(i.publishDate||i.createdAt?.slice(0,10)||'Unknown')===manageDateKey;
+  if(!dateMatch)return false;
+  if(manageDateFilter==='published')return i.status==='approved';
+  if(manageDateFilter==='unpublished')return i.status!=='approved';
+  return true;
+}) : [];
     const stripeStyle=(status)=>{
       const base=ws.articleStripe;
       if(status==='approved')return[base,ws.articleStripeApproved];
@@ -772,48 +811,85 @@ export default function EPaperScreen({navigation}){
                 <Text style={ws.emptyTxt}>No articles yet</Text>
                 <Text style={ws.emptySub}>Click "Add E-Paper" to create your first article.</Text>
               </View>
-            ):(
-              <View style={ws.grid}>
-                {items.map(item=>{
-                  const plainTitle=(item.title||'').replace(/<[^>]*>/g,'').trim();
-                  const plainDesc=(item.description||'').replace(/<[^>]*>/g,'').trim();
-                  return(
-                    <View key={item.id} style={ws.articleCard}>
-                      <View style={stripeStyle(item.status)}/>
-                      <View style={ws.articleBody}>
-                        <View style={ws.articleMeta}>
-                          <StatusBadge status={item.status} web/>
-                          <Text style={ws.articleDate}>{item.publishDate||item.createdAt?.slice(0,10)||''}</Text>
-                        </View>
-                        {item.state?(<View style={ws.stateChip}><Feather name="map-pin" size={11} color={O[600]}/><Text style={ws.stateChipTxt}>{item.state}</Text></View>):null}
-                        <Text style={ws.articleTitle} numberOfLines={2}>{plainTitle||'Untitled'}</Text>
-                        <Text style={ws.articleDesc} numberOfLines={3}>{plainDesc||'No description.'}</Text>
-                        {item.images?.length>0&&(
-                          <View style={ws.mediaBadge}><Feather name="image" size={11} color={O[600]}/><Text style={ws.mediaBadgeTxt}>{item.images.length} Image(s)</Text></View>
-                        )}
-                        <View style={ws.statsRow}>
-                          <View style={ws.statItem}><Feather name="eye" size={12} color="#AAAAAA"/><Text style={ws.statTxt}>{item.views??0} views</Text></View>
-                          <View style={ws.statItem}><Feather name="user" size={12} color="#AAAAAA"/><Text style={ws.statTxt}>{item.createdBy?.split('@')[0]||'user'}</Text></View>
-                        </View>
-                        <View style={ws.divider}/>
-                        <View style={ws.actionRow}>
-                          <TouchableOpacity style={ws.actionBtn} onPress={()=>handleView(item)}><Feather name="eye" size={13} color={O[600]}/><Text style={ws.actionBtnTxt}>View</Text></TouchableOpacity>
-                          {(isAdmin||item.createdBy===currentUser?.email)&&(<TouchableOpacity style={ws.actionBtn} onPress={()=>openEditForm(item)}><Feather name="edit-2" size={13} color={O[600]}/><Text style={ws.actionBtnTxt}>Edit</Text></TouchableOpacity>)}
-                          <TouchableOpacity style={ws.actionBtn} onPress={()=>handleShare(item)}><Feather name="share-2" size={13} color={O[600]}/><Text style={ws.actionBtnTxt}>Share</Text></TouchableOpacity>
-                          {(isAdmin||item.createdBy===currentUser?.email)&&(<TouchableOpacity style={ws.actionBtnDanger} onPress={()=>handleDelete(item)}><Feather name="trash-2" size={13} color="#DC2626"/><Text style={ws.actionBtnDangerTxt}>Delete</Text></TouchableOpacity>)}
-                        </View>
-                        {isAdmin&&item.status==='pending'&&(
-                          <View style={ws.adminRow}>
-                            <TouchableOpacity style={ws.approveBtn} onPress={()=>handleApprove(item)}><Feather name="check" size={13} color="#16A34A"/><Text style={ws.approveBtnTxt}>Approve</Text></TouchableOpacity>
-                            <TouchableOpacity style={ws.rejectBtn} onPress={()=>handleReject(item)}><Feather name="x" size={13} color="#DC2626"/><Text style={ws.rejectBtnTxt}>Reject</Text></TouchableOpacity>
-                          </View>
-                        )}
+           ):(()=>{
+              // Date ke hisaab se group karo
+              const grouped = {};
+              items.forEach(item=>{
+                const dateKey = item.publishDate||item.createdAt?.slice(0,10)||'Unknown';
+                if(!grouped[dateKey]) grouped[dateKey]=[];
+                grouped[dateKey].push(item);
+              });
+              const sortedDates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+
+              return(
+                <View style={{width:'100%'}}>
+                  {sortedDates.map(dateKey=>(
+                    <View key={dateKey} style={{backgroundColor:'#ffffff',borderWidth:1,borderColor:'#EDE8E1',borderRadius:14,marginBottom:12,overflow:'hidden'}}>
+
+                      {/* Date header */}
+                      <View style={{flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:windowWidth<=640?14:18,paddingVertical:12,backgroundColor:O[50],borderBottomWidth:1,borderBottomColor:O[100]}}>
+                        <Feather name="calendar" size={13} color={O[600]}/>
+                        <Text style={{fontSize:13,fontWeight:'800',color:O[800]}}>{dateKey}</Text>
+                       <View style={{marginLeft:'auto',flexDirection:'row',alignItems:'center',gap:6}}>
+  <TouchableOpacity
+    onPress={()=>{setManageDateFilter('published');setManageDateKey(dateKey);}}
+    style={{flexDirection:'row',alignItems:'center',gap:4,backgroundColor:'#F0FDF4',borderWidth:1,borderColor:'#BBF7D0',borderRadius:999,paddingHorizontal:10,paddingVertical:3}}
+  >
+    <View style={{width:6,height:6,borderRadius:3,backgroundColor:'#22C55E'}}/>
+    <Text style={{fontSize:11,fontWeight:'700',color:'#16A34A'}}>
+      {grouped[dateKey].filter(i=>i.status==='approved').length} Published
+    </Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    onPress={()=>{setManageDateFilter('unpublished');setManageDateKey(dateKey);}}
+    style={{flexDirection:'row',alignItems:'center',gap:4,backgroundColor:'#FFF7ED',borderWidth:1,borderColor:O[200],borderRadius:999,paddingHorizontal:10,paddingVertical:3}}
+  >
+    <View style={{width:6,height:6,borderRadius:3,backgroundColor:O[400]}}/>
+    <Text style={{fontSize:11,fontWeight:'700',color:O[800]}}>
+      {grouped[dateKey].filter(i=>i.status!=='approved').length} Unpublished
+    </Text>
+  </TouchableOpacity>
+</View>
                       </View>
+
+                      {/* Articles titles only — card mein, no action buttons */}
+                      {grouped[dateKey].map((item, idx)=>{
+                        const plainTitle=(item.title||'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ').trim();
+                        const isLast = idx===grouped[dateKey].length-1;
+                        return(
+                          <View key={item.id} style={{paddingHorizontal:windowWidth<=640?14:18,paddingVertical:10,borderBottomWidth:isLast?0:1,borderBottomColor:'#F5F2EE',flexDirection:'row',alignItems:'center',gap:8}}>
+                            <Feather name="file-text" size={13} color={O[400]}/>
+                            <Text style={{flex:1,fontSize:windowWidth<=640?13:14,fontWeight:'600',color:'#333333',lineHeight:20}} numberOfLines={1}>{plainTitle||'Untitled'}</Text>
+                          </View>
+                        );
+                      })}
+                      {/* Card ke neeche ek "Manage" button */}
+                      <View style={{paddingHorizontal:windowWidth<=640?14:18,paddingVertical:12,borderTopWidth:1,borderTopColor:'#F5F2EE',flexDirection:'row',gap:8}}>
+  <TouchableOpacity
+    style={{flexDirection:'row',alignItems:'center',gap:5,paddingVertical:7,paddingHorizontal:14,borderRadius:8,backgroundColor:O[50],borderWidth:1,borderColor:O[200]}}
+    onPress={()=>setManageDateKey(dateKey)}
+  >
+    <Feather name="settings" size={13} color={O[600]}/>
+    <Text style={{fontSize:12,fontWeight:'700',color:O[800]}}>Manage Articles</Text>
+  </TouchableOpacity>
+
+  {/* ── NEW BUTTON ── */}
+  <TouchableOpacity
+    style={{flexDirection:'row',alignItems:'center',gap:5,paddingVertical:7,paddingHorizontal:14,borderRadius:8,backgroundColor:'#F0FDF4',borderWidth:1,borderColor:'#BBF7D0'}}
+    onPress={()=>navigation.navigate('NewspaperPage',{
+      dateKey,
+      articles: grouped[dateKey]
+    })}
+  >
+    <Feather name="file-text" size={13} color="#16A34A"/>
+    <Text style={{fontSize:12,fontWeight:'700',color:'#16A34A'}}>View Newspaper</Text>
+  </TouchableOpacity>
+</View>
                     </View>
-                  );
-                })}
-              </View>
-            )}
+                  ))}
+                </View>
+              );
+            })()}
           </View>
         </ScrollView>
 
@@ -844,6 +920,52 @@ export default function EPaperScreen({navigation}){
           O={O}
         />
         <ViewModal/>
+
+        {/* Manage Articles Modal */}
+        {manageDateKey&&(
+          <Modal visible={!!manageDateKey} animationType="slide" onRequestClose={()=>setManageDateKey(null)}>
+            <View style={{flex:1,backgroundColor:'#F7F4F0'}}>
+              {/* Header */}
+              <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:20,paddingVertical:14,backgroundColor:O[400],borderBottomWidth:2,borderBottomColor:O[600]}}>
+                <TouchableOpacity onPress={()=>{setManageDateKey(null);setManageDateFilter('all');}} style={{width:36,height:36,borderRadius:8,backgroundColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center'}}>
+                  <Feather name="x" size={18} color="#ffffff"/>
+                </TouchableOpacity>
+                <View style={{flex:1,alignItems:'center'}}>
+                  <Text style={{fontSize:16,fontWeight:'800',color:'#ffffff'}}>Manage Articles</Text>
+                  <Text style={{fontSize:11,color:'rgba(255,255,255,0.8)',marginTop:1}}>{manageDateKey}</Text>
+                </View>
+                <View style={{width:36}}/>
+              </View>             
+
+              {/* Articles list with actions */}
+              <ScrollView contentContainerStyle={{padding:16}} showsVerticalScrollIndicator={false}>
+                {(grouped_manage||[]).map((item,idx)=>{
+                  const plainTitle=(item.title||'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ').trim();
+                  const plainDesc=(item.description||'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ').trim();
+                  return(
+                    <View key={item.id} style={{backgroundColor:'#ffffff',borderRadius:12,padding:16,marginBottom:10,borderWidth:1,borderColor:'#EDE8E1'}}>
+                      {/* Title only */}
+                      <Text style={{fontSize:15,fontWeight:'800',color:'#111111',lineHeight:21,marginBottom:6}}>{plainTitle||'Untitled'}</Text>
+                      {!!plainDesc&&<Text style={{fontSize:13,color:'#666666',lineHeight:19,marginBottom:8}} numberOfLines={2}>{plainDesc}</Text>}
+                      {item.state&&(
+                        <View style={{flexDirection:'row',alignItems:'center',gap:5,alignSelf:'flex-start',backgroundColor:O[50],borderWidth:1,borderColor:O[200],borderRadius:999,paddingHorizontal:10,paddingVertical:3,marginBottom:8}}>
+                          <Feather name="map-pin" size={11} color={O[600]}/>
+                          <Text style={{fontSize:11,fontWeight:'700',color:O[800]}}>{item.state}</Text>
+                        </View>
+                      )}
+                      {/* Actions */}
+                      <View style={{flexDirection:'row',gap:7,flexWrap:'wrap',marginTop:4}}>
+                        <TouchableOpacity style={ws.actionBtn} onPress={()=>{setManageDateKey(null);handleView(item);}}><Feather name="eye" size={13} color={O[600]}/><Text style={ws.actionBtnTxt}>View</Text></TouchableOpacity>
+                        {(isAdmin||item.createdBy===currentUser?.email)&&(<TouchableOpacity style={ws.actionBtn} onPress={()=>{setManageDateKey(null);openEditForm(item);}}><Feather name="edit-2" size={13} color={O[600]}/><Text style={ws.actionBtnTxt}>Edit</Text></TouchableOpacity>)}
+                        {(isAdmin||item.createdBy===currentUser?.email)&&(<TouchableOpacity style={ws.actionBtnDanger} onPress={()=>{setManageDateKey(null);handleDelete(item);}}><Feather name="trash-2" size={13} color="#DC2626"/><Text style={ws.actionBtnDangerTxt}>Delete</Text></TouchableOpacity>)}
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </Modal>
+        )}
       </View>
     );
   }
@@ -881,9 +1003,9 @@ export default function EPaperScreen({navigation}){
                     <Text style={EPaperStyles.publishDate}>{item.publishDate||item.createdAt?.slice(0,10)||''}</Text>
                   </View>
                   {item.state?(<View style={EPaperStyles.stateChip}><Feather name="map-pin" size={12} color="#FF2D78"/><Text style={EPaperStyles.stateChipText}>{item.state}</Text></View>):null}
-                  <Text style={EPaperStyles.paperTitle} numberOfLines={2}>{(item.title||'').replace(/<[^>]*>/g,'')}</Text>
-                  <Text style={EPaperStyles.paperDesc} numberOfLines={2}>{(item.description||'').replace(/<[^>]*>/g,'')}</Text>
-                  {item.images?.length>0&&(<View style={EPaperStyles.mediaBadge}><Feather name="image" size={11} color="#FF2D78"/><Text style={EPaperStyles.mediaBadgeText}>{item.images.length} Image(s)</Text></View>)}
+                  <Text style={EPaperStyles.paperTitle} numberOfLines={2}>{(item.title||'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')}</Text>
+                  <Text style={EPaperStyles.paperDesc} numberOfLines={2}>{(item.description||'').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')}</Text>
+                  {false&&item.images?.length>0&&(<View style={EPaperStyles.mediaBadge}><Feather name="image" size={11} color="#FF2D78"/><Text style={EPaperStyles.mediaBadgeText}>{item.images.length} Image(s)</Text></View>)}
                   <View style={EPaperStyles.statsRow}><View style={EPaperStyles.statItem}><Feather name="eye" size={12} color="#64748b"/><Text style={EPaperStyles.statText}>{item.views??0} Views</Text></View><View style={EPaperStyles.statItem}><Feather name="user" size={12} color="#64748b"/><Text style={EPaperStyles.statText}>{item.createdBy?.split('@')[0]||'user'}</Text></View></View>
                   <View style={EPaperStyles.actionRow}>
                     <TouchableOpacity style={EPaperStyles.actionBtn} onPress={()=>handleView(item)}><Feather name="eye" size={13} color="#FF2D78"/><Text style={EPaperStyles.actionBtnText}>View</Text></TouchableOpacity>

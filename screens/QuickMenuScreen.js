@@ -24,6 +24,176 @@ import CertificationScreen from '../pages/CertificationScreen';
 import NotificationsScreen from '../pages/NotificationsScreen';
 import EcomeScreen from './EcomeScreen';
 
+// ─────────────────────────────────────────────
+//  CSS STRING (module-level constant)
+// ─────────────────────────────────────────────
+const QM_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
+  html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #f5f4f0; }
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; -ms-overflow-style: none; box-sizing: border-box; }
+  @keyframes qmFadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .qm-root { display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
+  .qm-topbar { height: 60px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; align-items: center; padding: 0 24px; gap: 14px; flex-shrink: 0; }
+  .qm-logo { font-family: 'Instrument Serif', serif; font-size: 20px; color: #1e293b; flex: 1; }
+  .qm-logo span { color: #94a3b8; }
+  .qm-search { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 7px 14px; width: 220px; cursor: text; }
+  .qm-search span { font-size: 13px; color: #94a3b8; }
+  .qm-notif { width: 34px; height: 34px; border-radius: 9px; background: #f8fafc; border: 1px solid rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+  .qm-notif-dot { width: 7px; height: 7px; border-radius: 50%; background: #e11d48; position: absolute; top: 7px; right: 7px; border: 1.5px solid #fff; }
+  .qm-avatar { width: 34px; height: 34px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; }
+  .qm-body { display: flex; flex: 1; overflow: hidden; }
+  .qm-sidebar { width: 220px; background: #fff; border-right: 1px solid rgba(0,0,0,0.07); padding: 16px 12px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; flex-shrink: 0; }
+  .qm-sec-title { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; padding: 10px 10px 4px; }
+  .qm-nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .qm-nav-item:hover { background: #f1f5f9; color: #1e293b; }
+  .qm-nav-item.active { background: #1e293b; color: #fff; }
+  .qm-nav-item.active .qm-nav-icon { background: rgba(255,255,255,0.15) !important; }
+  .qm-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 5px 0; }
+  .qm-main { flex: 1; padding: 32px 36px; overflow-y: auto; }
+  .qm-page-header { margin-bottom: 28px; }
+  .qm-breadcrumb { font-size: 12px; color: #cbd5e1; margin-bottom: 5px; }
+  .qm-page-title { font-family: 'Instrument Serif', serif; font-size: 30px; font-weight: 400; color: #1e293b; }
+  .qm-page-sub { font-size: 14px; color: #94a3b8; margin-top: 3px; }
+  .qm-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 32px; }
+  .qm-stat { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 13px; padding: 15px 17px; }
+  .qm-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.9px; color: #cbd5e1; margin-bottom: 5px; }
+  .qm-stat-value { font-size: 24px; font-weight: 600; color: #1e293b; }
+  .qm-sec-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .qm-sec-label { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; white-space: nowrap; }
+  .qm-sec-line { flex: 1; height: 1px; background: rgba(0,0,0,0.07); }
+  .qm-grid { display: grid; gap: 11px; margin-bottom: 32px; }
+  .qm-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 16px; padding: 18px 16px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 11px; position: relative; animation: qmFadeUp 0.3s ease both; transition: border-color 0.18s, transform 0.14s, box-shadow 0.18s; }
+  .qm-card:hover { border-color: rgba(0,0,0,0.15); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.05); }
+  .qm-card:active { transform: scale(0.97); }
+  .qm-card.danger { background: #fff1f2; border-color: #fecdd3; }
+  .qm-card.danger:hover { border-color: #fda4af; }
+  .qm-card.ecome { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac; }
+  .qm-card.ecome:hover { border-color: #4ade80; box-shadow: 0 6px 24px rgba(22,163,74,0.12); }
+  .qm-card-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .qm-card-name { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
+  .qm-card-desc { font-size: 12px; color: #94a3b8; line-height: 1.4; }
+  .qm-card-arrow { position: absolute; top: 15px; right: 14px; font-size: 13px; color: #e2e8f0; }
+  .qm-card-badge { position: absolute; top: 13px; right: 34px; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; letter-spacing: 0.6px; text-transform: uppercase; }
+  .qm-root { width: 100vw; min-height: 100vh; height: 100vh; background: #f8fafc; align-items: stretch; justify-content: stretch; padding: 0; }
+  .qm-shell { width: 100vw; height: 100vh; display: grid; grid-template-columns: 216px minmax(0, 1fr); background: #fffdfb; border: 1px solid #fed7aa; border-radius: 0; overflow: hidden; box-shadow: none; }
+  .qm-topbar { display: none; }
+  .qm-body { display: contents; }
+  .qm-sidebar { width: auto; border-right: 1px solid #fed7aa; background: #fffaf7; padding: 28px 16px; overflow: hidden; }
+  .qm-brand { font-size: 18px; line-height: 24px; font-weight: 900; color: #020617; padding: 0 6px 18px; border-bottom: 1px solid #fed7aa; margin-bottom: 18px; }
+  .qm-brand span { color: #ea580c; }
+  .qm-sec-title { color: #f97316; font-size: 8px; letter-spacing: 2px; font-weight: 900; padding: 10px 6px 8px; }
+  .qm-nav-item { gap: 11px; padding: 12px 8px; border-radius: 8px; color: #9ca3af; font-size: 13px; font-weight: 800; }
+  .qm-nav-item:hover { color: #7c2d12; background: #fff7ed; }
+  .qm-nav-item.active { color: #9ca3af; background: transparent; }
+  .qm-nav-item.home-link { color: #7c2d12; }
+  .qm-nav-icon { width: 22px !important; height: 22px !important; background: transparent !important; }
+  .qm-divider { display: none; }
+  .qm-main { position: relative; padding: 26px 28px 32px; overflow-y: auto; background: #fffdfb; }
+  .qm-main::after { content: '•••'; position: absolute; top: 10px; right: 12px; color: #92400e; font-size: 13px; letter-spacing: 1px; }
+  .qm-page-header { display: none; }
+  .qm-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 22px; width: 100%; }
+  .qm-stat { min-height: 134px; border-radius: 12px; padding: 24px 16px 16px; background: #fff; box-shadow: none; }
+  .qm-stat.wallet { border-color: #fdba74; }
+  .qm-stat.network { border-color: #bfdbfe; }
+  .qm-stat.articles { border-color: #ddd6fe; }
+  .qm-stat.alerts { border-color: #fecdd3; }
+  .qm-stat-icon { height: 24px; display: flex; align-items: center; margin-bottom: 7px; }
+  .qm-stat-label { font-size: 8px; letter-spacing: 1px; font-weight: 900; margin-bottom: 1px; }
+  .qm-stat.wallet .qm-stat-label { color: #ea580c; }
+  .qm-stat.network .qm-stat-label { color: #2563eb; }
+  .qm-stat.articles .qm-stat-label { color: #6d28d9; }
+  .qm-stat.alerts .qm-stat-label { color: #e11d48; }
+  .qm-stat-value { font-size: 22px; line-height: 25px; color: #020617; font-weight: 900; }
+  .qm-stat-sub { font-size: 11px; line-height: 14px; margin-top: 6px; }
+  .qm-sec-header { margin: 0 0 10px; }
+  .qm-sec-line { display: none; }
+  .qm-sec-label { color: #ea580c; font-size: 9px; letter-spacing: 1.8px; font-weight: 900; padding-left: 7px; }
+  .qm-section-main .qm-sec-label { color: #ea580c; }
+  .qm-section-finance .qm-sec-label { color: #4f46e5; }
+  .qm-section-content .qm-sec-label { color: #6d28d9; }
+  .qm-section-marketplace .qm-sec-label { color: #16a34a; }
+  .qm-section-account .qm-sec-label { color: #e11d48; }
+  .qm-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 10px; margin-bottom: 22px; width: 100%; }
+  .qm-card { min-height: 96px; border-radius: 12px; padding: 24px 12px 12px; gap: 9px; box-shadow: none; }
+  .qm-card:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(234, 88, 12, 0.10); }
+  .qm-card-icon { width: 32px; height: 28px; border-radius: 8px; background: transparent !important; }
+  .qm-card-name { font-size: 13px; line-height: 16px; margin: 0; font-weight: 900; }
+  .qm-card-desc { display: none; }
+  .qm-card-arrow { top: 11px; right: 11px; color: #64748b; font-size: 12px; }
+  .qm-card-badge { top: 8px; right: 34px; background: transparent !important; padding: 0; font-size: 8px; }
+  .qm-card.style-blue { border-color: #fdba74; color: #ea580c; }
+  .qm-card.style-purple { border-color: #ddd6fe; }
+  .qm-card.style-teal { border-color: #99f6e4; }
+  .qm-card.style-green, .qm-card.style-farmGreen { border-color: #bbf7d0; }
+  .qm-card.style-amber { border-color: #fde68a; }
+  .qm-card.style-orange { border-color: #fb923c; }
+  .qm-card.style-pink { border-color: #f5d0fe; }
+  .qm-card.style-indigo { border-color: #c7d2fe; }
+  .qm-card.style-red { border-color: #fecdd3; }
+  .qm-card.style-cyan { border-color: #a5f3fc; }
+  .qm-card.danger { border-color: #fecdd3; background: #fff; }
+  @media (min-width: 1500px) {
+    .qm-shell { grid-template-columns: 232px minmax(0, 1fr); }
+    .qm-main { padding: 28px 34px 36px; }
+    .qm-stats, .qm-grid { gap: 12px; }
+    .qm-stat { min-height: 136px; }
+    .qm-card { min-height: 100px; }
+  }
+  @media (max-width: 760px) {
+    .qm-shell { grid-template-columns: 1fr; height: 100vh; }
+    .qm-sidebar { display: none; }
+    .qm-stats, .qm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  }
+  .qm-shell { grid-template-columns: 244px minmax(0, 1fr); }
+  .qm-sidebar { height: 100vh; overflow-y: auto; }
+  .qm-module-item.active { background: #ffedd5 !important; color: #9a3412 !important; }
+  .qm-module-item.danger { color: #e11d48 !important; }
+  .qm-content-panel { min-width: 0; height: 100vh; overflow: auto; background: #f8fafc; }
+  .qm-main { padding: 0 !important; overflow: hidden !important; background: #f8fafc !important; }
+  .qm-main > .qm-page-header,
+  .qm-main > .qm-stats,
+  .qm-main > div[class^="qm-section-"] { display: none !important; }
+  .qm-embedded-page { height: 100vh; overflow: auto; }
+  .qm-embedded-page > div { min-height: 100%; }
+  @media (max-width: 760px) {
+    html, body, #root { overflow: auto; }
+    .qm-root { height: auto; min-height: 100vh; overflow: auto; }
+    .qm-shell { width: 100vw; height: auto; min-height: 100vh; display: block; grid-template-columns: 1fr !important; overflow: visible; border-width: 0; }
+    .qm-sidebar { display: none !important; }
+    .qm-main { height: auto !important; min-height: 100vh; overflow: auto !important; padding: 14px !important; background: #fffdfb !important; }
+    .qm-content-panel { display: none !important; }
+    .qm-main > .qm-page-header,
+    .qm-main > .qm-stats,
+    .qm-main > div[class^="qm-section-"] { display: block !important; }
+    .qm-page-header { margin: 4px 0 18px; }
+    .qm-page-title { font-size: 26px; }
+    .qm-page-sub { font-size: 13px; line-height: 18px; }
+    .qm-stats { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; margin-bottom: 18px; }
+    .qm-stat { min-height: 104px; padding: 16px 12px 12px; }
+    .qm-stat-value { font-size: 19px; line-height: 23px; }
+    .qm-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; margin-bottom: 18px; }
+    .qm-card { min-height: 92px; padding: 16px 10px 12px; }
+    .qm-card-name { font-size: 12px; line-height: 15px; overflow-wrap: anywhere; }
+    .qm-main::after { display: none; }
+  }
+`;
+
+// ── CSS ko module load hote hi inject karo (FOUC fix) ────────────────────────
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const _styleId = 'qm-web-styles';
+  if (!document.getElementById(_styleId)) {
+    const _el = document.createElement('style');
+    _el.id = _styleId;
+    _el.textContent = QM_CSS;
+    document.head.appendChild(_el);
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // All quick menu items (used in mobile list + web main cards)
 const MENU_SECTIONS = [
   {
@@ -52,7 +222,6 @@ const MENU_SECTIONS = [
       { label: 'Notifications', icon: 'notifications-outline', screen: 'Notifications', iconStyle: 'green', badge: '3', badgeColor: '#e11d48' },
     ],
   },
-  // ✅ Ecome section
   {
     title: 'Marketplace',
     items: [
@@ -79,7 +248,6 @@ const ICON_STYLES = {
   red:       { bg: '#fff1f2', border: '#ffe4e6', color: '#e11d48' },
   cyan:      { bg: '#ecfeff', border: '#cffafe', color: '#0891b2' },
   rose:      { bg: '#fff1f2', border: '#fecdd3', color: '#f43f5e' },
-  // ✅ Style for Ecome
   farmGreen: { bg: '#f0fdf4', border: '#86efac', color: '#15803d' },
 };
 
@@ -127,6 +295,7 @@ function QuickMenuWeb({ navigation }) {
   });
   const activeModule = WEB_MODULES.find((item) => item.screen === activeScreen) || WEB_MODULES[0];
   const ActiveComponent = activeModule.component || ProfileScreen;
+
   const embeddedNavigation = React.useMemo(() => {
     const openScreen = (screenName, ...args) => {
       const module = WEB_MODULES.find((item) => item.screen === screenName && item.component);
@@ -167,178 +336,13 @@ function QuickMenuWeb({ navigation }) {
     setActiveScreen(item.screen);
   };
 
+  // Sirf resize listener — CSS injection hataya gaya (ab module-level pe hoti hai)
   React.useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return undefined;
     const updateLayout = () => setIsMobileWeb(window.innerWidth <= 760);
     updateLayout();
     window.addEventListener('resize', updateLayout);
     return () => window.removeEventListener('resize', updateLayout);
-  }, []);
-
-  React.useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return undefined;
-    const id = 'qm-web-styles';
-    let el = document.getElementById(id);
-    if (!el) {
-      el = document.createElement('style');
-      el.id = id;
-      document.head.appendChild(el);
-    }
-    el.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
-      html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; background: #f5f4f0; }
-      ::-webkit-scrollbar { display: none; }
-      * { scrollbar-width: none; -ms-overflow-style: none; box-sizing: border-box; }
-      @keyframes qmFadeUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to   { opacity: 1; transform: translateY(0); }
-      }
-      .qm-root { display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
-      .qm-topbar { height: 60px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.07); display: flex; align-items: center; padding: 0 24px; gap: 14px; flex-shrink: 0; }
-      .qm-logo { font-family: 'Instrument Serif', serif; font-size: 20px; color: #1e293b; flex: 1; }
-      .qm-logo span { color: #94a3b8; }
-      .qm-search { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 7px 14px; width: 220px; cursor: text; }
-      .qm-search span { font-size: 13px; color: #94a3b8; }
-      .qm-notif { width: 34px; height: 34px; border-radius: 9px; background: #f8fafc; border: 1px solid rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
-      .qm-notif-dot { width: 7px; height: 7px; border-radius: 50%; background: #e11d48; position: absolute; top: 7px; right: 7px; border: 1.5px solid #fff; }
-      .qm-avatar { width: 34px; height: 34px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; }
-      .qm-body { display: flex; flex: 1; overflow: hidden; }
-      .qm-sidebar { width: 220px; background: #fff; border-right: 1px solid rgba(0,0,0,0.07); padding: 16px 12px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; flex-shrink: 0; }
-      .qm-sec-title { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; padding: 10px 10px 4px; }
-      .qm-nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; font-size: 13px; font-weight: 500; color: #64748b; cursor: pointer; transition: background 0.15s, color 0.15s; }
-      .qm-nav-item:hover { background: #f1f5f9; color: #1e293b; }
-      .qm-nav-item.active { background: #1e293b; color: #fff; }
-      .qm-nav-item.active .qm-nav-icon { background: rgba(255,255,255,0.15) !important; }
-      .qm-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 5px 0; }
-      .qm-main { flex: 1; padding: 32px 36px; overflow-y: auto; }
-      .qm-page-header { margin-bottom: 28px; }
-      .qm-breadcrumb { font-size: 12px; color: #cbd5e1; margin-bottom: 5px; }
-      .qm-page-title { font-family: 'Instrument Serif', serif; font-size: 30px; font-weight: 400; color: #1e293b; }
-      .qm-page-sub { font-size: 14px; color: #94a3b8; margin-top: 3px; }
-      .qm-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 32px; }
-      .qm-stat { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 13px; padding: 15px 17px; }
-      .qm-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.9px; color: #cbd5e1; margin-bottom: 5px; }
-      .qm-stat-value { font-size: 24px; font-weight: 600; color: #1e293b; }
-      .qm-sec-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-      .qm-sec-label { font-size: 10px; font-weight: 600; letter-spacing: 1.3px; text-transform: uppercase; color: #cbd5e1; white-space: nowrap; }
-      .qm-sec-line { flex: 1; height: 1px; background: rgba(0,0,0,0.07); }
-      .qm-grid { display: grid; gap: 11px; margin-bottom: 32px; }
-      .qm-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 16px; padding: 18px 16px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 11px; position: relative; animation: qmFadeUp 0.3s ease both; transition: border-color 0.18s, transform 0.14s, box-shadow 0.18s; }
-      .qm-card:hover { border-color: rgba(0,0,0,0.15); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.05); }
-      .qm-card:active { transform: scale(0.97); }
-      .qm-card.danger { background: #fff1f2; border-color: #fecdd3; }
-      .qm-card.danger:hover { border-color: #fda4af; }
-      .qm-card.ecome { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #86efac; }
-      .qm-card.ecome:hover { border-color: #4ade80; box-shadow: 0 6px 24px rgba(22,163,74,0.12); }
-      .qm-card-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-      .qm-card-name { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
-      .qm-card-desc { font-size: 12px; color: #94a3b8; line-height: 1.4; }
-      .qm-card-arrow { position: absolute; top: 15px; right: 14px; font-size: 13px; color: #e2e8f0; }
-      .qm-card-badge { position: absolute; top: 13px; right: 34px; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; letter-spacing: 0.6px; text-transform: uppercase; }
-      .qm-root { width: 100vw; min-height: 100vh; height: 100vh; background: #f8fafc; align-items: stretch; justify-content: stretch; padding: 0; }
-      .qm-shell { width: 100vw; height: 100vh; display: grid; grid-template-columns: 216px minmax(0, 1fr); background: #fffdfb; border: 1px solid #fed7aa; border-radius: 0; overflow: hidden; box-shadow: none; }
-      .qm-topbar { display: none; }
-      .qm-body { display: contents; }
-      .qm-sidebar { width: auto; border-right: 1px solid #fed7aa; background: #fffaf7; padding: 28px 16px; overflow: hidden; }
-      .qm-brand { font-size: 18px; line-height: 24px; font-weight: 900; color: #020617; padding: 0 6px 18px; border-bottom: 1px solid #fed7aa; margin-bottom: 18px; }
-      .qm-brand span { color: #ea580c; }
-      .qm-sec-title { color: #f97316; font-size: 8px; letter-spacing: 2px; font-weight: 900; padding: 10px 6px 8px; }
-      .qm-nav-item { gap: 11px; padding: 12px 8px; border-radius: 8px; color: #9ca3af; font-size: 13px; font-weight: 800; }
-      .qm-nav-item:hover { color: #7c2d12; background: #fff7ed; }
-      .qm-nav-item.active { color: #9ca3af; background: transparent; }
-      .qm-nav-item.home-link { color: #7c2d12; }
-      .qm-nav-icon { width: 22px !important; height: 22px !important; background: transparent !important; }
-      .qm-divider { display: none; }
-      .qm-main { position: relative; padding: 26px 28px 32px; overflow-y: auto; background: #fffdfb; }
-      .qm-main::after { content: '•••'; position: absolute; top: 10px; right: 12px; color: #92400e; font-size: 13px; letter-spacing: 1px; }
-      .qm-page-header { display: none; }
-      .qm-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 22px; width: 100%; }
-      .qm-stat { min-height: 134px; border-radius: 12px; padding: 24px 16px 16px; background: #fff; box-shadow: none; }
-      .qm-stat.wallet { border-color: #fdba74; }
-      .qm-stat.network { border-color: #bfdbfe; }
-      .qm-stat.articles { border-color: #ddd6fe; }
-      .qm-stat.alerts { border-color: #fecdd3; }
-      .qm-stat-icon { height: 24px; display: flex; align-items: center; margin-bottom: 7px; }
-      .qm-stat-label { font-size: 8px; letter-spacing: 1px; font-weight: 900; margin-bottom: 1px; }
-      .qm-stat.wallet .qm-stat-label { color: #ea580c; }
-      .qm-stat.network .qm-stat-label { color: #2563eb; }
-      .qm-stat.articles .qm-stat-label { color: #6d28d9; }
-      .qm-stat.alerts .qm-stat-label { color: #e11d48; }
-      .qm-stat-value { font-size: 22px; line-height: 25px; color: #020617; font-weight: 900; }
-      .qm-stat-sub { font-size: 11px; line-height: 14px; margin-top: 6px; }
-      .qm-sec-header { margin: 0 0 10px; }
-      .qm-sec-line { display: none; }
-      .qm-sec-label { color: #ea580c; font-size: 9px; letter-spacing: 1.8px; font-weight: 900; padding-left: 7px; }
-      .qm-section-main .qm-sec-label { color: #ea580c; }
-      .qm-section-finance .qm-sec-label { color: #4f46e5; }
-      .qm-section-content .qm-sec-label { color: #6d28d9; }
-      .qm-section-marketplace .qm-sec-label { color: #16a34a; }
-      .qm-section-account .qm-sec-label { color: #e11d48; }
-      .qm-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 10px; margin-bottom: 22px; width: 100%; }
-      .qm-card { min-height: 96px; border-radius: 12px; padding: 24px 12px 12px; gap: 9px; box-shadow: none; }
-      .qm-card:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(234, 88, 12, 0.10); }
-      .qm-card-icon { width: 32px; height: 28px; border-radius: 8px; background: transparent !important; }
-      .qm-card-name { font-size: 13px; line-height: 16px; margin: 0; font-weight: 900; }
-      .qm-card-desc { display: none; }
-      .qm-card-arrow { top: 11px; right: 11px; color: #64748b; font-size: 12px; }
-      .qm-card-badge { top: 8px; right: 34px; background: transparent !important; padding: 0; font-size: 8px; }
-      .qm-card.style-blue { border-color: #fdba74; color: #ea580c; }
-      .qm-card.style-purple { border-color: #ddd6fe; }
-      .qm-card.style-teal { border-color: #99f6e4; }
-      .qm-card.style-green, .qm-card.style-farmGreen { border-color: #bbf7d0; }
-      .qm-card.style-amber { border-color: #fde68a; }
-      .qm-card.style-orange { border-color: #fb923c; }
-      .qm-card.style-pink { border-color: #f5d0fe; }
-      .qm-card.style-indigo { border-color: #c7d2fe; }
-      .qm-card.style-red { border-color: #fecdd3; }
-      .qm-card.style-cyan { border-color: #a5f3fc; }
-      .qm-card.danger { border-color: #fecdd3; background: #fff; }
-      @media (min-width: 1500px) {
-        .qm-shell { grid-template-columns: 232px minmax(0, 1fr); }
-        .qm-main { padding: 28px 34px 36px; }
-        .qm-stats, .qm-grid { gap: 12px; }
-        .qm-stat { min-height: 136px; }
-        .qm-card { min-height: 100px; }
-      }
-      @media (max-width: 760px) {
-        .qm-shell { grid-template-columns: 1fr; height: 100vh; }
-        .qm-sidebar { display: none; }
-        .qm-stats, .qm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-      }
-      .qm-shell { grid-template-columns: 244px minmax(0, 1fr); }
-      .qm-sidebar { height: 100vh; overflow-y: auto; }
-      .qm-module-item.active { background: #ffedd5 !important; color: #9a3412 !important; }
-      .qm-module-item.danger { color: #e11d48 !important; }
-      .qm-content-panel { min-width: 0; height: 100vh; overflow: auto; background: #f8fafc; }
-      .qm-main { padding: 0 !important; overflow: hidden !important; background: #f8fafc !important; }
-      .qm-main > .qm-page-header,
-      .qm-main > .qm-stats,
-      .qm-main > div[class^="qm-section-"] { display: none !important; }
-      .qm-embedded-page { height: 100vh; overflow: auto; }
-      .qm-embedded-page > div { min-height: 100%; }
-      @media (max-width: 760px) {
-        html, body, #root { overflow: auto; }
-        .qm-root { height: auto; min-height: 100vh; overflow: auto; }
-        .qm-shell { width: 100vw; height: auto; min-height: 100vh; display: block; grid-template-columns: 1fr !important; overflow: visible; border-width: 0; }
-        .qm-sidebar { display: none !important; }
-        .qm-main { height: auto !important; min-height: 100vh; overflow: auto !important; padding: 14px !important; background: #fffdfb !important; }
-        .qm-content-panel { display: none !important; }
-        .qm-main > .qm-page-header,
-        .qm-main > .qm-stats,
-        .qm-main > div[class^="qm-section-"] { display: block !important; }
-        .qm-page-header { margin: 4px 0 18px; }
-        .qm-page-title { font-size: 26px; }
-        .qm-page-sub { font-size: 13px; line-height: 18px; }
-        .qm-stats { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; margin-bottom: 18px; }
-        .qm-stat { min-height: 104px; padding: 16px 12px 12px; }
-        .qm-stat-value { font-size: 19px; line-height: 23px; }
-        .qm-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; margin-bottom: 18px; }
-        .qm-card { min-height: 92px; padding: 16px 10px 12px; }
-        .qm-card-name { font-size: 12px; line-height: 15px; overflow-wrap: anywhere; }
-        .qm-main::after { display: none; }
-      }
-    `;
-    return undefined;
   }, []);
 
   if (isMobileWeb) {
@@ -424,14 +428,14 @@ function QuickMenuWeb({ navigation }) {
               const statValue = s.label === 'Wallet' ? 'Rs. 4,820' : s.value;
               const statSub = s.label === 'Wallet' ? '+ 12% this month' : s.sub;
               return (
-              <div key={s.label} className={`qm-stat ${statMeta.tone}`}>
-                <div className="qm-stat-icon">
-                  <Ionicons name={statMeta.icon} size={16} color={statMeta.color} />
+                <div key={s.label} className={`qm-stat ${statMeta.tone}`}>
+                  <div className="qm-stat-icon">
+                    <Ionicons name={statMeta.icon} size={16} color={statMeta.color} />
+                  </div>
+                  <div className="qm-stat-label">{s.label}</div>
+                  <div className="qm-stat-value">{statValue}</div>
+                  <div className="qm-stat-sub" style={{ color: s.subColor || '#111827' }}>{statSub}</div>
                 </div>
-                <div className="qm-stat-label">{s.label}</div>
-                <div className="qm-stat-value">{statValue}</div>
-                <div className="qm-stat-sub" style={{ color: s.subColor || '#111827' }}>{statSub}</div>
-              </div>
               );
             })}
           </div>
@@ -443,9 +447,7 @@ function QuickMenuWeb({ navigation }) {
                 <span className="qm-sec-label">{section.title}</span>
                 <div className="qm-sec-line" />
               </div>
-              <div className="qm-grid" style={{
-                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-              }}>
+              <div className="qm-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
                 {section.items.map((item, idx) => {
                   const ic = ICON_STYLES[item.iconStyle] || ICON_STYLES.blue;
                   const isEcome = item.screen === 'Ecome';
@@ -572,7 +574,6 @@ const styles = StyleSheet.create({
   listContainer: { paddingHorizontal: 14, paddingTop: 4 },
   sectionLabel: { fontSize: 10, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.1, textTransform: 'uppercase', paddingTop: 16, paddingBottom: 6, paddingHorizontal: 4 },
   listItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14, gap: 13, marginBottom: 2 },
-  // ✅ Ecome item special style
   ecomeItem: {
     backgroundColor: '#f0fdf4',
     borderWidth: 1,

@@ -56,6 +56,7 @@ import SellerEnquiryDashboardScreen from '../pages/SellerEnquiryDashboardScreen'
 import MyEnquiriesScreen from '../pages/MyEnquiriesScreen';
 import MyListingsScreen from '../pages/MyListingsScreen';
 import SellerReportsScreen from '../pages/SellerReportsScreen';
+import NewspaperPage from '../pages/NewspaperPage';
 
 const Stack = createNativeStackNavigator();
 const NAVIGATION_STATE_KEY = 'rti-news-navigation-state';
@@ -149,6 +150,7 @@ export default function AppNavigator() {
     { name: 'MyEnquiries', component: MyEnquiriesScreen },
     { name: 'MyListings', component: MyListingsScreen },
     { name: 'SellerReports', component: SellerReportsScreen },
+    { name: 'NewspaperPage', component: NewspaperPage },
   ];
 
   useEffect(() => {

@@ -9,6 +9,7 @@ import {
   Platform,
   TextInput,
   Image,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -275,7 +276,10 @@ function EcomeSellMobile({ navigation }) {
   };
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={{ height: insets.top, backgroundColor: '#fff' }} />
 
@@ -315,7 +319,7 @@ function EcomeSellMobile({ navigation }) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.formContainer, { paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[styles.formContainer, { paddingBottom: insets.bottom + 120 }]}
         keyboardShouldPersistTaps="handled"
       >
 
@@ -500,7 +504,7 @@ function EcomeSellMobile({ navigation }) {
         </TouchableOpacity>
 
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

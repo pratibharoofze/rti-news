@@ -76,7 +76,7 @@ const EnquiryDetailModal = ({ visible, enquiry, product, onClose, onCall, onWhat
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={mStyles.body}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={mStyles.body} keyboardShouldPersistTaps="handled">
 
             {/* ── Status banner ── */}
             <View style={[mStyles.statusBanner, { backgroundColor: st.bg }]}>
@@ -125,6 +125,8 @@ const EnquiryDetailModal = ({ visible, enquiry, product, onClose, onCall, onWhat
               <Row label="Phone" value={product.contact}   />
             </View>
 
+            </ScrollView>
+
             {/* ── Action buttons ── */}
             <View style={mStyles.actions}>
               <TouchableOpacity style={mStyles.callBtn} onPress={() => onCall(product.contact)} activeOpacity={0.85}>
@@ -136,8 +138,6 @@ const EnquiryDetailModal = ({ visible, enquiry, product, onClose, onCall, onWhat
                 <Text style={mStyles.actionBtnText}>WhatsApp</Text>
               </TouchableOpacity>
             </View>
-
-          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -433,10 +433,10 @@ const mStyles = StyleSheet.create({
     borderRadius: IS_WEB ? 20 : 0,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: IS_WEB ? '85%' : '90%',
+    maxHeight: IS_WEB ? '85%' : '92%',
     width: IS_WEB ? '100%' : undefined,
     maxWidth: IS_WEB ? 520 : undefined,
-    paddingBottom: 16,
+    paddingBottom: 0,
   },
   handle: {
     width: 40, height: 4,
@@ -468,8 +468,7 @@ const mStyles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
     alignItems: 'center', justifyContent: 'center',
   },
-  body: { padding: 16, paddingBottom: 32, gap: 12 },
-
+  body: { padding: 16, paddingBottom: 80, gap: 12 },
   statusBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -520,7 +519,7 @@ const mStyles = StyleSheet.create({
   rowValueHighlight: { color: '#ea580c', fontSize: 13 },
   rowValueMulti: { textAlign: 'left', lineHeight: 18 },
 
-  actions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 8, paddingHorizontal: 16, paddingBottom: 24 },
   callBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 7, backgroundColor: '#111', borderRadius: 12, paddingVertical: 13,

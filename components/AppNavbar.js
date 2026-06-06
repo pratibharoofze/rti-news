@@ -29,6 +29,8 @@ const DESKTOP_NAV_ITEMS = [
   { labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true },
   { labelKey: 'advertise', screen: 'Advertise', icon: 'megaphone-outline', isAdvertiseBtn: true },
   { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
+  { labelKey: 'newspaper', screen: 'NewspaperList', icon: 'newspaper-outline' },
+
 ];
 
 const MOBILE_NAV_ITEMS = [
@@ -37,6 +39,8 @@ const MOBILE_NAV_ITEMS = [
   { labelKey: 'create', screen: 'QuickMenu', icon: 'grid-outline', isCreateBtn: true },
   { labelKey: 'advertise', screen: 'Advertise', icon: 'megaphone-outline', isAdvertiseBtn: true },
   { labelKey: 'Profile', screen: 'Profile', icon: 'person-outline' },
+  
+
 ];
 
 const LANGUAGE_OPTIONS = [
@@ -368,6 +372,13 @@ function MobileTopHeader({ navigation, handleNavigate }) {
       <NavbarBrand onPressHome={() => handleNavigate('Home')} compact />
       <View style={styles.mobileTopHeaderActions}>
         <NavbarLanguageSelector />
+        <TouchableOpacity
+          style={styles.mobileNewspaperBtn}
+          onPress={() => handleNavigate('NewspaperList')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="newspaper-outline" size={20} color="#e8732a" />
+        </TouchableOpacity>
         <ProfileDropdown navigation={navigation} />
       </View>
     </View>
@@ -794,6 +805,16 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '800',
+  },
+  mobileNewspaperBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fbd5b0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ─── Mobile Bottom Bar ─────────────────────────────────────────────────

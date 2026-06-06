@@ -1,9 +1,9 @@
 import { StyleSheet, Platform } from 'react-native';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
-// Primary Pink  : #FF2D78
-// Pink Light    : #FFE8F0
-// Pink Mid      : #FFB3CC
+// Primary Orange: #ea580c
+// Orange Light  : #FFE8F0
+// Orange Mid    : #FFB3CC
 // White         : #FFFFFF
 // Page BG       : #F8F8F8
 // Text Dark     : #111111
@@ -16,9 +16,9 @@ import { StyleSheet, Platform } from 'react-native';
 // Red Light     : #fee2e2
 
 const C = {
-  pink:       '#FF2D78',
-  pinkLight:  '#FFE8F0',
-  pinkMid:    '#FFB3CC',
+  orange:     '#ea580c',
+  orangeLight:'#FFE8F0',
+  orangeMid:  '#FFB3CC',
   white:      '#FFFFFF',
   pageBg:     '#F8F8F8',
   surface:    '#F5F5F5',
@@ -65,7 +65,7 @@ const EPaperStyles = StyleSheet.create({
     borderBottomColor: C.border,
   },
   backText: {
-    color: C.pink,
+    color: C.orange,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -118,7 +118,7 @@ const EPaperStyles = StyleSheet.create({
 
   // ── Hero Card ─────────────────────────────────────────────────────────────
   heroCard: {
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
     borderRadius: 24,
     paddingVertical: 24,
     paddingHorizontal: 20,
@@ -126,7 +126,7 @@ const EPaperStyles = StyleSheet.create({
   },
   heroEyebrow: {
     fontSize: 11,
-    color: C.pinkLight,
+    color: C.orangeLight,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -159,9 +159,9 @@ const EPaperStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  metricPrimary:   { borderTopWidth: 3, borderTopColor: C.pink },
+  metricPrimary:   { borderTopWidth: 3, borderTopColor: C.orange },
   metricSecondary: { borderTopWidth: 3, borderTopColor: C.green },
-  metricAccent:    { borderTopWidth: 3, borderTopColor: C.pinkMid },
+  metricAccent:    { borderTopWidth: 3, borderTopColor: C.orangeMid },
   metricValue: {
     fontSize: 24,
     fontWeight: '900',
@@ -183,7 +183,7 @@ const EPaperStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
     borderRadius: 16,
     paddingVertical: 14,
     marginBottom: 16,
@@ -246,16 +246,16 @@ const EPaperStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: C.pinkLight,
+    backgroundColor: C.orangeLight,
     alignSelf: 'flex-start',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: C.pinkMid,
+    borderColor: C.orangeMid,
   },
-  mediaBadgeText: { fontSize: 11, fontWeight: '700', color: C.pink },
+  mediaBadgeText: { fontSize: 11, fontWeight: '700', color: C.orange },
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   statsRow: { flexDirection: 'row', gap: 14, marginBottom: 10 },
@@ -273,11 +273,11 @@ const EPaperStyles = StyleSheet.create({
     gap: 4,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: C.pinkLight,
+    backgroundColor: C.orangeLight,
     borderWidth: 1,
-    borderColor: C.pinkMid,
+    borderColor: C.orangeMid,
   },
-  actionBtnText: { fontSize: 11, fontWeight: '700', color: C.pink },
+  actionBtnText: { fontSize: 11, fontWeight: '700', color: C.orange },
 
   actionBtnDanger: {
     flex: 1,
@@ -330,11 +330,11 @@ const EPaperStyles = StyleSheet.create({
   // ── Modal SafeArea & Layout ───────────────────────────────────────────────
   modalSafeArea: {
     flex: 1,
-    backgroundColor: C.pink,
+    backgroundColor: C.white,
   },
   viewModalSafeArea: {
     flex: 1,
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
   },
   modalKeyboardView: {
     flex: 1,
@@ -348,7 +348,7 @@ const EPaperStyles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
   },
   modalCloseBtn: { padding: 6 },
   modalHeaderTitle: {
@@ -369,7 +369,7 @@ const EPaperStyles = StyleSheet.create({
   modalSaveBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: C.pink,
+    color: C.orange,
   },
 
   // ── Form Modal Content ────────────────────────────────────────────────────
@@ -464,7 +464,7 @@ const EPaperStyles = StyleSheet.create({
   stateChipText: {
     fontSize: 11,
     fontWeight: '800',
-    color: C.pink,
+    color: C.orange,
   },
 
   // ── Rich Editor ───────────────────────────────────────────────────────────
@@ -523,7 +523,7 @@ const EPaperStyles = StyleSheet.create({
   },
   mediaShowcaseEyebrow: {
     fontSize: 11,
-    color: C.pink,
+    color: C.orange,
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -554,14 +554,14 @@ const EPaperStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: C.pinkLight,
+    backgroundColor: C.orangeLight,
     borderWidth: 1,
-    borderColor: C.pinkMid,
+    borderColor: C.orangeMid,
   },
   mediaInfoPillText: {
     fontSize: 11,
     fontWeight: '800',
-    color: C.pink,
+    color: C.orange,
   },
   mediaInfoPillAlt: {
     flexDirection: 'row',
@@ -570,14 +570,14 @@ const EPaperStyles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: C.pinkLight,
+    backgroundColor: C.orangeLight,
     borderWidth: 1,
-    borderColor: C.pinkMid,
+    borderColor: C.orangeMid,
   },
   mediaInfoPillAltText: {
     fontSize: 11,
     fontWeight: '800',
-    color: C.pink,
+    color: C.orange,
   },
 
   // ── Media Section ─────────────────────────────────────────────────────────
@@ -616,7 +616,7 @@ const EPaperStyles = StyleSheet.create({
   mediaPickBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: C.pink,
+    color: C.orange,
   },
   videoPickBtn: {
     flexDirection: 'row',
@@ -624,11 +624,11 @@ const EPaperStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1.5,
-    borderColor: C.pinkMid,
+    borderColor: C.orangeMid,
     borderStyle: 'dashed',
     borderRadius: 14,
     paddingVertical: 14,
-    backgroundColor: C.pinkLight,
+    backgroundColor: C.orangeLight,
   },
   thumbRow:  { marginTop: 12 },
   videoStatusRow: {
@@ -689,9 +689,9 @@ const EPaperStyles = StyleSheet.create({
     marginBottom: 4,
     backgroundColor: C.surface,
   },
-  stateItemActive:     { backgroundColor: C.pinkLight },
+  stateItemActive:     { backgroundColor: C.orangeLight },
   stateItemText:       { fontSize: 13, fontWeight: '700', color: C.textMid },
-  stateItemTextActive: { color: C.pink },
+  stateItemTextActive: { color: C.orange },
 
   // ── Image Thumbs ──────────────────────────────────────────────────────────
   imageThumbContainer: {
@@ -776,18 +776,19 @@ const EPaperStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: C.pinkLight,
+    backgroundColor: C.orangeLight,
     borderRadius: 12,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: C.pinkMid,
+    borderColor: C.orangeMid,
   },
   videoAttachedText: {
     fontSize: 13,
-    color: C.pink,
+    color: C.orange,
     fontWeight: '700',
   },
 });
+
 
 export default EPaperStyles;

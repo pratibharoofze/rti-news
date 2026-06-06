@@ -10,10 +10,10 @@ import { UserStore } from '../store/UserStore';
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const C = {
-  pink:        '#FF2D78',
-  pinkLight:   '#fff0f5',
-  pinkBorder:  '#ffe4ef',
-  pinkMid:     '#fda4be',
+  orange:        '#ea580c',
+  orangeLight:   '#fff0f5',
+  orangeBorder:  '#ffe4ef',
+  orangeMid:     '#fda4be',
   green:       '#16a34a',
   greenLight:  '#f0fdf4',
   greenBorder: '#bbf7d0',
@@ -68,7 +68,7 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
             </View>
             {/* Search */}
             <View style={wdm.searchWrap}>
-              <Ionicons name="search-outline" size={15} color="#F97316" />
+              <Ionicons name="search-outline" size={15} color="#ea580c'" />
               <TextInput
                 style={wdm.searchInput}
                 placeholder="Search..."
@@ -94,7 +94,7 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
                   onPress={() => { onSelect(item); onClose(); setSearch(''); }}
                 >
                   <Text style={[wdm.itemText, selected === item && wdm.itemTextSel]}>{item}</Text>
-                  {selected === item && <Ionicons name="checkmark-circle" size={18} color="#F97316" />}
+                  {selected === item && <Ionicons name="checkmark-circle" size={18} color="#ea580c" />}
                 </TouchableOpacity>
               )}
             />
@@ -112,11 +112,11 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
         <View style={dm.handle} />
         <Text style={dm.title}>{title}</Text>
         <View style={dm.searchWrap}>
-          <Ionicons name="search-outline" size={16} color={C.pink} />
+          <Ionicons name="search-outline" size={16} color={C.orange} />
           <TextInput
             style={dm.searchInput}
             placeholder="Search..."
-            placeholderTextColor={C.pinkMid}
+            placeholderTextColor={C.orangeMid}
             value={search}
             onChangeText={setSearch}
           />
@@ -132,7 +132,7 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
               onPress={() => { onSelect(item); onClose(); setSearch(''); }}
             >
               <Text style={[dm.itemText, selected === item && dm.itemTextSel]}>{item}</Text>
-              {selected === item && <Ionicons name="checkmark-circle" size={18} color={C.pink} />}
+              {selected === item && <Ionicons name="checkmark-circle" size={18} color={C.orange} />}
             </TouchableOpacity>
           )}
         />
@@ -151,7 +151,7 @@ const dm = StyleSheet.create({
   item:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 14, borderRadius: 12, marginBottom: 2 },
   itemSel:     { backgroundColor: C.pinkLight },
   itemText:    { fontSize: 14, color: C.textSub, fontWeight: '500' },
-  itemTextSel: { color: C.pink, fontWeight: '700' },
+  itemTextSel: { color: C.orange, fontWeight: '700' },
 });
 
 const wdm = StyleSheet.create({
@@ -184,7 +184,7 @@ function StepHeader({ number, label }) {
 }
 const sh = StyleSheet.create({
   row:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  badge: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.pink, alignItems: 'center', justifyContent: 'center' },
+  badge: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.orange, alignItems: 'center', justifyContent: 'center' },
   num:   { color: '#fff', fontSize: 14, fontWeight: '800' },
   label: { fontSize: 16, fontWeight: '800', color: C.text },
 });
@@ -377,7 +377,7 @@ const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
                           >
                             <Text style={[ws.durationLabel, isSel && ws.durationLabelSel]}>{plan.label}</Text>
                             <Text style={[ws.durationPrice, isSel && ws.durationPriceSel]}>₹{price}</Text>
-                            {isSel && <View style={ws.durationCheck}><Ionicons name="checkmark-circle" size={15} color="#F97316" /></View>}
+                            {isSel && <View style={ws.durationCheck}><Ionicons name="checkmark-circle" size={15} color="#ea580c'" /></View>}
                           </TouchableOpacity>
                         );
                       })}
@@ -392,7 +392,7 @@ const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
                     <Text style={ws.stepTitle}>Starting date of promotion</Text>
                   </View>
                   <View style={ws.dateRow}>
-                    <Ionicons name="calendar-outline" size={18} color="#F97316" />
+                    <Ionicons name="calendar-outline" size={18} color="#ea580c'" />
                     <Text style={ws.dateText}>{startDate}</Text>
                     <Text style={ws.dateSub}>(starts today)</Text>
                   </View>
@@ -554,7 +554,7 @@ const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
       {/* ── Header ── */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={20} color={C.pink} />
+          <Ionicons name="arrow-back" size={20} color={C.orange} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Choose your plan</Text>
       </View>
@@ -711,7 +711,7 @@ const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
                     <Text style={[s.durationPrice, isSel && s.durationPriceSel]}>₹{price}</Text>
                     {isSel && (
                       <View style={s.durationCheck}>
-                        <Ionicons name="checkmark-circle" size={16} color={C.pink} />
+                        <Ionicons name="checkmark-circle" size={16} color={C.orange} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -725,7 +725,7 @@ const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
         <View style={s.section}>
           <StepHeader number="5" label="Starting date of promotion" />
           <View style={s.dateRow}>
-            <Ionicons name="calendar-outline" size={20} color={C.pink} />
+            <Ionicons name="calendar-outline" size={20} color={C.orange} />
             <Text style={s.dateText}>{startDate}</Text>
             <Text style={s.dateSub}>(starts today)</Text>
           </View>
@@ -791,7 +791,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
     elevation: 3,
-    shadowColor: C.pink,
+    shadowColor: C.orange,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 6,
@@ -799,7 +799,7 @@ const s = StyleSheet.create({
   backBtn: {
     padding: 8,
     borderRadius: 10,
-    backgroundColor: C.pinkLight,
+    backgroundColor: C.orangeLight,
   },
   headerTitle: {
     fontSize: 17,
@@ -820,14 +820,14 @@ const s = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1.5,
     borderColor: C.border,
-    shadowColor: C.pink,
+    shadowColor: C.orange,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
   },
   previewBadge: {
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
     alignSelf: 'flex-start',
     borderRadius: 20,
     paddingHorizontal: 12,
@@ -846,57 +846,57 @@ const s = StyleSheet.create({
 
   fieldLabel:       { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 6 },
   fieldLabelSpaced: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 6, marginTop: 14 },
-  req:              { color: C.pink },
+  req:              { color: C.orange },
   dropdown:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.white, borderWidth: 1.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
   dropdownDisabled: { opacity: 0.5 },
   dropdownText:     { fontSize: 14, color: C.text, fontWeight: '500' },
-  placeholder:      { color: C.pinkMid },
+  placeholder:      { color: C.orangeMid },
 
   emptyHint: { fontSize: 13, color: C.textSub, fontStyle: 'italic', paddingVertical: 8 },
 
   // ── Radio ──
   radioCard:      { flexDirection: 'row', alignItems: 'center', backgroundColor: C.white, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, marginBottom: 10, gap: 12 },
-  radioCardSel:   { borderColor: C.pink, backgroundColor: C.pinkLight },
+  radioCardSel:   { borderColor: C.orange, backgroundColor: C.orangeLight },
   radioCircle:    { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  radioCircleSel: { borderColor: C.pink },
-  radioCircleDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.pink },
+  radioCircleSel: { borderColor: C.orange },
+  radioCircleDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.orange },
   radioLabel:     { flex: 1, fontSize: 14, fontWeight: '600', color: C.text },
-  radioLabelSel:  { color: C.pink, fontWeight: '700' },
+  radioLabelSel:  { color: C.orange, fontWeight: '700' },
   freeBadge:      { backgroundColor: C.greenLight, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.greenBorder },
   freeBadgeText:  { fontSize: 12, color: C.green, fontWeight: '700' },
   priceBadge:     { backgroundColor: C.pinkLight, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.pinkBorder },
-  priceBadgeText: { fontSize: 12, color: C.pink, fontWeight: '700' },
+  priceBadgeText: { fontSize: 12, color: C.orange, fontWeight: '700' },
 
   // ── Placement ──
   placementCard:         { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: C.white, borderWidth: 1.5, borderColor: C.border, borderRadius: 16, padding: 14, marginBottom: 12, gap: 10 },
-  placementCardSel:      { borderColor: C.pink, backgroundColor: C.pinkLight },
+  placementCardSel:      { borderColor: C.orange, backgroundColor: C.orangeLight },
   placementCardFullPage: { marginBottom: 0 },
   placementInfo:         { flex: 1 },
   placementTitle:        { fontSize: 15, fontWeight: '800', color: C.text, marginBottom: 3 },
-  placementTitleSel:     { color: C.pink },
+  placementTitleSel:     { color: C.orange },
   placementDesc:         { fontSize: 12, color: C.textSub, lineHeight: 17 },
 
   placementMock:       { width: 56, alignItems: 'center', gap: 3 },
   placementMockTop:    { fontSize: 9, fontWeight: '800', color: C.textSub },
-  placementMockAd:     { width: 48, height: 20, backgroundColor: C.pink, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  placementMockAd:     { width: 48, height: 20, backgroundColor: C.orange, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   placementMockAdText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   placementMockLines:  { gap: 3 },
   placementMockLine:   { width: 44, height: 4, backgroundColor: C.border, borderRadius: 2 },
   placementMockFull:   { width: 56, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  placementMockFullAd: { width: 48, height: 52, backgroundColor: C.pink, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  placementMockFullAd: { width: 48, height: 52, backgroundColor: C.orange, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
 
   bestResultsWrap:  { position: 'relative', marginTop: 4 },
-  bestResultsBadge: { position: 'absolute', top: -12, left: 14, zIndex: 10, backgroundColor: C.pink, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  bestResultsBadge: { position: 'absolute', top: -12, left: 14, zIndex: 10, backgroundColor: C.orange, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
   bestResultsText:  { color: '#fff', fontSize: 12, fontWeight: '800' },
 
   // ── Duration ──
   durationGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   durationCard:     { width: '30%', backgroundColor: C.white, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, paddingVertical: 14, alignItems: 'center', position: 'relative' },
-  durationCardSel:  { borderColor: C.pink, backgroundColor: C.pinkLight },
+  durationCardSel:  { borderColor: C.orange, backgroundColor: C.orangeLight },
   durationLabel:    { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 4 },
-  durationLabelSel: { color: C.pink },
+  durationLabelSel: { color: C.orange },
   durationPrice:    { fontSize: 13, fontWeight: '800', color: C.textSub },
-  durationPriceSel: { color: C.pink },
+  durationPriceSel: { color: C.orange },
   durationCheck:    { position: 'absolute', top: 6, right: 6 },
 
   freeNotice:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.greenLight, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: C.greenBorder },
@@ -922,7 +922,7 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: C.border,
     elevation: 12,
-    shadowColor: C.pink,
+    shadowColor: C.orange,
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -933,12 +933,12 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
     borderRadius: 14,
     paddingHorizontal: 22,
     paddingVertical: 14,
     elevation: 4,
-    shadowColor: C.pink,
+    shadowColor: C.orange,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -958,7 +958,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1000,
     elevation: 10,
-    shadowColor: C.pink,
+    shadowColor: C.orange,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -992,11 +992,11 @@ const ws = StyleSheet.create({
   cardTitleRow:{ marginBottom:12 },
 
   stepRow:   { flexDirection:'row', alignItems:'center', gap:10, marginBottom:16 },
-  stepBadge: { width:28, height:28, borderRadius:14, backgroundColor:'#F97316', alignItems:'center', justifyContent:'center' },
+  stepBadge: { width:28, height:28, borderRadius:14, backgroundColor:'#ea580c', alignItems:'center', justifyContent:'center' },
   stepNum:   { color:'#ffffff', fontSize:13, fontWeight:'800' },
   stepTitle: { fontSize:15, fontWeight:'800', color:'#111111' },
 
-  previewBadge:     { backgroundColor:'#F97316', alignSelf:'flex-start', borderRadius:20, paddingHorizontal:12, paddingVertical:4, marginBottom:10 },
+  previewBadge:     { backgroundColor:'#ea580c', alignSelf:'flex-start', borderRadius:20, paddingHorizontal:12, paddingVertical:4, marginBottom:10 },
   previewBadgeText: { color:'#fff', fontSize:12, fontWeight:'800' },
   previewInner:     { flexDirection:'row', alignItems:'center' },
   previewTitle:     { fontSize:15, fontWeight:'800', color:'#111111', marginBottom:4 },
@@ -1006,7 +1006,7 @@ const ws = StyleSheet.create({
 
   fieldLabel:       { fontSize:12, fontWeight:'700', color:'#111111', marginBottom:6 },
   fieldLabelSpaced: { fontSize:12, fontWeight:'700', color:'#111111', marginBottom:6, marginTop:14 },
-  req:              { color:'#F97316' },
+  req:              { color:'#ea580c' },
   dropdown:         { flexDirection:'row', alignItems:'center', justifyContent:'space-between', backgroundColor:'#FFFAF7', borderWidth:1.5, borderColor:'#FFE8D6', borderRadius:10, paddingHorizontal:14, paddingVertical:12 },
   dropdownDisabled: { opacity:0.4 },
   dropdownText:     { fontSize:14, color:'#111111', fontWeight:'500' },
@@ -1015,39 +1015,39 @@ const ws = StyleSheet.create({
   emptyHint: { fontSize:13, color:'#AAAAAA', fontStyle:'italic' },
 
   radioCard:      { flexDirection:'row', alignItems:'center', backgroundColor:'#FFFAF7', borderWidth:1.5, borderColor:'#FFE8D6', borderRadius:12, paddingHorizontal:14, paddingVertical:13, marginBottom:8, gap:10 },
-  radioCardSel:   { borderColor:'#F97316', backgroundColor:'#FFF7ED' },
+  radioCardSel:   { borderColor:'#ea580c', backgroundColor:'#FFF7ED' },
   radioCircle:    { width:18, height:18, borderRadius:9, borderWidth:2, borderColor:'#FFE8D6', alignItems:'center', justifyContent:'center' },
-  radioCircleSel: { borderColor:'#F97316' },
-  radioCircleDot: { width:8, height:8, borderRadius:4, backgroundColor:'#F97316' },
+  radioCircleSel: { borderColor:'#ea580c' },
+  radioCircleDot: { width:8, height:8, borderRadius:4, backgroundColor:'#ea580c' },
   radioLabel:     { flex:1, fontSize:13, fontWeight:'600', color:'#111111' },
-  radioLabelSel:  { color:'#F97316', fontWeight:'700' },
+  radioLabelSel:  { color:'#ea580c', fontWeight:'700' },
   freeBadge:      { backgroundColor:'#f0fdf4', borderRadius:20, paddingHorizontal:10, paddingVertical:4, borderWidth:1, borderColor:'#bbf7d0' },
   freeBadgeText:  { fontSize:11, color:'#16a34a', fontWeight:'700' },
   priceBadge:     { backgroundColor:'#FFF7ED', borderRadius:20, paddingHorizontal:10, paddingVertical:4, borderWidth:1, borderColor:'#FFE8D6' },
-  priceBadgeText: { fontSize:11, color:'#F97316', fontWeight:'700' },
+  priceBadgeText: { fontSize:11, color:'#ea580c', fontWeight:'700' },
 
   placementCard:     { flexDirection:'row', alignItems:'flex-start', backgroundColor:'#FFFAF7', borderWidth:1.5, borderColor:'#FFE8D6', borderRadius:12, padding:14, gap:10, marginBottom:8, overflow:'hidden' },
-  placementCardSel:  { borderColor:'#F97316', backgroundColor:'#FFF7ED' },
+  placementCardSel:  { borderColor:'#ea580c', backgroundColor:'#FFF7ED' },
   placementTitle:    { fontSize:13, fontWeight:'800', color:'#111111', marginBottom:2 },
-  placementTitleSel: { color:'#F97316' },
+  placementTitleSel: { color:'#ea580c' },
   placementDesc:     { fontSize:11, color:'#AAAAAA', lineHeight:16, flexShrink:1, flexWrap:'wrap' },
   placementMock:     { width:50, alignItems:'center', gap:3 },
   placementMockTop:  { fontSize:8, fontWeight:'800', color:'#AAAAAA' },
-  placementMockAd:   { width:44, height:18, backgroundColor:'#F97316', borderRadius:4, alignItems:'center', justifyContent:'center' },
+  placementMockAd:   { width:44, height:18, backgroundColor:'#ea580c', borderRadius:4, alignItems:'center', justifyContent:'center' },
   placementMockAdText:{ color:'#fff', fontSize:9, fontWeight:'800' },
   placementMockLine: { width:40, height:3, backgroundColor:'#FFE8D6', borderRadius:2 },
   placementMockFull: { width:50, alignItems:'center', gap:4 },
-  placementMockFullAd:{ width:44, height:46, backgroundColor:'#F97316', borderRadius:6, alignItems:'center', justifyContent:'center' },
-  bestBadge:         { position:'absolute', top:-11, left:12, zIndex:10, backgroundColor:'#F97316', borderRadius:20, paddingHorizontal:10, paddingVertical:3 },
+  placementMockFullAd:{ width:44, height:46, backgroundColor:'#ea580c', borderRadius:6, alignItems:'center', justifyContent:'center' },
+  bestBadge:         { position:'absolute', top:-11, left:12, zIndex:10, backgroundColor:'#ea580c', borderRadius:20, paddingHorizontal:10, paddingVertical:3 },
   bestBadgeText:     { color:'#fff', fontSize:11, fontWeight:'800' },
 
   durationGrid:     { flexDirection:'row', flexWrap:'wrap', gap:8 },
   durationCard:     { width:'30%', backgroundColor:'#FFFAF7', borderWidth:1.5, borderColor:'#FFE8D6', borderRadius:12, paddingVertical:13, alignItems:'center', position:'relative' },
-  durationCardSel:  { borderColor:'#F97316', backgroundColor:'#FFF7ED' },
+  durationCardSel:  { borderColor:'#ea580c', backgroundColor:'#FFF7ED' },
   durationLabel:    { fontSize:12, fontWeight:'700', color:'#111111', marginBottom:3 },
-  durationLabelSel: { color:'#F97316' },
+  durationLabelSel: { color:'#ea580c' },
   durationPrice:    { fontSize:12, fontWeight:'800', color:'#AAAAAA' },
-  durationPriceSel: { color:'#F97316' },
+  durationPriceSel: { color:'#ea580c' },
   durationCheck:    { position:'absolute', top:5, right:5 },
 
   freeNotice:     { flexDirection:'row', alignItems:'center', gap:8, backgroundColor:'#f0fdf4', borderRadius:10, padding:12, borderWidth:1, borderColor:'#bbf7d0' },
@@ -1057,7 +1057,7 @@ const ws = StyleSheet.create({
   dateText: { fontSize:14, fontWeight:'700', color:'#111111' },
   dateSub:  { fontSize:12, color:'#AAAAAA' },
 
-  summaryCard:       { backgroundColor:'#ffffff', borderRadius:16, padding:20, borderWidth:2, borderColor:'#F97316' },
+  summaryCard:       { backgroundColor:'#ffffff', borderRadius:16, padding:20, borderWidth:2, borderColor:'#ea580c' },
   summaryTitle:      { fontSize:16, fontWeight:'900', color:'#111111', marginBottom:16 },
   summaryRow:        { flexDirection:'row', justifyContent:'space-between', alignItems:'center', paddingVertical:8, borderBottomWidth:1, borderBottomColor:'#FFF7ED' },
   summaryLabel:      { fontSize:13, color:'#AAAAAA', fontWeight:'500' },
@@ -1065,7 +1065,7 @@ const ws = StyleSheet.create({
   summaryDivider:    { height:1, backgroundColor:'#FFE8D6', marginVertical:12 },
   summaryTotalRow:   { flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:16 },
   summaryTotalLabel: { fontSize:14, fontWeight:'700', color:'#111111' },
-  summaryTotalPrice: { fontSize:22, fontWeight:'900', color:'#F97316' },
-  buyBtn:            { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:8, backgroundColor:'#F97316', borderRadius:12, paddingVertical:14 },
+  summaryTotalPrice: { fontSize:22, fontWeight:'900', color:'#ea580c' },
+  buyBtn:            { flexDirection:'row', alignItems:'center', justifyContent:'center', gap:8, backgroundColor:'#ea580c', borderRadius:12, paddingVertical:14 },
   buyBtnText:        { color:'#ffffff', fontSize:15, fontWeight:'800' },
 });

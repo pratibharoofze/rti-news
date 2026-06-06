@@ -4,12 +4,12 @@ const SAFE_TOP = Platform.OS === 'android'
   ? (StatusBar.currentHeight || 24) + 4
   : 50;
 
-const PINK       = '#e8732a';
+const PINK       = '#ea580c';
 const PINK_LIGHT = '#fff0f5';
 const PINK_BORDER= '#ffd6e7';
 
 // ── Web / Orange theme tokens ──
-const ORANGE       = '#e8603c';
+const ORANGE       = '#ea580c';
 const ORANGE_LIGHT = '#fff4f0';
 const ORANGE_BORDER= '#ffd0c0';
 

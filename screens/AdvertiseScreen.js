@@ -13,10 +13,10 @@ import { useToast } from '../components/ui/ToastProvider';
 
 // ── Theme Colors ───────────────────────────────────────────────────────────────
 const C = {
-  pink:        '#FF2D78',
-  pinkLight:   '#fff0f5',
-  pinkBorder:  '#ffe4ef',
-  pinkMid:     '#fda4be',
+  orange:      '#ea580c',
+  orangeLight:   '#fff0f5',
+  orangeBorder:  '#ffe4ef',
+  orangeMid:     '#fda4be',
   green:       '#16a34a',
   greenLight:  '#f0fdf4',
   greenBorder: '#bbf7d0',
@@ -73,11 +73,11 @@ function StepBadge({ number, label, hint }) {
 }
 const st = StyleSheet.create({
   row:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
-  badge:    { width: 28, height: 28, borderRadius: 14, backgroundColor: C.pink, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  badge:    { width: 28, height: 28, borderRadius: 14, backgroundColor: C.orange, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   badgeNum: { color: '#fff', fontSize: 13, fontWeight: '800' },
   badgeInfo:{ flex: 1 },
   label:    { fontSize: 15, fontWeight: '800', color: C.text },
-  req:      { color: C.pink },
+  req:      { color: C.orange },
   hint:     { fontSize: 12, color: C.textSub, marginTop: 2 },
 });
 
@@ -207,22 +207,22 @@ const pm = StyleSheet.create({
   headerTitle:        { fontSize: 16, fontWeight: '800', color: C.text },
   adCard:             { marginHorizontal: 16, marginTop: 14, backgroundColor: '#fffaf5', borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: C.pinkBorder },
   adBadgeRow:         { paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4 },
-  adBadge:            { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.pinkLight, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  adBadge:            { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.orangeLight, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   adBadgeEmoji:       { fontSize: 13 },
-  adBadgeText:        { fontSize: 11, color: C.pink, fontWeight: '700' },
+  adBadgeText:        { fontSize: 11, color: C.orange, fontWeight: '700' },
   adTitle:            { fontSize: 15, fontWeight: '800', color: C.text, paddingHorizontal: 12, paddingBottom: 2 },
   adDesc:             { fontSize: 12, color: C.textSub, paddingHorizontal: 12, paddingBottom: 10 },
   adImage:            { width: '100%', height: 180 },
-  adImagePlaceholder: { width: '100%', height: 180, backgroundColor: C.pinkLight, alignItems: 'center', justifyContent: 'center' },
+  adImagePlaceholder: { width: '100%', height: 180, backgroundColor: C.orangeLight, alignItems: 'center', justifyContent: 'center' },
   ctaRow:             { flexDirection: 'row', height: 48 },
-  ctaWhatsapp:        { flex: 1, backgroundColor: C.pink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  ctaWhatsapp:        { flex: 1, backgroundColor: C.orange, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   ctaWhatsappText:    { color: '#fff', fontWeight: '700', fontSize: 13 },
   ctaCall:            { width: 88, backgroundColor: C.greenLight, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderLeftWidth: 1, borderLeftColor: C.greenBorder },
   ctaCallText:        { color: C.green, fontWeight: '700', fontSize: 13 },
   btnRow:             { flexDirection: 'row', gap: 12, paddingHorizontal: 16, paddingTop: 16 },
-  changeBtn:          { flex: 1, borderWidth: 2, borderColor: C.pink, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  changeBtnText:      { color: C.pink, fontWeight: '700', fontSize: 15 },
-  nextBtn:            { flex: 1, backgroundColor: C.pink, borderRadius: 14, paddingVertical: 14, alignItems: 'center', elevation: 4, shadowColor: C.pink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 },
+  changeBtn:          { flex: 1, borderWidth: 2, borderColor: C.orange, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  changeBtnText:      { color: C.orange, fontWeight: '700', fontSize: 15 },
+  nextBtn:            { flex: 1, backgroundColor: C.orange, borderRadius: 14, paddingVertical: 14, alignItems: 'center', elevation: 4, shadowColor: C.o, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 },
   nextBtnText:        { color: '#fff', fontWeight: '800', fontSize: 15 },
 });
 
@@ -239,22 +239,22 @@ const wpm = StyleSheet.create({
   adBadgeRow:{ paddingHorizontal:12, paddingTop:10, paddingBottom:4 },
   adBadge:   { flexDirection:'row', alignItems:'center', gap:4, backgroundColor:'#FFF0F5', alignSelf:'flex-start', paddingHorizontal:10, paddingVertical:4, borderRadius:20 },
   adBadgeEmoji: { fontSize:13 },
-  adBadgeText:  { fontSize:11, color:'#FF2D78', fontWeight:'700' },
+  adBadgeText:  { fontSize:11, color:'#ea580c', fontWeight:'700' },
   adTitle:   { fontSize:15, fontWeight:'800', color:'#111111', paddingHorizontal:12, paddingBottom:2 },
   adDesc:    { fontSize:12, color:'#888888', paddingHorizontal:12, paddingBottom:10 },
   adImage:   { width:'100%', height:200 },
   adImagePlaceholder: { width:'100%', height:200, backgroundColor:'#FFF7ED', alignItems:'center', justifyContent:'center' },
 
   ctaRow:        { flexDirection:'row', height:48 },
-  ctaWhatsapp:   { flex:1, backgroundColor:'#FF2D78', flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5 },
+  ctaWhatsapp:   { flex:1, backgroundColor:'#ea580c', flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5 },
   ctaWhatsappText: { color:'#fff', fontWeight:'700', fontSize:13 },
   ctaCall:       { width:88, backgroundColor:'#f0fdf4', flexDirection:'row', alignItems:'center', justifyContent:'center', gap:4, borderLeftWidth:1, borderLeftColor:'#bbf7d0' },
   ctaCallText:   { color:'#16a34a', fontWeight:'700', fontSize:13 },
 
   btnRow:    { flexDirection:'row', gap:12, padding:16 },
-  changeBtn: { flex:1, borderWidth:2, borderColor:'#F97316', borderRadius:12, paddingVertical:13, alignItems:'center' },
-  changeBtnText: { color:'#F97316', fontWeight:'700', fontSize:14 },
-  nextBtn:   { flex:1, backgroundColor:'#F97316', borderRadius:12, paddingVertical:13, alignItems:'center' },
+  changeBtn: { flex:1, borderWidth:2, borderColor:'#ea580c', borderRadius:12, paddingVertical:13, alignItems:'center' },
+  changeBtnText: { color:'#ea580c', fontWeight:'700', fontSize:14 },
+  nextBtn:   { flex:1, backgroundColor:'#ea580c', borderRadius:12, paddingVertical:13, alignItems:'center' },
   nextBtnText: { color:'#ffffff', fontWeight:'800', fontSize:14 },
 });
 
@@ -372,7 +372,7 @@ export default function AdvertiseScreen({ navigation, route }) {
                   contentFit="cover"
                 />
                 <View style={ws.tutorialVideoTag}>
-                  <Ionicons name="play-circle" size={13} color="#F97316" />
+                  <Ionicons name="play-circle" size={13} color="#ea580c" />
                   <Text style={ws.tutorialVideoTagText}>How to advertise — watch this</Text>
                 </View>
               </View>
@@ -389,7 +389,7 @@ export default function AdvertiseScreen({ navigation, route }) {
                   <View style={ws.cardHeader}>
                     <View style={ws.stepCircle}><Text style={ws.stepNum}>1</Text></View>
                     <View>
-                      <Text style={ws.cardTitle}>Advertisement Photo <Text style={{ color: '#F97316' }}>*</Text></Text>
+                      <Text style={ws.cardTitle}>Advertisement Photo <Text style={{ color: '#ea580c' }}>*</Text></Text>
                       <Text style={ws.cardSub}>Visiting card, Shop, Pamphlet, Poster</Text>
                     </View>
                   </View>
@@ -405,7 +405,7 @@ export default function AdvertiseScreen({ navigation, route }) {
                     ) : (
                       <View style={ws.photoEmpty}>
                         <View style={ws.photoIconCircle}>
-                          <MaterialIcons name="add-photo-alternate" size={36} color="#F97316" />
+                          <MaterialIcons name="add-photo-alternate" size={36} color="#ea580c" />
                         </View>
                         <Text style={ws.photoEmptyTitle}>Click to add photo</Text>
                         <Text style={ws.photoEmptyHint}>jpeg / png supported</Text>
@@ -419,7 +419,7 @@ export default function AdvertiseScreen({ navigation, route }) {
                   <View style={ws.cardHeader}>
                     <View style={ws.stepCircle}><Text style={ws.stepNum}>2</Text></View>
                     <View>
-                      <Text style={ws.cardTitle}>Advertisement Title <Text style={{ color: '#F97316' }}>*</Text></Text>
+                      <Text style={ws.cardTitle}>Advertisement Title <Text style={{ color: '#ea580c' }}>*</Text></Text>
                       <Text style={ws.cardSub}>Main headline for your promotion</Text>
                     </View>
                   </View>
@@ -439,7 +439,7 @@ export default function AdvertiseScreen({ navigation, route }) {
                   <View style={ws.cardHeader}>
                     <View style={ws.stepCircle}><Text style={ws.stepNum}>3</Text></View>
                     <View>
-                      <Text style={ws.cardTitle}>Description <Text style={{ color: '#F97316' }}>*</Text></Text>
+                      <Text style={ws.cardTitle}>Description <Text style={{ color: '#ea580c' }}>*</Text></Text>
                       <Text style={ws.cardSub}>Add a promotional message for this ad</Text>
                     </View>
                   </View>
@@ -555,7 +555,7 @@ export default function AdvertiseScreen({ navigation, route }) {
       {/* ── Header ── */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={20} color={C.pink} />
+          <Ionicons name="arrow-back" size={20} color={C.orange} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Fill advertisement information below</Text>
       </View>
@@ -571,7 +571,7 @@ export default function AdvertiseScreen({ navigation, route }) {
             contentFit="cover"
           />
           <View style={s.videoTag}>
-            <Ionicons name="play-circle" size={13} color={C.pink} />
+            <Ionicons name="play-circle" size={13} color={C.orange} />
             <Text style={s.videoTagText}>How to advertise — watch this</Text>
           </View>
         </View>
@@ -595,7 +595,7 @@ export default function AdvertiseScreen({ navigation, route }) {
             ) : (
               <View style={s.photoEmpty}>
                 <View style={s.photoIconCircle}>
-                  <MaterialIcons name="add-photo-alternate" size={34} color={C.pink} />
+                  <MaterialIcons name="add-photo-alternate" size={34} color={C.orange} />
                 </View>
                 <Text style={s.photoEmptyTitle}>Tap to add photo</Text>
                 <Text style={s.photoEmptyHint}>jpeg / png supported</Text>
@@ -732,7 +732,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
     elevation: 3,
-    shadowColor: C.pink,
+    shadowColor: C.orange,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 6,
@@ -798,7 +798,7 @@ const s = StyleSheet.create({
   },
   photoBoxFilled: {
     borderStyle: 'solid',
-    borderColor: C.pink,
+    borderColor: C.orange,
     backgroundColor: C.white,
   },
   photoEmpty: {
@@ -812,14 +812,14 @@ const s = StyleSheet.create({
     borderRadius: 33,
     backgroundColor: C.white,
     borderWidth: 2,
-    borderColor: C.pinkBorder,
+    borderColor: C.orangeBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   photoEmptyTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: C.pink,
+    color: C.orange,
   },
   photoEmptyHint: {
     fontSize: 11,
@@ -890,19 +890,19 @@ const s = StyleSheet.create({
     gap: 10,
   },
   radioCardSelected: {
-    borderColor: C.pink,
-    backgroundColor: C.pinkLight,
+    borderColor: C.orange,
+    backgroundColor: C.orangeLight,
   },
   radioIcon: {
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: C.pinkLight,
+    backgroundColor: C.orangeLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioIconSelected: {
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
   },
   radioInfo: {
     flex: 1,
@@ -914,7 +914,7 @@ const s = StyleSheet.create({
     marginBottom: 2,
   },
   radioTitleSel: {
-    color: C.pink,
+    color: C.orange,
   },
   radioDesc: {
     fontSize: 11,
@@ -932,13 +932,13 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   radioCircleSel: {
-    borderColor: C.pink,
+    borderColor: C.orange,
   },
   radioCircleDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
   },
 
   // ── Extra input inside radio ──
@@ -947,12 +947,12 @@ const s = StyleSheet.create({
     backgroundColor: C.white,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: C.pinkBorder,
+    borderColor: C.orangeBorder,
     padding: 10,
   },
   extraLabel: {
     fontSize: 11,
-    color: C.pink,
+    color: C.orange,
     fontWeight: '700',
     marginBottom: 4,
   },
@@ -983,7 +983,7 @@ const s = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: C.pinkBorder,
+    borderColor: C.orangeBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1013,11 +1013,11 @@ const s = StyleSheet.create({
     gap: 8,
     marginHorizontal: 16,
     marginTop: 24,
-    backgroundColor: C.pink,
+    backgroundColor: C.orange,
     borderRadius: 14,
     paddingVertical: 16,
     elevation: 5,
-    shadowColor: C.pink,
+    shadowColor: C.orange,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1052,7 +1052,7 @@ const ws = StyleSheet.create({
   pageHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
   pageHeaderStack: { flexDirection: 'column', alignItems: 'stretch', gap: 20 },
   pageHeaderLeft: { flex: 1, minWidth: 0 },
-  pageHeaderEyebrow: { fontSize: 11, fontWeight: '800', color: '#F97316', letterSpacing: 1.5, marginBottom: 6 },
+  pageHeaderEyebrow: { fontSize: 11, fontWeight: '800', color: '#ea580c', letterSpacing: 1.5, marginBottom: 6 },
   pageHeaderTitle: { fontSize: 26, fontWeight: '900', color: '#111111', marginBottom: 6 },
   pageHeaderSub: { fontSize: 14, color: '#888888' },
 
@@ -1074,15 +1074,15 @@ const ws = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 },
   cardTitle: { fontSize: 14, fontWeight: '800', color: '#111111', marginBottom: 2 },
   cardSub: { fontSize: 12, color: '#AAAAAA' },
-  stepCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F97316', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  stepCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#ea580c', alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   stepNum: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
 
   // Photo
   photoBox: { borderWidth: 2, borderColor: '#FFE8D6', borderStyle: 'dashed', borderRadius: 14, backgroundColor: '#FFF7ED', minHeight: 160, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  photoBoxFilled: { borderStyle: 'solid', borderColor: '#F97316', backgroundColor: '#ffffff' },
+  photoBoxFilled: { borderStyle: 'solid', borderColor: '#ea580c', backgroundColor: '#ffffff' },
   photoEmpty: { alignItems: 'center', paddingVertical: 32, gap: 8 },
   photoIconCircle: { width: 66, height: 66, borderRadius: 33, backgroundColor: '#ffffff', borderWidth: 2, borderColor: '#FFE8D6', alignItems: 'center', justifyContent: 'center' },
-  photoEmptyTitle: { fontSize: 14, fontWeight: '700', color: '#F97316' },
+  photoEmptyTitle: { fontSize: 14, fontWeight: '700', color: '#ea580c' },
   photoEmptyHint: { fontSize: 11, color: '#AAAAAA' },
   photoPreview: { width: '100%', height: 220 },
   changeOverlay: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5 },
@@ -1095,17 +1095,17 @@ const ws = StyleSheet.create({
 
   // Radio
   radioCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FFFAF7', borderWidth: 1.5, borderColor: '#FFE8D6', borderRadius: 12, padding: 12, marginBottom: 8, gap: 10 },
-  radioCardSel: { borderColor: '#F97316', backgroundColor: '#FFF7ED' },
+  radioCardSel: { borderColor: '#ea580c', backgroundColor: '#FFF7ED' },
   radioIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFF7ED', alignItems: 'center', justifyContent: 'center' },
-  radioIconSel: { backgroundColor: '#F97316' },
+  radioIconSel: { backgroundColor: '#ea580c' },
   radioTitle: { fontSize: 13, fontWeight: '700', color: '#111111', marginBottom: 2 },
-  radioTitleSel: { color: '#F97316' },
+  radioTitleSel: { color: '#ea580c' },
   radioDesc: { fontSize: 11, color: '#AAAAAA', lineHeight: 16 },
   radioCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: '#FFE8D6', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  radioCircleSel: { borderColor: '#F97316' },
-  radioCircleDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#F97316' },
+  radioCircleSel: { borderColor: '#ea580c' },
+  radioCircleDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ea580c' },
   extraWrap: { marginTop: 8, backgroundColor: '#ffffff', borderRadius: 8, borderWidth: 1, borderColor: '#FFE8D6', padding: 10 },
-  extraLabel: { fontSize: 11, color: '#F97316', fontWeight: '700', marginBottom: 4 },
+  extraLabel: { fontSize: 11, color: '#ea580c', fontWeight: '700', marginBottom: 4 },
   extraInput: { fontSize: 13, color: '#111111' },
 
   // Checkbox
@@ -1118,7 +1118,7 @@ const ws = StyleSheet.create({
   checkHint: { fontSize: 11, color: '#AAAAAA', marginTop: 2 },
 
   // Next Button
-  nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#F97316', borderRadius: 14, paddingVertical: 16, borderWidth: 0 },
+  nextBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#ea580c', borderRadius: 14, paddingVertical: 16, borderWidth: 0 },
   nextBtnFull: { width: '100%' },
   nextBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '800' },
 });

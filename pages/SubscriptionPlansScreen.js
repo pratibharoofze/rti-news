@@ -21,7 +21,7 @@ import { UserStore } from '../store/UserStore';
 // ─────────────────────────────────────────────
 const ROLE_COLORS = {
   free:    { bg: '#f1f5f9', text: '#64748b', border: '#cbd5e1' },
-  basic:   { bg: '#fff0f5', text: '#FF2D78', border: '#ffd6e7' },
+  basic:   { bg: '#fff0f5', text: '#ea580c', border: '#ffd6e7' },
   pro:     { bg: '#f0fdf4', text: '#15803d', border: '#86efac' },
   premium: { bg: '#fefce8', text: '#b45309', border: '#fcd34d' },
 };
@@ -141,7 +141,7 @@ function SeatSelectModal({
 // WEB-ONLY: 3-column pricing layout
 // (renders only when Platform.OS === 'web')
 // ─────────────────────────────────────────────
-const WEB_ORANGE       = '#F97316';
+const WEB_ORANGE       = '#ea580c';
 const WEB_ORANGE_DARK  = '#ea6a0a';
 const WEB_ORANGE_LIGHT = '#fff7ed';
 
@@ -169,7 +169,7 @@ const webStyles = StyleSheet.create({
     width: '100%',
     maxWidth: 1100,
     overflow: 'hidden',
-    shadowColor: '#F97316',
+    shadowColor: '#ea580c',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 48,
@@ -310,7 +310,7 @@ const webStyles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#ffe8d6',
     backgroundColor: '#fffaf7',
-    shadowColor: '#F97316',
+    shadowColor: '#ea580c',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -775,7 +775,7 @@ export default function SubscriptionPlansScreen({ navigation, route }) {
         onPress={() => navigation.navigate('QuickMenu')}
         style={S.backBtn}
       >
-        <Feather name="arrow-left" size={20} color="#F97316" />
+        <Feather name="arrow-left" size={20} color="#ea580c" />
         <Text style={S.backBtnText}>Back</Text>
       </TouchableOpacity>
 

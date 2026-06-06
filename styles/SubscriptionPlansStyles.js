@@ -5,7 +5,7 @@ const SAFE_TOP = Platform.OS === 'android'
   ? (StatusBar.currentHeight || 24) + 4
   : 50;
 
-const orange        = '#F97316';
+const orange        = '#ea580c';
 const orange_LIGHT  = '#FED7AA';
 const orange_BORDER = '#FED7AA';
 const orange_MUTED  = '#FED7AA';

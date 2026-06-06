@@ -2828,8 +2828,37 @@ export const UserStore = {
     try {
       const user = await UserStore.getCurrentUser();
       if (!user) return null;
-      const papers = normalizeEPapers(user.epapers);
-      return { currentUser: user, items: papers, totalViews: papers.reduce((s, i) => s + i.views, 0), totalDownloads: papers.reduce((s, i) => s + i.downloads, 0) };
+      const rawData = await AsyncStorage.getItem(USERS_KEY);
+      const rawUsers = rawData ? JSON.parse(rawData) : [];
+      const allPapers = rawUsers.flatMap((u) => {
+        const epapers = Array.isArray(u.epapers) ? u.epapers : [];
+        return epapers.map((paper) => ({
+          id: paper.id || '',
+          title: paper.title || '',
+          description: paper.description || '',
+          status: paper.status || 'approved',
+          state: paper.state || '',
+          publishDate: paper.publishDate || paper.createdAt?.slice(0, 10) || '',
+          createdAt: paper.createdAt || '',
+          createdBy: paper.createdBy || u.email || '',
+          images: Array.isArray(paper.images) ? paper.images.slice(0, 1) : [],
+          views: Number(paper.views || 0),
+          downloads: Number(paper.downloads || 0),
+        }));
+      });
+      // Deduplicate by id
+      const seen = new Set();
+      const papers = allPapers.filter((p) => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
+      return {
+        currentUser: user,
+        items: papers,
+        totalViews: papers.reduce((s, i) => s + i.views, 0),
+        totalDownloads: papers.reduce((s, i) => s + i.downloads, 0),
+      };
     } catch { return null; }
   },
 

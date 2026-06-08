@@ -2,16 +2,22 @@ import { create } from 'zustand';
 
 // ─── Default data ─────────────────────────────────────────────────────────────
 const defaultHeader = {
-  newspaperName: 'कृषि समाचार',
-  tagline: 'कृषि जगत की विश्वसनीय आवाज़',
-  date: '6 जून 2025, शनिवार',
-  contact: 'संपर्क: 0755-1234567',
-  extra: 'वर्ष 12 | अंक 234',
+  newspaperName: 'भारतीय माहिती अधिकार',
+  tagline: 'मराठी, हिंदी व इंग्रजी भाषेमध्ये सर्वत्र प्रसिद्ध होणारे एकमेव असे न्यूजपेपर',
+  date: '● वर्ष : ६ वे  ● महिना : जुलै २०१९  ● १२ अंक साठी वार्षिक वर्गणी : फक्त १९०/-  ● Posting Registration No. SGL/108/2019-2021',
+  contact: 'M. 8484029332 / 7020667971',
+  extra: 'e-mail : rticheck@gmail.com',
+  regNo: 'REG. NO. : RNIMAH/MUL/2014/66399  |  TITLE REGN. NO. : MAH/MUL/03200/13/1/2013-TC',
+  website: 'web : www.rtinewsnetwork.com',
+  editorName: 'मा. शौकत अब्दुलकलाम नायकवडी',
+  editorTitle: 'मुख्य संपादक, संस्थापक, अध्यक्ष, प्रकाशक, मालक',
+  officeInfo: '● क्षेत्रीय कार्यालय : व्हीनस कॉर्नर, स्टेशन रोड, केव्हिज प्लाझा, कोल्हापूर.',
+  logoUri: '',
 };
 
 const defaultFooter = {
-  left: '© 2025 कृषि समाचार. सर्वाधिकार सुरक्षित।',
-  right: 'www.krishisamachar.com',
+  left: '© भारतीय माहिती अधिकार',
+  right: 'www.rtinewsnetwork.com',
 };
 
 const defaultHeadline = {

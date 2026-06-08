@@ -220,7 +220,12 @@ export default function NewspaperPage({ route, navigation }) {
           {/* Preview */}
           <div style={{ flex: 1, background: '#e8e4df', overflowY: 'auto', padding: 20 }}>
             <div style={{ maxWidth: 1050, margin: '0 auto', boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}>
-              <Layout sections={sections} activeSection={activeSection} onSelectSection={setActiveSection} />
+              <Layout
+  sections={sections}
+  activeSection={activeSection}
+  onSelectSection={setActiveSection}
+  onSectionChange={(key, val) => useEditorStore.getState().updateSection(key, val)}
+/>
             </div>
           </div>
 

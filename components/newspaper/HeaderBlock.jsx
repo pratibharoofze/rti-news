@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -7,6 +7,38 @@ const BANNER_HEIGHT = 120;
 const OVERLAP = 40;
 
 export default function HeaderBlock({ data = {}, isEditing = false, onDataChange }) {
+  const [localLogoUri, setLocalLogoUri] = useState(data.logoUri || '');
+  
+  // Load logo from localStorage on component mount (web only)
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const savedLogo = localStorage.getItem('newspaper_logo');
+      if (savedLogo && savedLogo !== 'undefined' && savedLogo !== 'null') {
+        setLocalLogoUri(savedLogo);
+        if (onDataChange && !data.logoUri) {
+          onDataChange({ ...data, logoUri: savedLogo });
+        }
+      }
+    }
+  }, []);
+
+  // Save logo to localStorage whenever it changes (web only)
+  useEffect(() => {
+    if (Platform.OS === 'web' && localLogoUri && localLogoUri !== 'undefined') {
+      localStorage.setItem('newspaper_logo', localLogoUri);
+    }
+  }, [localLogoUri]);
+
+  // Update local state when data prop changes
+  useEffect(() => {
+    if (data.logoUri && data.logoUri !== localLogoUri) {
+      setLocalLogoUri(data.logoUri);
+      if (Platform.OS === 'web') {
+        localStorage.setItem('newspaper_logo', data.logoUri);
+      }
+    }
+  }, [data.logoUri]);
+
   const {
     newspaperName = 'भारतीय माहिती अधिकार',
     tagline = 'मराठी, हिंदी व इंग्रजी भाषेमध्ये सर्वत्र प्रसिद्ध होणारे एकमेव असे न्यूजपेपर',
@@ -41,10 +73,15 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
       });
       if (!result.canceled && result.assets?.[0]) {
         const asset = result.assets[0];
-        const base64Uri = asset.base64
-          ? `data:image/jpeg;base64,${asset.base64}`
-          : asset.uri;
-        onDataChange && onDataChange({ ...data, logoUri: base64Uri });
+        let imageUri;
+        if (asset.base64) {
+          imageUri = `data:image/jpeg;base64,${asset.base64}`;
+        } else {
+          imageUri = asset.uri;
+        }
+        setLocalLogoUri(imageUri);
+        onDataChange && onDataChange({ ...data, logoUri: imageUri });
+        Alert.alert('Success', 'Logo uploaded successfully!');
       }
     } catch (e) {
       Alert.alert('Error', 'Image pick failed: ' + e.message);
@@ -54,27 +91,26 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
   const handleWebFileSelect = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
     if (file.size > 5 * 1024 * 1024) {
       Alert.alert('Error', 'File size should be less than 5MB');
       return;
     }
-    
     if (!file.type.startsWith('image/')) {
       Alert.alert('Error', 'Please select an image file');
       return;
     }
-    
     const reader = new FileReader();
     reader.onload = (ev) => {
       const base64 = ev.target.result;
       if (base64 && base64.startsWith('data:image')) {
+        setLocalLogoUri(base64);
         onDataChange && onDataChange({ ...data, logoUri: base64 });
+        Alert.alert('Success', 'Logo uploaded successfully!');
+      } else {
+        Alert.alert('Error', 'Invalid image data');
       }
     };
-    reader.onerror = () => {
-      Alert.alert('Error', 'Failed to read file');
-    };
+    reader.onerror = () => Alert.alert('Error', 'Failed to read file');
     reader.readAsDataURL(file);
     event.target.value = '';
   };
@@ -82,11 +118,16 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
   const handleLogoPress = () => {
     if (!isEditing) return;
     if (isWeb) {
-      fileInputRef.current?.click();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+        fileInputRef.current.click();
+      }
     } else {
       pickLogoMobile();
     }
   };
+
+  const displayLogoUri = localLogoUri || logoUri;
 
   return (
     <View style={[styles.container, isEditing && styles.editing]}>
@@ -96,27 +137,35 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+            id="logo-upload-input"
             style={{ display: 'none' }}
             onChange={handleWebFileSelect}
           />
         )}
 
-        {/* Top Row - Phone | PRESS | Govt Info - COMPLETELY NO BORDERS */}
+        {/* Top Row - Phone | PRESS | Govt Info */}
         <View style={styles.topRow}>
           <View style={styles.leftColumn}>
             <Text style={styles.phoneText}>{contact1}</Text>
             <Text style={styles.phoneText}>{contact2}</Text>
           </View>
-
           <View style={styles.centerColumn}>
             <View style={styles.pressBox}>
-              <Text style={styles.pressText}>PRESS</Text>
+              <View style={styles.pressInnerBorder}>
+                <Text style={styles.pressText}>PRESS</Text>
+              </View>
             </View>
           </View>
-
           <View style={styles.rightColumn}>
             <Text style={styles.govtText}>Govt. of INDIA approved</Text>
             <Text style={styles.govtText}>Registered Ministry of Broadcasting, Delhi.</Text>
+          </View>
+        </View>
+
+        {/* Registration Numbers */}
+        <View style={styles.regSection}>
+          <Text style={styles.regNumber} numberOfLines={1} adjustsFontSizeToFit>{regNo}</Text>
+          <View style={styles.rtiTopRight}>
             <View style={styles.rtiRow}>
               <Text style={styles.rtiAll}>All </Text>
               <Text style={styles.rtiIndia}>INDIA </Text>
@@ -126,34 +175,73 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
           </View>
         </View>
 
-        {/* Registration Numbers - NO BORDERS */}
-        <View style={styles.regSection}>
-          <Text style={styles.regNumber}>{regNo}</Text>
-        </View>
-
-        {/* Logo and Banner Section - Logo overlaps both top and bottom */}
+        {/* Black Banner with Logo */}
         <View style={styles.logoBannerWrapper}>
-          {/* Logo - positioned to overlap */}
-          <TouchableOpacity
-            onPress={handleLogoPress}
-            activeOpacity={isEditing ? 0.7 : 1}
-            style={[styles.logoContainer, { width: LOGO_SIZE, height: LOGO_SIZE, borderRadius: LOGO_SIZE / 2 }]}
-          >
-            {logoUri ? (
-              <Image source={{ uri: logoUri }} style={styles.logoImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.logoPlaceholder}>
-                <Text style={styles.logoPlaceholderText}>{isEditing ? '📷\nUpload' : 'LOGO'}</Text>
-              </View>
-            )}
-            {isEditing && logoUri && <View style={styles.logoEditOverlay}><Text style={styles.editIcon}>📷</Text></View>}
-          </TouchableOpacity>
-
-          {/* Black Banner with text */}
           <View style={styles.blackBanner}>
             <Text style={styles.newspaperName} numberOfLines={1} adjustsFontSizeToFit>
               {newspaperName}
             </Text>
+          </View>
+          <View style={styles.logoOuterContainer}>
+            {isWeb && isEditing ? (
+              <label
+                htmlFor="logo-upload-input"
+                style={{
+                  width: LOGO_SIZE,
+                  height: LOGO_SIZE,
+                  borderRadius: LOGO_SIZE / 2,
+                  overflow: 'hidden',
+                  border: '12px solid #000',
+                  backgroundColor: '#333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                }}
+              >
+                {displayLogoUri && displayLogoUri !== 'undefined' ? (
+                  <img
+                    src={displayLogoUri}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    alt="Logo"
+                    onError={(e) => {
+                      console.error('Image failed to load');
+                      e.target.style.display = 'none';
+                      if (e.target.parentElement) {
+                        e.target.parentElement.innerHTML = '<span style="color:#aaa;font-size:11px;font-weight:600;text-align:center;">📷<br/>Upload</span>';
+                      }
+                    }}
+                  />
+                ) : (
+                  <span style={{ color: '#aaa', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>📷{'\n'}Upload</span>
+                )}
+              </label>
+            ) : (
+              <TouchableOpacity
+                onPress={handleLogoPress}
+                activeOpacity={isEditing ? 0.7 : 1}
+                style={styles.logoContainer}
+              >
+                {displayLogoUri && displayLogoUri !== 'undefined' ? (
+                  <Image
+                    source={{ uri: displayLogoUri }}
+                    style={styles.logoImage}
+                    resizeMode="cover"
+                    onError={(error) => console.error('Image loading error:', error)}
+                  />
+                ) : (
+                  <View style={styles.logoPlaceholder}>
+                    <Text style={styles.logoPlaceholderText}>{isEditing ? '📷\nUpload' : 'LOGO'}</Text>
+                  </View>
+                )}
+                {isEditing && displayLogoUri && displayLogoUri !== 'undefined' && (
+                  <View style={styles.logoEditOverlay}>
+                    <Text style={styles.editIcon}>📷</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -162,7 +250,7 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
           <Text style={styles.tagline}>{tagline}</Text>
         </View>
 
-        {/* Website and Editor */}
+        {/* Info Row: website+email LEFT | editor name RIGHT (large bold) */}
         <View style={styles.infoSection}>
           <View style={styles.websiteRow}>
             <Text style={styles.infoText}>{website}</Text>
@@ -171,19 +259,22 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
           </View>
           <View style={styles.editorSection}>
             <Text style={styles.editorName}>{editorName}</Text>
-            <Text style={styles.editorTitle}>{editorTitle}</Text>
           </View>
         </View>
 
-        {/* Office Address */}
+        {/* Address LEFT | editor title RIGHT (small) */}
         <View style={styles.addressSection}>
           <Text style={styles.addressText}>{officeInfo}</Text>
+          <Text style={styles.editorTitle}>{editorTitle}</Text>
         </View>
 
         {/* Date Strip */}
-        <View style={styles.dateSection}>
-          <Text style={styles.dateText}>{date}</Text>
-        </View>
+<View style={styles.dateSection}>
+  <Text style={styles.dateText}>● वर्ष : ६ वे</Text>
+  <Text style={styles.dateText}>● महिना : जुलै २०१९</Text>
+  <Text style={styles.dateText}>● १२ अंक साठी वार्षिक वर्गणी : फक्त १९०/-</Text>
+  <Text style={styles.dateText}>● Posting Registration No. SGL/108/2019-2021</Text>
+</View>
       </View>
     </View>
   );
@@ -203,8 +294,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 5,
   },
-
-  // Top Row - COMPLETELY NO BORDERS OR SHADOWS
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -212,7 +301,6 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
     paddingTop: 5,
     backgroundColor: '#fff',
-    // NO borders at all
   },
   leftColumn: {
     flex: 1,
@@ -229,21 +317,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pressBox: {
-    backgroundColor: '#e00000',
-    paddingHorizontal: 28,
-    paddingVertical: 8,
+    backgroundColor: '#dd0000',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
     borderRadius: 40,
-    // NO borders, NO shadows
-    borderWidth: 0,
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
-    elevation: 0,
+    alignSelf: 'center',
+  },
+  pressInnerBorder: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderTopWidth: 2,
+    borderBottomWidth: 2,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderColor: '#fff',
   },
   pressText: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 42,
+    fontWeight: '900',
     color: '#fff',
-    letterSpacing: 1,
+    letterSpacing: 3,
   },
   rightColumn: {
     flex: 1,
@@ -259,70 +352,85 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   rtiAll: {
-    fontSize: 25,
+    fontSize: 20,
     fontWeight: '900',
     color: '#111',
     fontStyle: 'italic',
   },
   rtiIndia: {
-    fontSize: 25,
-    fontWeight: '900',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#111',
     fontStyle: 'italic',
   },
   rtiRti: {
-    fontSize: 25,
+    fontSize: 20,
     fontWeight: '900',
     color: '#111',
     fontStyle: 'italic',
   },
   rtiNetwork: {
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: '800',
     color: '#cc0000',
     fontStyle: 'italic',
     marginTop: 1,
   },
-
-  // Registration Section - NO BORDERS
   regSection: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 5,
-    paddingBottom: 8,
+    paddingVertical: 2,
+    paddingBottom: 0,
+    paddingLeft: LOGO_SIZE - 20,
     backgroundColor: '#fff',
   },
-  regNumber: {
-    fontSize: 15,
-    color: '#333',
-    textAlign: 'center',
+  rtiTopRight: {
+    alignItems: 'flex-end',
+    marginLeft: 16,
+    flexShrink: 0,
   },
-
-  // Logo and Banner Wrapper
+  regNumber: {
+    fontSize: 16,
+    color: '#111',
+    textAlign: 'center',
+    fontWeight: '400',
+    flex: 1,
+    paddingLeft: LOGO_SIZE - 140,
+  },
   logoBannerWrapper: {
     position: 'relative',
     marginTop: 0,
     marginBottom: 0,
-    height: LOGO_SIZE + (OVERLAP * 2),
-    overflow: 'visible',
+  },
+  logoOuterContainer: {
+    position: 'absolute',
+    top: (100 / 2) - (LOGO_SIZE / 2),
+    left: 30,
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
+    zIndex: 20,
+    elevation: 10,
   },
   logoContainer: {
-    position: 'absolute',
-    top: OVERLAP,
-    left: 18,
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
+    borderRadius: LOGO_SIZE / 2,
     overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: '#fff',
+    borderWidth: 12,
+    borderColor: '#000',
     backgroundColor: '#333',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
-    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-
   logoImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 60,
   },
   logoPlaceholder: {
     flex: 1,
@@ -349,16 +457,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
   },
-  // Black Banner
   blackBanner: {
     backgroundColor: '#111',
     width: '100%',
-    height: LOGO_SIZE,
-    paddingHorizontal: 20,
-    paddingLeft: LOGO_SIZE + 30,
-    borderRadius: 4,
+    height: 100,
+    paddingLeft: LOGO_SIZE + 20,
+    paddingRight: 12,
     justifyContent: 'center',
-    alignItems: 'center',
   },
   newspaperName: {
     fontSize: 72,
@@ -367,81 +472,88 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 1,
   },
-
-  // Tagline Section
   taglineSection: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#bbb',
     paddingVertical: 8,
     alignItems: 'center',
+    marginTop: 0,
+    width: '100%',
   },
   tagline: {
-    fontSize: 10,
+    fontSize: 20,
     color: '#222',
     textAlign: 'center',
+    fontWeight: '900',
   },
-
-  // Info Section
   infoSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    paddingVertical: 6,
   },
   websiteRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    flexWrap: 'wrap',
+    borderBottomWidth: 2,
+    borderBottomColor: '#ccc',
+    paddingBottom: 3,
   },
   infoText: {
-    fontSize: 10,
+    fontSize: 22,
     color: '#333',
+    fontWeight: '700',
   },
   separator: {
-    fontSize: 10,
-    color: '#888',
+    fontSize: 22,
+    color: '#555',
+    fontWeight: '700',
   },
   editorSection: {
     alignItems: 'flex-end',
     marginLeft: 10,
+    flexShrink: 0,
   },
   editorName: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
     color: '#111',
   },
-  editorTitle: {
-    fontSize: 8,
-    color: '#555',
-    textAlign: 'right',
-  },
-
-  // Address Section
   addressSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    backgroundColor: '#fafafa',
   },
   addressText: {
-    fontSize: 9,
+    fontSize: 15,
     color: '#333',
+    flex: 1,
   },
-
-  // Date Section
+  editorTitle: {
+    fontSize: 14,
+    color: '#111',
+    textAlign: 'right',
+    flexShrink: 0,
+    marginLeft: 10,
+    fontWeight: '900',
+  },
   dateSection: {
-    backgroundColor: '#f0ede6',
+    backgroundColor: '#111',
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderTopWidth: 1,
     borderTopColor: '#bbb',
     borderBottomWidth: 2,
     borderBottomColor: '#111',
+    flexDirection: 'row',              // <-- add
+    justifyContent: 'space-between',   // <-- add
+    alignItems: 'center',              // <-- add
   },
-  dateText: {
-    fontSize: 9,
-    color: '#333',
+   dateText: {
+    fontSize: 13,
+    color: '#fff',
+    fontWeight: '600',
+    // textAlign: 'justify' hatao
   },
 });

@@ -7,9 +7,9 @@ export default function HeadlineBlock({ data = {}, isEditing = false }) {
   return (
     <View style={[styles.wrapper, isEditing && styles.editing]}>
       <View style={styles.inner}>
-        <Text style={styles.title}>
-          {title || 'आहे का गरजेचे पुर्नविचार याचिका दाखल करणे?'}
-        </Text>
+        {!!title && (
+          <Text style={styles.title}>{title}</Text>
+        )}
         {!!sub && (
           <Text style={styles.sub}>{sub}</Text>
         )}

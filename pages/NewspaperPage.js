@@ -15,29 +15,28 @@ import { exportToPdf, printDirectly } from '../components/newspaper/PDFExporter'
 
 // ─── Section definitions ───────────────────────────────────────────────────────
 const T1_SECTIONS = [
-  { id: 'header',   label: 'Header',                type: 'header' },
-  { id: 'headline', label: 'Main Headline',          type: 'headline' },
-  { id: 'left',     label: 'Left Story (25%)',        type: 'article' },
-  { id: 'center',   label: 'Center Story (50%)',      type: 'article', isMain: true },
-  { id: 'right',    label: 'Right Story (25%)',       type: 'article' },
-  { id: 'bottom_l', label: 'Bottom Left (50%)',       type: 'article' },
-  { id: 'bottom_r', label: 'Bottom Right + Img (50%)', type: 'article' },
-  { id: 'footer',   label: 'Footer',                type: 'footer' },
+  { id: 'header',        label: 'Header',               type: 'header' },
+  { id: 'headline',      label: 'Main Headline',         type: 'headline' },
+  { id: 'left_big',      label: 'Left Story (25%)',       type: 'article' },
+  { id: 'left_small',    label: 'Left Story (25%)',       type: 'article' },
+  { id: 'center_top',    label: 'Center Story (50%)',     type: 'article', isMain: true },
+  { id: 'center_mid',    label: 'Center Mid',             type: 'article' },
+  { id: 'center_bottom', label: 'Center Bottom',          type: 'article' },
+  { id: 'right',         label: 'Right Story (25%)',      type: 'article' },
+  { id: 'footer',        label: 'Footer',               type: 'footer' },
 ];
 
 const T2_SECTIONS = [
-  { id: 'header',   label: 'Header',                type: 'header' },
-  { id: 'headline', label: 'Main Headline',          type: 'headline' },
-  { id: 'left',     label: 'Left Article (35%)',      type: 'article' },
-  { id: 'center',   label: 'Center Article (40%)',    type: 'article', isMain: true },
-  { id: 'right',    label: 'Right Sidebar (25%)',     type: 'article' },
-  { id: 'lawyer',   label: 'Lawyer Section',          type: 'lawyer' },
-  { id: 'bot_l',    label: 'Bottom Left (33%)',       type: 'article' },
-  { id: 'bot_c',    label: 'Bottom Center (33%)',     type: 'article' },
-  { id: 'bot_r',    label: 'Bottom Right (34%)',      type: 'article' },
-  { id: 'footer',   label: 'Footer',                type: 'footer' },
+  { id: 'masthead',  label: 'Masthead Strip',         type: 'masthead' },
+  { id: 'top_left',  label: 'Top Left Article',       type: 'article', isMain: true },
+  { id: 'top_right', label: 'Top Right Article',      type: 'article', isMain: true },
+  { id: 'mid_left',  label: 'Middle Left Article',    type: 'article' },
+  { id: 'mid_right', label: 'Middle Right Article',   type: 'article' },
+  { id: 'bot_main',  label: 'Bottom Main Article',    type: 'article', isMain: true },
+  { id: 'bot_side',  label: 'Bottom Side Article',    type: 'article' },
+  { id: 'footer',    label: 'Footer',                 type: 'footer' },
+  { id: 'slogan',    label: 'Slogan Bar',             type: 'slogan' },
 ];
-
 // ─── EditPanel ─────────────────────────────────────────────────────────────────
 function EditPanel({ sectionId, sectionDef }) {
   const { sections, updateSection } = useEditorStore();
@@ -76,11 +75,24 @@ function EditPanel({ sectionId, sectionDef }) {
 
       {sectionDef.type === 'header' && (
         <>
-          <Field label="अखबार का नाम"      fieldKey="newspaperName" />
-          <Field label="टैगलाइन"            fieldKey="tagline" />
-          <Field label="दिनांक"             fieldKey="date" />
-          <Field label="संपर्क"             fieldKey="contact" />
-          <Field label="अतिरिक्त जानकारी"  fieldKey="extra" />
+          <Field label="संपर्क 1"           fieldKey="contact1" />
+          <Field label="संपर्क 2"           fieldKey="contact2" />
+          <Field label="वेबसाइट"            fieldKey="website" />
+          <Field label="ई-मेल"              fieldKey="extra" />
+          <Field label="रेग नंबर"           fieldKey="regNo" />
+          <Field label="सरकारी जानकारी 1"   fieldKey="govtText1" />
+          <Field label="सरकारी जानकारी 2"   fieldKey="govtText2" />
+          <Field label="संपादक नाम"         fieldKey="editorName" />
+          <Field label="संपादक पद"          fieldKey="editorTitle" />
+          <Field label="कार्यालय"           fieldKey="officeInfo" />
+          <View style={ep.fieldGroup}>
+            <Text style={ep.label}>Logo</Text>
+            <ImageBlock
+              uri={data.logoUri || ''}
+              onPick={(uri) => update('logoUri', uri)}
+              onRemove={() => update('logoUri', '')}
+            />
+          </View>
         </>
       )}
 
@@ -88,6 +100,7 @@ function EditPanel({ sectionId, sectionDef }) {
         <>
           <Field label="मुख्य शीर्षक" fieldKey="title" multiline />
           <Field label="उप शीर्षक"    fieldKey="sub" />
+          <Field label="उप उप शीर्षक" fieldKey="subsub" />
         </>
       )}
 
@@ -102,6 +115,17 @@ function EditPanel({ sectionId, sectionDef }) {
         <Field label="विधिक नोटिस" fieldKey="text" multiline />
       )}
 
+      {sectionDef.type === 'masthead' && (
+        <>
+          <Field label="दिनांक"  fieldKey="date" />
+          <Field label="शीर्षक"  fieldKey="title" />
+          <Field label="वेबसाइट" fieldKey="website" />
+        </>
+      )}
+
+      {sectionDef.type === 'slogan' && (
+        <Field label="स्लोगन" fieldKey="text" multiline />
+      )}
       {sectionDef.type === 'article' && (
         <>
           <Field label="शीर्षक"   fieldKey="title" />

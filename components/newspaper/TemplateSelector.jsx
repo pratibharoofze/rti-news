@@ -28,8 +28,19 @@ const TEMPLATES = [
       ['████████████████████'],
     ],
   },
+  {
+    id: 'layout3',
+    name: 'Traditional Layout',
+    desc: 'Header · 50|50 Top · 50|50 Mid · Black Strip · Slogan',
+    grid: [
+      ['████████████████████'],
+      ['██████████', '██████████'],
+      ['██████████', '██████████'],
+      ['██████████', '██████████'],
+      ['████████████████████'],
+    ],
+  },
 ];
-
 export default function TemplateSelector({ onSelect }) {
   const { templateId, setTemplate } = useTemplateStore();
 

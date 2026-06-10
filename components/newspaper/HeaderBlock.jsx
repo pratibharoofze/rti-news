@@ -51,9 +51,11 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
     editorName = 'मा. शौकत अब्दुलकलाम नायकवडी',
     editorTitle = 'मुख्य संपादक, संस्थापक, अध्यक्ष, प्रकाशक, मालक',
     officeInfo = '● क्षेत्रीय कार्यालय : व्हीनस कॉर्नर, स्टेशन रोड, केव्हिज प्लाझा, कोल्हापूर.',
+    regNoLabel = 'REG. NO. : RNIMAH/MUL/2014/66399  |  TITLE REGN. NO. : MAH/MUL/03200/13/1/2013-TC',
+    govtText1 = 'Govt. of INDIA approved',
+    govtText2 = 'Registered Ministry of Broadcasting, Delhi.',
     logoUri = '',
   } = data;
-
   const isWeb = Platform.OS === 'web';
   const fileInputRef = useRef(null);
 
@@ -116,15 +118,7 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
   };
 
   const handleLogoPress = () => {
-    if (!isEditing) return;
-    if (isWeb) {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-        fileInputRef.current.click();
-      }
-    } else {
-      pickLogoMobile();
-    }
+    // Upload now handled from edit panel
   };
 
   const displayLogoUri = localLogoUri || logoUri;
@@ -132,16 +126,7 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
   return (
     <View style={[styles.container, isEditing && styles.editing]}>
       <View style={styles.header}>
-        {isWeb && (
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
-            id="logo-upload-input"
-            style={{ display: 'none' }}
-            onChange={handleWebFileSelect}
-          />
-        )}
+        {/* File input removed - upload handled from edit panel */}
 
         {/* Top Row - Phone | PRESS | Govt Info */}
         <View style={styles.topRow}>
@@ -157,8 +142,8 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
             </View>
           </View>
           <View style={styles.rightColumn}>
-            <Text style={styles.govtText}>Govt. of INDIA approved</Text>
-            <Text style={styles.govtText}>Registered Ministry of Broadcasting, Delhi.</Text>
+            <Text style={styles.govtText}>{govtText1}</Text>
+            <Text style={styles.govtText}>{govtText2}</Text>
           </View>
         </View>
 
@@ -183,65 +168,19 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
             </Text>
           </View>
           <View style={styles.logoOuterContainer}>
-            {isWeb && isEditing ? (
-              <label
-                htmlFor="logo-upload-input"
-                style={{
-                  width: LOGO_SIZE,
-                  height: LOGO_SIZE,
-                  borderRadius: LOGO_SIZE / 2,
-                  overflow: 'hidden',
-                  border: '12px solid #000',
-                  backgroundColor: '#333',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                }}
-              >
-                {displayLogoUri && displayLogoUri !== 'undefined' ? (
-                  <img
-                    src={displayLogoUri}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    alt="Logo"
-                    onError={(e) => {
-                      console.error('Image failed to load');
-                      e.target.style.display = 'none';
-                      if (e.target.parentElement) {
-                        e.target.parentElement.innerHTML = '<span style="color:#aaa;font-size:11px;font-weight:600;text-align:center;">📷<br/>Upload</span>';
-                      }
-                    }}
-                  />
-                ) : (
-                  <span style={{ color: '#aaa', fontSize: 11, fontWeight: '600', textAlign: 'center' }}>📷{'\n'}Upload</span>
-                )}
-              </label>
-            ) : (
-              <TouchableOpacity
-                onPress={handleLogoPress}
-                activeOpacity={isEditing ? 0.7 : 1}
-                style={styles.logoContainer}
-              >
+            <View style={styles.logoContainer}>
                 {displayLogoUri && displayLogoUri !== 'undefined' ? (
                   <Image
                     source={{ uri: displayLogoUri }}
                     style={styles.logoImage}
                     resizeMode="cover"
-                    onError={(error) => console.error('Image loading error:', error)}
                   />
                 ) : (
                   <View style={styles.logoPlaceholder}>
-                    <Text style={styles.logoPlaceholderText}>{isEditing ? '📷\nUpload' : 'LOGO'}</Text>
+                    <Text style={styles.logoPlaceholderText}>LOGO</Text>
                   </View>
                 )}
-                {isEditing && displayLogoUri && displayLogoUri !== 'undefined' && (
-                  <View style={styles.logoEditOverlay}>
-                    <Text style={styles.editIcon}>📷</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
+              </View>
           </View>
         </View>
 
@@ -269,12 +208,9 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
         </View>
 
         {/* Date Strip */}
-<View style={styles.dateSection}>
-  <Text style={styles.dateText}>● वर्ष : ६ वे</Text>
-  <Text style={styles.dateText}>● महिना : जुलै २०१९</Text>
-  <Text style={styles.dateText}>● १२ अंक साठी वार्षिक वर्गणी : फक्त १९०/-</Text>
-  <Text style={styles.dateText}>● Posting Registration No. SGL/108/2019-2021</Text>
-</View>
+        <View style={styles.dateSection}>
+          <Text style={styles.dateText}>{date}</Text>
+        </View>
       </View>
     </View>
   );

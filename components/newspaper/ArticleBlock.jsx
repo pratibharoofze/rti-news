@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, Platform } from 'react-native';
 
-export default function ArticleBlock({ data = {}, isMain = false, isEditing = false }) {
+export default function ArticleBlock({ data = {}, isMain = false, isEditing = false, columns = 1 }) {
   const {
     title = '',
     sub = '',
@@ -41,12 +41,29 @@ export default function ArticleBlock({ data = {}, isMain = false, isEditing = fa
         </View>
       )}
 
-      {/* Body text */}
-      {!!body && (
-        <Text style={[styles.body, isMain && styles.bodyMain]}>
-          {body}
-        </Text>
-      )}
+    {!!body && (
+  Platform.OS === 'web' ? (
+    <div style={{
+      columnCount: isMain ? 3 : columns,
+      columnGap: 16,
+      columnFill: 'balance',
+      WebkitColumnCount: isMain ? 3 : columns,
+      MozColumnCount: isMain ? 3 : columns,
+      fontSize: isMain ? 12 : 11,
+      lineHeight: isMain ? '21px' : '19px',
+      color: '#222',
+      textAlign: 'justify',
+      width: '100%',
+      display: 'block',
+    }}>
+      {body}
+    </div>
+  ) : (
+    <Text style={[styles.body, isMain && styles.bodyMain]}>
+      {body}
+    </Text>
+  )
+)}
 
       {/* Byline */}
       {(!!reporter || !!location || !!date) && (

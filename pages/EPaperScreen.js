@@ -305,7 +305,7 @@ export default function EPaperScreen({navigation}){
               <View style={ws.emptyWrap}>
                 <View style={ws.emptyIcon}><Feather name="file-text" size={24} color={O[400]}/></View>
                 <Text style={ws.emptyTxt}>No articles yet</Text>
-                <Text style={ws.emptySub}>Koi article available nahi hai.</Text>
+                <Text style={ws.emptySub}>not available any articles</Text>
               </View>
             ):(()=>{
               const grouped = {};
@@ -566,7 +566,7 @@ export default function EPaperScreen({navigation}){
                         onPress={() => navigation.navigate('NewspaperPage', { dateKey, articles: grouped[dateKey] })}
                       >
                         <Feather name="file-text" size={13} color="#16A34A" />
-                        <Text style={{ fontSize:12, fontWeight:'700', color:'#16A34A' }}>View Newspaper</Text>
+                        <Text style={{ fontSize:12, fontWeight:'700', color:'#16A34A' }}>add Newspaper</Text>
                       </TouchableOpacity>
                     </View>
                   </View>

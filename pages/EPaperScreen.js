@@ -129,6 +129,10 @@ export default function EPaperScreen({navigation}){
   const[manageDateKey,setManageDateKey]=useState(null);
   const[manageDateFilter,setManageDateFilter]=useState('all');
   const[successMsg,setSuccessMsg]=useState('');
+  const [reporterModal, setReporterModal] = useState(false);
+const [reporterName, setReporterName] = useState('');
+const [reporterLocation, setReporterLocation] = useState('');
+const [reporterDate, setReporterDate] = useState('');
   const showSuccess=(msg)=>{setSuccessMsg(msg);setTimeout(()=>setSuccessMsg(''),3000);};
 
   const loadData=useCallback(async()=>{
@@ -275,8 +279,36 @@ export default function EPaperScreen({navigation}){
                 <Text style={ws.pageTitle}>E-Paper</Text>
                 <Text style={ws.pageSub}>Digital newspaper — rich-text articles with images.</Text>
               </View>
-            </View>
+              <TouchableOpacity
+                style={{flexDirection:'row',alignItems:'center',gap:6,paddingVertical:9,paddingHorizontal:18,borderRadius:10,backgroundColor:'#F0FDF4',borderWidth:1.5,borderColor:'#BBF7D0'}}
+                onPress={() => {
+  const today = new Date().toISOString().slice(0, 10);
+  setReporterName(currentUser?.name || currentUser?.email?.split('@')[0] || '');
+  setReporterLocation('');
+  setReporterDate(today);
+  setReporterModal(true);
+}}
+                activeOpacity={0.8}
+              >
+                <Feather name="plus" size={14} color="#16A34A"/>
+                <Text style={{fontSize:13,fontWeight:'700',color:'#16A34A'}}>Add Newspaper</Text>
+              </TouchableOpacity>
 
+              <TouchableOpacity
+                style={{flexDirection:'row',alignItems:'center',gap:6,paddingVertical:9,paddingHorizontal:18,borderRadius:10,backgroundColor:'#FEF2F2',borderWidth:1.5,borderColor:'#FECACA'}}
+                onPress={async()=>{
+                  if(!window.confirm('All Epaper clear?')) return;
+                  const user = await UserStore.getCurrentUser();
+                  if(!user) return;
+                  await UserStore.updateUser(user.email, { epapers: [] });
+                  loadData();
+                }}
+                activeOpacity={0.8}
+              >
+                <Feather name="trash-2" size={14} color="#DC2626"/>
+                <Text style={{fontSize:13,fontWeight:'700',color:'#DC2626'}}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
             <View style={ws.metricsRow}>
               <View style={ws.mc}>
                 <View style={[ws.mcBar,ws.mcBarArticles]}/>
@@ -376,13 +408,6 @@ export default function EPaperScreen({navigation}){
                           <Feather name="settings" size={13} color={O[600]}/>
                           <Text style={{fontSize:12,fontWeight:'700',color:O[800]}}>Manage Articles</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                          style={{flexDirection:'row',alignItems:'center',gap:5,paddingVertical:7,paddingHorizontal:14,borderRadius:8,backgroundColor:'#F0FDF4',borderWidth:1,borderColor:'#BBF7D0'}}
-                          onPress={()=>navigation.navigate('NewspaperPage',{dateKey,articles:grouped[dateKey]})}
-                        >
-                          <Feather name="file-text" size={13} color="#16A34A"/>
-                          <Text style={{fontSize:12,fontWeight:'700',color:'#16A34A'}}>View Newspaper</Text>
-                        </TouchableOpacity>
                       </View>
                     </View>
                   ))}
@@ -393,7 +418,106 @@ export default function EPaperScreen({navigation}){
         </ScrollView>
 
         <ViewModal/>
+<Modal
+  visible={reporterModal}
+  animationType="fade"
+  transparent
+  onRequestClose={() => setReporterModal(false)}
+>
+  <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.45)',alignItems:'center',justifyContent:'center',padding:20}}>
+    <View style={{backgroundColor:'#ffffff',borderRadius:18,padding:24,width:'100%',maxWidth:440,shadowColor:'#000',shadowOffset:{width:0,height:8},shadowOpacity:0.18,shadowRadius:24,elevation:12}}>
 
+      {/* Header */}
+      <View style={{flexDirection:'row',alignItems:'center',gap:10,marginBottom:6}}>
+        <View style={{width:38,height:38,borderRadius:10,backgroundColor:O[50],borderWidth:1,borderColor:O[200],alignItems:'center',justifyContent:'center'}}>
+          <Feather name="user" size={18} color={O[600]}/>
+        </View>
+        <View>
+          <Text style={{fontSize:16,fontWeight:'800',color:'#111111'}}>Reporter Details</Text>
+          <Text style={{fontSize:12,color:'#888888',marginTop:1}}>Publish karne se pehle confirm karein</Text>
+        </View>
+      </View>
+
+      <View style={{height:1,backgroundColor:'#F0EBE4',marginVertical:16}}/>
+
+      {/* Name */}
+      <Text style={{fontSize:12,fontWeight:'700',color:'#555555',marginBottom:6}}>Reporter Name</Text>
+      <View style={{flexDirection:'row',alignItems:'center',gap:8,borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:10,paddingHorizontal:12,paddingVertical:10,marginBottom:14,backgroundColor:'#FAFAFA'}}>
+        <Feather name="user" size={14} color="#AAAAAA"/>
+        <TextInput
+          value={reporterName}
+          onChangeText={setReporterName}
+          placeholder="Apna naam darj karein"
+          placeholderTextColor="#BBBBBB"
+          style={{flex:1,fontSize:14,color:'#111111'}}
+        />
+      </View>
+
+      {/* Location */}
+      <Text style={{fontSize:12,fontWeight:'700',color:'#555555',marginBottom:6}}>Location / place</Text>
+      <View style={{flexDirection:'row',alignItems:'center',gap:8,borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:10,paddingHorizontal:12,paddingVertical:10,marginBottom:14,backgroundColor:'#FAFAFA'}}>
+        <Feather name="map-pin" size={14} color="#AAAAAA"/>
+        <TextInput
+          value={reporterLocation}
+          onChangeText={setReporterLocation}
+          placeholder="Place"
+          placeholderTextColor="#BBBBBB"
+          style={{flex:1,fontSize:14,color:'#111111'}}
+        />
+      </View>
+
+      {/* Date */}
+      <Text style={{fontSize:12,fontWeight:'700',color:'#555555',marginBottom:6}}>Publish Date</Text>
+      <View style={{flexDirection:'row',alignItems:'center',gap:8,borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:10,paddingHorizontal:12,paddingVertical:10,marginBottom:22,backgroundColor:'#FAFAFA'}}>
+        <Feather name="calendar" size={14} color="#AAAAAA"/>
+        {Platform.OS==='web' ? (
+          <input
+            type="date"
+            value={reporterDate}
+            onChange={e=>setReporterDate(e.target.value)}
+            style={{flex:1,fontSize:14,color:'#111111',border:'none',outline:'none',backgroundColor:'transparent',cursor:'pointer',width:'100%'}}
+          />
+        ) : (
+          <TextInput
+            value={reporterDate}
+            onChangeText={setReporterDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="#BBBBBB"
+            style={{flex:1,fontSize:14,color:'#111111'}}
+          />
+        )}
+      </View>
+
+      {/* Buttons */}
+      <View style={{flexDirection:'row',gap:10}}>
+        <TouchableOpacity
+          onPress={()=>setReporterModal(false)}
+          style={{flex:1,paddingVertical:11,borderRadius:10,borderWidth:1.5,borderColor:'#E5DDD5',alignItems:'center',justifyContent:'center'}}
+        >
+          <Text style={{fontSize:14,fontWeight:'700',color:'#888888'}}>Cancel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={()=>{
+            if(!reporterName.trim()){showToast('Reporter name required!','error');return;}
+            setReporterModal(false);
+            navigation.navigate('NewspaperPage',{
+              reporterName:reporterName.trim(),
+              reporterLocation:reporterLocation.trim(),
+              publishDate:reporterDate,
+            });
+          }}
+          style={{flex:2,paddingVertical:11,borderRadius:10,backgroundColor:O[400],alignItems:'center',justifyContent:'center',flexDirection:'row',gap:7}}
+          activeOpacity={0.85}
+        >
+          <Feather name="arrow-right" size={15} color="#ffffff"/>
+          <Text style={{fontSize:14,fontWeight:'800',color:'#ffffff'}}>Continue to Editor</Text>
+        </TouchableOpacity>
+      </View>
+
+    </View>
+  </View>
+</Modal>
         {/* Manage Articles Modal — Web */}
         {manageDateKey&&(
           <Modal visible={!!manageDateKey} animationType="slide" onRequestClose={()=>setManageDateKey(null)}>
@@ -561,13 +685,6 @@ export default function EPaperScreen({navigation}){
                         <Feather name="settings" size={13} color="#C8700F" />
                         <Text style={{ fontSize:12, fontWeight:'700', color:'#C8700F' }}>Manage</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        style={{ flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5, paddingVertical:9, borderRadius:10, backgroundColor:'#F0FDF4', borderWidth:1, borderColor:'#BBF7D0' }}
-                        onPress={() => navigation.navigate('NewspaperPage', { dateKey, articles: grouped[dateKey] })}
-                      >
-                        <Feather name="file-text" size={13} color="#16A34A" />
-                        <Text style={{ fontSize:12, fontWeight:'700', color:'#16A34A' }}>add Newspaper</Text>
-                      </TouchableOpacity>
                     </View>
                   </View>
                 );
@@ -651,6 +768,71 @@ export default function EPaperScreen({navigation}){
         )}
 
         <ViewModal />
+        <Modal
+  visible={reporterModal}
+  animationType="fade"
+  transparent
+  onRequestClose={() => setReporterModal(false)}
+>
+  <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.45)',alignItems:'center',justifyContent:'center',padding:20}}>
+    <View style={{backgroundColor:'#ffffff',borderRadius:18,padding:24,width:'100%',maxWidth:440}}>
+      <Text style={{fontSize:16,fontWeight:'800',color:'#111111',marginBottom:4}}>Reporter Details</Text>
+      <Text style={{fontSize:12,color:'#888888',marginBottom:16}}>Please confirm before publishing</Text>
+      <View style={{height:1,backgroundColor:'#F0EBE4',marginBottom:16}}/>
+
+      <Text style={{fontSize:12,fontWeight:'700',color:'#555555',marginBottom:6}}>Reporter Name</Text>
+      <View style={{flexDirection:'row',alignItems:'center',gap:8,borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:10,paddingHorizontal:12,paddingVertical:10,marginBottom:14,backgroundColor:'#FAFAFA'}}>
+        <Feather name="user" size={14} color="#AAAAAA"/>
+        <TextInput value={reporterName} onChangeText={setReporterName} placeholder="fill Your Name" placeholderTextColor="#BBBBBB" style={{flex:1,fontSize:14,color:'#111111'}}/>
+      </View>
+
+      <Text style={{fontSize:12,fontWeight:'700',color:'#555555',marginBottom:6}}>Location / Shehar</Text>
+      <View style={{flexDirection:'row',alignItems:'center',gap:8,borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:10,paddingHorizontal:12,paddingVertical:10,marginBottom:14,backgroundColor:'#FAFAFA'}}>
+        <Feather name="map-pin" size={14} color="#AAAAAA"/>
+        <TextInput value={reporterLocation} onChangeText={setReporterLocation} placeholder="Shehar ya jagah" placeholderTextColor="#BBBBBB" style={{flex:1,fontSize:14,color:'#111111'}}/>
+      </View>
+
+     {/* Date */}
+      <Text style={{fontSize:12,fontWeight:'700',color:'#555555',marginBottom:6}}>Publish Date</Text>
+      <View style={{flexDirection:'row',alignItems:'center',gap:8,borderWidth:1.5,borderColor:'#E5DDD5',borderRadius:10,paddingHorizontal:12,paddingVertical:10,marginBottom:22,backgroundColor:'#FAFAFA'}}>
+        <Feather name="calendar" size={14} color="#AAAAAA"/>
+        {Platform.OS==='web' ? (
+          <input
+            type="date"
+            value={reporterDate}
+            onChange={e=>setReporterDate(e.target.value)}
+            style={{flex:1,fontSize:14,color:'#111111',border:'none',outline:'none',backgroundColor:'transparent',cursor:'pointer',width:'100%'}}
+          />
+        ) : (
+          <TextInput
+            value={reporterDate}
+            onChangeText={setReporterDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="#BBBBBB"
+            style={{flex:1,fontSize:14,color:'#111111'}}
+          />
+        )}
+      </View>
+
+      <View style={{flexDirection:'row',gap:10}}>
+        <TouchableOpacity onPress={()=>setReporterModal(false)} style={{flex:1,paddingVertical:11,borderRadius:10,borderWidth:1.5,borderColor:'#E5DDD5',alignItems:'center'}}>
+          <Text style={{fontSize:14,fontWeight:'700',color:'#888888'}}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={()=>{
+            if(!reporterName.trim()){showToast('Reporter name required!','error');return;}
+            setReporterModal(false);
+            navigation.navigate('NewspaperPage',{reporterName:reporterName.trim(),reporterLocation:reporterLocation.trim(),publishDate:reporterDate});
+          }}
+          style={{flex:2,paddingVertical:11,borderRadius:10,backgroundColor:'#ea580c',alignItems:'center',justifyContent:'center',flexDirection:'row',gap:7}}
+        >
+          <Feather name="arrow-right" size={15} color="#ffffff"/>
+          <Text style={{fontSize:14,fontWeight:'800',color:'#ffffff'}}>Continue to Editor</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
       </View>
     </SafeAreaView>
   );

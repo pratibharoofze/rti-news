@@ -1,22 +1,26 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 
 export default function HeadlineBlock({ data = {}, isEditing = false }) {
   const { title = '', sub = '', subsub = '' } = data;
 
   return (
-    <View style={[styles.wrapper, isEditing && styles.editing]}>
+    <View style={[styles.wrapper, { backgroundColor: data.headlineBgColor || '#111' }, isEditing && styles.editing]}>
       <View style={styles.inner}>
         {!!title && (
-          <Text style={styles.title}>{title}</Text>
+          Platform.OS === 'web'
+            ? <div dangerouslySetInnerHTML={{ __html: title }} style={{ color:'#fff', fontSize:28, fontWeight:900, textAlign:'center', lineHeight:1.2, margin:'6px 0' }} />
+            : <Text style={styles.title}>{title}</Text>
         )}
         {!!sub && (
-          <Text style={styles.sub}>{sub}</Text>
+          Platform.OS === 'web'
+            ? <div dangerouslySetInnerHTML={{ __html: sub }} style={{ color:'#fff', fontSize:22, fontWeight:900, textAlign:'center', marginTop:2, textDecoration:'underline' }} />
+            : <Text style={styles.sub}>{sub}</Text>
         )}
         {!!subsub && (
-          <View style={styles.subsubRow}>
-            <Text style={styles.subsub}>{subsub}</Text>
-          </View>
+          Platform.OS === 'web'
+            ? <div dangerouslySetInnerHTML={{ __html: subsub }} style={{ color:'#fff', fontSize:16, fontWeight:700, textAlign:'center', marginTop:6, borderTop:'1px solid #444', paddingTop:6 }} />
+            : <View style={styles.subsubRow}><Text style={styles.subsub}>{subsub}</Text></View>
         )}
       </View>
     </View>
@@ -26,9 +30,8 @@ export default function HeadlineBlock({ data = {}, isEditing = false }) {
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: '#111',
-    
     marginHorizontal: 20, 
-    paddingHorizontal: 20,  // <-- yahan padding do wrapper pe
+    paddingHorizontal: 20,
   },
   editing: {
     borderWidth: 2,

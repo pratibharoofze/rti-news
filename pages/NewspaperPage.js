@@ -1,3 +1,4 @@
+import { UserStore } from '../store/UserStore';
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
@@ -11,12 +12,13 @@ import LayoutOne from '../components/newspaper/LayoutOne';
 import LayoutTwo from '../components/newspaper/LayoutTwo';
 import TemplateSelector from '../components/newspaper/TemplateSelector';
 import ImageBlock from '../components/newspaper/ImageBlock';
+import RichField from '../components/newspaper/RichField';
 import { exportToPdf, printDirectly } from '../components/newspaper/PDFExporter';
 
 // ─── Section definitions ───────────────────────────────────────────────────────
 const T1_SECTIONS = [
   { id: 'header',        label: 'Header',               type: 'header' },
-  { id: 'headline',      label: 'Main Headline',         type: 'headline' },
+  { id: 'headline',      label: 'Main Headline',         type: 'headline', hidden: true },
   { id: 'left_big',      label: 'Left Story (25%)',       type: 'article' },
   { id: 'left_small',    label: 'Left Story (25%)',       type: 'article' },
   { id: 'center_top',    label: 'Center Story (50%)',     type: 'article', isMain: true },
@@ -37,11 +39,14 @@ const T2_SECTIONS = [
   { id: 'footer',    label: 'Footer',                 type: 'footer' },
   { id: 'slogan',    label: 'Slogan Bar',             type: 'slogan' },
 ];
+
 // ─── EditPanel ─────────────────────────────────────────────────────────────────
 function EditPanel({ sectionId, sectionDef }) {
   const { sections, updateSection } = useEditorStore();
   const data = sections[sectionId] || {};
   const update = (key, val) => updateSection(sectionId, key, val);
+  const headlineData = sections['headline'] || {};
+  const updateHeadline = (key, val) => updateSection('headline', key, val);
 
   const Field = ({ label, fieldKey, multiline = false }) => (
     <View style={ep.fieldGroup}>
@@ -60,12 +65,82 @@ function EditPanel({ sectionId, sectionDef }) {
   if (!sectionDef) {
     return (
       <View style={ep.empty}>
-        <Text style={ep.emptyText}>Koi section{'\n'}select karein</Text>
+        <Text style={ep.emptyText}>No section selected</Text>
       </View>
     );
   }
 
+  const isHeader = sectionDef.type === 'header';
   return (
+    <View style={{flex:1}}>
+      {isHeader && (
+        <View style={{backgroundColor:'#1a1a1a'}}>
+          {/* Banner Color */}
+          <View style={{padding:14, borderBottomWidth:1, borderBottomColor:'#333'}}>
+            <Text style={[ep.label, {color:'#ffd700', fontSize:11, marginBottom:8}]}>🎨 Banner Colors</Text>
+            <View style={{flexDirection:'row', gap:16, flexWrap:'wrap'}}>
+              <View>
+                <Text style={ep.label}>Header BG</Text>
+                {Platform.OS === 'web' ? (
+                  <input type="color" defaultValue={data.bannerBgColor || '#111111'} onInput={e => update('bannerBgColor', e.target.value)} onChange={e => update('bannerBgColor', e.target.value)} style={{width:44, height:32, border:'none', borderRadius:4, cursor:'pointer'}} />
+                ) : (
+                  <TextInput style={[ep.input,{width:80}]} value={data.bannerBgColor || '#111111'} onChangeText={v => update('bannerBgColor', v)} placeholderTextColor="#666" />
+                )}
+              </View>
+              <View>
+                <Text style={ep.label}>Header Text</Text>
+                {Platform.OS === 'web' ? (
+                  <input type="color" defaultValue={data.bannerTextColor || '#ffffff'} onInput={e => update('bannerTextColor', e.target.value)} onChange={e => update('bannerTextColor', e.target.value)} style={{width:44, height:32, border:'none', borderRadius:4, cursor:'pointer'}} />
+                ) : (
+                  <TextInput style={[ep.input,{width:80}]} value={data.bannerTextColor || '#ffffff'} onChangeText={v => update('bannerTextColor', v)} placeholderTextColor="#666" />
+                )}
+              </View>
+              <View>
+                <Text style={ep.label}>Headline BG</Text>
+                {Platform.OS === 'web' ? (
+                  <input type="color" defaultValue={(sections['headline'] || {}).headlineBgColor || '#111111'} onInput={e => updateHeadline('headlineBgColor', e.target.value)} onChange={e => updateHeadline('headlineBgColor', e.target.value)} style={{width:44, height:32, border:'none', borderRadius:4, cursor:'pointer'}} />
+                ) : (
+                  <TextInput style={[ep.input,{width:80}]} value={(sections['headline'] || {}).headlineBgColor || '#111111'} onChangeText={v => updateHeadline('headlineBgColor', v)} placeholderTextColor="#666" />
+                )}
+              </View>
+              <View>
+                <Text style={ep.label}>Date Strip BG</Text>
+                {Platform.OS === 'web' ? (
+                  <input type="color" defaultValue={data.dateBgColor || '#111111'} onInput={e => update('dateBgColor', e.target.value)} onChange={e => update('dateBgColor', e.target.value)} style={{width:44, height:32, border:'none', borderRadius:4, cursor:'pointer'}} />
+                ) : (
+                  <TextInput style={[ep.input,{width:80}]} value={data.dateBgColor || '#111111'} onChangeText={v => update('dateBgColor', v)} placeholderTextColor="#666" />
+                )}
+              </View>
+              <View>
+                <Text style={ep.label}>Date Text</Text>
+                {Platform.OS === 'web' ? (
+                  <input type="color" defaultValue={data.dateTextColor || '#ffffff'} onInput={e => update('dateTextColor', e.target.value)} onChange={e => update('dateTextColor', e.target.value)} style={{width:44, height:32, border:'none', borderRadius:4, cursor:'pointer'}} />
+                ) : (
+                  <TextInput style={[ep.input,{width:80}]} value={data.dateTextColor || '#ffffff'} onChangeText={v => update('dateTextColor', v)} placeholderTextColor="#666" />
+                )}
+              </View>
+            </View>
+            
+          </View>
+          {/* Headline fields */}
+          <View style={{padding:14, borderBottomWidth:1, borderBottomColor:'#333'}}>
+            <Text style={[ep.label, {color:'#ffd700', fontSize:11, marginBottom:8}]}>✏️ Main Headline</Text>
+            <RichField
+              label="Title"
+              value={headlineData.title || ''}
+              onChange={(html) => updateHeadline('title', html)}
+            />
+            <View style={ep.fieldGroup}>
+              <Text style={ep.label}>Subtitle</Text>
+              <TextInput style={ep.input} value={String(headlineData.sub || '')} onChangeText={(v) => updateHeadline('sub', v)} placeholderTextColor="#666" />
+            </View>
+            <View style={ep.fieldGroup}>
+              <Text style={ep.label}>Sub Subtitle</Text>
+              <TextInput style={ep.input} value={String(headlineData.subsub || '')} onChangeText={(v) => updateHeadline('subsub', v)} placeholderTextColor="#666" />
+            </View>
+          </View>
+        </View>
+      )}
     <ScrollView
       style={ep.scroll}
       keyboardShouldPersistTaps="handled"
@@ -75,16 +150,23 @@ function EditPanel({ sectionId, sectionDef }) {
 
       {sectionDef.type === 'header' && (
         <>
-          <Field label="संपर्क 1"           fieldKey="contact1" />
-          <Field label="संपर्क 2"           fieldKey="contact2" />
-          <Field label="वेबसाइट"            fieldKey="website" />
-          <Field label="ई-मेल"              fieldKey="extra" />
-          <Field label="रेग नंबर"           fieldKey="regNo" />
-          <Field label="सरकारी जानकारी 1"   fieldKey="govtText1" />
-          <Field label="सरकारी जानकारी 2"   fieldKey="govtText2" />
-          <Field label="संपादक नाम"         fieldKey="editorName" />
-          <Field label="संपादक पद"          fieldKey="editorTitle" />
-          <Field label="कार्यालय"           fieldKey="officeInfo" />
+          <Field label="Newspaper Name"      fieldKey="newspaperName" />
+          <Field label="Tagline"            fieldKey="tagline" multiline />
+          <Field label="Date / Subscription"    fieldKey="date" multiline />
+          <Field label="Contact 1"           fieldKey="contact1" />
+          <Field label="Contact 2"           fieldKey="contact2" />
+          <Field label="Website"            fieldKey="website" />
+          <Field label="Email"              fieldKey="extra" />
+          <Field label="Reg Number"           fieldKey="regNo" />
+          <Field label="Government Info 1"   fieldKey="govtText1" />
+          <Field label="Government Info 2"   fieldKey="govtText2" />
+          <Field label="RTI - All / India"   fieldKey="rtiAll" />
+          <Field label="RTI - INDIA"         fieldKey="rtiIndia" />
+          <Field label="RTI - RTi"           fieldKey="rtiRti" />
+          <Field label="RTI - NEWS NETWORK"  fieldKey="rtiNetwork" />
+          <Field label="Editor Name"         fieldKey="editorName" />
+          <Field label="Editor Title"          fieldKey="editorTitle" />
+          <Field label="Office Info"           fieldKey="officeInfo" />
           <View style={ep.fieldGroup}>
             <Text style={ep.label}>Logo</Text>
             <ImageBlock
@@ -95,45 +177,70 @@ function EditPanel({ sectionId, sectionDef }) {
           </View>
         </>
       )}
-
-      {sectionDef.type === 'headline' && (
-        <>
-          <Field label="मुख्य शीर्षक" fieldKey="title" multiline />
-          <Field label="उप शीर्षक"    fieldKey="sub" />
-          <Field label="उप उप शीर्षक" fieldKey="subsub" />
-        </>
-      )}
-
       {sectionDef.type === 'footer' && (
         <>
-          <Field label="बायाँ पाद" fieldKey="left" />
-          <Field label="दायाँ पाद" fieldKey="right" />
+          <View style={[ep.fieldGroup, {flexDirection:'row', alignItems:'center', gap:12, flexWrap:'wrap'}]}>
+            <View>
+              <Text style={ep.label}>Footer BG Color</Text>
+              {Platform.OS === 'web' ? (
+                <input type="color"
+                  defaultValue={data.bgColor || '#111111'}
+                  onInput={e => update('bgColor', e.target.value)}
+                  onChange={e => update('bgColor', e.target.value)}
+                  style={{width:44, height:32, border:'none', borderRadius:4, cursor:'pointer'}}
+                />
+              ) : (
+                <TextInput style={[ep.input,{width:80}]} value={data.bgColor || '#111111'} onChangeText={v => update('bgColor', v)} placeholderTextColor="#666"/>
+              )}
+            </View>
+            <View>
+              <Text style={ep.label}>Footer Text Color</Text>
+              {Platform.OS === 'web' ? (
+                <input type="color"
+                  defaultValue={data.textColor || '#ffffff'}
+                  onInput={e => update('textColor', e.target.value)}
+                  onChange={e => update('textColor', e.target.value)}
+                  style={{width:44, height:32, border:'none', borderRadius:4, cursor:'pointer'}}
+                />
+              ) : (
+                <TextInput style={[ep.input,{width:80}]} value={data.textColor || '#ffffff'} onChangeText={v => update('textColor', v)} placeholderTextColor="#666"/>
+              )}
+            </View>
+          </View>
+          <RichField
+            label="Footer Content"
+            value={data.content || ''}
+            onChange={(html) => update('content', html)}
+          />
         </>
       )}
-
       {sectionDef.type === 'lawyer' && (
-        <Field label="विधिक नोटिस" fieldKey="text" multiline />
+        <Field label="Legal Notice" fieldKey="text" multiline />
       )}
 
       {sectionDef.type === 'masthead' && (
         <>
-          <Field label="दिनांक"  fieldKey="date" />
-          <Field label="शीर्षक"  fieldKey="title" />
-          <Field label="वेबसाइट" fieldKey="website" />
+          <Field label="Date"  fieldKey="date" />
+          <Field label="Title"  fieldKey="title" />
+          <Field label="Website" fieldKey="website" />
         </>
       )}
 
       {sectionDef.type === 'slogan' && (
-        <Field label="स्लोगन" fieldKey="text" multiline />
+        <Field label="Slogan" fieldKey="text" multiline />
       )}
       {sectionDef.type === 'article' && (
         <>
-          <Field label="शीर्षक"   fieldKey="title" />
-          <Field label="उप शीर्षक" fieldKey="sub" />
-          <Field label="लेख"       fieldKey="body" multiline />
-          <Field label="रिपोर्टर" fieldKey="reporter" />
-          <Field label="स्थान"    fieldKey="location" />
-          <Field label="दिनांक"   fieldKey="date" />
+          <Field label="Title"   fieldKey="title" />
+          <Field label="Subtitle" fieldKey="sub" />
+          <RichField
+            label="Article Content"
+            value={data.body || ''}
+            onChange={(html) => update('body', html)}
+          />
+          <Field label="Reporter" fieldKey="reporter" />
+          <Field label="Location"    fieldKey="location" />
+          <Field label="Date"   fieldKey="date" />
           <View style={ep.fieldGroup}>
             <Text style={ep.label}>Image</Text>
             <ImageBlock
@@ -145,6 +252,7 @@ function EditPanel({ sectionId, sectionDef }) {
         </>
       )}
     </ScrollView>
+    </View>
   );
 }
 
@@ -161,8 +269,25 @@ const ep = StyleSheet.create({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function NewspaperPage({ route, navigation }) {
+  const { reporterName, reporterLocation, publishDate } = route?.params || {};
   const { templateId } = useTemplateStore();
-  const { sections, activeSection, setActiveSection, resetAll } = useEditorStore();
+  const { sections, activeSection, setActiveSection: _setActiveSection, resetAll, updateSection } = useEditorStore();
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Reporter params auto-fill
+  React.useEffect(() => {
+    if (reporterName || reporterLocation || publishDate) {
+      const sectionList = templateId === 'layout1' ? T1_SECTIONS : T2_SECTIONS;
+      sectionList.filter(s => s.type === 'article').forEach(sec => {
+        if (reporterName)    updateSection(sec.id, 'reporter', reporterName);
+        if (reporterLocation) updateSection(sec.id, 'location', reporterLocation);
+        if (publishDate)     updateSection(sec.id, 'date',     publishDate);
+      });
+      if (publishDate) updateSection('header', 'date', publishDate);
+    }
+  }, [reporterName, reporterLocation, publishDate, templateId]);
+  
+  const setActiveSection = (id) => _setActiveSection(id === 'headline' ? 'header' : id);
   const { generating } = usePdfStore();
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
 
@@ -183,8 +308,121 @@ export default function NewspaperPage({ route, navigation }) {
     }
   };
 
+  const handleSavePublish = async () => {
+    if (isSaving) {
+      console.log('Already saving, please wait...');
+      return;
+    }
+    
+    setIsSaving(true);
+    console.log('Save button clicked - starting save process');
+    
+    try {
+      if (!UserStore) {
+        console.error('UserStore is not available');
+        Alert.alert('Error', 'UserStore not available. Please restart the app.');
+        setIsSaving(false);
+        return;
+      }
+
+      const user = await UserStore.getCurrentUser();
+      console.log('Current user:', user?.email);
+      
+      if (!user) {
+        Alert.alert('Error', 'Please login again to save articles.');
+        setIsSaving(false);
+        return;
+      }
+
+      const sectionList = templateId === 'layout1' ? T1_SECTIONS : T2_SECTIONS;
+      const articleSections = sectionList.filter(s => s.type === 'article');
+
+      const today = new Date().toISOString().slice(0, 10);
+      const newItems = [];
+      
+      for (const sec of articleSections) {
+        const data = sections[sec.id] || {};
+        const title = String(data.title || '').replace(/<[^>]*>/g, '').trim();
+        const body = String(data.body || '').replace(/<[^>]*>/g, '').trim();
+        
+        if (!title) {
+          console.log(`Skipping ${sec.id} - no title`);
+          continue;
+        }
+        
+        if (!body || body.length < 10) {
+          console.log(`Skipping ${sec.id} - body too short (${body?.length || 0} chars)`);
+          continue;
+        }
+        
+        const newItem = {
+          id: `epaper-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${sec.id}`,
+          title: title,
+          description: String(data.body || data.sub || '').replace(/<[^>]*>/g, '').trim(),
+          status: 'pending',
+          state: String(data.location || '').trim(),
+          publishDate: String(data.date || today),
+          createdAt: new Date().toISOString(),
+          createdBy: user.email,
+          images: data.image ? [data.image] : [],
+          views: 0,
+          downloads: 0,
+          reporter: String(data.reporter || '').trim(),
+        };
+        
+        newItems.push(newItem);
+        console.log(`Added article from ${sec.id}: ${title.substring(0, 30)}`);
+      }
+
+      if (newItems.length === 0) {
+        Alert.alert('Error', 'No articles found. Please fill in article title and body first.');
+        setIsSaving(false);
+        return;
+      }
+
+      const existing = Array.isArray(user.epapers) ? user.epapers : [];
+      const publishDay = newItems[0]?.publishDate || today;
+      
+      const filtered = existing.filter(e => 
+        !(e.publishDate === publishDay && e.createdBy === user.email)
+      );
+      
+      const updatedEpapers = [...newItems, ...filtered];
+      console.log(`Saving ${newItems.length} articles, total epapers: ${updatedEpapers.length}`);
+
+      const updatedUser = await UserStore.updateUser(user.email, {
+        epapers: updatedEpapers,
+      });
+      
+      if (!updatedUser) {
+        throw new Error('Failed to update user - updateUser returned null');
+      }
+      
+      console.log('Save successful!');
+      
+      Alert.alert(
+        'Success', 
+        `${newItems.length} article(s) saved successfully! They will appear in the EPaper screen.`,
+        [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              setIsSaving(false);
+              navigation.goBack();
+            } 
+          }
+        ]
+      );
+      
+    } catch (e) {
+      console.error('Save error details:', e);
+      Alert.alert('Error', 'Save failed: ' + (e.message || 'Unknown error'));
+      setIsSaving(false);
+    }
+  };
+
   const handleReset = () => {
-    Alert.alert('Reset', 'Sab data reset ho jaayega. Sure hain?', [
+    Alert.alert('Reset', 'All data will be reset. Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Reset', style: 'destructive', onPress: resetAll },
     ]);
@@ -195,18 +433,35 @@ export default function NewspaperPage({ route, navigation }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#111' }}>
 
+        <style>{`
+          @media print {
+            .no-print { display:none !important; }
+            * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+            body { margin:0 !important; padding:0 !important; }
+            .newspaper-preview-wrap { box-shadow:none !important; }
+            @page { size:A4 landscape; margin:5mm; }
+          }
+        `}</style>
+
         {/* Top bar */}
-        <div style={{
+        <div className="no-print" style={{
           background: '#111', borderBottom: '2px solid #ea580c',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 16px', flexWrap: 'wrap', gap: 8,
         }}>
           <span style={{ color: '#ffd700', fontSize: 16, fontWeight: 900, letterSpacing: 1 }}>
-            📰 समाचारपत्र डिज़ाइनर
+            📰 Newspaper Designer
           </span>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={() => navigation.goBack()} style={webBtn('#444','#ccc')}>← Back</button>
-            <button onClick={() => setShowTemplateSelector(v => !v)} style={webBtn('#444','#ffd700')}>Template</button>
+            <button 
+              onClick={handleSavePublish} 
+              style={webBtn('#ea580c','#fff')}
+              disabled={isSaving}
+            >
+              {isSaving ? '⏳ Saving...' : '💾 Save & Publish'}
+            </button>
+            <button onClick={() => setShowTemplateSelector(v => !v)} style={webBtn('#444','#ffd700')}>Add Pages</button>
             <button onClick={() => navigation.navigate('NewspaperPreview')} style={webBtn('#444','#ccc')}>👁 Preview</button>
             <button onClick={handleExport} style={webBtn('#16a34a','#fff')}>🖨️ Print</button>
             <button onClick={handleReset} style={webBtn('#444','#f87171')}>Reset</button>
@@ -220,9 +475,9 @@ export default function NewspaperPage({ route, navigation }) {
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
           {/* Sidebar */}
-          <div style={{ width: 150, background: '#1a1a1a', borderRight: '1px solid #333', overflowY: 'auto', padding: '10px 0' }}>
+          <div className="no-print" style={{ width: 150, background: '#1a1a1a', borderRight: '1px solid #333', overflowY: 'auto', padding: '10px 0' }}>
             <div style={{ color: '#555', fontSize: 9, fontWeight: 700, letterSpacing: 1, padding: '0 12px 8px', textTransform: 'uppercase' }}>Sections</div>
-            {sectionList.map(sec => (
+            {sectionList.filter(sec => !sec.hidden).map(sec => (
               <div
                 key={sec.id}
                 onClick={() => setActiveSection(sec.id)}
@@ -243,19 +498,21 @@ export default function NewspaperPage({ route, navigation }) {
 
           {/* Preview */}
           <div style={{ flex: 1, background: '#e8e4df', overflowY: 'auto', padding: 20 }}>
-            <div style={{ maxWidth: 1050, margin: '0 auto', boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}>
+            <div className="newspaper-preview-wrap" style={{ maxWidth: 1050, margin: '0 auto', boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}>
               <Layout
-  sections={sections}
-  activeSection={activeSection}
-  onSelectSection={setActiveSection}
-  onSectionChange={(key, val) => useEditorStore.getState().updateSection(key, val)}
-/>
+                sections={sections}
+                activeSection={activeSection}
+                onSelectSection={setActiveSection}
+                onSectionChange={(key, val) => useEditorStore.getState().updateSection(key, val)}
+              />
             </div>
           </div>
 
           {/* Edit panel */}
-          <div style={{ width: 240, background: '#1a1a1a', borderLeft: '1px solid #333', overflowY: 'auto' }}>
-            <EditPanel sectionId={activeSection} sectionDef={activeDef} />
+          <div className="no-print" style={{ width: 280, background: '#1a1a1a', borderLeft: '1px solid #333', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            <div style={{ flex:1, overflowY:'auto' }}>
+              <EditPanel sectionId={activeSection} sectionDef={activeDef} />
+            </div>
           </div>
         </div>
       </div>
@@ -272,7 +529,7 @@ export default function NewspaperPage({ route, navigation }) {
           <Feather name="arrow-left" size={14} color="#7a420a" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>📰 समाचारपत्र</Text>
+        <Text style={styles.topBarTitle}>📰 Newspaper</Text>
         <View style={styles.topActions}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => setShowTemplateSelector(v => !v)}>
             <Feather name="layout" size={16} color="#ffd700" />
@@ -284,6 +541,21 @@ export default function NewspaperPage({ route, navigation }) {
             {generating
               ? <ActivityIndicator size="small" color="#fff" />
               : <Feather name="file-text" size={16} color="#fff" />
+            }
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.iconBtn, 
+              { backgroundColor: '#ea580c', borderColor: '#ea580c' },
+              isSaving && { opacity: 0.5 }
+            ]} 
+            onPress={handleSavePublish}
+            disabled={isSaving}
+            activeOpacity={0.7}
+          >
+            {isSaving 
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Feather name="save" size={16} color="#fff" />
             }
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={handleReset}>
@@ -302,7 +574,7 @@ export default function NewspaperPage({ route, navigation }) {
 
         {/* Left sidebar — section list */}
         <View style={styles.sidebar}>
-          {sectionList.map((sec) => (
+          {sectionList.filter(sec => !sec.hidden).map((sec) => (
             <TouchableOpacity
               key={sec.id}
               style={[styles.sideItem, activeSection === sec.id && styles.sideItemActive]}

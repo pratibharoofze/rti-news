@@ -12,6 +12,21 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@10play/tentap-editor": "^1.0.1",
+    "@ckeditor/ckeditor5-alignment": "^48.2.0",
+    "@ckeditor/ckeditor5-basic-styles": "^48.2.0",
+    "@ckeditor/ckeditor5-block-quote": "^48.2.0",
+    "@ckeditor/ckeditor5-build-classic": "^41.4.2",
+    "@ckeditor/ckeditor5-editor-classic": "^48.2.0",
+    "@ckeditor/ckeditor5-essentials": "^48.2.0",
+    "@ckeditor/ckeditor5-font": "^48.2.0",
+    "@ckeditor/ckeditor5-heading": "^48.2.0",
+    "@ckeditor/ckeditor5-image": "^48.2.0",
+    "@ckeditor/ckeditor5-link": "^48.2.0",
+    "@ckeditor/ckeditor5-list": "^48.2.0",
+    "@ckeditor/ckeditor5-react": "^11.2.0",
+    "@ckeditor/ckeditor5-table": "^48.2.0",
+    "@ckeditor/ckeditor5-undo": "^48.2.0",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -57,6 +72,7 @@
     "react-native-web": "^0.21.0",
     "react-native-webview": "13.15.0",
     "react-native-worklets": "0.5.1",
+    "react-quill": "^2.0.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

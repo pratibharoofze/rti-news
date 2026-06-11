@@ -40,13 +40,26 @@ const TEMPLATES = [
       ['████████████████████'],
     ],
   },
+  {
+    id: 'layout4',
+    name: 'Broadsheet Layout',
+    desc: 'Header · 33|33|33 Top · 33|33|33 Mid · 70|30 Feature · Footer',
+    grid: [
+      ['████████████████████'],
+      ['██████', '██████', '████████'],
+      ['██████', '██████', '████████'],
+      ['██████████████', '██████'],
+      ['████████████████████'],
+    ],
+  },
 ];
+
 export default function TemplateSelector({ onSelect }) {
   const { templateId, setTemplate } = useTemplateStore();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Template चुनें</Text>
+      <Text style={styles.heading}>Template choose</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.list}>
         {TEMPLATES.map((tpl) => {
           const selected = templateId === tpl.id;

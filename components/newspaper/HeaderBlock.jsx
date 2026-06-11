@@ -40,20 +40,24 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
   }, [data.logoUri]);
 
   const {
-    newspaperName = 'भारतीय माहिती अधिकार',
-    tagline = 'मराठी, हिंदी व इंग्रजी भाषेमध्ये सर्वत्र प्रसिद्ध होणारे एकमेव असे न्यूजपेपर',
-    date = '● वर्ष : ६ वे  ● महिना : जुलै २०१९  ● १२ अंक साठी वार्षिक वर्गणी : फक्त १९०/-  ● Posting Registration No. SGL/108/2019-2021',
-    contact1 = 'M. 8484029332',
-    contact2 = '7020667971',
-    extra = 'e-mail : rticheck@gmail.com',
-    regNo = 'REG. NO. : RNIMAH/MUL/2014/66399  |  TITLE REGN. NO. : MAH/MUL/03200/13/1/2013-TC',
-    website = 'web : www.rtinewsnetwork.com',
-    editorName = 'मा. शौकत अब्दुलकलाम नायकवडी',
-    editorTitle = 'मुख्य संपादक, संस्थापक, अध्यक्ष, प्रकाशक, मालक',
-    officeInfo = '● क्षेत्रीय कार्यालय : व्हीनस कॉर्नर, स्टेशन रोड, केव्हिज प्लाझा, कोल्हापूर.',
-    regNoLabel = 'REG. NO. : RNIMAH/MUL/2014/66399  |  TITLE REGN. NO. : MAH/MUL/03200/13/1/2013-TC',
-    govtText1 = 'Govt. of INDIA approved',
-    govtText2 = 'Registered Ministry of Broadcasting, Delhi.',
+    newspaperName = '',
+    tagline = '',
+    date = '',
+    contact1 = '',
+    contact2 = '',
+    extra = '',
+    regNo = '',
+    website = '',
+    editorName = '',
+    editorTitle = '',
+    officeInfo = '',
+    regNoLabel = '',
+    govtText1 = '',
+    govtText2 = '',
+    rtiAll = '',
+    rtiIndia = '',
+    rtiRti = '',
+    rtiNetwork = '',
     logoUri = '',
   } = data;
   const isWeb = Platform.OS === 'web';
@@ -152,18 +156,18 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
           <Text style={styles.regNumber} numberOfLines={1} adjustsFontSizeToFit>{regNo}</Text>
           <View style={styles.rtiTopRight}>
             <View style={styles.rtiRow}>
-              <Text style={styles.rtiAll}>All </Text>
-              <Text style={styles.rtiIndia}>INDIA </Text>
-              <Text style={styles.rtiRti}>RTi</Text>
+              <Text style={styles.rtiAll}>{rtiAll}</Text>
+              <Text style={styles.rtiIndia}>{rtiIndia}</Text>
+              <Text style={styles.rtiRti}>{rtiRti}</Text>
             </View>
-            <Text style={styles.rtiNetwork}>NEWS NETWORK</Text>
+            <Text style={styles.rtiNetwork}>{rtiNetwork}</Text>
           </View>
         </View>
 
         {/* Black Banner with Logo */}
         <View style={styles.logoBannerWrapper}>
-          <View style={styles.blackBanner}>
-            <Text style={styles.newspaperName} numberOfLines={1} adjustsFontSizeToFit>
+          <View style={[styles.blackBanner, { backgroundColor: data.bannerBgColor || '#111' }]}>
+            <Text style={[styles.newspaperName, { color: data.bannerTextColor || '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>
               {newspaperName}
             </Text>
           </View>
@@ -208,8 +212,8 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
         </View>
 
         {/* Date Strip */}
-        <View style={styles.dateSection}>
-          <Text style={styles.dateText}>{date}</Text>
+        <View style={[styles.dateSection, { backgroundColor: data.dateBgColor || '#111' }]}>
+          <Text style={[styles.dateText, { color: data.dateTextColor || '#fff' }]}>{date}</Text>
         </View>
       </View>
     </View>

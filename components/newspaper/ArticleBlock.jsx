@@ -17,14 +17,26 @@ export default function ArticleBlock({ data = {}, isMain = false, isEditing = fa
 
       {/* Article title */}
       {!!title && (
-        <Text style={[styles.title, isMain && styles.titleMain]}>
-          {title}
-        </Text>
+        Platform.OS === 'web' ? (
+          <div dangerouslySetInnerHTML={{ __html: title }} style={{
+            fontSize: isMain ? 17 : 14, fontWeight: 900, color: '#111',
+            lineHeight: isMain ? '24px' : '20px', marginBottom: 3,
+            textAlign: isMain ? 'center' : 'left',
+          }} />
+        ) : (
+          <Text style={[styles.title, isMain && styles.titleMain]}>{title}</Text>
+        )
       )}
 
       {/* Sub headline */}
       {!!sub && (
-        <Text style={styles.sub}>{sub}</Text>
+        Platform.OS === 'web' ? (
+          <div dangerouslySetInnerHTML={{ __html: sub }} style={{
+            fontSize: 9, color: '#555', marginBottom: 4, fontStyle: 'italic',
+          }} />
+        ) : (
+          <Text style={styles.sub}>{sub}</Text>
+        )
       )}
 
       {/* Thick divider under title */}
@@ -56,7 +68,7 @@ export default function ArticleBlock({ data = {}, isMain = false, isEditing = fa
       width: '100%',
       display: 'block',
     }}>
-      {body}
+      <span dangerouslySetInnerHTML={{ __html: body }} />
     </div>
   ) : (
     <Text style={[styles.body, isMain && styles.bodyMain]}>

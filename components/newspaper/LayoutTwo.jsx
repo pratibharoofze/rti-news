@@ -18,9 +18,9 @@ export default function LayoutTwo({ sections = {}, activeSection, onSelectSectio
           {/* ── 1. Masthead Strip ── */}
           <TouchableOpacity activeOpacity={0.85} onPress={press('masthead')}>
             <View style={[styles.mastheadStrip, sel('masthead') && styles.editing]}>
-              <Text style={styles.mastheadLeft}>{sections.masthead?.date || 'जून २०१९'}</Text>
-              <Text style={styles.mastheadCenter}>{sections.masthead?.title || 'अखिल भारतीय माहिती अधिकार न्यूज नेटवर्क'}</Text>
-              <Text style={styles.mastheadRight}>{sections.masthead?.website || 'www.rtinewsnetwork.com'}</Text>
+              <Text style={styles.mastheadLeft}>{sections.masthead?.date || ''}</Text>
+              <Text style={styles.mastheadCenter}>{sections.masthead?.title || ''}</Text>
+              <Text style={styles.mastheadRight}>{sections.masthead?.website || ''}</Text>
             </View>
           </TouchableOpacity>
 
@@ -64,7 +64,7 @@ export default function LayoutTwo({ sections = {}, activeSection, onSelectSectio
           {/* ── 6. Slogan Bar ── */}
           <TouchableOpacity activeOpacity={0.85} onPress={press('slogan')}>
             <View style={[styles.sloganBar, sel('slogan') && styles.editing]}>
-              <Text style={styles.sloganText}>{sections.slogan?.text || 'सर्वसामान्य जनतेत भारतीय कायद्याचे प्रबोधन करणारे एकमेव न्यूज पेपर!'}</Text>
+              <Text style={styles.sloganText}>{sections.slogan?.text || ''}</Text>
             </View>
           </TouchableOpacity>
 

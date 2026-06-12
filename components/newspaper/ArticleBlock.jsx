@@ -1,4 +1,13 @@
 import React from 'react';
+const stripHtml = (html) =>
+  String(html || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .trim();
 import { View, Text, Image, StyleSheet, Platform } from 'react-native';
 
 export default function ArticleBlock({ data = {}, isMain = false, isEditing = false, columns = 1 }) {
@@ -24,7 +33,7 @@ export default function ArticleBlock({ data = {}, isMain = false, isEditing = fa
             textAlign: isMain ? 'center' : 'left',
           }} />
         ) : (
-          <Text style={[styles.title, isMain && styles.titleMain]}>{title}</Text>
+          <Text style={[styles.title, isMain && styles.titleMain]}>{(title||'').replace(/<[^>]*>/g,'')}</Text>
         )
       )}
 
@@ -35,7 +44,7 @@ export default function ArticleBlock({ data = {}, isMain = false, isEditing = fa
             fontSize: 9, color: '#555', marginBottom: 4, fontStyle: 'italic',
           }} />
         ) : (
-          <Text style={styles.sub}>{sub}</Text>
+          <Text style={styles.sub}>{(sub||'').replace(/<[^>]*>/g,'')}</Text>
         )
       )}
 
@@ -72,7 +81,7 @@ export default function ArticleBlock({ data = {}, isMain = false, isEditing = fa
     </div>
   ) : (
     <Text style={[styles.body, isMain && styles.bodyMain]}>
-      {body}
+      {(body||'').replace(/<[^>]*>/g,'')}
     </Text>
   )
 )}
@@ -81,10 +90,10 @@ export default function ArticleBlock({ data = {}, isMain = false, isEditing = fa
       {(!!reporter || !!location || !!date) && (
         <View style={styles.byline}>
           {!!reporter && (
-            <Text style={styles.bylineText}>✍ {reporter}</Text>
+            <Text style={styles.bylineText}>✍ {stripHtml(reporter)}</Text>
           )}
           {!!location && (
-            <Text style={styles.bylineText}>● {location}</Text>
+            <Text style={styles.bylineText}>● {stripHtml(location)}</Text>
           )}
         </View>
       )}

@@ -9,7 +9,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useToast } from '../components/ui/ToastProvider';
 import EPaperStyles from '../styles/EPaperStyles';
 import { UserStore } from '../store/UserStore';
-
+import LayoutOne from '../components/newspaper/LayoutOne';
+import LayoutTwo from '../components/newspaper/LayoutTwo';
 // ─── Amber/Orange tokens (web only) ──────────────────────────────────────────
 const O = { 50:'#FEF6EC', 100:'#FDECD8', 200:'#FBCFA0', 400:'#F09A3E', 600:'#C8700F', 800:'#7A420A' };
 
@@ -126,6 +127,7 @@ export default function EPaperScreen({navigation}){
   const[items,setItems]=useState([]);
   const[totalViews,setTotalViews]=useState(0);
   const[viewItem,setViewItem]=useState(null);
+  const[layouts,setLayouts]=useState([]);
   const[manageDateKey,setManageDateKey]=useState(null);
   const[manageDateFilter,setManageDateFilter]=useState('all');
   const[successMsg,setSuccessMsg]=useState('');
@@ -144,6 +146,7 @@ const [reporterDate, setReporterDate] = useState('');
     if(data){
       const filtered=user.role==='admin'?data.items:data.items.filter(i=>i.status==='approved'||i.createdBy===user.email);
       setItems(filtered);setTotalViews(data.totalViews);
+      setLayouts(Array.isArray(data.layouts)?data.layouts:[]);
     }
     setLoading(false);
   },[navigation]);
@@ -407,6 +410,24 @@ const [reporterDate, setReporterDate] = useState('');
                         >
                           <Feather name="settings" size={13} color={O[600]}/>
                           <Text style={{fontSize:12,fontWeight:'700',color:O[800]}}>Manage Articles</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={{flexDirection:'row',alignItems:'center',gap:5,paddingVertical:7,paddingHorizontal:14,borderRadius:8,backgroundColor:'#F0FDF4',borderWidth:1,borderColor:'#BBF7D0'}}
+                          onPress={async()=>{
+                            const user = await UserStore.getCurrentUser();
+                            const layouts = Array.isArray(user?.newspaper_layouts) ? user.newspaper_layouts : [];
+                            const layout = layouts.find(l => l.publishDate === dateKey);
+                            if(layout){
+                              navigation.navigate('NewspaperPage',{
+                                loadLayout: layout,
+                              });
+                            } else {
+                              alert('Is date ka newspaper layout nahi mila.');
+                            }
+                          }}
+                        >
+                          <Feather name="eye" size={13} color="#16A34A"/>
+                          <Text style={{fontSize:12,fontWeight:'700',color:'#16A34A'}}>View Newspaper</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -684,6 +705,22 @@ const [reporterDate, setReporterDate] = useState('');
                       >
                         <Feather name="settings" size={13} color="#C8700F" />
                         <Text style={{ fontSize:12, fontWeight:'700', color:'#C8700F' }}>Manage</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ flex:1, flexDirection:'row', alignItems:'center', justifyContent:'center', gap:5, paddingVertical:9, borderRadius:10, backgroundColor:'#F0FDF4', borderWidth:1, borderColor:'#BBF7D0' }}
+                        onPress={async()=>{
+                          const user = await UserStore.getCurrentUser();
+                          const layouts = Array.isArray(user?.newspaper_layouts) ? user.newspaper_layouts : [];
+                          const layout = layouts.find(l => l.publishDate === dateKey);
+                          if(layout){
+                            navigation.navigate('NewspaperPage', { loadLayout: layout });
+                          } else {
+                            Alert.alert('Not found', 'Is date ka newspaper layout nahi mila.');
+                          }
+                        }}
+                      >
+                        <Feather name="eye" size={13} color="#16A34A" />
+                        <Text style={{ fontSize:12, fontWeight:'700', color:'#16A34A' }}>View Newspaper</Text>
                       </TouchableOpacity>
                     </View>
                   </View>

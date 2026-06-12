@@ -2853,9 +2853,13 @@ export const UserStore = {
         seen.add(p.id);
         return true;
       });
+      const allLayouts = rawUsers.flatMap((u) =>
+        Array.isArray(u.newspaper_layouts) ? u.newspaper_layouts : []
+      );
       return {
         currentUser: user,
         items: papers,
+        layouts: allLayouts,
         totalViews: papers.reduce((s, i) => s + i.views, 0),
         totalDownloads: papers.reduce((s, i) => s + i.downloads, 0),
       };

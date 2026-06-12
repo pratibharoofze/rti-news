@@ -120,9 +120,6 @@ function WebRichField({ label, value, onChange }) {
 
   return (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ color:'#888', fontSize:11, fontWeight:600, marginBottom:5, letterSpacing:0.5, textTransform:'uppercase' }}>
-        {label}
-      </div>
       <style>{`
         .rte-toolbar-${label?.replace(/\s/g,'_')} {
           background:#2a2a2a; border:1px solid #444; border-bottom:none;
@@ -177,12 +174,33 @@ function WebRichField({ label, value, onChange }) {
         <select className="rte-select"
           defaultValue=""
           onChange={e => {
+            const newSize = e.target.value;
             editorRef.current?.focus();
-            document.execCommand('fontSize', false, '7');
-            setTimeout(() => {
-              const els = editorRef.current?.querySelectorAll('font[size="7"]');
-              els?.forEach(el => { el.removeAttribute('size'); el.style.fontSize = e.target.value; });
-            }, 0);
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+              // Has selection — wrap in span
+              const range = selection.getRangeAt(0);
+              // Remove existing font-size spans inside selection
+              document.execCommand('fontSize', false, '7');
+              setTimeout(() => {
+                const els = editorRef.current?.querySelectorAll('font[size="7"]');
+                els?.forEach(el => {
+                  el.removeAttribute('size');
+                  el.style.fontSize = newSize;
+                  // Also remove any nested inline font-size
+                  el.querySelectorAll('[style*="font-size"]').forEach(child => {
+                    child.style.fontSize = newSize;
+                  });
+                });
+                onChange && onChange(editorRef.current.innerHTML);
+              }, 0);
+            } else {
+              // No selection — change entire editor content font size
+              editorRef.current.querySelectorAll('*').forEach(el => {
+                el.style.fontSize = newSize;
+              });
+              onChange && onChange(editorRef.current.innerHTML);
+            }
           }}
         >
           <option value="" disabled>Size</option>
@@ -241,9 +259,7 @@ function WebRichField({ label, value, onChange }) {
         <button className="rte-btn" onMouseDown={e=>{e.preventDefault();exec('formatBlock','H2')}}>H2</button>
         <button className="rte-btn" onMouseDown={e=>{e.preventDefault();exec('formatBlock','P')}}>P</button>
 
-        <div className="rte-sep"/>
-        <button className="rte-btn" onMouseDown={e=>{e.preventDefault();exec('undo')}}>↩</button>
-        <button className="rte-btn" onMouseDown={e=>{e.preventDefault();exec('redo')}}>↪</button>
+        
       </div>
 
       {/* Editor */}
@@ -252,7 +268,7 @@ function WebRichField({ label, value, onChange }) {
         className="rte-editor"
         contentEditable
         suppressContentEditableWarning
-        data-placeholder="Yahan likhein..."
+        data-placeholder="Type here..."
         onInput={e => onChange && onChange(e.currentTarget.innerHTML)}
       />
 
@@ -316,7 +332,7 @@ function MobileRichField({ label, value, onChange }) {
           actions.alignRight, actions.alignFull,
           actions.insertBulletsList, actions.insertOrderedList,
           actions.insertLink, actions.insertImage,
-          actions.undo, actions.redo,
+          
           actions.heading1, actions.heading2, actions.heading3,
         ]}
       />

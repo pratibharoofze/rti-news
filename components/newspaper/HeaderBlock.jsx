@@ -6,10 +6,19 @@ const LOGO_SIZE = 160;
 const BANNER_HEIGHT = 120;
 const OVERLAP = 40;
 
+const stripHtml = (html) =>
+  String(html || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .trim();
+
 export default function HeaderBlock({ data = {}, isEditing = false, onDataChange }) {
   const [localLogoUri, setLocalLogoUri] = useState(data.logoUri || '');
   
-  // Load logo from localStorage on component mount (web only)
   useEffect(() => {
     if (Platform.OS === 'web') {
       const savedLogo = localStorage.getItem('newspaper_logo');
@@ -22,14 +31,12 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
     }
   }, []);
 
-  // Save logo to localStorage whenever it changes (web only)
   useEffect(() => {
     if (Platform.OS === 'web' && localLogoUri && localLogoUri !== 'undefined') {
       localStorage.setItem('newspaper_logo', localLogoUri);
     }
   }, [localLogoUri]);
 
-  // Update local state when data prop changes
   useEffect(() => {
     if (data.logoUri && data.logoUri !== localLogoUri) {
       setLocalLogoUri(data.logoUri);
@@ -47,11 +54,11 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
     contact2 = '',
     extra = '',
     regNo = '',
+    titleRegNo = '',
     website = '',
     editorName = '',
     editorTitle = '',
     officeInfo = '',
-    regNoLabel = '',
     govtText1 = '',
     govtText2 = '',
     rtiAll = '',
@@ -60,8 +67,9 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
     rtiNetwork = '',
     logoUri = '',
   } = data;
+
   const isWeb = Platform.OS === 'web';
-  const fileInputRef = useRef(null);
+  const displayLogoUri = localLogoUri || logoUri;
 
   const pickLogoMobile = async () => {
     try {
@@ -79,65 +87,41 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
       });
       if (!result.canceled && result.assets?.[0]) {
         const asset = result.assets[0];
-        let imageUri;
-        if (asset.base64) {
-          imageUri = `data:image/jpeg;base64,${asset.base64}`;
-        } else {
-          imageUri = asset.uri;
-        }
+        let imageUri = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
         setLocalLogoUri(imageUri);
         onDataChange && onDataChange({ ...data, logoUri: imageUri });
-        Alert.alert('Success', 'Logo uploaded successfully!');
       }
     } catch (e) {
       Alert.alert('Error', 'Image pick failed: ' + e.message);
     }
   };
 
-  const handleWebFileSelect = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      Alert.alert('Error', 'File size should be less than 5MB');
-      return;
-    }
-    if (!file.type.startsWith('image/')) {
-      Alert.alert('Error', 'Please select an image file');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = ev.target.result;
-      if (base64 && base64.startsWith('data:image')) {
-        setLocalLogoUri(base64);
-        onDataChange && onDataChange({ ...data, logoUri: base64 });
-        Alert.alert('Success', 'Logo uploaded successfully!');
-      } else {
-        Alert.alert('Error', 'Invalid image data');
-      }
-    };
-    reader.onerror = () => Alert.alert('Error', 'Failed to read file');
-    reader.readAsDataURL(file);
-    event.target.value = '';
-  };
-
-  const handleLogoPress = () => {
-    // Upload now handled from edit panel
-  };
-
-  const displayLogoUri = localLogoUri || logoUri;
+  // ─── Combine rtiAll + rtiIndia + rtiRti into one line, rtiNetwork below ───
+  const rtiLine1Parts = [
+    stripHtml(rtiAll),
+    stripHtml(rtiIndia),
+    stripHtml(rtiRti),
+  ].filter(Boolean);
+  const rtiLine1 = rtiLine1Parts.join(' ');
+  const rtiLine2 = stripHtml(rtiNetwork);
 
   return (
     <View style={[styles.container, isEditing && styles.editing]}>
       <View style={styles.header}>
-        {/* File input removed - upload handled from edit panel */}
 
-        {/* Top Row - Phone | PRESS | Govt Info */}
+        {/* ── Top Row: Phone | PRESS | Govt Info ── */}
         <View style={styles.topRow}>
           <View style={styles.leftColumn}>
-            <Text style={styles.phoneText}>{contact1}</Text>
-            <Text style={styles.phoneText}>{contact2}</Text>
+            {isWeb
+              ? <div style={{ fontSize: 24, fontWeight: 800, color: '#000' }}><span>M. </span><span dangerouslySetInnerHTML={{ __html: contact1 || '' }} /></div>
+              : <Text style={styles.phoneText}>M. {stripHtml(contact1)}</Text>}
+            {isWeb
+              ? <div dangerouslySetInnerHTML={{ __html: contact2 || '' }} style={{ fontSize: 24, fontWeight: 800, color: '#000' }} />
+              : <Text style={styles.phoneText}>{stripHtml(contact2)}</Text>}
           </View>
+
           <View style={styles.centerColumn}>
             <View style={styles.pressBox}>
               <View style={styles.pressInnerBorder}>
@@ -145,76 +129,150 @@ export default function HeaderBlock({ data = {}, isEditing = false, onDataChange
               </View>
             </View>
           </View>
+
           <View style={styles.rightColumn}>
-            <Text style={styles.govtText}>{govtText1}</Text>
-            <Text style={styles.govtText}>{govtText2}</Text>
+            {isWeb
+              ? <div dangerouslySetInnerHTML={{ __html: govtText1 || '' }} style={{ fontSize: 13, color: '#444', lineHeight: '17px' }} />
+              : <Text style={styles.govtText}>{stripHtml(govtText1)}</Text>}
+            {isWeb
+              ? <div dangerouslySetInnerHTML={{ __html: govtText2 || '' }} style={{ fontSize: 13, color: '#444', lineHeight: '17px' }} />
+              : <Text style={styles.govtText}>{stripHtml(govtText2)}</Text>}
           </View>
         </View>
 
-        {/* Registration Numbers */}
+        {/* ── Registration + RTI Block ── */}
         <View style={styles.regSection}>
-          <Text style={styles.regNumber} numberOfLines={1} adjustsFontSizeToFit>{regNo}</Text>
+  <View style={{ flex: 1, paddingLeft: LOGO_SIZE - 140, flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+    {isWeb ? (
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, fontSize: 16, color: '#111', fontWeight: 400 }}>
+        {regNo && <div dangerouslySetInnerHTML={{ __html: regNo }} />}
+        {regNo && titleRegNo && <span>  |  </span>}
+        {titleRegNo && <div dangerouslySetInnerHTML={{ __html: titleRegNo }} />}
+      </div>
+    ) : (
+      <>
+        <Text style={[styles.regNumber, { paddingLeft: 0, flex: 0 }]} numberOfLines={1} adjustsFontSizeToFit>
+          {stripHtml(regNo)}
+        </Text>
+        {!!stripHtml(titleRegNo) && (
+          <>
+            <Text style={{ fontSize: 16, color: '#111' }}>  |  </Text>
+            <Text style={[styles.regNumber, { paddingLeft: 0, flex: 0 }]} numberOfLines={1} adjustsFontSizeToFit>
+              {stripHtml(titleRegNo)}
+            </Text>
+          </>
+        )}
+      </>
+    )}
+  </View>
+
+          {/* RTI stacked: "All India RTI" on top, "News Network" below */}
           <View style={styles.rtiTopRight}>
-            <View style={styles.rtiRow}>
-              <Text style={styles.rtiAll}>{rtiAll}</Text>
-              <Text style={styles.rtiIndia}>{rtiIndia}</Text>
-              <Text style={styles.rtiRti}>{rtiRti}</Text>
-            </View>
-            <Text style={styles.rtiNetwork}>{rtiNetwork}</Text>
+            {/* Line 1: All India RTI (horizontal parts) */}
+            {isWeb ? (
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                {rtiAll && (
+                  <div dangerouslySetInnerHTML={{ __html: rtiAll }}
+                    style={{ fontSize: 20, fontWeight: 900, color: '#111', fontStyle: 'italic' }} />
+                )}
+                {rtiIndia && (
+                  <div dangerouslySetInnerHTML={{ __html: rtiIndia }}
+                    style={{ fontSize: 20, fontWeight: 800, color: '#111', fontStyle: 'italic' }} />
+                )}
+                {rtiRti && (
+                  <div dangerouslySetInnerHTML={{ __html: rtiRti }}
+                    style={{ fontSize: 20, fontWeight: 900, color: '#111', fontStyle: 'italic' }} />
+                )}
+              </div>
+            ) : (
+              <View style={styles.rtiRow}>
+                {!!rtiLine1 && (
+                  <Text style={styles.rtiMainText}>{rtiLine1}</Text>
+                )}
+              </View>
+            )}
+
+            {/* Line 2: News Network — always on its own line */}
+            {isWeb ? (
+              rtiNetwork ? (
+                <div dangerouslySetInnerHTML={{ __html: rtiNetwork }}
+                  style={{ fontSize: 15, fontWeight: 800, color: '#cc0000', fontStyle: 'italic', marginTop: 2, textAlign: 'right' }} />
+              ) : null
+            ) : (
+              !!rtiLine2 && (
+                <Text style={styles.rtiNetwork}>{rtiLine2}</Text>
+              )
+            )}
           </View>
         </View>
 
-        {/* Black Banner with Logo */}
+        {/* ── Black Banner with Logo ── */}
         <View style={styles.logoBannerWrapper}>
           <View style={[styles.blackBanner, { backgroundColor: data.bannerBgColor || '#111' }]}>
-            <Text style={[styles.newspaperName, { color: data.bannerTextColor || '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>
-              {newspaperName}
-            </Text>
+            {isWeb ? (
+              <div dangerouslySetInnerHTML={{ __html: newspaperName || '' }}
+                style={{ color: data.bannerTextColor || '#fff', fontSize: 52, fontWeight: 900, textAlign: 'center', letterSpacing: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} />
+            ) : (
+              <Text style={[styles.newspaperName, { color: data.bannerTextColor || '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>
+                {stripHtml(newspaperName)}
+              </Text>
+            )}
           </View>
           <View style={styles.logoOuterContainer}>
             <View style={styles.logoContainer}>
-                {displayLogoUri && displayLogoUri !== 'undefined' ? (
-                  <Image
-                    source={{ uri: displayLogoUri }}
-                    style={styles.logoImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.logoPlaceholder}>
-                    <Text style={styles.logoPlaceholderText}>LOGO</Text>
-                  </View>
-                )}
-              </View>
+              {displayLogoUri && displayLogoUri !== 'undefined' ? (
+                <Image source={{ uri: displayLogoUri }} style={styles.logoImage} resizeMode="cover" />
+              ) : (
+                <View style={styles.logoPlaceholder}>
+                  <Text style={styles.logoPlaceholderText}>LOGO</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
-        {/* Tagline */}
+        {/* ── Tagline ── */}
         <View style={styles.taglineSection}>
-          <Text style={styles.tagline}>{tagline}</Text>
+          {isWeb
+            ? <div dangerouslySetInnerHTML={{ __html: tagline || '' }} style={{ fontSize: 20, color: '#222', textAlign: 'center', fontWeight: 900 }} />
+            : <Text style={styles.tagline}>{stripHtml(tagline)}</Text>}
         </View>
 
-        {/* Info Row: website+email LEFT | editor name RIGHT (large bold) */}
+        {/* ── Info Row: website + email | editor name ── */}
         <View style={styles.infoSection}>
           <View style={styles.websiteRow}>
-            <Text style={styles.infoText}>{website}</Text>
+            {isWeb
+              ? <div dangerouslySetInnerHTML={{ __html: website || '' }} style={{ fontSize: 22, color: '#333', fontWeight: 700 }} />
+              : <Text style={styles.infoText}>{stripHtml(website)}</Text>}
             <Text style={styles.separator}>  |  </Text>
-            <Text style={styles.infoText}>{extra}</Text>
+            {isWeb
+              ? <div dangerouslySetInnerHTML={{ __html: extra || '' }} style={{ fontSize: 22, color: '#333', fontWeight: 700 }} />
+              : <Text style={styles.infoText}>{stripHtml(extra)}</Text>}
           </View>
           <View style={styles.editorSection}>
-            <Text style={styles.editorName}>{editorName}</Text>
+            {isWeb
+              ? <div dangerouslySetInnerHTML={{ __html: editorName || '' }} style={{ fontSize: 18, fontWeight: 900, color: '#111' }} />
+              : <Text style={styles.editorName}>{stripHtml(editorName)}</Text>}
           </View>
         </View>
 
-        {/* Address LEFT | editor title RIGHT (small) */}
+       {/* ── Address | Editor Title ── */}
         <View style={styles.addressSection}>
-          <Text style={styles.addressText}>{officeInfo}</Text>
-          <Text style={styles.editorTitle}>{editorTitle}</Text>
+          {isWeb
+            ? <div dangerouslySetInnerHTML={{ __html: officeInfo || '' }} style={{ fontSize: 15, color: '#333', flex: 1, minWidth: 0 }} />
+            : <Text style={styles.addressText}>{stripHtml(officeInfo)}</Text>}
+          {isWeb
+            ? <div dangerouslySetInnerHTML={{ __html: editorTitle || '' }} style={{ fontSize: 14, color: '#111', fontWeight: 900, textAlign: 'right', whiteSpace: 'normal', wordBreak: 'break-word', flexShrink: 0, width: 'auto', maxWidth: '55%', lineHeight: '1.6', backgroundColor: 'transparent' }} />
+            : <Text style={styles.editorTitle}>{stripHtml(editorTitle)}</Text>}
         </View>
 
-        {/* Date Strip */}
+        {/* ── Date Strip ── */}
         <View style={[styles.dateSection, { backgroundColor: data.dateBgColor || '#111' }]}>
-          <Text style={[styles.dateText, { color: data.dateTextColor || '#fff' }]}>{date}</Text>
+          <Text style={[styles.dateText, { color: data.dateTextColor || '#fff' }]}>
+            {stripHtml(date)}
+          </Text>
         </View>
+
       </View>
     </View>
   );
@@ -234,6 +292,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 5,
   },
+
+  // Top Row
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -287,35 +347,8 @@ const styles = StyleSheet.create({
     color: '#444',
     lineHeight: 17,
   },
-  rtiRow: {
-    flexDirection: 'row',
-    marginTop: 1,
-  },
-  rtiAll: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#111',
-    fontStyle: 'italic',
-  },
-  rtiIndia: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#111',
-    fontStyle: 'italic',
-  },
-  rtiRti: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#111',
-    fontStyle: 'italic',
-  },
-  rtiNetwork: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#cc0000',
-    fontStyle: 'italic',
-    marginTop: 1,
-  },
+
+  // Reg + RTI row
   regSection: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -325,11 +358,6 @@ const styles = StyleSheet.create({
     paddingLeft: LOGO_SIZE - 20,
     backgroundColor: '#fff',
   },
-  rtiTopRight: {
-    alignItems: 'flex-end',
-    marginLeft: 16,
-    flexShrink: 0,
-  },
   regNumber: {
     fontSize: 16,
     color: '#111',
@@ -338,6 +366,35 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: LOGO_SIZE - 140,
   },
+
+  // RTI stacked block (top-right of reg section)
+  rtiTopRight: {
+    alignItems: 'flex-end',  // right-align both lines
+    marginLeft: 16,
+    flexShrink: 0,
+  },
+  rtiRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  // Combined "All India RTI" on one line (native)
+  rtiMainText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#111',
+    fontStyle: 'italic',
+  },
+  // "News Network" below — red, smaller
+  rtiNetwork: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#cc0000',
+    fontStyle: 'italic',
+    marginTop: 2,
+    textAlign: 'right',
+  },
+
+  // Black Banner + Logo
   logoBannerWrapper: {
     position: 'relative',
     marginTop: 0,
@@ -383,35 +440,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  logoEditOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 30,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editIcon: {
-    color: '#fff',
-    fontSize: 14,
-  },
   blackBanner: {
     backgroundColor: '#111',
     width: '100%',
     height: 100,
-    paddingLeft: LOGO_SIZE + 20,
+    paddingLeft: LOGO_SIZE + 40,
     paddingRight: 12,
     justifyContent: 'center',
   },
   newspaperName: {
-    fontSize: 72,
+    fontSize: 52,
     fontWeight: '900',
     color: '#fff',
     textAlign: 'center',
     letterSpacing: 1,
+    flexShrink: 1,
   },
+
+  // Tagline
   taglineSection: {
     paddingVertical: 8,
     alignItems: 'center',
@@ -424,6 +470,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '900',
   },
+
+  // Info Row
   infoSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -459,10 +507,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#111',
   },
+
+  // Address
   addressSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 6,
   },
   addressText: {
@@ -478,6 +528,8 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontWeight: '900',
   },
+
+  // Date Strip
   dateSection: {
     backgroundColor: '#111',
     paddingVertical: 8,
@@ -486,14 +538,13 @@ const styles = StyleSheet.create({
     borderTopColor: '#bbb',
     borderBottomWidth: 2,
     borderBottomColor: '#111',
-    flexDirection: 'row',              // <-- add
-    justifyContent: 'space-between',   // <-- add
-    alignItems: 'center',              // <-- add
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-   dateText: {
+  dateText: {
     fontSize: 13,
     color: '#fff',
     fontWeight: '600',
-    // textAlign: 'justify' hatao
   },
 });

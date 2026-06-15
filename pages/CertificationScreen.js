@@ -47,13 +47,24 @@ export default function CertificationScreen({ navigation }) {
     );
   }, [navigation]);
 
-  const handleAttemptQuiz = (item) => {
+  // ─── UPDATED: Quiz subscription check ───────────────────────────────────────
+  const handleAttemptQuiz = useCallback((item) => {
     if (!item.questions || item.questions.length === 0) {
       showToast('No questions available for this quiz.', 'error');
       return;
     }
+
+    // Check if user has active QUIZ subscription
+    const hasQuizSub = UserStore.hasActiveQuizSubscription(certData.currentUser);
+    if (!hasQuizSub) {
+      // Send user to Quiz Subscription screen, pass quiz item so it can redirect back after payment
+      navigation.navigate('QuizSubscription', { quizItem: item });
+      return;
+    }
+
     navigation.navigate('AttemptQuiz', { quiz: item });
-  };
+  }, [certData.currentUser, navigation, showToast]);
+  // ────────────────────────────────────────────────────────────────────────────
 
   const handleViewResult = (item) => {
     if (!item.score && item.score !== 0) {

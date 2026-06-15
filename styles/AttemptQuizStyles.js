@@ -5,19 +5,17 @@ export default StyleSheet.create({
   // ── Root ──────────────────────────────────────────────────────────────────
   root: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#F3F4F6',
   },
 
   // ── Top Bar ───────────────────────────────────────────────────────────────
-  // SafeAreaView handles iOS notch automatically.
-  // Android needs extra paddingTop via StatusBar.currentHeight.
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'android' ? 20 : 14,
     paddingBottom: 12,
-    backgroundColor: '#e8732a',
+    backgroundColor: '#F97316',
     borderBottomWidth: 0,
   },
   backBtn: {
@@ -41,22 +39,26 @@ export default StyleSheet.create({
 
   // ── Scroll ────────────────────────────────────────────────────────────────
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+    flexGrow: 1,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    alignItems: 'center',          // center horizontally
   },
 
   // ── Hero Card ─────────────────────────────────────────────────────────────
   heroCard: {
+    width: '100%',
+    maxWidth: 720,                 // center cap
     backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 20,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: '#E5E7EB',
   },
   heroEyebrow: {
     fontSize: 11,
-    color: '#e8732a',
+    color: '#F97316',
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
@@ -72,41 +74,43 @@ export default StyleSheet.create({
 
   // ── Question Card ─────────────────────────────────────────────────────────
   card: {
+    width: '100%',
+    maxWidth: 720,                 // center cap
     backgroundColor: '#ffffff',
     borderRadius: 20,
-    padding: 18,
+    padding: 24,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: '#E5E7EB',
   },
   quizProgress: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#999999',
+    color: '#9CA3AF',
     marginBottom: 8,
   },
 
   // ── Progress Bar ──────────────────────────────────────────────────────────
   progressBarWrap: {
     height: 6,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#E5E7EB',
     borderRadius: 999,
-    marginBottom: 20,
+    marginBottom: 24,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#e8732a',
+    backgroundColor: '#F97316',
     borderRadius: 999,
   },
 
   // ── Question ──────────────────────────────────────────────────────────────
   questionText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: '#111111',
-    lineHeight: 24,
-    marginBottom: 16,
+    lineHeight: 26,
+    marginBottom: 20,
   },
 
   // ── Options ───────────────────────────────────────────────────────────────
@@ -114,27 +118,27 @@ export default StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 14,
+    padding: 16,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#EEEEEE',
-    backgroundColor: '#F8F8F8',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
     marginBottom: 10,
   },
   optionBtnSelected: {
-    borderColor: '#e8732a',
-    backgroundColor: '#FFE8F0',
+    borderColor: '#F97316',
+    backgroundColor: '#FFF7ED',
   },
   optionLabel: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EEEEEE',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   optionLabelSelected: {
-    backgroundColor: '#e8732a',
+    backgroundColor: '#F97316',
   },
   optionLabelText: {
     fontSize: 13,
@@ -151,25 +155,20 @@ export default StyleSheet.create({
     fontWeight: '600',
   },
   optionTextSelected: {
-    color: '#e8732a',
+    color: '#F97316',
     fontWeight: '700',
   },
 
   // ── Next / Submit Button ──────────────────────────────────────────────────
   nextBtn: {
-    marginTop: 8,
-    backgroundColor: '#e8732a',
+    marginTop: 12,
+    backgroundColor: '#F97316',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#e8732a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
   },
   nextBtnDisabled: {
     opacity: 0.6,

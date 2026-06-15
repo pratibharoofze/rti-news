@@ -300,7 +300,7 @@ export default function AdvertiseScreen({ navigation, route }) {
     if (!result.canceled) setPhoto(result.assets[0].uri);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!photo)             { Alert.alert('Required', 'Please add an advertisement photo.'); return; }
     if (!title.trim())      { Alert.alert('Required', 'Please write an advertisement title.'); return; }
     if (!description.trim()){ Alert.alert('Required', 'Please write a description.'); return; }
@@ -308,11 +308,27 @@ export default function AdvertiseScreen({ navigation, route }) {
       showToast('Please enter a valid 10 digit WhatsApp number.', 'error');
       return;
     }
-    setShowPreview(true);
+    if (!isEditing) {
+  // Check if user has active ad credits
+  const adSummary = await UserStore.getAdCreditsSummary();
+  const hasCredits = adSummary && !adSummary.expired && adSummary.credits > 0;
+
+  if (!hasCredits) {
+    showToast('Please take a subscription to post an advertisement.', 'info');
+    setTimeout(() => {
+      navigation.navigate('AdPlans');
+    }, 1200);
+    return;
+  }
+}
+setShowPreview(true);
   };
 
   const handlePreviewNext = async () => {
     setShowPreview(false);
+
+    await new Promise(resolve => setTimeout(resolve, 300)); // modal band hone do
+
     if (isEditing) {
       const spendAdCredit = UserStore.useAdCredit;
       const result = await spendAdCredit('edit', {
@@ -336,8 +352,9 @@ export default function AdvertiseScreen({ navigation, route }) {
     }
 
     navigation.navigate('ChoosePlan', {
-      adData: { photo, title, description, redirect: selectedRedirect, extraValues, allowCalls },
-    });
+  adData: { photo, title, description, redirect: selectedRedirect, extraValues, allowCalls },
+  showSubscriptionToast: true,
+});
   };
 
   // ── WEB LAYOUT ─────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { UserStore } from '../store/UserStore';
+import { useToast } from '../components/ui/ToastProvider';
 
 // ── Design Tokens ──────────────────────────────────────────────────────────────
 const C = {
@@ -222,6 +223,7 @@ const ac = StyleSheet.create({
 
 // ── Main Screen ────────────────────────────────────────────────────────────────
 export default function MyAdsScreen({ navigation }) {
+  const { showToast } = useToast();
   const [credits, setCredits]   = useState(0);
   const [ads, setAds]           = useState([]);
   const [adPlan, setAdPlan]     = useState(null);
@@ -247,6 +249,11 @@ export default function MyAdsScreen({ navigation }) {
 
   const handlePostAd = () => {
     if (credits <= 0) {
+      if (Platform.OS === 'web') {
+        showToast('You have no ad credits left. Redirecting to plans...', 'error');
+        navigation.navigate('AdPlans', { returnTo: 'MyAds' });
+        return;
+      }
       Alert.alert(
         'No Credits',
         'You have no ad credits left. Buy a plan to continue posting ads.',
@@ -259,7 +266,6 @@ export default function MyAdsScreen({ navigation }) {
     }
     navigation.navigate('Advertise');
   };
-
   const handleEdit = (ad) => {
     const openEditPage = () => navigation.navigate('Advertise', { editAd: ad, useCredit: true });
 
@@ -280,11 +286,10 @@ export default function MyAdsScreen({ navigation }) {
     }
 
     if (Platform.OS === 'web') {
-      const shouldEdit = globalThis.confirm?.('If you edit the ad, 1 credit will be deducted at the time of submission. Continue?');
-      if (shouldEdit) openEditPage();
+      showToast('1 credit will be deducted when you submit the edit.', 'info');
+      openEditPage();
       return;
     }
-
     Alert.alert(
       'Edit Ad',
       'If you edit the ad, 1 credit will be deducted at the time of submission. Continue?',
@@ -299,27 +304,34 @@ export default function MyAdsScreen({ navigation }) {
   };
 
   const handleDelete = (adId) => {
+    const doDelete = async () => {
+      const result = await UserStore.deleteAd(adId);
+      if (result.ok) {
+        setAds(prev => prev.filter(a => a.id !== adId));
+      } else {
+        if (Platform.OS === 'web') {
+          showToast(result.message, 'error');
+        } else {
+          Alert.alert('Error', result.message);
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const shouldDelete = globalThis.confirm?.('Are you sure you want to delete this ad? This cannot be undone.');
+      if (shouldDelete) doDelete();
+      return;
+    }
+
     Alert.alert(
       'Delete Ad',
       'Are you sure you want to delete this ad? This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const result = await UserStore.deleteAd(adId);
-            if (result.ok) {
-              setAds(prev => prev.filter(a => a.id !== adId));
-            } else {
-              Alert.alert('Error', result.message);
-            }
-          },
-        },
+        { text: 'Delete', style: 'destructive', onPress: doDelete },
       ]
     );
   };
-
   // ── WEB LAYOUT ──────────────────────────────────────────────────────────────
   if (isWeb) {
     return (
@@ -333,7 +345,7 @@ export default function MyAdsScreen({ navigation }) {
             <Text style={ws.bcSep}>›</Text>
             <Text style={ws.bcCur}>My Ads</Text>
           </View>
-          <TouchableOpacity style={[ws.backBtn, isCompactWeb && ws.backBtnCompact]} onPress={() => navigation.navigate('QuickMenu')} activeOpacity={0.8}>
+          <TouchableOpacity style={[ws.backBtn, isCompactWeb && ws.backBtnCompact]} onPress={() => navigation.navigate('Settings')} activeOpacity={0.8}>
             <Ionicons name="arrow-back" size={13} color={C.orangeDark} />
             <Text style={ws.backBtnText}>Back to menu</Text>
           </TouchableOpacity>
@@ -458,7 +470,7 @@ export default function MyAdsScreen({ navigation }) {
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('QuickMenu')} style={s.backBtn} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={s.backBtn} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color={C.orange} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>My Advertisements</Text>

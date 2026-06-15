@@ -59,6 +59,7 @@ import SellerReportsScreen from '../pages/SellerReportsScreen';
 import NewspaperPage from '../pages/NewspaperPage';
 import NewspaperList from '../screens/NewspaperList';
 import PreviewScreen from '../pages/PreviewScreen';
+import QuizSubscriptionScreen from '../screens/QuizSubscriptionScreen';
 const Stack = createNativeStackNavigator();
 const NAVIGATION_STATE_KEY = 'rti-news-navigation-state';
 
@@ -154,6 +155,7 @@ export default function AppNavigator() {
     { name: 'NewspaperPage', component: NewspaperPage },
     { name: 'NewspaperList', component: NewspaperList },
     { name: 'Preview', component: PreviewScreen },
+    { name: 'QuizSubscription', component: QuizSubscriptionScreen },
   ];
 
   useEffect(() => {

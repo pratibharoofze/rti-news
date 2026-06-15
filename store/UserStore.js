@@ -1130,6 +1130,12 @@ const hasActiveSubscription = (user = {}) => {
   return false;
 };
 
+const hasActiveQuizSubscription = (user = {}) => {
+  if (!user) return false;
+  const expiry = user.quiz_subscription_expiry;
+  if (!expiry) return false;
+  return new Date(expiry) > new Date();
+};
 const normalizeEmailList = (items = []) => (
   Array.from(new Set(
     (Array.isArray(items) ? items : [])
@@ -1472,6 +1478,48 @@ export const UserStore = {
 
   hasPremiumAccess: (user) => hasPremiumAccess(user),
   hasActiveSubscription: (user) => hasActiveSubscription(user),
+  hasActiveQuizSubscription: (user) => hasActiveQuizSubscription(user),
+
+purchaseQuizSubscription: async (plan) => {
+  try {
+    const user = await UserStore.getCurrentUser();
+    if (!user) return { ok: false, message: 'Please login again.' };
+
+    const durationDays = plan.duration * 30;
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + durationDays);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const notification = {
+      id: `notif-quiz-sub-${Date.now()}`,
+      title: `🎉 Quiz Subscription Activated!`,
+      message: `${plan.label} Quiz Subscription active ho gaya. Ab aap quizzes attempt kar sakte hain.`,
+      date: today,
+      status: 'Unread',
+    };
+
+    const updatedUser = await UserStore.updateUser(user.email, {
+      quiz_subscription_expiry: expiryDate.toISOString(),
+      quiz_subscription_plan: {
+        plan_id: plan.id,
+        plan_name: plan.label,
+        price: plan.price,
+        duration: plan.duration,
+        purchased_at: today,
+        expires_at: expiryDate.toISOString().slice(0, 10),
+      },
+      notifications: [
+        notification,
+        ...normalizeNotifications(user.notifications),
+      ],
+    });
+
+    if (!updatedUser) return { ok: false, message: 'Subscription save nahi ho paya.' };
+    return { ok: true, user: updatedUser };
+  } catch {
+    return { ok: false, message: 'Subscription failed. Please try again.' };
+  }
+},
   hasBlueTick: (user) => hasBlueTick(user),
   isPremiumPlan: (plan) => isPremiumPlan(plan),
   getRoleFromPlanId,

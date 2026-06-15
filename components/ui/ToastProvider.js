@@ -94,14 +94,16 @@ export function ToastProvider({ children }) {
         </Modal>
       ) : null}
       {toast ? (
-        <View style={[styles.overlay, toast.type === 'success' ? styles.overlayBottom : styles.overlayTop]}>
-          <View style={[styles.toast, styles[toast.type] || styles.info]}>
-            <Text style={styles.title}>
-              {toast.type === 'success' ? 'Success' : toast.type === 'error' ? 'Error' : 'Notice'}
-            </Text>
-            <Text style={styles.message}>{toast.message}</Text>
+        <Modal visible transparent animationType="none" statusBarTranslucent>
+          <View style={[styles.overlay, toast.type === 'success' ? styles.overlayBottom : styles.overlayTop]} pointerEvents="none">
+            <View style={[styles.toast, styles[toast.type] || styles.info]}>
+              <Text style={styles.title}>
+                {toast.type === 'success' ? 'Success' : toast.type === 'error' ? 'Error' : 'Notice'}
+              </Text>
+              <Text style={styles.message}>{toast.message}</Text>
+            </View>
           </View>
-        </View>
+        </Modal>
       ) : null}
     </ToastContext.Provider>
   );

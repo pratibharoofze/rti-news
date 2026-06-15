@@ -45,19 +45,25 @@ const CertificationStyles = StyleSheet.create({
 
   scrollView:    { flex: 1, backgroundColor: C.pageBg },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 110,
-    backgroundColor: C.pageBg,
-  },
+  flexGrow: 1,
+  paddingVertical: 20,
+  paddingHorizontal: 32,
+  paddingBottom: 110,
+  backgroundColor: C.pageBg,
+  alignItems: 'center',
+},
 
-  heroCard: {
-    backgroundColor: C.orange,
-    borderRadius: 18,
-    paddingVertical: 22,
-    paddingHorizontal: 24,
-    marginBottom: 16,
-  },
+  metricsRow: {
+  width: '100%',
+  maxWidth: 900,
+  width: '100%',
+  maxWidth: 1100,
+  backgroundColor: C.orange,
+  borderRadius: 18,
+  paddingVertical: 22,
+  paddingHorizontal: 24,
+  marginBottom: 16,
+},
   heroEyebrow: {
     fontSize: 11,
     color: '#FED7AA',
@@ -73,7 +79,13 @@ const CertificationStyles = StyleSheet.create({
     lineHeight: 32,
   },
 
-  metricsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  metricsRow: {
+  width: '100%',
+  maxWidth: 1100,
+  flexDirection: 'row',
+  gap: 12,
+  marginBottom: 16,
+},
   metricCard: {
     flex: 1,
     borderRadius: 14,
@@ -103,13 +115,15 @@ const CertificationStyles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: C.white,
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
+  width: '100%',
+  maxWidth: 1100,
+  backgroundColor: C.white,
+  borderRadius: 18,
+  padding: 20,
+  marginBottom: 16,
+  borderWidth: 1,
+  borderColor: C.border,
+},
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',

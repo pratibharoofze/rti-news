@@ -7,6 +7,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { INDIAN_STATES, getDistricts } from '../pages/locationData';
 import { UserStore } from '../store/UserStore';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
 const C = {
@@ -205,11 +206,30 @@ const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
   const [showSuccess, setShowSuccess]   = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const todayStr = () => {
-    const d = new Date();
-    return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+  const formatDateStr = (d) =>
+    `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+
+  const toInputDateValue = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+
+  const [selectedDate, setSelectedDate] = useState(todayDate);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const startDate = formatDateStr(selectedDate);
+
+  const handleWebDateChange = (e) => {
+    const val = e.target.value; // "YYYY-MM-DD"
+    if (!val) return;
+    const [y, m, d] = val.split('-').map(Number);
+    setSelectedDate(new Date(y, m - 1, d));
   };
-  const [startDate] = useState(todayStr());
+
+  const handleNativeDateChange = (event, date) => {
+    setShowDatePicker(false);
+    if (date) setSelectedDate(date);
+  };
 
   const districtList = selState ? getDistricts(selState) : [];
 
@@ -392,9 +412,24 @@ const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
                     <Text style={ws.stepTitle}>Starting date of promotion</Text>
                   </View>
                   <View style={ws.dateRow}>
-                    <Ionicons name="calendar-outline" size={18} color="#ea580c'" />
+                    <Ionicons name="calendar-outline" size={18} color="#ea580c" />
                     <Text style={ws.dateText}>{startDate}</Text>
-                    <Text style={ws.dateSub}>(starts today)</Text>
+                    <input
+                      type="date"
+                      value={toInputDateValue(selectedDate)}
+                      min={toInputDateValue(todayDate)}
+                      onChange={handleWebDateChange}
+                      style={{
+                        marginLeft: 'auto',
+                        border: '1.5px solid #FFE8D6',
+                        borderRadius: 8,
+                        padding: '8px 10px',
+                        fontSize: 13,
+                        fontFamily: 'inherit',
+                        color: '#111111',
+                        backgroundColor: '#FFFAF7',
+                      }}
+                    />
                   </View>
                 </View>
 
@@ -724,11 +759,23 @@ const isMobileWeb = Platform.OS === 'web' && winWidth < 768;
         {/* ── Step 5: Start date ── */}
         <View style={s.section}>
           <StepHeader number="5" label="Starting date of promotion" />
-          <View style={s.dateRow}>
+          <TouchableOpacity style={s.dateRow} onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
             <Ionicons name="calendar-outline" size={20} color={C.orange} />
             <Text style={s.dateText}>{startDate}</Text>
-            <Text style={s.dateSub}>(starts today)</Text>
-          </View>
+            <Text style={s.dateSub}>
+              {selectedDate.getTime() === todayDate.getTime() ? '(starts today)' : '(tap to change)'}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={C.textSub} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display="default"
+              minimumDate={todayDate}
+              onChange={handleNativeDateChange}
+            />
+          )}
         </View>
 
         <View style={s.scrollSpacer} />

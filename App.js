@@ -10,10 +10,9 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { isMobileWebDevice } from './utils/webDevice';
 
-// Avoid unhandled promise rejection on some platforms/configs.
+
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-/// 🔴 TEXT ERROR DETECTOR
 const originalConsoleError = console.error;
 console.error = (...args) => {
   if (typeof args[0] === 'string' && args[0].includes('Text strings must be rendered')) {

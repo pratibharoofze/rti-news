@@ -521,11 +521,7 @@ const styles = StyleSheet.create({
         boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)',
       },
       default: {
-        elevation: 6,
-        shadowColor: '#0f172a',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
+        boxShadow: '0px 2px 4px rgba(0,0,0,0.2)',
       },
     }),
   },

@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     width: 28,
     zIndex: 2,
     ...Platform.select({
-      web: { background: 'linear-gradient(to right, #ffffff, transparent)' },
+      web: { backgroundColor: 'linear-gradient(to right, #ffffff, transparent)' },
     }),
   },
   fadeRight: {
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     width: 28,
     zIndex: 2,
     ...Platform.select({
-      web: { background: 'linear-gradient(to left, #ffffff, transparent)' },
+      web: { backgroundColor: 'linear-gradient(to left, #ffffff, transparent)' },
     }),
   },
 });

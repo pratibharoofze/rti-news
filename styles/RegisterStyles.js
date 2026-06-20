@@ -22,7 +22,7 @@ const RegisterStyles = StyleSheet.create({
 
   formContainer: {
     width: '100%',
-    maxWidth: 480,
+    maxWidth: Platform.OS === 'web' ? 720 : 480,
     backgroundColor: '#ffffff',
     borderRadius: 24,
     padding: 24,
@@ -202,7 +202,8 @@ export const toastStyles = StyleSheet.create({
     position: 'absolute',
     top: '40%',
     alignSelf: 'center',
-    width: '85%',
+    width: Platform.OS === 'web' ? 360 : '85%',
+    maxWidth: '90%',
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,

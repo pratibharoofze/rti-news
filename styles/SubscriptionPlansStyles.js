@@ -278,6 +278,10 @@ const SubscriptionPlansStyles = StyleSheet.create({
   seatBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
+    ...(Platform.OS === 'web' && {
+      alignItems: 'center',
+      justifyContent: 'center',
+    }),
   },
   seatList: {
     gap: 0,
@@ -288,13 +292,21 @@ const SubscriptionPlansStyles = StyleSheet.create({
     paddingRight: 10,
   },
   seatSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    ...(Platform.OS === 'web'
+      ? {
+          width: '100%',
+          maxWidth: 460,
+          borderRadius: 24,
+        }
+      : {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+        }),
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     padding: 18,
     paddingBottom: 28,
     maxHeight: '78%',

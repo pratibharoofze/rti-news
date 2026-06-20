@@ -7,7 +7,6 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -70,7 +69,7 @@ const FEATURES = [
 
 export default function QuizSubscriptionScreen({ navigation, route }) {
   const insets        = useSafeAreaInsets();
-  const { showToast } = useToast();
+  const { showToast, showPopup } = useToast();
 
   const quizItem = route?.params?.quizItem ?? null;
 
@@ -108,24 +107,16 @@ export default function QuizSubscriptionScreen({ navigation, route }) {
     const plan = PLANS.find(p => p.id === selectedPlan);
     if (!plan) return;
 
-    // Alert.alert doesn't work reliably on web, so use direct confirm
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm(
-        `Do you want to subscribe to ${plan.label} Quiz Subscription for ₹${plan.price}?`
-      );
-      if (confirmed) doSubscribe();
-      return;
-    }
-
-    Alert.alert(
-      'Confirm Subscription',
+    showPopup(
       `Do you want to subscribe to ${plan.label} Quiz Subscription for ₹${plan.price}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Subscribe', onPress: doSubscribe },
-      ]
+      'info',
+      {
+        primaryLabel: 'Subscribe',
+        secondaryLabel: 'Cancel',
+        onPrimaryPress: doSubscribe,
+      }
     );
-  }, [selectedPlan, doSubscribe]);
+  }, [selectedPlan, doSubscribe, showPopup]);
 
   const selectedPlanObj = PLANS.find(p => p.id === selectedPlan);
 
@@ -437,8 +428,11 @@ const styles = StyleSheet.create({
     borderTopColor:    C.border,
     paddingHorizontal: 20,
     paddingTop:        14,
+    alignItems:        'center',
   },
   subscribeBtn: {
+    width:            '100%',
+    maxWidth:         720,
     backgroundColor: C.orange,
     borderRadius:    14,
     paddingVertical: 15,

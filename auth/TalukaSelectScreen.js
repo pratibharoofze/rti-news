@@ -1,3 +1,4 @@
+import { AuthAPI } from './ClientAPI/AuthApi';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -15,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { UserStore } from '../store/UserStore';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../components/ui/ToastProvider';
 import { getTalukas } from '../pages/locationData';
 import styles from '../styles/RegisterStyles';
 
@@ -24,7 +26,7 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={dropStyles.overlay} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity style={dropStyles.overlay} activeOpacity={1} onPress={onClose}>
       <View style={dropStyles.sheet}>
         <View style={dropStyles.handle} />
         <Text style={dropStyles.title}>{title}</Text>
@@ -59,6 +61,7 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
           )}
         />
       </View>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -67,13 +70,26 @@ const dropStyles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(180,170,160,0.5)',
+    ...(Platform.OS === 'web' && {
+      alignItems: 'center',
+      justifyContent: 'center',
+    }),
   },
   sheet: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
+    ...(Platform.OS === 'web'
+      ? {
+          width: '100%',
+          maxWidth: 480,
+          maxHeight: '80%',
+          borderRadius: 24,
+        }
+      : {
+          position: 'absolute',
+          bottom: 0, left: 0, right: 0,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+        }),
     backgroundColor: '#ece7e0',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     padding: 20,
     paddingBottom: 36,
     shadowColor: '#b8afa6',
@@ -144,6 +160,7 @@ const dropStyles = StyleSheet.create({
 
 export default function TalukaSelectScreen({ navigation, route }) {
   const { login } = useAuth();
+  const { showPopup } = useToast();
   const { selectedState, selectedDistrict, fromPremium, needsCreateUser } = route.params || {};
 
   const [taluka, setTaluka] = useState('');
@@ -180,7 +197,7 @@ export default function TalukaSelectScreen({ navigation, route }) {
 
   const handleComplete = async () => {
     if (!taluka.trim()) {
-      alert('Please select or enter your taluka');
+      showPopup('Please select or enter your taluka', 'error');
       return;
     }
     const talukaValue = taluka.trim();
@@ -188,7 +205,7 @@ export default function TalukaSelectScreen({ navigation, route }) {
     if (needsCreateUser) {
       const pending = await UserStore.getPendingRegistration();
       if (!pending?.email) {
-        alert('Registration data not found. Please register again.');
+        showPopup('Registration data not found. Please register again.', 'error');
         navigation.replace('Register');
         return;
       }
@@ -201,7 +218,7 @@ export default function TalukaSelectScreen({ navigation, route }) {
       });
 
       if (created && !created.ok) {
-        alert(created.message || 'Registration failed. Please try again.');
+        showPopup(created.message || 'Registration failed. Please try again.', 'error');
         return;
       }
 
@@ -209,6 +226,14 @@ export default function TalukaSelectScreen({ navigation, route }) {
       login();
       await UserStore.completeLocationSetup(pending.email, selectedState, selectedDistrict, talukaValue);
       await UserStore.clearPendingRegistration();
+
+      // API update
+      AuthAPI.updateState({
+        state:    selectedState,
+        district: selectedDistrict,
+        taluka:   talukaValue,
+      }).catch(() => {});
+
       goToHome(pending.name);
       return;
     }
@@ -217,7 +242,14 @@ export default function TalukaSelectScreen({ navigation, route }) {
     if (!user) { navigation.replace('Login'); return; }
 
     const result = await UserStore.completeLocationSetup(user.email, selectedState, selectedDistrict, talukaValue);
-    if (!result) { alert('Failed to save location. Please try again.'); return; }
+    if (!result) { showPopup('Failed to save location. Please try again.', 'error'); return; }
+    // API update
+    AuthAPI.updateState({
+      state:    selectedState,
+      district: selectedDistrict,
+      taluka:   talukaValue,
+    }).catch(() => {});
+
     goToHome(user.name);
   };
 
@@ -225,7 +257,7 @@ export default function TalukaSelectScreen({ navigation, route }) {
     if (needsCreateUser) {
       const pending = await UserStore.getPendingRegistration();
       if (!pending?.email) {
-        alert('Registration data not found. Please register again.');
+        showPopup('Registration data not found. Please register again.', 'error');
         navigation.replace('Register');
         return;
       }
@@ -238,7 +270,7 @@ export default function TalukaSelectScreen({ navigation, route }) {
       });
 
       if (created && !created.ok) {
-        alert(created.message || 'Registration failed. Please try again.');
+        showPopup(created.message || 'Registration failed. Please try again.', 'error');
         return;
       }
 

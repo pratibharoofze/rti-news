@@ -1,16 +1,16 @@
+// import add karo upar
 import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Pressable,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AuthAPI } from './ClientAPI/AuthApi';
 import styles from '../styles/LoginStyles';
 import { UserStore } from '../store/UserStore';
 import { useToast } from '../components/ui/ToastProvider';
@@ -28,59 +28,30 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     setLoading(true);
 
-    try {
-      const user = await UserStore.getUser(email.trim());
+    const result = await AuthAPI.requestForgotOTP({ email: email.trim() });
+    setLoading(false);
 
-      if (!user) {
-        setLoading(false);
-        showToast('Email not registered', 'error');
-        return;
-      }
-
-      const generatedOtp = String(
-        Math.floor(100000 + Math.random() * 900000)
-      );
-
-      const expiresAt = Date.now() + 5 * 60 * 1000;
-
-      const saved = await UserStore.saveResetOtp({
-        email: email.trim(),
-        otp: generatedOtp,
-        expiresAt,
-      });
-
-      setLoading(false);
-
-      if (!saved) {
-        showToast('Unable to generate OTP. Please try again.', 'error');
-        return;
-      }
-
-      showToast(`Mock OTP: ${generatedOtp}`, 'info');
-
-      navigation.navigate('Otp', {
-        email: email.trim(),
-        expiresAt,
-      });
-    } catch (_error) {
-      setLoading(false);
-      showToast('Something went wrong', 'error');
+    if (!result.ok) {
+      showToast(result.message, 'error');
+      return;
     }
-  };
 
+    showToast(result.message || 'OTP sent to your email!', 'success');
+    navigation.navigate('Otp', { email: email.trim() });
+  };
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      bbehavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Pressable style={{ flex: 1 }} onPress={Keyboard.dismiss}>
+      <View style={{ flex: 1 }}>
         <View style={styles.root}>
           <View style={[styles.glow, styles.glowTop]} />
           <View style={[styles.glow, styles.glowBottom]} />
 
           <ScrollView
             contentContainerStyle={styles.formScroll}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="always"
             showsVerticalScrollIndicator={false}
           >
             <View
@@ -181,7 +152,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             </View>
           </ScrollView>
         </View>
-      </Pressable>
+      </View>           
     </KeyboardAvoidingView>
   );
 }

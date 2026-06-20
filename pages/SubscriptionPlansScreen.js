@@ -73,7 +73,7 @@ function SeatSelectModal({
         style={S.seatBackdrop}
         activeOpacity={1}
         onPress={onClose}
-      />
+      >
       <View style={S.seatSheet}>
         <View style={S.seatHandle} />
         <Text style={S.seatTitle}>Select your seat</Text>
@@ -133,6 +133,7 @@ function SeatSelectModal({
           </View>
         </ScrollView>
       </View>
+      </TouchableOpacity>
     </Modal>
   );
 }

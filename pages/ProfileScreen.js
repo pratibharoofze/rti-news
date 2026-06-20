@@ -1,4 +1,5 @@
 import { Feather, MaterialIcons } from '@expo/vector-icons';
+import { AuthAPI } from '../auth/ClientAPI/AuthApi';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Print from 'expo-print';
@@ -375,10 +376,30 @@ setUserPosts(userPostsData);
         const asset = r.assets[0];
         if (asset.fileSize && asset.fileSize > MAX_IMAGE_SIZE) { showToast('Image is too large (max 5MB).', 'error'); setUploading(false); return; }
         let uri = asset.uri || '';
+        
+        // ─── LOCAL PREVIEW (existing code, unchanged) ───────────────────
         if (typeof document !== 'undefined' && uri) {
           try { const dataUri = await compressImageToBase64(uri); handleChange('profile_image', dataUri); }
           catch { handleChange('profile_image', uri); }
         } else { handleChange('profile_image', uri); }
+        // ────────────────────────────────────────────────────────────────
+
+        // ─── BACKEND UPLOAD (NEW) ────────────────────────────────────────
+        try {
+          const hasExistingImage = Boolean(savedProfile.profile_image);
+          const uploadResult = hasExistingImage
+            ? await AuthAPI.updateProfileImage(uri)
+            : await AuthAPI.uploadProfileImage(uri);
+
+          if (uploadResult.ok && uploadResult.imageUrl) {
+            // Server ka URL local mein bhi save karo
+            handleChange('profile_image', uploadResult.imageUrl);
+            await UserStore.updateUser(savedProfile.email, { profile_image: uploadResult.imageUrl });
+          }
+          // Agar upload fail hua to local preview waise hi rahega (no error toast needed)
+        } catch {}
+        // ────────────────────────────────────────────────────────────────
+
         showToast('Image selected successfully.', 'success');
       }
     } catch (err) { showToast('Unable to pick image right now.', 'error'); }
@@ -446,6 +467,18 @@ setUserPosts(userPostsData);
     const hasChanges = updates.name !== (savedProfile.name || '') || updates.village !== (savedProfile.village || '') || updates.bio !== (savedProfile.bio || '') || updates.contact_number !== (savedProfile.contact_number || '') || updates.profile_image !== (savedProfile.profile_image || '');
     if (!hasChanges) { showToast('No changes to save.', 'info'); return; }
     setSaving(true);
+
+    // Backend sync
+try {
+  const apiResult = await AuthAPI.updateProfile({
+    name: updates.name,
+    village: updates.village,
+    bio: updates.bio,
+    contact_number: updates.contact_number,
+  });
+  // apiResult.ok check optional - local save hoga waise bhi
+} catch {}
+
     const updated = await UserStore.updateUser(form.email, updates);
     setSaving(false);
     if (!updated) { showToast('Error saving profile.', 'error'); return; }

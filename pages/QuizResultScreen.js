@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   Platform,
   ScrollView,
   Text,
@@ -13,7 +12,7 @@ import { UserStore } from '../store/UserStore';
 import QuizResultStyles from '../styles/QuizResultStyles';
 
 export default function QuizResultScreen({ navigation, route }) {
-  const { showToast } = useToast();
+  const { showToast, showPopup } = useToast();
   const { result } = route.params || {};
 
   const [downloading, setDownloading] = useState(false);
@@ -33,13 +32,14 @@ export default function QuizResultScreen({ navigation, route }) {
   }, []);
 
   const promptSubscriptionRequired = () => {
-    Alert.alert(
-      'Subscription Required',
+    showPopup(
       'Certificate dekhne ya download karne ke liye subscription lena zaroori hai.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Take Subscription', onPress: () => navigation.navigate('Subscription Plans') },
-      ]
+      'info',
+      {
+        primaryLabel: 'Take Subscription',
+        secondaryLabel: 'Cancel',
+        onPrimaryPress: () => navigation.navigate('Subscription Plans'),
+      }
     );
   };
 

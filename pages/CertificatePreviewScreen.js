@@ -183,12 +183,12 @@ const buildCertificateHtml = ({ images, userName, issueDate, photoUri }) => `
     }
     .since-text .highlight { color: #b00000; font-weight: 700; }
     .congrats {
-      top: 63%; left: 10%; right: 44%;
+      top: 64%; left: 10%; right: 44%;
       color: #8b0000; text-align: right; font-style: italic;
-      font-size: ${12 * FONT_SCALE}px; font-weight: 700; line-height: ${18 * FONT_SCALE}px;
+      font-size: ${11 * FONT_SCALE}px; font-weight: 700; line-height: ${16 * FONT_SCALE}px;
     }
-    .gold-wings { left: 2%; bottom: 28%; width: 21%; height: 17%; object-fit: contain; }
-    .gold-latter { top: 57%; right: 5%; width: 26%; height: 11%; object-fit: contain; }
+    .gold-wings { left: 8%; bottom: 30%; width: 10%; height: 8%; object-fit: contain; }
+    .gold-latter { top: 57%; right: 5%; width: 20%; height: 9%; object-fit: contain; }
     .signatory-name {
       top: 74%; left: 10%; right: 35%;
       color: #8b0000; text-align: left;
@@ -624,7 +624,7 @@ export default function CertificatePreviewScreen({ navigation, route }) {
 
               {/* ── CONGRATS ── */}
               <Text style={styles.congratsText}>
-                Congratulations on your{'\n'}outstanding achievement!
+                Congratulations on your{'\n'}Outstanding achievement!
               </Text>
 
               {/* ── GOLD WINGS (left - quill) ── */}

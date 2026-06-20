@@ -126,11 +126,53 @@ const LoginStyles = StyleSheet.create({
   switchText: { color: '#999999', fontSize: 13, textAlign: 'center' },
   switchLink: { color: '#111111', fontWeight: '700' },
 
+  // Forgot Password screens ke liye
+  forgotFormContainer: {
+    paddingTop: 28,
+  },
+
+  logoCircle: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: '#e8732a',
+    justifyContent: 'center', alignItems: 'center',
+    alignSelf: 'center', marginBottom: 8,
+  },
+
+  brandName: {
+    fontSize: 13, fontWeight: '700', color: '#e8732a',
+    textAlign: 'center', marginBottom: 16, letterSpacing: 1,
+  },
+
+  headerBlock: {
+    alignItems: 'center', marginBottom: 20,
+  },
+
+  formIconWrap: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: '#eff6ff',
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 8,
+  },
+
+  welcomeBack: {
+    fontSize: 12, fontWeight: '600', color: '#999999',
+    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
+  },
+
+  formTitle: {
+    fontSize: 24, fontWeight: '800', color: '#111111',
+    textAlign: 'center', marginBottom: 6,
+  },
+
+  formSubtitle: {
+    fontSize: 13, color: '#999999',
+    textAlign: 'center', lineHeight: 20,
+  },
+
   // Unused stubs kept for compatibility
   glow:        { display: 'none', position: 'absolute' },
   glowTop:     {},
   glowBottom:  {},
   topAccent:   { display: 'none' },
 });
-
 export default LoginStyles;

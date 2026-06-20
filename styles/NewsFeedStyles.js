@@ -9,9 +9,15 @@ const NewsFeedStyles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 96,
-  },
+  padding: 16,
+  paddingBottom: 96,
+  ...(Platform.OS === 'web' ? {
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 32,
+  } : {}),
+},
 
   // ─── Custom Header Styles ─────────────────────────────────────────
   customHeader: {
@@ -23,13 +29,26 @@ const NewsFeedStyles = StyleSheet.create({
     paddingBottom: 14,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#ffe4ef',
+    borderBottomColor: '#FFE0CC',
     elevation: 3,
     shadowColor: '#FF6600',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
   },
+customHeaderWeb: {
+  alignItems: 'center',
+},
+headerInner: {
+  width: '100%',
+  maxWidth: 900,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  paddingHorizontal: 32,
+},
+
+
   backButton: {
     padding: 8,
     borderRadius: 10,
@@ -184,34 +203,63 @@ const NewsFeedStyles = StyleSheet.create({
     marginBottom: 16,
   },
   metricCard: {
-    flex: 1,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-  },
-  metricPrimary: {
-    backgroundColor: '#fff0f5',
-  },
-  metricSecondary: {
-    backgroundColor: '#fff5f8',
-  },
-  metricAccent: {
-    backgroundColor: '#ffe4ef',
-  },
-  metricValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FF6600',
-    marginBottom: 4,
-  },
-  metricLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
+  flex: 1,
+  borderRadius: 16,
+  paddingVertical: 18,
+  paddingHorizontal: 16,
+  backgroundColor: '#ffffff',
+  borderWidth: 1,
+  borderColor: '#FFE0CC',
+  borderTopWidth: 3,
+  borderTopColor: '#FF6600',
+},
+metricPrimary: {
+  borderTopColor: '#FF6600',
+},
+metricSecondary: {
+  borderTopColor: '#FF6600',
+},
+metricAccent: {
+  borderTopColor: '#FF6600',
+},
+metricTopRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: 14,
+},
+metricIconCircle: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  backgroundColor: '#fff5ee',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+metricBadge: {
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 20,
+  backgroundColor: '#fff5ee',
+  borderWidth: 1,
+  borderColor: '#FFE0CC',
+},
+metricBadgeText: {
+  fontSize: 11,
+  color: '#FF6600',
+  fontWeight: '600',
+},
+metricValue: {
+  fontSize: 28,
+  fontWeight: '800',
+  color: '#0f172a',
+  marginBottom: 4,
+},
+metricLabel: {
+  fontSize: 12,
+  fontWeight: '600',
+  color: '#64748b',
+},
   // ─── Section Card ─────────────────────────────────────────────────
   card: {
     backgroundColor: '#ffffff',

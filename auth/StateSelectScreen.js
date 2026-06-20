@@ -34,8 +34,8 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
         style={dropStyles.overlay}
         activeOpacity={1}
         onPress={onClose}
-      />
-
+      >
+        <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center' }} onPress={() => {}}>
       <View style={dropStyles.sheet}>
         <View style={dropStyles.handle} />
 
@@ -88,6 +88,8 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
           )}
         />
       </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -96,15 +98,28 @@ const dropStyles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(180,170,160,0.5)',
+    ...(Platform.OS === 'web' && {
+      alignItems: 'center',
+      justifyContent: 'center',
+    }),
   },
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    ...(Platform.OS === 'web'
+      ? {
+          width: '100%',
+          maxWidth: 480,
+          maxHeight: '80%',
+          borderRadius: 24,
+        }
+      : {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+        }),
     backgroundColor: '#ece7e0',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     padding: 20,
     paddingBottom: 36,
     shadowColor: '#b8afa6',

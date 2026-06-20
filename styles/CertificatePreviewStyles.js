@@ -12,6 +12,9 @@ export default StyleSheet.create({
   contentContainer: {
     padding: 12,
     paddingBottom: 120,
+    ...(Platform.OS === 'web' && {
+      alignItems: 'center',
+    }),
   },
 
   /* ─────────────────────────────
@@ -59,6 +62,10 @@ export default StyleSheet.create({
   },
 
   templateCard: {
+    width: '100%',
+    ...(Platform.OS === 'web' && {
+      maxWidth: 600,
+    }),
     borderRadius: 12,
     overflow: 'hidden',
     marginHorizontal: 2,
@@ -233,15 +240,15 @@ headerUserName: {
   ───────────────────────────── */
   congratsText: {
     position: 'absolute',
-    top: '63%',
+    top: '64%',
     left: '10%',
     right: '44%',
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'right',
     color: '#8b0000',
     fontStyle: 'italic',
     fontWeight: '700',
-    lineHeight: 18,
+    lineHeight: 16,
   },
 
   /* ─────────────────────────────
@@ -250,10 +257,10 @@ headerUserName: {
   ───────────────────────────── */
   goldWings: {
     position: 'absolute',
-    bottom: '28%',
-    left: '2%',
-    width: '21%',
-    height: '17%',
+    bottom: '30%',
+    left: '8%',
+    width: '10%',
+    height: '8%',
   },
 
   /* ─────────────────────────────
@@ -264,8 +271,8 @@ headerUserName: {
     position: 'absolute',
     top: '57%',
     right: '5%',
-    width: '26%',
-    height: '11%',
+    width: '20%',
+    height: '9%',
   },
 
   /* ─────────────────────────────
@@ -305,7 +312,7 @@ headerUserName: {
   photoWrapper: {
     position: 'absolute',
     right: '5%',
-    top: '67%',
+    top: '57%',
     width: '28%',
     height: '18%',
   },
@@ -431,6 +438,11 @@ headerUserName: {
      ACTION BUTTONS
   ───────────────────────────── */
   actionBar: {
+    width: '100%',
+    ...(Platform.OS === 'web' && {
+      maxWidth: 600,
+      alignSelf: 'center',
+    }),
     marginTop: 16,
     gap: 10,
   },

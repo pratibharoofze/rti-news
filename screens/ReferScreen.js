@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserStore } from '../store/UserStore';
+import { AuthAPI } from '../auth/ClientAPI/AuthApi';
 
 const REFER_LINK = 'https://play.google.com/store/apps/details?id=com.yourcompany.rtiapp';
 const APP_NAME = 'RTI App';
@@ -38,14 +39,61 @@ const PLATFORMS = [
 export default function ReferScreen({ navigation }) {
   const [copied, setCopied] = useState(false);
   const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    UserStore.getReferralSummary().then((data) => {
-      if (mounted) setSummary(data);
-    });
+
+    const load = async () => {
+      const localSummary = await UserStore.getReferralSummary();
+      if (mounted) setSummary(localSummary);
+
+      // CORS issue pe silently fail karo, local data use karo
+let apiResult = { ok: false };
+try {
+  apiResult = await AuthAPI.getReferrals();
+} catch {}
+      console.log('[ReferScreen] getReferrals result:', JSON.stringify(apiResult));
+
+      if (mounted && apiResult.ok) {
+        const root = apiResult.data?.data || apiResult.data || {};
+        const referralCode = String(root.referral_code || '').trim();
+        const referralCount = Number(root.referral_count || 0);
+        const currentTier = UserStore.getReferralTier(referralCount);
+        const nextTier = UserStore.getNextReferralTier(referralCount);
+
+        setSummary((prev) => ({
+          ...prev,
+          my_referral_code: referralCode,
+          referral_count: referralCount,
+          referred_users: Array.isArray(root.referred_users) ? root.referred_users : [],
+          applied_referral: root.applied_referral || null,
+          rank: currentTier.rank,
+          bonus: currentTier.bonus,
+          next_rank: nextTier,
+          tiers: prev?.tiers || UserStore.getReferralTiers(),
+        }));
+      }
+
+      if (mounted) setLoading(false);
+    };
+
+    load();
     return () => { mounted = false; };
   }, []);
+
+  // API se referral code aaya to local update karo
+useEffect(() => {
+  if (summary?.my_referral_code) {
+    UserStore.getCurrentUser().then(user => {
+      if (user && summary.my_referral_code !== user.my_referral_code) {
+        UserStore.updateUser(user.email, { 
+          my_referral_code: summary.my_referral_code 
+        });
+      }
+    });
+  }
+}, [summary?.my_referral_code]);
 
   const referralCode = summary?.my_referral_code || '';
   const personalLink = useMemo(() => buildReferLink(referralCode), [referralCode]);
@@ -88,7 +136,7 @@ export default function ReferScreen({ navigation }) {
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, Platform.OS === 'web' && styles.webContent]} showsVerticalScrollIndicator={false}>
         <View style={styles.banner}>
           <Text style={styles.bannerEmoji}>RTI</Text>
           <Text style={styles.bannerTitle}>Referral Bonus</Text>
@@ -123,7 +171,8 @@ export default function ReferScreen({ navigation }) {
           </View>
         ) : null}
 
-        <View style={styles.linkBox}>
+        <View style={Platform.OS === 'web' ? styles.twoCol : null}>
+  <View style={[styles.linkBox, Platform.OS === 'web' && { flex: 1, marginBottom: 0 }]}>
           <Text style={styles.linkLabel}>Your Referral Code</Text>
           <View style={styles.codeRow}>
             <Text style={styles.codeText}>{referralCode || 'Login required'}</Text>
@@ -146,7 +195,9 @@ export default function ReferScreen({ navigation }) {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Rank & Bonus</Text>
+        </View>
+  <View style={Platform.OS === 'web' ? { flex: 1 } : null}>
+    <Text style={styles.sectionTitle}>Rank & Bonus</Text>
         <View style={styles.tierBox}>
           {(summary?.tiers || UserStore.getReferralTiers()).map((tier) => (
             <View key={tier.rank} style={styles.tierRow}>
@@ -156,8 +207,9 @@ export default function ReferScreen({ navigation }) {
             </View>
           ))}
         </View>
+      </View>
 
-        <Text style={styles.sectionTitle}>Share via</Text>
+      <Text style={styles.sectionTitle}>Share via</Text>
         <View style={styles.grid}>
           {PLATFORMS.map((p) => (
             <TouchableOpacity
@@ -192,6 +244,20 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
   content: { padding: 16, paddingBottom: 40 },
+webContent: {
+  maxWidth: 720,
+  width: '100%',
+  alignSelf: 'center',
+  paddingHorizontal: 24,
+  paddingTop: 24,
+  paddingBottom: 40,
+},
+twoCol: {
+  flexDirection: 'row',
+  gap: 14,
+  marginBottom: 20,
+  alignItems: 'flex-start',
+},
   banner: {
     backgroundColor: '#1d4ed8', borderRadius: 20, padding: 24,
     alignItems: 'center', marginBottom: 14,

@@ -1,3 +1,4 @@
+import { AuthAPI } from './ClientAPI/AuthApi';
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
@@ -13,6 +14,7 @@ export default function ResetPasswordScreen({ navigation, route }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const email = route?.params?.email || '';
+const otpFromRoute = route?.params?.otp || '';
 
   const handleReset = async () => {
     if (!password || !confirmPassword) {
@@ -31,16 +33,21 @@ export default function ResetPasswordScreen({ navigation, route }) {
     }
 
     setLoading(true);
-    const updated = await UserStore.updatePassword(email, password);
-    if (updated) {
-      await UserStore.clearResetOtp(email);
-    }
+
+    const result = await AuthAPI.resetPassword({
+      email: email.trim(),
+      otp: otpFromRoute,
+      password,
+    });
     setLoading(false);
 
-    if (!updated) {
-      showToast('Unable to reset password. Please try again.', 'error');
+    if (!result.ok) {
+      showToast(result.message, 'error');
       return;
     }
+
+    await UserStore.updatePassword(email, password);
+    await UserStore.clearResetOtp(email);
 
     showToast('Password reset successfully', 'success');
     navigation.navigate('Login');

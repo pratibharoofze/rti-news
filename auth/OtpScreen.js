@@ -1,4 +1,6 @@
+// import add karo upar
 import React, { useEffect, useRef, useState } from 'react';
+import { AuthAPI } from './ClientAPI/AuthApi';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
 } from 'react-native';
@@ -69,11 +71,6 @@ export default function OtpScreen({ navigation, route }) {
   };
 
   const handleVerify = async () => {
-    if (timeLeft <= 0) {
-      showToast('OTP has expired. Please request a new one.', 'error');
-      return;
-    }
-
     const otpValue = otp.join('');
     if (otpValue.length !== 6) {
       showToast('Please enter the 6-digit OTP', 'error');
@@ -81,28 +78,23 @@ export default function OtpScreen({ navigation, route }) {
     }
 
     setLoading(true);
-    const otpRecord = await UserStore.getResetOtp(email);
+
+    const result = await AuthAPI.verifyForgotOTP({
+      email: email.trim(),
+      otp: otpValue,
+    });
     setLoading(false);
 
-    if (!otpRecord) {
-      showToast('No OTP found. Please request a new one.', 'error');
-      return;
-    }
-
-    if (Date.now() > otpRecord.expiresAt) {
-      await UserStore.clearResetOtp(email);
-      setTimeLeft(0);
-      showToast('OTP has expired. Please request a new one.', 'error');
-      return;
-    }
-
-    if (otpRecord.otp !== otpValue) {
-      showToast('Incorrect OTP', 'error');
+    if (!result.ok) {
+      showToast(result.message, 'error');
       return;
     }
 
     showToast('OTP verified successfully', 'success');
-    navigation.navigate('ResetPassword', { email });
+    navigation.navigate('ResetPassword', {
+      email: email.trim(),
+      otp: otpValue,
+    });
   };
 
   const formatTime = (totalSeconds) => {
@@ -195,21 +187,21 @@ export default function OtpScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   otpRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',  // ← space-between se center
     marginTop: 6,
     marginBottom: 16,
     gap: 8,
+    paddingHorizontal: 4,
   },
   otpInput: {
-    flex: 1,
-    maxWidth: 72,
-    minHeight: 58,
+    width: 44,           // ← flex:1 hatao, fixed width do
+    height: 52,
     backgroundColor: '#0b1423',
     borderWidth: 1,
     borderColor: '#22324a',
-    borderRadius: 14,
+    borderRadius: 12,
     color: '#f8fafc',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     outlineStyle: 'none',
     textAlign: 'center',

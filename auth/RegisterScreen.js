@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthAPI } from './ClientAPI/AuthApi';
 import { useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -360,33 +362,46 @@ export default function RegisterScreen({ navigation }) {
   };
 
   const handleRegister = async () => {
-    if (!firstName.trim())   { showToast('First name daalo', 'error'); return; }
-    if (!lastName.trim())    { showToast('Last name daalo', 'error'); return; }
-    if (!mobileOk)           { setMobileTouched(true); showToast('Valid 10-digit Indian mobile number daalo', 'error'); return; }
-    if (!mobileVerified)     { showToast('Mobile number verify karo pehle', 'error'); return; }
-    if (!normalizedEmail)    { setEmailTouched(true); showToast('Email address daalo', 'error'); return; }
-    if (!emailOk)            { setEmailTouched(true); showToast('Valid email address daalo', 'error'); return; }
-    if (!passwordStrong)     { setPasswordTouched(true); showToast('Strong password use karo', 'error'); return; }
-    if (password !== confirm) { showToast('Passwords match nahi kar rahe', 'error'); return; }
-    if (!termsAccepted)      { setTermsTouched(true); showToast('Terms & Conditions accept karo', 'error'); return; }
+    if (!firstName.trim())    { showToast('First name daalo', 'error'); return; }
+    if (!lastName.trim())     { showToast('Last name daalo', 'error'); return; }
+    if (!mobileOk)            { setMobileTouched(true); showToast('Valid 10-digit mobile number daalo', 'error'); return; }
+    if (!mobileVerified)      { showToast('Mobile number verify karo pehle', 'error'); return; }
+    if (!normalizedEmail)     { setEmailTouched(true); showToast('Email address daalo', 'error'); return; }
+    if (!emailOk)             { setEmailTouched(true); showToast('Valid email address daalo', 'error'); return; }
+    if (!passwordStrong)      { setPasswordTouched(true); showToast('Strong password use karo', 'error'); return; }
+    if (password !== confirm)  { showToast('Passwords match nahi kar rahe', 'error'); return; }
+    if (!termsAccepted)       { setTermsTouched(true); showToast('Terms & Conditions accept karo', 'error'); return; }
 
-    const existing = await UserStore.getUser(normalizedEmail);
-    if (existing) {
-      if (!existing.location_complete) {
-        await UserStore.setCurrentUser(existing.email);
-        login();
-        showToast('Account found. Continue location setup.', 'success');
-        navigation.navigate('StateSelect', { fromPremium: false, needsCreateUser: false, preselectedState: existing.state || undefined, autoOpen: true });
+    // ── API Call ──
+    showToast('Registering...', 'info');
+    const apiResult = await AuthAPI.register({
+      firstName,
+      middleName,
+      lastName,
+      mobile,
+      email:        normalizedEmail,
+      password,
+      referralCode: referralCode.trim(),
+    });
+
+    if (!apiResult.ok) {
+      if (apiResult.isNetwork) {
+        showToast('No internet. Offline mode mein save ho raha hai...', 'info');
+      } else {
+        showToast(apiResult.message, 'error');
         return;
       }
-      showToast('This email is already registered! Please sign in.', 'error');
-      navigation.navigate('Login');
-      return;
+    } else {
+      if (apiResult.token) {
+        try { await AsyncStorage.setItem('auth_token', apiResult.token); } catch {}
+      }
     }
 
+    // ── Local Save ──
     const ok = await UserStore.setPendingRegistration({
-      name: fullName, mobile: mobile.trim(),
-      email: normalizedEmail,
+      name:               fullName,
+      mobile:             mobile.trim(),
+      email:              normalizedEmail,
       referral_code_used: referralCode.trim() || null,
       password,
     });

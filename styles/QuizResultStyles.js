@@ -8,6 +8,9 @@ export default StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 110,
+    ...(Platform.OS === 'web' && {
+      alignItems: 'center',
+    }),
   },
 
   // ── Custom Header ──
@@ -51,6 +54,8 @@ export default StyleSheet.create({
 
   // ── Hero ──
   heroCard: {
+    width: '100%',
+    maxWidth: 720,
     backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 20,
@@ -79,6 +84,8 @@ export default StyleSheet.create({
 
   // ── Result Card ──
   resultCard: {
+    width: '100%',
+    maxWidth: 720,
     backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 20,
@@ -154,6 +161,8 @@ export default StyleSheet.create({
 
   // ── Certificate Section Label ──
   certSectionLabel: {
+    width: '100%',
+    maxWidth: 720,
     fontSize: 15,
     fontWeight: '800',
     color: '#0f172a',
@@ -162,6 +171,8 @@ export default StyleSheet.create({
 
   // ── Certificate Outer wrapper ──
   certOuter: {
+    width: '100%',
+    maxWidth: 720,
     backgroundColor: '#fffbeb',
     borderRadius: 20,
     marginBottom: 16,
@@ -359,6 +370,8 @@ export default StyleSheet.create({
 
   // ── Download / View buttons ──
   downloadBtn: {
+    width: '100%',
+    maxWidth: 720,
     backgroundColor: '#F97316',
     borderRadius: 14,
     paddingVertical: 14,
@@ -384,6 +397,8 @@ export default StyleSheet.create({
   },
 
   savedNote: {
+    width: '100%',
+    maxWidth: 720,
     fontSize: 13,
     color: '#16a34a',
     fontWeight: '700',
@@ -393,6 +408,8 @@ export default StyleSheet.create({
 
   // ── Fail / Lock message ──
   failMessageBox: {
+    width: '100%',
+    maxWidth: 720,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,

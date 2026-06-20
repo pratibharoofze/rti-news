@@ -1,3 +1,4 @@
+import { AuthAPI } from './ClientAPI/AuthApi';
 import React, { useState } from 'react';
 import {
   View,
@@ -57,6 +58,7 @@ export default function LoginScreen({ navigation }) {
     clearErrors();
     if (!validate()) return;
     setLoading(true);
+
     try {
       const safeReplace = (routeName, params) => {
         if (navigation && typeof navigation.replace === 'function') { navigation.replace(routeName, params); return; }
@@ -67,31 +69,92 @@ export default function LoginScreen({ navigation }) {
       const isEmail          = /\S+@\S+\.\S+/.test(identityRaw);
       const mobileNormalized = identityRaw.replace(/\s+/g, '');
 
-      let user = null;
+      // ── Step 1: API Login ──
       if (isEmail) {
-        user = await UserStore.getUser(identityRaw.toLowerCase());
-      } else if (/^\d{10}$/.test(mobileNormalized)) {
+        const apiResult = await AuthAPI.login({
+          email:    identityRaw.toLowerCase(),
+          password: password,
+        });
+
+        if (apiResult.ok) {
+          // ✅ API login successful — seedha ghar bhejo
+          setLoading(false);
+
+          // Local user check karo sirf location ke liye
+          let localUser = await UserStore.getUser(identityRaw.toLowerCase());
+          
+          // Agar local user nahi hai toh API user se banao
+          if (!localUser && apiResult.user) {
+            await UserStore.setPendingRegistration({
+              name: `${apiResult.user.firstname || ''} ${apiResult.user.lastname || ''}`.trim(),
+              mobile: apiResult.user.mobile_no || '',
+              email: identityRaw.toLowerCase(),
+              password: password,
+            });
+          }
+
+          if (!localUser && apiResult.user) {
+  const apiUser = apiResult.user;
+  const savedResult = await UserStore.saveUser({
+    name: `${apiUser.firstname || ''} ${apiUser.lastname || ''}`.trim() || apiUser.name || '',
+    mobile: apiUser.mobile_no || apiUser.mobile || '',
+    email: identityRaw.toLowerCase(),
+    password: password,
+    state: apiUser.state || '',
+  });
+  if (savedResult.ok) {
+    localUser = savedResult.user;
+  }
+}
+
+if (localUser) {
+  await UserStore.setCurrentUser(localUser.email);
+} else {
+  await UserStore.setCurrentUser(identityRaw.toLowerCase());
+}
+
+login();
+safeReplace('Home');
+return;
+        }
+
+        if (!apiResult.isNetwork) {
+          setLoading(false);
+          setErrors((prev) => ({ ...prev, general: apiResult.message || 'Invalid credentials.' }));
+          return;
+        }
+      }
+
+      // ── Step 2: Mobile login — Local check ──
+      let user = null;
+      if (!isEmail && /^\d{10}$/.test(mobileNormalized)) {
         const all = await UserStore.getAllUsers();
         user = (all || []).find((u) => String(u.mobile || '').trim() === mobileNormalized) || null;
       }
 
       setLoading(false);
 
-      if (!user) { setErrors((prev) => ({ ...prev, email: 'Account not found. Please sign up first.' })); return; }
-      if (String(user.password || '') !== String(password || '')) { setErrors((prev) => ({ ...prev, password: 'Incorrect password. Please try again.' })); return; }
+      if (!user) {
+        setErrors((prev) => ({ ...prev, email: 'Account not found. Please sign up first.' }));
+        return;
+      }
+
+      if (String(user.password || '') !== String(password || '')) {
+        setErrors((prev) => ({ ...prev, password: 'Incorrect password. Please try again.' }));
+        return;
+      }
 
       await UserStore.setCurrentUser(user.email);
       login();
-      const hasPremium = UserStore.hasPremiumAccess(user);
-      if (hasPremium && !user.location_complete) { safeReplace('StateSelect', { fromPremium: true }); }
-      else { safeReplace('Home'); }
+      safeReplace('Home');
+
     } catch (_err) {
       console.warn('Login error:', _err);
       setLoading(false);
-      const msg = _err?.message ? String(_err.message) : '';
-      setErrors((prev) => ({ ...prev, general: msg ? `Login failed: ${msg}` : 'Login failed. Please try again.' }));
+      setErrors((prev) => ({ ...prev, general: 'Login failed. Please try again.' }));
     }
   };
+      
 
   const handleClose = () => navigation.navigate('Home');
 

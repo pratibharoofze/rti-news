@@ -141,10 +141,13 @@ function SeatSelectModal({ visible, stateName, seats, selectedSeatId, onSelectSe
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <TouchableOpacity
-        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }}
+        style={[
+          { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
+          Platform.OS === 'web' && seatStyles.overlayWeb,
+        ]}
         activeOpacity={1}
         onPress={onCancel}
-      />
+      >
       <View style={seatStyles.sheet}>
         <View style={seatStyles.handle} />
         <Text style={seatStyles.title}>Select your seat</Text>
@@ -217,17 +220,32 @@ function SeatSelectModal({ visible, stateName, seats, selectedSeatId, onSelectSe
           </TouchableOpacity>
         </View>
       </View>
+      </TouchableOpacity>
     </Modal>
   );
 }
 
-const seatStyles = StyleSheet.create({
+const seatStyles= StyleSheet.create({
+  overlayWeb: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sheet: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
+    ...(Platform.OS === 'web'
+      ? {
+          width: '100%',
+          maxWidth: 460,
+          maxHeight: '85%',
+          borderRadius: 24,
+        }
+      : {
+          position: 'absolute',
+          bottom: 0, left: 0, right: 0,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+        }),
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     padding: 18,
     paddingBottom: 28,
   },
@@ -309,7 +327,7 @@ function SubscriptionModal({ visible, pendingPlan, onPlanPress, onClose }) {
 
 const subStyles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: 20 },
-  modalContent: { backgroundColor: '#fff', borderRadius: 28, padding: 22, width: '100%', maxWidth: 400, alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', borderRadius: 28, padding: 22, width: '100%', maxWidth: Platform.OS === 'web' ? 560 : 400, alignItems: 'center' },
   crownCircle: { width: 48, height: 48, borderRadius: 99, backgroundColor: PINK_MUTED, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   modalTitle: { fontSize: 17, fontWeight: '700', color: '#0f172a', marginBottom: 4 },
   modalSubtitle: { fontSize: 12, color: '#b0b8cc', textAlign: 'center' },

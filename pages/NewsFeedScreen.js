@@ -992,7 +992,8 @@ export default function NewsFeedScreen({ navigation }) {
   return (
     <View style={styles.root}>
       {/* Fixed Header */}
-      <View style={styles.customHeader}>
+      <View style={[styles.customHeader, Platform.OS === 'web' && styles.customHeaderWeb]}>
+  <View style={Platform.OS === 'web' ? styles.headerInner : { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <TouchableOpacity onPress={handleGoBack} style={styles.backButton} activeOpacity={0.7}>
           <Feather name="arrow-left" size={22} color="#FF6600" />
         </TouchableOpacity>
@@ -1001,7 +1002,7 @@ export default function NewsFeedScreen({ navigation }) {
           <Feather name="plus-circle" size={22} color="#FF6600" />
         </TouchableOpacity>
       </View>
-
+</View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -1017,19 +1018,45 @@ export default function NewsFeedScreen({ navigation }) {
 
         {/* Metrics */}
         <View style={styles.metricsRow}>
-          <View style={[styles.metricCard, styles.metricPrimary]}>
-            <Text style={styles.metricValue}>{displayedItems.length}</Text>
-            <Text style={styles.metricLabel}>Articles</Text>
-          </View>
-          <View style={[styles.metricCard, styles.metricSecondary]}>
-            <Text style={styles.metricValue}>{displayedItems.reduce((s, i) => s + (Number(i.views) || 0), 0)}</Text>
-            <Text style={styles.metricLabel}>Views</Text>
-          </View>
-          <View style={[styles.metricCard, styles.metricAccent]}>
-            <Text style={styles.metricValue}>{displayedItems.reduce((s, i) => s + (Number(i.shares) || 0), 0)}</Text>
-            <Text style={styles.metricLabel}>Shares</Text>
-          </View>
-        </View>
+  <View style={[styles.metricCard, styles.metricPrimary]}>
+    <View style={styles.metricTopRow}>
+      <View style={styles.metricIconCircle}>
+        <Feather name="file-text" size={16} color="#FF6600" />
+      </View>
+      <View style={styles.metricBadge}>
+        <Text style={styles.metricBadgeText}>Total</Text>
+      </View>
+    </View>
+    <Text style={styles.metricValue}>{displayedItems.length}</Text>
+    <Text style={styles.metricLabel}>Articles</Text>
+  </View>
+
+  <View style={[styles.metricCard, styles.metricSecondary]}>
+    <View style={styles.metricTopRow}>
+      <View style={styles.metricIconCircle}>
+        <Feather name="eye" size={16} color="#FF6600" />
+      </View>
+      <View style={styles.metricBadge}>
+        <Text style={styles.metricBadgeText}>Views</Text>
+      </View>
+    </View>
+    <Text style={styles.metricValue}>{displayedItems.reduce((s, i) => s + (Number(i.views) || 0), 0)}</Text>
+    <Text style={styles.metricLabel}>Total Views</Text>
+  </View>
+
+  <View style={[styles.metricCard, styles.metricAccent]}>
+    <View style={styles.metricTopRow}>
+      <View style={styles.metricIconCircle}>
+        <Feather name="share-2" size={16} color="#FF6600" />
+      </View>
+      <View style={styles.metricBadge}>
+        <Text style={styles.metricBadgeText}>Shares</Text>
+      </View>
+    </View>
+    <Text style={styles.metricValue}>{displayedItems.reduce((s, i) => s + (Number(i.shares) || 0), 0)}</Text>
+    <Text style={styles.metricLabel}>Total Shares</Text>
+  </View>
+</View>
 
         {/* Filter Card */}
         <View style={styles.filterCard}>

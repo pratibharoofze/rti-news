@@ -82,16 +82,62 @@ const QM_CSS = `
   .qm-shell { width: 100vw; height: 100vh; display: grid; grid-template-columns: 216px minmax(0, 1fr); background: #fffdfb; border: 1px solid #fed7aa; border-radius: 0; overflow: hidden; box-shadow: none; }
   .qm-topbar { display: none; }
   .qm-body { display: contents; }
-  .qm-sidebar { width: auto; border-right: 1px solid #fed7aa; background: #fffaf7; padding: 28px 16px; overflow: hidden; }
-  .qm-brand { font-size: 18px; line-height: 24px; font-weight: 900; color: #020617; padding: 0 6px 18px; border-bottom: 1px solid #fed7aa; margin-bottom: 18px; }
+  .qm-sidebar {
+    width: auto;
+    border-right: 1px solid #f1e8e0;
+    background: linear-gradient(180deg, #fff8f3 0%, #fffaf7 100%);
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .qm-brand {
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 900;
+    color: #0f172a;
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid #ffe8d6;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
   .qm-brand span { color: #ea580c; }
-  .qm-sec-title { color: #f97316; font-size: 8px; letter-spacing: 2px; font-weight: 900; padding: 10px 6px 8px; }
-  .qm-nav-item { gap: 11px; padding: 12px 8px; border-radius: 8px; color: #9ca3af; font-size: 13px; font-weight: 800; }
-  .qm-nav-item:hover { color: #7c2d12; background: #fff7ed; }
-  .qm-nav-item.active { color: #9ca3af; background: transparent; }
-  .qm-nav-item.home-link { color: #7c2d12; }
+  .qm-sec-title {
+    color: #f97316;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    font-weight: 900;
+    padding: 14px 20px 6px;
+    text-transform: uppercase;
+  }
+  .qm-nav-item {
+    gap: 12px;
+    padding: 10px 16px;
+    margin: 1px 10px;
+    border-radius: 10px;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .qm-nav-item:hover {
+    color: #ea580c;
+    background: #fff7ed;
+    transform: translateX(2px);
+  }
+  .qm-nav-item.active {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%) !important;
+    color: #9a3412 !important;
+    font-weight: 800;
+    border-left: 3px solid #ea580c;
+    padding-left: 13px;
+    box-shadow: 0 2px 8px rgba(234,88,12,0.1);
+  }
+  .qm-nav-item.danger { color: #e11d48 !important; }
+  .qm-nav-item.danger:hover { background: #fff1f2 !important; }
   .qm-nav-icon { width: 22px !important; height: 22px !important; background: transparent !important; }
-  .qm-divider { display: none; }
+  .qm-divider { display: block; height: 1px; background: linear-gradient(90deg, transparent, #ffe8d6, transparent); margin: 6px 16px; }
   .qm-main { position: relative; padding: 26px 28px 32px; overflow-y: auto; background: #fffdfb; }
   .qm-main::after { content: '•••'; position: absolute; top: 10px; right: 12px; color: #92400e; font-size: 13px; letter-spacing: 1px; }
   .qm-page-header { display: none; }
@@ -148,7 +194,7 @@ const QM_CSS = `
     .qm-sidebar { display: none; }
     .qm-stats, .qm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   }
-  .qm-shell { grid-template-columns: 244px minmax(0, 1fr); }
+  .qm-shell { grid-template-columns: 256px minmax(0, 1fr); }
   .qm-sidebar { height: 100vh; overflow-y: auto; }
   .qm-module-item.active { background: #ffedd5 !important; color: #9a3412 !important; }
   .qm-module-item.danger { color: #e11d48 !important; }

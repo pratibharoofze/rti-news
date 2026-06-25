@@ -13,6 +13,17 @@ import { isMobileWebDevice } from './utils/webDevice';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+if (typeof document !== 'undefined') {
+  const observer = new MutationObserver(() => {
+    document.querySelectorAll('[aria-hidden="true"]').forEach((el) => {
+      if (el.contains(document.activeElement)) {
+        el.removeAttribute('aria-hidden');
+      }
+    });
+  });
+  observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['aria-hidden'] });
+}
+
 const originalConsoleError = console.error;
 console.error = (...args) => {
   if (typeof args[0] === 'string' && args[0].includes('Text strings must be rendered')) {

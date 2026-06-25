@@ -123,7 +123,10 @@ export default function SellerEnquiryDashboardScreen({ navigation }) {
       const userEmail  = String(currentUser.email || '').trim().toLowerCase();
       const enquiries  = Array.isArray(summary.enquiries) ? summary.enquiries : [];
       const enriched   = (Array.isArray(summary.listings) ? summary.listings : [])
-        .filter((l) => String(l.createdBy || '').trim().toLowerCase() === userEmail)
+        .filter((l) => {
+  const sellerEmail = String(l.createdBy || l.owner_email || '').trim().toLowerCase();
+  return sellerEmail === userEmail;
+})
         .map((l) => ({ ...l, enquiries: enquiries.filter((eq) => String(eq.product_id) === String(l.id)) }));
       setListings(enriched);
     } catch (e) { console.error(e); }

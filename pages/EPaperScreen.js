@@ -422,7 +422,7 @@ const [reporterDate, setReporterDate] = useState('');
                                 loadLayout: layout,
                               });
                             } else {
-                              alert('Is date ka newspaper layout nahi mila.');
+                              alert('No newspaper layout was found for this date.');
                             }
                           }}
                         >
@@ -715,7 +715,7 @@ const [reporterDate, setReporterDate] = useState('');
                           if(layout){
                             navigation.navigate('NewspaperPage', { loadLayout: layout });
                           } else {
-                            Alert.alert('Not found', 'Is date ka newspaper layout nahi mila.');
+                            Alert.alert('Not found', 'No newspaper layout found for this ');
                           }
                         }}
                       >

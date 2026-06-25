@@ -372,32 +372,7 @@ export default function RegisterScreen({ navigation }) {
     if (password !== confirm)  { showToast('Passwords match nahi kar rahe', 'error'); return; }
     if (!termsAccepted)       { setTermsTouched(true); showToast('Terms & Conditions accept karo', 'error'); return; }
 
-    // ── API Call ──
-    showToast('Registering...', 'info');
-    const apiResult = await AuthAPI.register({
-      firstName,
-      middleName,
-      lastName,
-      mobile,
-      email:        normalizedEmail,
-      password,
-      referralCode: referralCode.trim(),
-    });
-
-    if (!apiResult.ok) {
-      if (apiResult.isNetwork) {
-        showToast('No internet. Offline mode mein save ho raha hai...', 'info');
-      } else {
-        showToast(apiResult.message, 'error');
-        return;
-      }
-    } else {
-      if (apiResult.token) {
-        try { await AsyncStorage.setItem('auth_token', apiResult.token); } catch {}
-      }
-    }
-
-    // ── Local Save ──
+   // ── Local Save only (API call baad mein hoga Home pe) ──
     const ok = await UserStore.setPendingRegistration({
       name:               fullName,
       mobile:             mobile.trim(),

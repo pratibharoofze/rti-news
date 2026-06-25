@@ -20,7 +20,7 @@ export default function ViewMemberScreen({ route, navigation }) {
   const InfoRow = ({ icon, label, value }) => (
     <View style={ViewMemberStyles.infoRow}>
       <View style={ViewMemberStyles.infoIconWrap}>
-        <Feather name={icon} size={15} color="#2563eb" />
+        <Feather name={icon} size={15} color="#ea580c" />
       </View>
       <View style={ViewMemberStyles.infoTextWrap}>
         <Text style={ViewMemberStyles.infoLabel}>{label}</Text>

@@ -296,9 +296,14 @@ const EnquiryFormModal = ({ product, onClose, onSaved }) => {
           </View>
           <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
             <View style={styles.productInfoBox}>
-              <Text style={styles.productInfoLabel}>Product</Text>
-              <Text style={styles.productInfoValue}>{product.title}</Text>
-            </View>
+  <View style={{width:36,height:36,borderRadius:10,backgroundColor:'#fff',alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#fed7aa'}}>
+    <Ionicons name="cube-outline" size={18} color="#ea580c" />
+  </View>
+  <View style={{flex:1}}>
+    <Text style={styles.productInfoLabel}>Product</Text>
+    <Text style={styles.productInfoValue}>{product.title}</Text>
+  </View>
+</View>
             <Text style={styles.formLabel}>First Name</Text>
             <View style={styles.inputWrap}>
               <Ionicons name="person-outline" size={16} color="#94a3b8" />
@@ -706,11 +711,14 @@ cardMediaFallback: {
 
   modalBackdrop: {
     flex: 1, backgroundColor: 'rgba(15,23,42,0.55)',
-    justifyContent: 'flex-end', alignItems: 'center',
+    justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end',
+    alignItems: 'center',
   },
   detailSheet: {
     width: '100%', maxWidth: 520, maxHeight: '92%',
-    backgroundColor: '#f8fafc', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: '#f8fafc',
+    borderRadius: Platform.OS === 'web' ? 20 : 0,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
     overflow: 'hidden',
   },
   modalCloseBtn: {
@@ -802,18 +810,19 @@ modalProductImageFallback: {
   sheetTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', flex: 1 },
   formContent: { padding: 16, paddingBottom: 32 },
   productInfoBox: {
-    backgroundColor: '#f8fafc', borderRadius: 12, borderLeftWidth: 4,
-    borderLeftColor: '#0369a1', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
+    backgroundColor: '#fff7ed', borderRadius: 12, borderWidth: 1,
+    borderColor: '#fed7aa', paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
   },
-  productInfoLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600', marginBottom: 4 },
-  productInfoValue: { fontSize: 14, color: '#0f172a', fontWeight: '800' },
+  productInfoLabel: { fontSize: 11, color: '#ea580c', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 2 },
+productInfoValue: { fontSize: 15, color: '#0f172a', fontWeight: '800' },
   formLabel: { fontSize: 14, fontWeight: '700', color: '#334155', marginBottom: 8, marginTop: 14 },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12,
     backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 2,
   },
-  input: { flex: 1, fontSize: 15, color: '#0f172a', paddingVertical: 12 },
+  input: { flex: 1, fontSize: 15, color: '#0f172a', paddingVertical: 12, outlineStyle: 'none' },
   textArea: {
     minHeight: 90, textAlignVertical: 'top',
     borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12,

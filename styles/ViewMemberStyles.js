@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 const ViewMemberStyles = StyleSheet.create({
   // ── Root ──
@@ -12,8 +12,14 @@ const ViewMemberStyles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
+    ...(Platform.OS === 'web' && {
+      paddingHorizontal: 80,
+      paddingTop: 32,
+      maxWidth: 800,
+      width: '100%',
+      alignSelf: 'center',
+    }),
   },
-
   // ── Top Bar ──
   topBar: {
     flexDirection: 'row',
@@ -51,23 +57,26 @@ const ViewMemberStyles = StyleSheet.create({
     elevation: 3,
   },
   avatarCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#dbeafe',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#fff7ed',
+    borderWidth: 2,
+    borderColor: '#fed7aa',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   avatarInitials: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#1d4ed8',
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#ea580c',
   },
   memberName: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     color: '#0f172a',
+    letterSpacing: -0.3,
     marginBottom: 4,
   },
   nameRow: {
@@ -85,15 +94,17 @@ const ViewMemberStyles = StyleSheet.create({
     marginBottom: 12,
   },
   levelPill: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#fff7ed',
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
   },
   levelPillText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#2563eb',
+    color: '#ea580c',
   },
 
   // ── Detail Card ──
@@ -120,10 +131,12 @@ const ViewMemberStyles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   infoIconWrap: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     borderRadius: 10,
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,

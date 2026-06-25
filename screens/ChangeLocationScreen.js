@@ -15,9 +15,9 @@ function StepIndicator({ current, locState, locDistrict, onStepPress }) {
   const steps = [1, 2, 3];
 
   const canGoToStep = (s) => {
-    if (s === 1) return true;                          // Step 1 hamesha accessible
-    if (s === 2) return locState !== '';               // Step 2 tabhi jab state select ho
-    if (s === 3) return locState !== '' && locDistrict !== ''; // Step 3 tabhi jab dono select ho
+    if (s === 1) return true;
+    if (s === 2) return locState !== '';
+    if (s === 3) return locState !== '' && locDistrict !== '';
     return false;
   };
 
@@ -155,7 +155,6 @@ export default function ChangeLocationScreen({ navigation }) {
     }
   };
 
-  // Step indicator click handler
   const handleStepPress = (s) => {
     setSearch('');
     setStep(s);
@@ -214,11 +213,14 @@ export default function ChangeLocationScreen({ navigation }) {
             <View style={ws.searchWrap}>
               <Ionicons name="search-outline" size={16} color="#F97316" />
               <TextInput
-                style={ws.searchInput}
+                style={[ws.searchInput, { color: '#666666', WebkitTextFillColor: '#666666' }]}
                 placeholder={cfg.placeholder}
-                placeholderTextColor="#FBCFA0"
+                placeholderTextColor="#CCCCCC"
                 value={search}
                 onChangeText={setSearch}
+                autoComplete="off"
+                autoCorrect={false}
+                spellCheck={false}
               />
               {search.length > 0 && (
                 <TouchableOpacity onPress={() => setSearch('')}>
@@ -299,7 +301,7 @@ export default function ChangeLocationScreen({ navigation }) {
         <TextInput
           style={styles.searchInput}
           placeholder={cfg.placeholder}
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor="#CCCCCC"
           value={search}
           onChangeText={setSearch}
         />
@@ -362,9 +364,9 @@ const styles = StyleSheet.create({
   titleWrap:   { alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 },
   titleText:   { fontSize: 15, fontWeight: '600', color: '#334155', textAlign: 'center' },
   searchWrap:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16,
-                 backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0',
+                 backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0',
                  borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
-  searchInput: { flex: 1, fontSize: 14, color: '#0f172a' },
+  searchInput: { flex: 1, fontSize: 14, color: '#666666', backgroundColor: 'transparent' },
   list:        { paddingHorizontal: 16, paddingBottom: 30 },
   emptyWrap:   { alignItems: 'center', marginTop: 60, gap: 10 },
   emptyText:   { fontSize: 14, color: '#94a3b8' },
@@ -382,10 +384,16 @@ const ws = StyleSheet.create({
   backBtnText: { fontSize:13, fontWeight:'700', color:'#C8700F' },
   topBarTitle: { fontSize:15, fontWeight:'800', color:'#111111' },
 
-  centerWrap: { flex:1, alignItems:'center', justifyContent:'flex-start', paddingTop:40, paddingHorizontal:24 },
-  box:        { width:'100%', maxWidth:560, backgroundColor:'#ffffff', borderRadius:20, borderWidth:1, borderColor:'#FFE8D6', overflow:'hidden' },
-
-  // Step Indicator
+  centerWrap: { flex:1, alignItems:'center', justifyContent:'flex-start', paddingTop:20, paddingHorizontal:16 },
+  box: {
+    width:'95%',
+    maxWidth:1200,
+    backgroundColor:'#ffffff',
+    borderRadius:20,
+    borderWidth:1,
+    borderColor:'#FFE8D6',
+    overflow:'hidden'
+  },
   stepRow:            { flexDirection:'row', alignItems:'center', paddingHorizontal:32, paddingVertical:24 },
   stepCircle:         { width:34, height:34, borderRadius:17, backgroundColor:'#FFE8D6', alignItems:'center', justifyContent:'center' },
   stepCircleActive:   { backgroundColor:'#F97316' },
@@ -400,7 +408,7 @@ const ws = StyleSheet.create({
   titleText:  { fontSize:15, fontWeight:'700', color:'#111111', textAlign:'center', paddingHorizontal:24, marginBottom:16 },
 
   searchWrap:  { flexDirection:'row', alignItems:'center', gap:8, marginHorizontal:20, marginBottom:8, backgroundColor:'#FFF7ED', borderWidth:1.5, borderColor:'#FFE8D6', borderRadius:12, paddingHorizontal:14, paddingVertical:11 },
-  searchInput: { flex:1, fontSize:14, color:'#111111', padding:0 },
+  searchInput: { flex:1, fontSize:14, padding:0, backgroundColor: 'transparent', outlineStyle: 'none', WebkitTextFillColor: '#666666', color: '#666666' },
 
   list: { maxHeight:380 },
 

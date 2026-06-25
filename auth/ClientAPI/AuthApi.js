@@ -7,7 +7,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native'; 
 
-const BASE_URL = 'https://rtiapi.roofze.in/api';
+const BASE_URL = Platform.OS === 'web'
+  ? 'http://localhost:8082/api'
+  : 'https://rtiapi.roofze.in/api';
+
+const getAuthToken = async () => {
+  const asyncToken = await AsyncStorage.getItem('auth_token');
+  if (asyncToken) return asyncToken;
+
+  if (typeof localStorage !== 'undefined') {
+    return localStorage.getItem('auth_token');
+  }
+
+  return null;
+};
 
 // ─── Helper: FormData request ─────────────────────────────
 const postFormData = async (endpoint, fields = {}, token = null) => {
@@ -97,7 +110,7 @@ export const AuthAPI = {
 
       if (status === 200 || status === 201) {
         // Token save karo future requests ke liye
-        const token = data?.token || data?.access_token || null;
+        const token = data?.token || data?.access_token || data?.authorization?.token || null;
 if (token) {
   try {
     await AsyncStorage.setItem('auth_token', token);
@@ -150,14 +163,19 @@ if (token) {
       });
 
       if (status === 200 || status === 201) {
-        const token = data?.token || data?.access_token || null;
+        const token = data?.token || data?.access_token || data?.authorization?.token || null;
+        console.log('[AuthAPI.login] Response data:', JSON.stringify(data));
+        console.log('[AuthAPI.login] Token found:', token);
         if (token) {
           try {
             await AsyncStorage.setItem('auth_token', token);
             if (typeof localStorage !== 'undefined') {
               localStorage.setItem('auth_token', token);
             }
-          } catch {}
+            console.log('[AuthAPI.login] Token saved successfully');
+          } catch (e) {
+            console.warn('[AuthAPI.login] Token save failed:', e);
+          }
         }
         return {
           ok:      true,
@@ -277,7 +295,10 @@ if (token) {
    */
   updateState: async ({ state, district, taluka }) => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await getAuthToken();
+      if (!token) {
+        return { ok: false, isAuth: true, message: 'Not logged in.' };
+      }
 
       const { status, data } = await postFormData('/state', {
         state:    state    || '',
@@ -314,7 +335,7 @@ if (token) {
  */
 getProfile: async () => {
   try {
-    const token = await AsyncStorage.getItem('auth_token');
+    const token = await getAuthToken();
     if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
     
     const { status, data } = await getJSON('/profile', token);
@@ -335,7 +356,7 @@ getProfile: async () => {
  */
 uploadProfileImage: async (imageUri) => {
   try {
-    const token = await AsyncStorage.getItem('auth_token');
+    const token = await getAuthToken();
     if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
 
     const formData = new FormData();
@@ -381,7 +402,7 @@ uploadProfileImage: async (imageUri) => {
  */
 updateProfileImage: async (imageUri) => {
   try {
-    const token = await AsyncStorage.getItem('auth_token');
+    const token = await getAuthToken();
     if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
 
     const formData = new FormData();
@@ -424,7 +445,7 @@ updateProfileImage: async (imageUri) => {
  */
 updateProfile: async ({ name, village, bio, contact_number }) => {
   try {
-    const token = await AsyncStorage.getItem('auth_token');
+    const token = await getAuthToken();
     if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
 
     const formData = new FormData();
@@ -467,7 +488,7 @@ updateProfile: async ({ name, village, bio, contact_number }) => {
    */
   getReferrals: async () => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
+      const token = await getAuthToken();
       if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
 
       const { status, data } = await getJSON('/referrals', token);

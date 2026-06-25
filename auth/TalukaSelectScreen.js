@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserStore } from '../store/UserStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/ToastProvider';
@@ -195,6 +196,44 @@ export default function TalukaSelectScreen({ navigation, route }) {
     });
   };
 
+  const syncRegistrationLocation = async (pending, talukaValue = '') => {
+    try {
+      const apiResult = await AuthAPI.register({
+        firstName: (pending.name || '').split(' ')[0] || '',
+        middleName: '',
+        lastName: (pending.name || '').split(' ').slice(1).join(' ') || '',
+        mobile: pending.mobile || '',
+        email: pending.email,
+        password: pending.password,
+        referralCode: pending.referral_code_used || '',
+      });
+
+      if (!apiResult.ok) {
+        console.warn('[TalukaSelect] Register API failed:', apiResult.message);
+        return;
+      }
+
+      if (apiResult.token) {
+        await AsyncStorage.setItem('auth_token', apiResult.token);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('auth_token', apiResult.token);
+        }
+      }
+
+      const stateResult = await AuthAPI.updateState({
+        state: selectedState,
+        district: selectedDistrict,
+        taluka: talukaValue,
+      });
+
+      if (!stateResult.ok) {
+        console.warn('[TalukaSelect] State API failed:', stateResult.message);
+      }
+    } catch (error) {
+      console.warn('[TalukaSelect] API sync failed:', error);
+    }
+  };
+
   const handleComplete = async () => {
     if (!taluka.trim()) {
       showPopup('Please select or enter your taluka', 'error');
@@ -227,12 +266,7 @@ export default function TalukaSelectScreen({ navigation, route }) {
       await UserStore.completeLocationSetup(pending.email, selectedState, selectedDistrict, talukaValue);
       await UserStore.clearPendingRegistration();
 
-      // API update
-      AuthAPI.updateState({
-        state:    selectedState,
-        district: selectedDistrict,
-        taluka:   talukaValue,
-      }).catch(() => {});
+      syncRegistrationLocation(pending, talukaValue);
 
       goToHome(pending.name);
       return;
@@ -278,6 +312,9 @@ export default function TalukaSelectScreen({ navigation, route }) {
       login();
       await UserStore.completeLocationSetup(pending.email, selectedState, selectedDistrict, '');
       await UserStore.clearPendingRegistration();
+
+      syncRegistrationLocation(pending, '');
+
       goToHome(pending.name);
       return;
     }

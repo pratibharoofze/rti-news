@@ -16,6 +16,13 @@ const LiveStreamingStyles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 110,
+    ...(Platform.OS === 'web' && {
+      paddingHorizontal: 32,
+      paddingTop: 24,
+      maxWidth: 1200,
+      width: '100%',
+      alignSelf: 'center',
+    }),
   },
 
   // ── Hero Card ──
@@ -26,6 +33,11 @@ const LiveStreamingStyles = StyleSheet.create({
     marginBottom: 14,
     elevation: 3,
     boxShadow: '0px 8px 18px rgba(15, 23, 42, 0.06)',
+    ...(Platform.OS === 'web' && {
+      padding: 28,
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+    }),
   },
   heroEyebrow: {
     fontSize: 12,

@@ -331,18 +331,27 @@ const PaymentStyles = StyleSheet.create({
   },
 
   // ── Status Modal ──
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.45)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    paddingBottom: 40,
-  },
+  // ── Status Modal ──
+modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(15,23,42,0.45)',
+  justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end',
+  alignItems: Platform.OS === 'web' ? 'center' : 'stretch',
+},
+modalCard: {
+  backgroundColor: '#ffffff',
+  borderRadius: Platform.OS === 'web' ? 24 : 0,
+  borderTopLeftRadius: 28,
+  borderTopRightRadius: 28,
+  padding: 24,
+  paddingBottom: 40,
+  ...(Platform.OS === 'web' && {
+    width: '90%',
+    maxWidth: 480,
+    maxHeight: '85vh',
+    overflowY: 'auto',
+  }),
+},
   modalHandle: {
     width: 36,
     height: 4,

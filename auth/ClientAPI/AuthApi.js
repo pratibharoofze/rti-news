@@ -7,7 +7,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native'; 
 
-const BASE_URL = Platform.OS === 'web'
+const BASE_URL = typeof window !== 'undefined' && window.location?.hostname === 'localhost'
   ? 'http://localhost:8082/api'
   : 'https://rtiapi.roofze.in/api';
 
@@ -97,7 +97,7 @@ export const AuthAPI = {
    */
   register: async ({ firstName, middleName = '', lastName, mobile, email, password, referralCode = '' }) => {
     try {
-      const { status, data } = await postFormData('/register', {
+      const { status, data } = await postJSON('/register', {
         firstname:     firstName.trim(),
         middlename:    middleName.trim(),
         lastname:      lastName.trim(),
@@ -157,7 +157,7 @@ if (token) {
    */
   login: async ({ email, password }) => {
     try {
-      const { status, data } = await postFormData('/login', {
+      const { status, data } = await postJSON('/login', {
         email:    email.trim().toLowerCase(),
         password: password,
       });
@@ -293,9 +293,9 @@ if (token) {
    * Headers: Authorization: Bearer {token}
    * Body: state, district, taluka
    */
-  updateState: async ({ state, district, taluka }) => {
+  updateState: async ({ state, district, taluka }, tokenOverride = null) => {
     try {
-      const token = await getAuthToken();
+      const token = tokenOverride || await getAuthToken();
       if (!token) {
         return { ok: false, isAuth: true, message: 'Not logged in.' };
       }
@@ -509,6 +509,78 @@ updateProfile: async ({ name, village, bio, contact_number }) => {
     }
   },
 
+  // ── NEWS API ────────────────────────────────────────────
+
+  /**
+   * Create News
+   * POST /news
+   * Body (form-data): tittle, sub_tittle, description, report_type, media_type, media (file)
+   * Headers: Authorization: Bearer {token}
+   * media_type: 0 = None, 1 = Image, 2 = Video, 3 = File  (confirm with backend if unsure)
+   */
+  createNews: async ({
+    title,
+    subTitle = '',
+    description,
+    reportType,
+    mediaType = 0,
+    mediaUri = null,
+    mediaName = 'media',
+    mediaMime = '',
+  }) => {
+    try {
+      console.log("Received mediaUri:", mediaUri);
+      const token = await getAuthToken();
+      if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
+
+      const formData = new FormData();
+      formData.append('tittle', title || '');
+      formData.append('sub_tittle', subTitle || '');
+      formData.append('description', description || '');
+      formData.append('report_type', reportType || '');
+      formData.append('media_type', String(mediaType));
+
+      if (mediaUri) {
+        if (Platform.OS === 'web') {
+          const fileRes = await fetch(mediaUri);
+          const blob = await fileRes.blob();
+          formData.append('media', blob, mediaName);
+        } else {
+          formData.append('media', {
+            uri: mediaUri,
+            type: mediaMime || 'application/octet-stream',
+            name: mediaName,
+          });
+        }
+      }
+
+      const res = await fetch(`${BASE_URL}/news`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+          // Content-Type intentionally omit — browser/RN sets multipart boundary
+        },
+        body: formData,
+      });
+
+      const json = await res.json();
+
+      if (res.status === 200 || res.status === 201) {
+        return { ok: true, data: json, news: json?.news || json?.data || json };
+      }
+      if (res.status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
+      if (res.status === 422) {
+        const errors = json?.errors || {};
+        const firstError = Object.values(errors).flat()[0] || json?.message || 'Validation failed.';
+        return { ok: false, message: firstError, errors };
+      }
+      return { ok: false, message: json?.message || `Server error (${res.status}).` };
+    } catch (err) {
+      console.error('[AuthAPI.createNews] Error:', err);
+      return { ok: false, isNetwork: true, message: 'Network error.' };
+    }
+  },
 
 };
 

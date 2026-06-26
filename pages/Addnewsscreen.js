@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
+import { AuthAPI } from '../auth/ClientAPI/AuthApi';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -418,6 +419,7 @@ export default function AddNewsScreen({ navigation }) {
   const [reportPickerVisible, setReportPickerVisible] = useState(false);
   const [rolePickerVisible, setRolePickerVisible] = useState(false);
 
+  const videoOriginalUriRef = useRef(null);
   const titleEditorRef = useRef(null);
   const titleHtmlRef = useRef('');
   const subtitleEditorRef = useRef(null);
@@ -621,6 +623,7 @@ export default function AddNewsScreen({ navigation }) {
 
         if (!validateVideoDuration(asset.duration)) return;
 
+        videoOriginalUriRef.current = asset.uri;
         const persisted = await storeWebUriToIdbMedia(asset.uri, { prefix: 'video', mimeType: asset.mimeType || '' });
         setVideo(persisted);
 
@@ -710,6 +713,53 @@ export default function AddNewsScreen({ navigation }) {
     if (!user) {
       showToast('Login again.', 'error');
       setSaving(false);
+      return;
+    }
+
+    // ── Map mediaType string to backend's numeric code ──
+    const mediaTypeMap = { None: 0, Image: 1, Video: 2, File: 3 };
+    const mediaTypeNum = mediaTypeMap[mediaType] ?? 0;
+
+    // ── Pick the single media file to send ──
+    let mediaUriToSend = null;
+    let mediaNameToSend = 'media';
+    let mediaMimeToSend = '';
+
+    if (mediaType === 'Image' && images.length > 0) {
+      mediaUriToSend = images[0];
+      mediaNameToSend = 'image.jpg';
+      mediaMimeToSend = 'image/jpeg';
+    } else if (mediaType === 'Video' && video) {
+      mediaUriToSend = Platform.OS === 'web' && videoOriginalUriRef.current
+        ? videoOriginalUriRef.current
+        : video;
+      mediaNameToSend = 'video.mp4';
+      mediaMimeToSend = 'video/mp4';
+    } else if (mediaType === 'File' && attachment) {
+      mediaUriToSend = attachment.uri;
+      mediaNameToSend = attachment.name || 'attachment';
+      mediaMimeToSend = attachment.mimeType || '';
+    }
+
+    console.log("video:", video);
+console.log("videoOriginalUriRef:", videoOriginalUriRef.current);
+console.log("mediaUriToSend:", mediaUriToSend);
+console.log("Platform:", Platform.OS);
+    // ── Call the real backend API ──
+    const apiResult = await AuthAPI.createNews({
+      title: titlePlain,
+      subTitle: subtitlePlain,
+      description: descriptionPlain,
+      reportType: reportType,
+      mediaType: mediaTypeNum,
+      mediaUri: mediaUriToSend,
+      mediaName: mediaNameToSend,
+      mediaMime: mediaMimeToSend,
+    });
+
+    if (!apiResult.ok) {
+      setSaving(false);
+      showToast(apiResult.message || 'Failed to submit news to server.', 'error');
       return;
     }
 

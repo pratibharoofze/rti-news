@@ -213,18 +213,23 @@ export default function TalukaSelectScreen({ navigation, route }) {
         return;
       }
 
-      if (apiResult.token) {
-        await AsyncStorage.setItem('auth_token', apiResult.token);
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem('auth_token', apiResult.token);
-        }
+      const token = apiResult.token || apiResult.data?.authorization?.token || null;
+
+      if (!token) {
+        console.warn('[TalukaSelect] No token in register response');
+        return;
+      }
+
+      await AsyncStorage.setItem('auth_token', token);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('auth_token', token);
       }
 
       const stateResult = await AuthAPI.updateState({
         state: selectedState,
         district: selectedDistrict,
         taluka: talukaValue,
-      });
+      }, token);
 
       if (!stateResult.ok) {
         console.warn('[TalukaSelect] State API failed:', stateResult.message);
@@ -233,7 +238,6 @@ export default function TalukaSelectScreen({ navigation, route }) {
       console.warn('[TalukaSelect] API sync failed:', error);
     }
   };
-
   const handleComplete = async () => {
     if (!taluka.trim()) {
       showPopup('Please select or enter your taluka', 'error');

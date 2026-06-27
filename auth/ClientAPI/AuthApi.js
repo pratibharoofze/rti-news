@@ -582,6 +582,61 @@ updateProfile: async ({ name, village, bio, contact_number }) => {
     }
   },
 
+  /**
+   * Like / Unlike a news item
+   * POST /likes
+   * Body (form-data): user_id, news_id
+   * Headers: Authorization: Bearer {token}
+   * Response: { message, like: { like: 1|0, is_deleted: 0|1, ... } }
+   */
+  likeNews: async ({ userId, newsId }) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
+
+      const { status, data } = await postFormData('/likes', {
+        user_id: String(userId),
+        news_id: String(newsId),
+      }, token);
+
+      if (status === 200 || status === 201) {
+        // like: 1 = liked, is_deleted: 1 = unliked (toggle response)
+        const liked = data?.like?.like === 1 && data?.like?.is_deleted !== 1;
+        return { ok: true, liked, data };
+      }
+      if (status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
+      return { ok: false, message: data?.message || `Server error (${status}).` };
+    } catch (err) {
+      console.error('[AuthAPI.likeNews] Error:', err);
+      return { ok: false, isNetwork: true, message: 'Network error.' };
+    }
+  },
+
+  /**
+   * Get news counts (likes, comments, shares, views)
+   * POST /counts
+   * Body (form-data): news_id
+   * Headers: Authorization: Bearer {token}
+   */
+  getNewsCounts: async ({ newsId }) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
+
+      const { status, data } = await postFormData('/counts', {
+        news_id: String(newsId),
+      }, token);
+
+      if (status === 200 || status === 201) {
+        return { ok: true, counts: data?.counts || data?.data || data };
+      }
+      if (status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
+      return { ok: false, message: data?.message || `Server error (${status}).` };
+    } catch (err) {
+      console.error('[AuthAPI.getNewsCounts] Error:', err);
+      return { ok: false, isNetwork: true, message: 'Network error.' };
+    }
+  },
 };
 
 export { postFormData, postJSON, getJSON };

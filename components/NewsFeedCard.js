@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+// Top pe import add karo
 import {
   View, Text, Image, TouchableOpacity, StyleSheet,
   Platform, Share, TextInput, KeyboardAvoidingView, Alert, Clipboard
@@ -16,6 +17,7 @@ import { isValidImageUrl, buildPlaceholderImage, getLocalizedCategoryLabel, getL
 import { isIdbMediaUri, resolveIdbMediaUriToObjectUrl } from '../utils/webMediaStore';
 import { safePause, safePlay } from '../utils/videoPlayerSafe';
 import { UserStore } from '../store/UserStore';
+import { AuthAPI } from '../auth/ClientAPI/AuthApi';
 import { useAuth } from '../contexts/AuthContext';
 import { getAdRedirectMeta, openAdRedirect } from '../utils/adRedirect';
 
@@ -642,16 +644,25 @@ export default function NewsFeedCard({
     setLikesCount((c) => c + (newLiked ? 1 : -1));
     await setLikedId(story.id, newLiked);
     try {
-      const result = await UserStore.updateNewsFeedItem(story.id, 'like');
+      const user = await UserStore.getCurrentUser();
+      const userId = user?.id || user?.user_id;
+      if (!userId) throw new Error('No user id');
+
+      const result = await AuthAPI.likeNews({ userId, newsId: story.id });
+
       if (!result?.ok) {
         setIsLiked(prev);
         setLikesCount((c) => c + (prev ? 1 : -1));
         await setLikedId(story.id, prev);
         return;
       }
-      if (typeof result.liked === 'boolean') {
-        setIsLiked(result.liked);
-        await setLikedId(story.id, result.liked);
+
+      setIsLiked(result.liked);
+      await setLikedId(story.id, result.liked);
+
+      const countsResult = await AuthAPI.getNewsCounts({ newsId: story.id });
+      if (countsResult?.ok && countsResult.counts?.likes !== undefined) {
+        setLikesCount(Number(countsResult.counts.likes));
       }
     } catch {
       setIsLiked(prev);

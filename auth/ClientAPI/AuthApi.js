@@ -5,11 +5,118 @@
 // ─────────────────────────────────────────────────────────
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native'; 
+import { Platform } from 'react-native';
 
-const BASE_URL = typeof window !== 'undefined' && window.location?.hostname === 'localhost'
-  ? 'http://localhost:8082/api'
-  : 'https://rtiapi.roofze.in/api';
+const BASE_URL = 'https://rtiapi.roofze.in/api';
+const REQUEST_TIMEOUT_MS = 30000;
+
+const redactHeaders = (headers = {}) => {
+  const safe = { ...headers };
+  if (safe.Authorization) safe.Authorization = 'Bearer <redacted>';
+  return safe;
+};
+
+const serializeError = (err) => ({
+  name: err?.name,
+  message: err?.message,
+  stack: err?.stack,
+  cause: err?.cause ? String(err.cause) : undefined,
+});
+
+const summarizePayload = (payload) => {
+  if (!payload) return null;
+  if (typeof FormData !== 'undefined' && payload instanceof FormData) {
+    return '[FormData payload]';
+  }
+  if (typeof payload === 'string') return payload;
+  try {
+    return JSON.stringify(payload);
+  } catch {
+    return '[Unserializable payload]';
+  }
+};
+
+const readResponseBody = async (response, context) => {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    const rawBody = text.slice(0, 1000);
+    console.error('[AuthAPI] Response JSON parse failed:', {
+      ...context,
+      status: response.status,
+      contentType: response.headers?.get?.('content-type'),
+      rawBody,
+      error: serializeError(err),
+    });
+    return {
+      message: rawBody || `Unexpected non-JSON response (${response.status}).`,
+      rawBody,
+      parseError: serializeError(err),
+    };
+  }
+};
+
+const fetchWithDebug = async (endpoint, options = {}, debugBody = null) => {
+  const url = `${BASE_URL}${endpoint}`;
+  const startedAt = Date.now();
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = controller
+    ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+    : null;
+
+  const context = {
+    url,
+    method: options.method || 'GET',
+    platform: Platform.OS,
+    timeoutMs: REQUEST_TIMEOUT_MS,
+  };
+
+  console.log('[AuthAPI] Request:', {
+    ...context,
+    headers: redactHeaders(options.headers),
+    body: summarizePayload(debugBody),
+  });
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller?.signal,
+    });
+    const data = await readResponseBody(response, context);
+    const result = {
+      status: response.status,
+      ok: response.ok,
+      contentType: response.headers?.get?.('content-type'),
+      durationMs: Date.now() - startedAt,
+      data,
+    };
+
+    console.log('[AuthAPI] Response:', {
+      ...context,
+      status: result.status,
+      ok: result.ok,
+      contentType: result.contentType,
+      durationMs: result.durationMs,
+      body: result.data,
+    });
+
+    return result;
+  } catch (err) {
+    const isTimeout = err?.name === 'AbortError';
+    console.error('[AuthAPI] Fetch failed:', {
+      ...context,
+      durationMs: Date.now() - startedAt,
+      isTimeout,
+      error: serializeError(err),
+    });
+    throw err;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
 
 const getAuthToken = async () => {
   const asyncToken = await AsyncStorage.getItem('auth_token');
@@ -31,17 +138,18 @@ const postFormData = async (endpoint, fields = {}, token = null) => {
     }
   });
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: formData,
-  });
+  const headers = {
+    Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 
-  const json = await response.json();
-  return { status: response.status, data: json };
+  const response = await fetchWithDebug(endpoint, {
+    method: 'POST',
+    headers,
+    body: formData,
+  }, formData);
+
+  return { status: response.status, data: response.data };
 };
 
 // ─── Helper: JSON request ─────────────────────────────────
@@ -52,14 +160,13 @@ const postJSON = async (endpoint, body = {}, token = null) => {
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const response = await fetchWithDebug(endpoint, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
-  });
+  }, body);
 
-  const json = await response.json();
-  return { status: response.status, data: json };
+  return { status: response.status, data: response.data };
 };
 
 const getJSON = async (endpoint, token = null) => {
@@ -71,18 +178,12 @@ const getJSON = async (endpoint, token = null) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  console.log('URL:', `${BASE_URL}${endpoint}`);
-  console.log('Headers:', headers);
-
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const response = await fetchWithDebug(endpoint, {
     method: 'GET',
     headers,
   });
 
-  console.log('Status:', response.status);
-
-  const json = await response.json();
-  return { status: response.status, data: json };
+  return { status: response.status, data: response.data };
 };
 
 // ─────────────────────────────────────────────────────────
@@ -345,7 +446,7 @@ getProfile: async () => {
     }
     if (status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
     return { ok: false, message: data?.message || 'Unable to fetch profile.' };
-  } catch (err) {
+  } catch (_err) {
     return { ok: false, isNetwork: true, message: 'Network error.' };
   }
 },
@@ -391,7 +492,7 @@ uploadProfileImage: async (imageUri) => {
     }
     if (res.status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
     return { ok: false, message: json?.message || 'Upload failed.' };
-  } catch (err) {
+  } catch (_err) {
     return { ok: false, isNetwork: true, message: 'Network error.' };
   }
 },
@@ -434,7 +535,7 @@ updateProfileImage: async (imageUri) => {
     }
     if (res.status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
     return { ok: false, message: json?.message || 'Update failed.' };
-  } catch (err) {
+  } catch (_err) {
     return { ok: false, isNetwork: true, message: 'Network error.' };
   }
 },
@@ -474,7 +575,7 @@ updateProfile: async ({ name, village, bio, contact_number }) => {
       return { ok: false, message: firstError, errors };
     }
    return { ok: false, message: json?.message || 'Update failed.' };
-  } catch (err) {
+  } catch (_err) {
     return { ok: false, isNetwork: true, message: 'Network error.' };
   }
 },
@@ -608,6 +709,191 @@ updateProfile: async ({ name, village, bio, contact_number }) => {
       return { ok: false, message: data?.message || `Server error (${status}).` };
     } catch (err) {
       console.error('[AuthAPI.likeNews] Error:', err);
+      return { ok: false, isNetwork: true, message: 'Network error.' };
+    }
+  },
+
+  /**
+   * Get News List (Index)
+   * GET /news
+   * Headers: Authorization: Bearer {token}
+   */
+  getNewsList: async (params = {}) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
+
+      // Agar query params bhejne ho (page, filter etc) to yaha build karo
+      const query = new URLSearchParams(params).toString();
+      const endpoint = query ? `/news?${query}` : '/news';
+
+      const { status, data } = await getJSON(endpoint, token);
+
+      if (status === 200 || status === 201) {
+        return { ok: true, news: data?.data || data?.news || data };
+      }
+      if (status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
+      return { ok: false, message: data?.message || `Server error (${status}).` };
+    } catch (err) {
+      console.error('[AuthAPI.getNewsList] Error:', err);
+      return { ok: false, isNetwork: true, message: 'Network error.' };
+    }
+  },
+
+  /**
+   * Get single News by ID (Show)
+   * GET /news/{id}
+   * Headers: Authorization: Bearer {token}
+   */
+  getNewsById: async (newsId) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
+
+      const { status, data } = await getJSON(`/news/${newsId}`, token);
+
+      if (status === 200 || status === 201) {
+        return { ok: true, news: data?.data || data?.news || data };
+      }
+      if (status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
+      if (status === 404) return { ok: false, message: 'News not found.' };
+      return { ok: false, message: data?.message || `Server error (${status}).` };
+    } catch (err) {
+      console.error('[AuthAPI.getNewsById] Error:', err);
+      return { ok: false, isNetwork: true, message: 'Network error.' };
+    }
+  },
+
+  /**
+   * Update News
+   * POST /news/{id}  (Laravel mein _method: PUT bhejna form-data ke saath)
+   * Body (form-data): tittle, sub_tittle, description, report_type, media_type, media (file, optional)
+   * Headers: Authorization: Bearer {token}
+   */
+  updateNews: async (newsId, {
+    title,
+    subTitle = '',
+    description,
+    reportType,
+    mediaType = 0,
+    mediaUri = null,
+    mediaName = 'media',
+    mediaMime = '',
+  }) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
+
+      const formData = new FormData();
+      formData.append('_method', 'PUT'); // Laravel form-data + PUT trick
+      formData.append('tittle', title || '');
+      formData.append('sub_tittle', subTitle || '');
+      formData.append('description', description || '');
+      formData.append('report_type', reportType || '');
+      formData.append('media_type', String(mediaType));
+
+      if (mediaUri) {
+        if (Platform.OS === 'web') {
+          const fileRes = await fetch(mediaUri);
+          const blob = await fileRes.blob();
+          formData.append('media', blob, mediaName);
+        } else {
+          formData.append('media', {
+            uri: mediaUri,
+            type: mediaMime || 'application/octet-stream',
+            name: mediaName,
+          });
+        }
+      }
+
+      const res = await fetch(`${BASE_URL}/news/${newsId}`, {
+        method: 'POST', // _method override PUT ke liye
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const json = await res.json();
+
+      if (res.status === 200 || res.status === 201) {
+        return { ok: true, data: json, news: json?.news || json?.data || json };
+      }
+      if (res.status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
+      if (res.status === 404) return { ok: false, message: 'News not found.' };
+      if (res.status === 422) {
+        const errors = json?.errors || {};
+        const firstError = Object.values(errors).flat()[0] || json?.message || 'Validation failed.';
+        return { ok: false, message: firstError, errors };
+      }
+      return { ok: false, message: json?.message || `Server error (${res.status}).` };
+    } catch (err) {
+      console.error('[AuthAPI.updateNews] Error:', err);
+      return { ok: false, isNetwork: true, message: 'Network error.' };
+    }
+  },
+
+  /**
+   * Update News Status
+   * POST /news/{id}/status  (ya PUT, backend route confirm kar lena)
+   * Body (form-data): status
+   * Headers: Authorization: Bearer {token}
+   */
+  updateNewsStatus: async (newsId, status) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
+
+      const { status: resStatus, data } = await postFormData(`/news/${newsId}/status`, {
+        status: status,
+      }, token);
+
+      if (resStatus === 200 || resStatus === 201) {
+        return { ok: true, message: data?.message || 'Status updated successfully!', data };
+      }
+      if (resStatus === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
+      if (resStatus === 404) return { ok: false, message: 'News not found.' };
+      if (resStatus === 422) {
+        const errors = data?.errors || {};
+        const firstError = Object.values(errors).flat()[0] || data?.message || 'Validation failed.';
+        return { ok: false, message: firstError, errors };
+      }
+      return { ok: false, message: data?.message || `Server error (${resStatus}).` };
+    } catch (err) {
+      console.error('[AuthAPI.updateNewsStatus] Error:', err);
+      return { ok: false, isNetwork: true, message: 'Network error.' };
+    }
+  },
+
+  /**
+   * Delete News (Destroy)
+   * DELETE /news/{id}
+   * Headers: Authorization: Bearer {token}
+   */
+  deleteNews: async (newsId) => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return { ok: false, isAuth: true, message: 'Not logged in.' };
+
+      const response = await fetch(`${BASE_URL}/news/${newsId}`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const json = await response.json();
+
+      if (response.status === 200 || response.status === 201 || response.status === 204) {
+        return { ok: true, message: json?.message || 'News deleted successfully!', data: json };
+      }
+      if (response.status === 401) return { ok: false, isAuth: true, message: 'Session expired.' };
+      if (response.status === 404) return { ok: false, message: 'News not found.' };
+      return { ok: false, message: json?.message || `Server error (${response.status}).` };
+    } catch (err) {
+      console.error('[AuthAPI.deleteNews] Error:', err);
       return { ok: false, isNetwork: true, message: 'Network error.' };
     }
   },

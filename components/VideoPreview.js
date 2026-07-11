@@ -29,7 +29,13 @@ export default function VideoPreview({ uri, style, contentFit = 'cover' }) {
       if (Platform.OS !== 'web') { setResolved(null); return; }
       if (!isIdbMediaUri(uri)) { setResolved(null); return; }
       const next = await resolveIdbMediaUriToObjectUrl(uri);
-      if (!alive) return;
+      // Component pehle hi unmount ho chuka / uri badal chuka —
+      // is blob ko turant revoke karo warna wo kabhi track/revoke
+      // nahi hoga aur "ghost" blob URL ban ke reh jayega.
+      if (!alive) {
+        if (next) { try { URL.revokeObjectURL(next); } catch {} }
+        return;
+      }
       objectUrl = next;
       setResolved(next);
     })();

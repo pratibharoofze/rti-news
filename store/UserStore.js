@@ -8,6 +8,7 @@ import {
   YOUTUBE_RTMPS_URL,
   YOUTUBE_STREAM_KEY_PLACEHOLDER,
 } from '../constants/liveStreamingConfig';
+import { AuthAPI } from '../auth/ClientAPI/AuthApi';
 
 const USERS_KEY        = 'users';
 const OTP_KEY          = 'mock_reset_otps';
@@ -484,24 +485,6 @@ const defaultActiveSubscription = {
   duration:  '30 Days',
 };
 
-const defaultNewsFeed = [
-  {
-    id: 'news-1', title: 'RTI Awareness Drive Expanded Across Districts',
-    description: 'Local teams launched a wider awareness campaign to help citizens file RTI queries more efficiently.',
-    media: 'awareness-drive.jpg', category: 'Awareness', date: '2026-03-24', views: 128, shares: 14,
-  },
-  {
-    id: 'news-2', title: 'Digital Filing Support Desk Now Live',
-    description: 'Support desks are helping first-time applicants submit RTI requests and track updates online.',
-    media: 'support-desk.mp4', category: 'Updates', date: '2026-03-22', views: 96, shares: 9,
-  },
-  {
-    id: 'news-3', title: 'State-Level Transparency Workshop Announced',
-    description: 'A new workshop series will train reporters and volunteers on documentation and public records access.',
-    media: 'transparency-workshop.jpg', category: 'Events', date: '2026-03-19', views: 72, shares: 6,
-  },
-];
-
 const defaultEPapers = [
   { id: 'epaper-1', title: 'RTI News - 24 March 2026', pdf_file: 'https://rti-news.local/papers/rti-news-2026-03-24.pdf', publish_date: '2026-03-24', views: 54, downloads: 18 },
   { id: 'epaper-2', title: 'RTI News - 23 March 2026', pdf_file: 'https://rti-news.local/papers/rti-news-2026-03-23.pdf', publish_date: '2026-03-23', views: 47, downloads: 13 },
@@ -692,6 +675,44 @@ const normalizeNewsFeed = (items = []) => {
     likes:       Number(item.likes  || 0),
     comments:    Number(item.comments ?? (Array.isArray(item.comments_list) ? item.comments_list.length : 0)),
   }));
+};
+
+// ─────────────────────────────────────────────────────────
+// Backend /news response ko feed item shape me convert karta hai.
+// Laravel field names (tittle, sub_tittle, report_type, media_type, media)
+// ko app ke expected fields (title, description, category, mediaType) me map karta hai.
+// ─────────────────────────────────────────────────────────
+const mapApiNewsToFeedItem = (apiItem = {}) => {
+  const author = apiItem.user || apiItem.author || {};
+  const mediaTypeRaw = apiItem.media_type ?? apiItem.mediaType ?? 0;
+  const mediaTypeMap = { 0: 'None', 1: 'Image', 2: 'Video', 3: 'File' };
+  const mediaType = mediaTypeMap[Number(mediaTypeRaw)] || 'None';
+  const mediaUrl = apiItem.media_url || apiItem.media || '';
+
+  return {
+    id: apiItem.id ?? apiItem._id,
+    createdBy: apiItem.user_id || apiItem.created_by || author.email || '',
+    title: apiItem.tittle || apiItem.title || '',
+    subtitle: apiItem.sub_tittle || apiItem.subtitle || '',
+    description: apiItem.description || '',
+    category: apiItem.report_type || apiItem.category || 'General',
+    mediaType,
+    media: mediaType === 'Image' ? undefined : mediaUrl,
+    images: mediaType === 'Image' && mediaUrl ? [{ uri: mediaUrl }] : [],
+    video: mediaType === 'Video' && mediaUrl ? { uri: mediaUrl } : null,
+    file: mediaType === 'File' && mediaUrl ? { uri: mediaUrl, name: apiItem.media_name || 'file' } : null,
+    author_name: author.name || apiItem.author_name || 'RTI News',
+    author_profile_image: author.profile_image || '',
+    author_has_blue_tick: Boolean(author.has_blue_tick),
+    author_is_premium: Boolean(author.is_premium),
+    author_is_subscriber: Boolean(author.is_subscriber),
+    date: apiItem.created_at || apiItem.date || '',
+    views: Number(apiItem.views || 0),
+    shares: Number(apiItem.shares || 0),
+    likes: Number(apiItem.likes || apiItem.likes_count || 0),
+    comments: Number(apiItem.comments || apiItem.comments_count || 0),
+    liked_by: Array.isArray(apiItem.liked_by) ? apiItem.liked_by : [],
+  };
 };
 
 const stripHtmlToText = (value = '') => cleanRichTextToPlain(value);
@@ -2110,7 +2131,21 @@ purchaseQuizSubscription: async (plan) => {
         : null;
       const currentUser = await UserStore.getCurrentUser();
       const allUsers = await UserStore.getAllUsers();
-      const defaultItems = normalizeNewsFeed(defaultNewsFeed).map((item) => ({
+
+      // ── Real news ab yahan se aati hai (dummy defaultNewsFeed hata diya) ──
+      let apiItems = [];
+      try {
+        const apiRes = await AuthAPI.getNewsList();
+        if (apiRes.ok && Array.isArray(apiRes.news)) {
+          apiItems = apiRes.news;
+        } else if (apiRes.ok && Array.isArray(apiRes.news?.data)) {
+          apiItems = apiRes.news.data; // paginated Laravel response ({data:[...], ...})
+        }
+      } catch (e) {
+        console.warn('[UserStore.getNewsFeedSummary] getNewsList failed:', e);
+      }
+
+      const defaultItems = normalizeNewsFeed(apiItems.map(mapApiNewsToFeedItem)).map((item) => ({
         ...item,
         author_name: item.author_name || 'RTI News',
         author_profile_image: item.author_profile_image || '',

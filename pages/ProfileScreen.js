@@ -219,6 +219,7 @@ export default function ProfileScreen({ navigation }) {
     const refCode = user.my_referral_code || generateReferralCode(user.email);
 
     const profileData = {
+      account_email: user.email || '',
       name: user.name || '',
       email: user.email || '',
       village: user.village || '',
@@ -239,6 +240,9 @@ export default function ProfileScreen({ navigation }) {
       appointment_letter_status: user.appointment_letter_status || '',
       referral_count: user.referral_count || 0,
       referral_code: refCode,
+      profile_update_request: user.profile_update_request || null,
+      profile_update_requests: Array.isArray(user.profile_update_requests) ? user.profile_update_requests : [],
+      notifications: Array.isArray(user.notifications) ? user.notifications : [],
     };
 
     if (rawImage.startsWith('blob:')) {
@@ -301,6 +305,17 @@ setUserPosts(userPostsData);
   
   const handleChange = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const hasDocumentSubscription = Boolean((isEditing ? form : savedProfile).is_subscribed);
+  const getLatestProfileRequest = (profile = {}) => {
+    const requests = Array.isArray(profile.profile_update_requests) ? profile.profile_update_requests : [];
+    return requests[0] || profile.profile_update_request || null;
+  };
+  const profileUpdateRequest = getLatestProfileRequest(savedProfile);
+  const profileRequestStatus = String(profileUpdateRequest?.status || '').toLowerCase();
+  const profileRequestStatusMeta = {
+    pending: { label: 'Pending admin approval', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+    approved: { label: 'Approved by admin', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+    rejected: { label: 'Rejected by admin', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+  }[profileRequestStatus] || null;
 
   const handleGoHome = useCallback(() => { 
     if (isEditing) {
@@ -457,35 +472,140 @@ setUserPosts(userPostsData);
 
   const handleSave = async () => {
     const nextName = String(form.name || '').trim();
-    const nextVillage = String(form.village || '').trim();
+    const nextEmail = String(form.email || '').trim().toLowerCase();
     const nextBio = String(form.bio || '').trim();
     const nextContactRaw = String(form.contact_number || '').trim();
     const nextContactDigits = nextContactRaw.replace(/\D/g, '');
+
     if (!nextName) { showToast('Name is required.', 'error'); return; }
+    if (!nextEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) { showToast('Enter a valid email address.', 'error'); return; }
     if (nextContactDigits && nextContactDigits.length !== 10) { showToast('Enter a valid 10-digit mobile number.', 'error'); return; }
-    const updates = { name: nextName, village: nextVillage, bio: nextBio, contact_number: nextContactDigits || '', profile_image: form.profile_image || '' };
-    const hasChanges = updates.name !== (savedProfile.name || '') || updates.village !== (savedProfile.village || '') || updates.bio !== (savedProfile.bio || '') || updates.contact_number !== (savedProfile.contact_number || '') || updates.profile_image !== (savedProfile.profile_image || '');
+
+    // ─── Sirf changed fields ka diff banao ──────────────────────────
+    const prevEmail = String(savedProfile.email || '').trim().toLowerCase();
+    const prevName = savedProfile.name || '';
+    const prevBio = savedProfile.bio || '';
+    const prevContact = savedProfile.contact_number || '';
+
+    const changedFields = {};
+    if (nextName !== prevName) changedFields.name = nextName;
+    if (nextEmail !== prevEmail) changedFields.email = nextEmail;
+    if (nextBio !== prevBio) changedFields.bio = nextBio;
+    if ((nextContactDigits || '') !== prevContact) {
+      changedFields.contact_number = nextContactDigits || '';
+      changedFields.phone_number = nextContactDigits || '';
+      changedFields.mobile_number = nextContactDigits || '';
+    }
+
+    const hasChanges = Object.keys(changedFields).length > 0;
     if (!hasChanges) { showToast('No changes to save.', 'info'); return; }
+    // ─────────────────────────────────────────────────────────────────
+
     setSaving(true);
 
-    // Backend sync
-try {
-  const apiResult = await AuthAPI.updateProfile({
-    name: updates.name,
-    village: updates.village,
-    bio: updates.bio,
-    contact_number: updates.contact_number,
-  });
-  // apiResult.ok check optional - local save hoga waise bhi
-} catch {}
-
-    const updated = await UserStore.updateUser(form.email, updates);
+    const request = {
+      id: `profile-update-${Date.now()}`,
+      status: 'pending',
+      requested_at: new Date().toISOString(),
+      requested_updates: changedFields, // ← sirf changed fields
+    };
+    const existingRequests = Array.isArray(savedProfile.profile_update_requests)
+      ? savedProfile.profile_update_requests
+      : [];
+    const updated = await UserStore.updateUser(savedProfile.account_email || savedProfile.email, {
+      profile_update_request: request,
+      profile_update_requests: [request, ...existingRequests].slice(0, 10),
+      notifications: [
+        {
+          id: `notif-profile-update-${Date.now()}`,
+          title: 'Profile update request sent',
+          message: 'Your profile changes are waiting for admin approval.',
+          date: new Date().toISOString().slice(0, 10),
+          status: 'Unread',
+        },
+        ...((Array.isArray(savedProfile.notifications) ? savedProfile.notifications : [])),
+      ],
+    });
     setSaving(false);
-    if (!updated) { showToast('Error saving profile.', 'error'); return; }
-    const next = { ...savedProfile, ...updates, name: updated.name || updates.name, village: updated.village || updates.village, bio: updated.bio || updates.bio, contact_number: updated.contact_number || updates.contact_number, profile_image: updated.profile_image || updates.profile_image };
+    if (!updated) { showToast('Error sending request.', 'error'); return; }
+    try {
+      const allUsers = await UserStore.getAllUsers();
+      const admins = allUsers.filter((user) => (
+        String(user.role || '').trim().toLowerCase() === 'admin'
+        && String(user.email || '').trim().toLowerCase() !== String(savedProfile.account_email || savedProfile.email || '').trim().toLowerCase()
+      ));
+      await Promise.all(admins.map((admin) => {
+        const adminRequest = {
+          ...request,
+          user_email: savedProfile.account_email || savedProfile.email,
+          user_name: savedProfile.name || savedProfile.email || 'User',
+        };
+        return UserStore.updateUser(admin.email, {
+          profile_update_admin_requests: [
+            adminRequest,
+            ...(Array.isArray(admin.profile_update_admin_requests) ? admin.profile_update_admin_requests : []),
+          ].slice(0, 50),
+          notifications: [
+            {
+              id: `notif-admin-profile-update-${Date.now()}-${admin.email}`,
+              title: 'New profile update request',
+              message: `${savedProfile.name || savedProfile.email || 'User'} requested profile changes.`,
+              date: new Date().toISOString().slice(0, 10),
+              status: 'Unread',
+            },
+            ...((Array.isArray(admin.notifications) ? admin.notifications : [])),
+          ],
+        });
+      }));
+    } catch {}
+    const next = {
+      ...savedProfile,
+      profile_update_request: request,
+      profile_update_requests: [request, ...existingRequests].slice(0, 10),
+      notifications: updated.notifications || savedProfile.notifications || [],
+    };
     setSavedProfile(next); setForm(next); setIsEditing(false);
-    setSuccessMessage('Profile updated successfully.');
+    showToast('Request successfully sent.', 'success');
+    setSuccessMessage('Request successfully sent.');
     setTimeout(() => setSuccessMessage(''), 3000);
+  };
+    
+     
+
+  const renderProfileUpdateRequest = () => {
+    if (!profileUpdateRequest) return null;
+    const requested = profileUpdateRequest.requested_updates || {};
+    return (
+      <View style={{ marginTop: 14, borderWidth: 1, borderColor: profileRequestStatusMeta?.border || '#e2e8f0', backgroundColor: profileRequestStatusMeta?.bg || '#f8fafc', borderRadius: 12, padding: 14, gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Feather name="clock" size={15} color={profileRequestStatusMeta?.color || '#64748b'} />
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#0f172a' }}>Profile Update Request</Text>
+          </View>
+          <Text style={{ fontSize: 12, fontWeight: '800', color: profileRequestStatusMeta?.color || '#64748b' }}>
+            {profileRequestStatusMeta?.label || 'Request saved'}
+          </Text>
+        </View>
+        <Text style={{ fontSize: 12, color: '#64748b' }}>
+          Admin approval ke baad hi profile me changes show honge.
+        </Text>
+        
+          <View style={{ gap: 4 }}>
+          {requested.name !== undefined ? (
+            <Text style={{ fontSize: 12, color: '#334155' }}>Name: <Text style={{ fontWeight: '700' }}>{requested.name || '-'}</Text></Text>
+          ) : null}
+          {requested.email !== undefined ? (
+            <Text style={{ fontSize: 12, color: '#334155' }}>Email: <Text style={{ fontWeight: '700' }}>{requested.email || '-'}</Text></Text>
+          ) : null}
+          {requested.contact_number !== undefined ? (
+            <Text style={{ fontSize: 12, color: '#334155' }}>Phone: <Text style={{ fontWeight: '700' }}>{requested.contact_number || '-'}</Text></Text>
+          ) : null}
+          {requested.bio !== undefined ? (
+            <Text style={{ fontSize: 12, color: '#334155' }} numberOfLines={2}>Bio: <Text style={{ fontWeight: '700' }}>{requested.bio || '-'}</Text></Text>
+          ) : null}
+        </View>
+      </View>
+    );
   };
 
   const displayProfile = isEditing ? form : savedProfile;
@@ -510,16 +630,47 @@ try {
         </Pressable>
       </View>
       <View style={ProfileStyles.formCard}>
+       <View style={{ alignItems: 'center', marginBottom: 20 }}>
+          <View style={{ position: 'relative' }}>
+            <View style={w.avatarWrap}>
+              <Image
+                source={form.profile_image ? { uri: form.profile_image } : DEFAULT_AVATAR}
+                style={w.avatar}
+                resizeMode="cover"
+              />
+            </View>
+            <TouchableOpacity
+              style={{
+                position: 'absolute',
+                bottom: 4,
+                right: 4,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: ORANGE,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 3,
+                borderColor: '#ffffff',
+              }}
+              onPress={handlePickImage}
+              disabled={uploading}
+              activeOpacity={0.85}
+            >
+              <Feather name="camera" size={16} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+          <Text style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
+            {uploading ? 'Opening...' : 'Tap to change photo'}
+          </Text>
+        </View>
+
         <View style={ProfileStyles.sectionHeaderRow}>
           <View style={{ flex: 1 }}>
             <Text style={ProfileStyles.sectionHeading}>Edit Profile</Text>
-            <Text style={ProfileStyles.sectionSubtitle}>Update your basic details and profile photo.</Text>
+            <Text style={ProfileStyles.sectionSubtitle}>Update your basic details.</Text>
             {successMessage ? <Text style={ProfileStyles.successText}>{successMessage}</Text> : null}
           </View>
-          <TouchableOpacity style={ProfileStyles.uploadPill} onPress={handlePickImage} disabled={uploading}>
-            <Feather name="image" size={14} color="#6d3df5" />
-            <Text style={ProfileStyles.uploadPillText}>{uploading ? 'Opening...' : 'Photo'}</Text>
-          </TouchableOpacity>
         </View>
         <View style={ProfileStyles.fieldGrid}>
           <View style={ProfileStyles.fullWidthGroup}>
@@ -531,18 +682,18 @@ try {
           </View>
           <View style={ProfileStyles.fullWidthGroup}>
             <Text style={ProfileStyles.inputLabel}>Email</Text>
-            <View style={[ProfileStyles.inputWrap, ProfileStyles.inputWrapDisabled]}>
+            <View style={ProfileStyles.inputWrap}>
               <Feather name="mail" size={16} color="#8a94a6" />
-              <TextInput style={[ProfileStyles.input, ProfileStyles.inputDisabled]} value={form.email} editable={false} />
+              <TextInput style={ProfileStyles.input} value={form.email} onChangeText={(v) => handleChange('email', v)} placeholder="Enter email address" placeholderTextColor="#94a3b8" keyboardType="email-address" autoCapitalize="none" />
             </View>
           </View>
-          <View style={ProfileStyles.inputGroup}>
+          {/* <View style={ProfileStyles.inputGroup}>
             <Text style={ProfileStyles.inputLabel}>Village</Text>
             <View style={ProfileStyles.inputWrap}>
               <Feather name="home" size={16} color="#8a94a6" />
               <TextInput style={ProfileStyles.input} value={form.village} onChangeText={(v) => handleChange('village', v)} placeholder="Village" placeholderTextColor="#94a3b8" />
             </View>
-          </View>
+          </View> */}
           <View style={ProfileStyles.inputGroup}>
             <Text style={ProfileStyles.inputLabel}>Mobile Number</Text>
             <View style={ProfileStyles.inputWrap}>
@@ -563,9 +714,10 @@ try {
             <Text style={ProfileStyles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity style={ProfileStyles.submitButton} onPress={handleSave} disabled={saving}>
-            <Text style={ProfileStyles.submitButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
+            <Text style={ProfileStyles.submitButtonText}>{saving ? 'Sending...' : 'Admin Approval'}</Text>
           </TouchableOpacity>
         </View>
+        {renderProfileUpdateRequest()}
       </View>
     </View>
   );
@@ -1054,6 +1206,7 @@ try {
                           <Text style={w.editInsideBtnText}>Edit Profile</Text>
                         </Pressable>
                         <Text style={w.sectionTitle}>Profile Details</Text>
+                        {renderProfileUpdateRequest()}
                         <SavedProfileCard
   profile={savedProfile}
   onOpenIdCard={() => openDocumentPreview('id-card')}
@@ -1237,6 +1390,7 @@ try {
                           <Text style={ProfileStyles.cardTitle}>Profile Details</Text>
                         </View>
                       </View>
+                      {renderProfileUpdateRequest()}
                       <SavedProfileCard
   profile={savedProfile}
   onOpenIdCard={() => openDocumentPreview('id-card')}

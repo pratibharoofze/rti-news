@@ -93,7 +93,10 @@ const ResolvedMediaImage = ({ uri, style, resizeMode }) => {
       }
 
       const nextUri = await resolveIdbMediaUriToObjectUrl(uri);
-      if (!alive) return;
+      if (!alive) {
+        if (nextUri && typeof URL !== 'undefined') { try { URL.revokeObjectURL(nextUri); } catch {} }
+        return;
+      }
       objectUrl = nextUri || '';
       setResolvedUri(nextUri || uri);
     };

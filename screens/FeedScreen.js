@@ -1241,7 +1241,7 @@ function ReelCard({ post, onLike, onBookmark, onComment, onShare, onDescription,
   if (!t) { setResolvedThumbnailUrl(null); return; }
   if (isIdbMediaUri(t)) {
     resolveIdbMediaUriToObjectUrl(t).then((url) => {
-      if (!alive) return;
+      if (!alive) { if (url) { try { URL.revokeObjectURL(url); } catch {} } return; }
       objectUrl = url;
       if (url) setResolvedThumbnailUrl(url);
     });
@@ -1278,7 +1278,7 @@ return t || '';
       if (Platform.OS !== 'web') { setResolvedMediaUri(null); return; }
       if (!isIdbMediaUri(mediaUri)) { setResolvedMediaUri(null); return; }
       const next = await resolveIdbMediaUriToObjectUrl(mediaUri);
-      if (!alive) return;
+      if (!alive) { if (next) { try { URL.revokeObjectURL(next); } catch {} } return; }
       objectUrl = next;
       setResolvedMediaUri(next);
     })();

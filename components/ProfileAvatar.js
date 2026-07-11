@@ -43,7 +43,7 @@ export default function ProfileAvatar({
     if (Platform.OS === 'web' && isIdbMediaUri(rawUri)) {
       resolveIdbMediaUriToObjectUrl(rawUri)
         .then((next) => {
-          if (!alive) return;
+          if (!alive) { if (next) { try { URL.revokeObjectURL(next); } catch {} } return; }
           objectUrl = next;
           setResolvedUri(next || null);
         })

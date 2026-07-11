@@ -224,7 +224,7 @@ function useResolvedImageUri(rawUri) {
 
       // Resolve idb-media: → blob:
       const next = await resolveIdbMediaUriToObjectUrl(rawUri);
-      if (!alive) return;
+      if (!alive) { if (next) { try { URL.revokeObjectURL(next); } catch {} } return; }
       objectUrl = next;
       setResolved(next || null);
     })();
@@ -635,7 +635,7 @@ export default function NewsDetailsScreen({ route, navigation }) {
       if (Platform.OS !== 'web') { setResolvedVideoUri(null); return; }
       if (!isIdbMediaUri(videoUri)) { setResolvedVideoUri(null); return; }
       const next = await resolveIdbMediaUriToObjectUrl(videoUri);
-      if (!alive) return;
+      if (!alive) { if (next) { try { URL.revokeObjectURL(next); } catch {} } return; }
       objectUrl = next;
       setResolvedVideoUri(next);
     })();

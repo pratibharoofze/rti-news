@@ -27,7 +27,7 @@ function useResolvedUri(rawUri) {
     if (!rawUri) { setResolved(null); return; }
     if (!isIdbMediaUri(rawUri)) { setResolved(rawUri); return; }
     resolveIdbMediaUriToObjectUrl(rawUri).then((url) => {
-      if (!alive) return;
+      if (!alive) { if (url) { try { URL.revokeObjectURL(url); } catch {} } return; }
       objectUrl = url;
       setResolved(url || null);
     }).catch(() => { if (alive) setResolved(null); });

@@ -63,10 +63,6 @@ function isPlayableVideoSource(uri) {
   return /^https?:/i.test(uri) && /\.(mp4|m4v|mov|webm|ogv|m3u8)(\?.*)?$/i.test(uri);
 }
 
-function buildPlaceholderImage(seedKey) {
-  return `https://picsum.photos/seed/${encodeURIComponent(seedKey || 'news-details')}/960/680`;
-}
-
 function buildLocationLabel(article) {
   const parts = [article?.taluka, article?.district, article?.state]
     .map((value) => String(value || '').trim())
@@ -83,14 +79,12 @@ function normalizeArticle(rawArticle) {
     article.image ||
     '';
 
-  const safeImage = rawImage && rawImage !== 'null' && rawImage !== 'undefined'
-    ? rawImage
-    : buildPlaceholderImage(article.id || article.title);
+  const safeImage = rawImage && rawImage !== 'null' && rawImage !== 'undefined' ? rawImage : '';
 
   // ✅ Gallery: idb-media: URIs bhi include karo (resolve baad mein hoga)
   const galleryImages = Array.isArray(article.images)
     ? article.images.filter((u) => u && String(u).trim() && u !== 'null' && u !== 'undefined')
-    : [safeImage];
+    : (safeImage ? [safeImage] : []);
 
   return {
     id: article.id || 'news-details-fallback',

@@ -8,15 +8,14 @@ import { useToast } from '../components/ui/ToastProvider';
 import LiveStreamingStyles from '../styles/LiveStreamingStyles';
 import { UserStore } from '../store/UserStore';
 import {
-  DEMO_PLAYBACK_URL,
-  DEMO_STREAM_TITLE,
+  DEFAULT_PLAYBACK_URL,
+  DEFAULT_STREAM_TITLE,
   YOUTUBE_RTMPS_URL,
   YOUTUBE_STREAM_KEY_PLACEHOLDER,
 } from '../constants/liveStreamingConfig';
 
 const DEFAULT_RTMP_URL = YOUTUBE_RTMPS_URL;
 const DEFAULT_STREAM_KEY = YOUTUBE_STREAM_KEY_PLACEHOLDER;
-const DEFAULT_PLAYBACK_URL = DEMO_PLAYBACK_URL;
 const isExpoGo = Constants.appOwnership === 'expo';
 const hasNativePublisher =
   UIManager.getViewManagerConfig?.('RTMPPublisher') ||
@@ -27,7 +26,7 @@ export default function LiveBroadcastScreen({ navigation }) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
-    stream_title: DEMO_STREAM_TITLE,
+    stream_title: DEFAULT_STREAM_TITLE,
     stream_url: DEFAULT_PLAYBACK_URL,
     ingest_url: DEFAULT_RTMP_URL,
     stream_key: DEFAULT_STREAM_KEY,
@@ -129,7 +128,7 @@ export default function LiveBroadcastScreen({ navigation }) {
           <Text style={LiveStreamingStyles.heroEyebrow}>Reporter Console</Text>
           <Text style={LiveStreamingStyles.heroTitle}>Broadcast To YouTube RTMP</Text>
           <Text style={LiveStreamingStyles.heroSubtitle}>
-            Configure the YouTube Live encoder target and keep the demo playback URL ready for viewer-side testing.
+            Configure the YouTube Live encoder target and playback URL for viewer-side streaming.
           </Text>
           {isExpoGo || !hasNativePublisher ? (
             <View style={LiveStreamingStyles.infoBox}>
@@ -207,7 +206,7 @@ export default function LiveBroadcastScreen({ navigation }) {
               Copy the stream key from YouTube Studio Live Control Room and paste it here. Replace the stream URL too if Studio shows a different RTMP or RTMPS target.
             </Text>
             <Text style={LiveStreamingStyles.infoText}>Publish target: {publishUrl || 'Not ready'}</Text>
-            <Text style={LiveStreamingStyles.infoText}>Demo playback: {DEFAULT_PLAYBACK_URL}</Text>
+            <Text style={LiveStreamingStyles.infoText}>Playback URL: {form.stream_url || 'Not set'}</Text>
           </View>
 
           <View style={LiveStreamingStyles.actionRow}>

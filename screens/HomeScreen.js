@@ -12,7 +12,7 @@ import { UserStore } from '../store/UserStore';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useToast } from '../components/ui/ToastProvider';
 import { getSiteCopy } from '../constants/siteCopy';
-import { IS_WEB, DEMO_STORIES, FEATURED_STATE_OPTIONS } from '../constants/homeData';
+import { IS_WEB, FEATURED_STATE_OPTIONS } from '../constants/homeData';
 import {
   normalizeStoryItem, dedupeStories, storyMatchesMenu,
   buildHomeStateFromParams, buildPanelContent, buildStateDistrictList, ensureStoryCount,
@@ -501,8 +501,7 @@ export default function HomeScreen({ navigation, route }) {
   };
 
   const allStories = useMemo(() => {
-    const manualStories = DEMO_STORIES.map((item, index) => normalizeStoryItem(item, index)).filter(Boolean);
-    return dedupeStories([...liveStories, ...manualStories]);
+    return dedupeStories(liveStories);
   }, [liveStories]);
 
   const visibleStories = useMemo(() => {

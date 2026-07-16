@@ -1,4 +1,4 @@
-import { SIDEBAR_MENU_ITEMS, STATE_LABELS, FALLBACK_DISTRICT_MAP } from '../constants/homeData';
+import { SIDEBAR_MENU_ITEMS, FALLBACK_DISTRICT_MAP } from '../constants/homeData';
 import { Platform } from 'react-native';
 
 export function stripHtml(value) {
@@ -24,8 +24,8 @@ export function isValidImageUrl(url) {
   return true;
 }
 
-export function buildPlaceholderImage(seedKey) {
-  return `https://picsum.photos/seed/${encodeURIComponent(seedKey)}/900/640`;
+export function buildPlaceholderImage() {
+  return '';
 }
 
 export function getMenuPresentation(menuKey) {
@@ -69,7 +69,7 @@ export function normalizeStoryItem(item, index = 0) {
     (Array.isArray(item.images) ? item.images.find((u) => isValidImageUrl(u)) : '') ||
     (isValidImageUrl(item.image) ? item.image : '') ||
     (isValidImageUrl(item.author_profile_image) ? item.author_profile_image : '');
-  const storyImage = rawImage || buildPlaceholderImage(item.id || `story-${index}`);
+  const storyImage = rawImage || '';
   return {
     id: item.id || `story-${index}`,
     createdBy: String(item.createdBy || item.created_by || '').trim().toLowerCase(),
@@ -98,8 +98,8 @@ export function normalizeStoryItem(item, index = 0) {
     video: item.video || null,
     file: item.file || null,
     mediaType: item.mediaType || (item.video ? 'Video' : 'Image'),
-    date: item.date || '05 May 2026',
-    publishedAgo: item.publishedAgo || 'Updated recently',
+    date: item.date || '',
+    publishedAgo: item.publishedAgo || '',
     views: Number(item.views || 0),
     likes: Number(item.likes || 0),
     comments: Number(item.comments || 0),
@@ -172,79 +172,6 @@ export function buildStateDistrictList(stories, stateName) {
   return uniqueValues([...storyDistricts, ...fallbackDistricts]);
 }
 
-export function createTemplateStory({ storyId, menuKey, stateName, districtName, indexOffset = 0 }) {
-  const menuPresentation = getMenuPresentation(menuKey);
-  const cityName = districtName || 'State Desk';
-  const titleMap = {
-    latest: `${stateName} desk shares a fresh RTI citizen update from ${cityName}`,
-    politics: `${stateName} politics tracker reviews governance files from ${cityName}`,
-    elections: `${stateName} election watch opens a new transparency brief in ${cityName}`,
-    viral: `${stateName} public-interest explainer from ${cityName} is being shared widely`,
-    astrology: `${stateName} audience gets a fresh astrology bulletin from ${cityName}`,
-    horoscope_hindi: `${stateName} Hindi horoscope readers get a new morning bulletin`,
-    horoscope_english: `${stateName} English horoscope desk publishes a fresh daily roundup`,
-    latest_political: `${stateName} political desk highlights new accountability questions in ${cityName}`,
-  };
-  const excerptMap = {
-    latest: 'A quick public-interest summary is highlighting local records, pending replies, and what citizens should track next.',
-    politics: 'The update follows decisions, ministerial responses, and how official files are moving through the system.',
-    elections: 'Voter-facing transparency promises are being compared with on-ground documents and department replies.',
-    viral: 'Community groups are rapidly circulating the story because the issue feels practical, local, and easy to follow.',
-    astrology: 'This lighter-format bulletin keeps readers engaged while the news desk experiments with broader lifestyle coverage.',
-    horoscope_hindi: 'The Hindi-first bulletin is pairing familiar horoscope cues with short newsroom suggestions and timely updates.',
-    horoscope_english: 'The English edition mixes a quick zodiac note with a concise city briefing for returning readers.',
-    latest_political: 'The roundup packages governance updates, public records access, and accountability questions in one place.',
-  };
-  return normalizeStoryItem({
-    id: storyId,
-    title: titleMap[menuKey] || titleMap.latest,
-    excerpt: excerptMap[menuKey] || excerptMap.latest,
-    description: `${excerptMap[menuKey] || excerptMap.latest} This placeholder card keeps every state and category view populated.`,
-    category: menuPresentation.fallbackLabel,
-    menuTags: ['latest', menuKey],
-    state: stateName, district: districtName, taluka: cityName,
-    author_name: 'RTI News Desk',
-    author_profile_image: `https://i.pravatar.cc/96?u=${encodeURIComponent(storyId)}`,
-    author_seat_name: menuPresentation.fallbackLabel,
-    author_is_premium: indexOffset % 2 === 0,
-    image: buildPlaceholderImage(storyId), images: [buildPlaceholderImage(storyId)],
-    date: '05 May 2026', publishedAgo: `${12 + indexOffset * 7} min ago`,
-    views: 18 + indexOffset * 11, likes: 3 + indexOffset * 2, comments: 1 + indexOffset, shares: 1 + indexOffset,
-  }, indexOffset);
-}
-
-export function buildStateStories(stateName, menuKey) {
-  const activeMenuKey = menuKey === 'states' ? 'latest' : menuKey;
-  const fallbackDistricts = FALLBACK_DISTRICT_MAP[stateName] || [`${stateName} Central`, `${stateName} North`, `${stateName} South`];
-  return fallbackDistricts.slice(0, 3).map((districtName, index) =>
-    createTemplateStory({ storyId: `state-story-${stateName}-${index}-${activeMenuKey}`, menuKey: activeMenuKey, stateName, districtName, indexOffset: index })
-  );
-}
-
-export function buildCategoryStories(menuKey) {
-  return ['Maharashtra', 'Uttar Pradesh', 'Karnataka', 'Tamil Nadu', 'West Bengal'].map((stateName, index) =>
-    createTemplateStory({ storyId: `category-story-${menuKey}-${stateName}-${index}`, menuKey, stateName, districtName: `${stateName} Bureau`, indexOffset: index })
-  );
-}
-
-export function ensureStoryCount(stories, { selectedMenuKey, selectedStateName }) {
-  const workingStories = [...stories];
-  const safeMenuKey = selectedMenuKey === 'states' ? 'latest' : selectedMenuKey;
-  if (selectedStateName) {
-    workingStories.push(...buildStateStories(selectedStateName, safeMenuKey));
-  } else if (safeMenuKey && safeMenuKey !== 'latest') {
-    workingStories.push(...buildCategoryStories(safeMenuKey));
-  }
-  const dedupedStories = dedupeStories(workingStories);
-  let autoFillIndex = 0;
-  while (dedupedStories.length < 10) {
-    const fallbackState = selectedStateName || STATE_LABELS[autoFillIndex % STATE_LABELS.length];
-    dedupedStories.push(createTemplateStory({
-      storyId: `autofill-story-${safeMenuKey}-${fallbackState}-${autoFillIndex}`,
-      menuKey: safeMenuKey || 'latest', stateName: fallbackState,
-      districtName: `${fallbackState} Desk`, indexOffset: autoFillIndex,
-    }));
-    autoFillIndex += 1;
-  }
-  return dedupeStories(dedupedStories);
+export function ensureStoryCount(stories) {
+  return dedupeStories(Array.isArray(stories) ? stories : []);
 }

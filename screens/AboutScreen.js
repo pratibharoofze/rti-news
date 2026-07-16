@@ -15,23 +15,9 @@ const values = [
   { icon: '💡', title: 'Empowerment',  desc: "We don't just report news — we educate citizens on how to use RTI to fight corruption and demand accountability.",      color: '#a855f7' },
 ];
 
-const team = [
-  { name: 'Rajesh Kumar',  role: 'Founder & Editor-in-Chief',   bio: 'RTI activist for 15+ years. Former journalist with The Hindu. Fought and won 200+ RTI cases.',              avatar: 'https://i.pravatar.cc/120?u=rajesh-kumar',  badge: 'Founder' },
-  { name: 'Priya Sharma',  role: 'Senior Legal Correspondent',  bio: 'LLB from Delhi University. Covers Supreme Court RTI verdicts and constitutional law updates.',             avatar: 'https://i.pravatar.cc/120?u=priya-sharma',  badge: 'Legal Expert' },
-  { name: 'Amit Patil',    role: 'Maharashtra Bureau Chief',    bio: 'Based in Pune. Specialises in state government transparency and Gram Panchayat RTI filings.',             avatar: 'https://i.pravatar.cc/120?u=amit-patil',    badge: 'Bureau Chief' },
-  { name: 'Deepa Iyer',    role: 'Education & RTI Trainer',     bio: "Conducts RTI workshops in schools and colleges. Has trained over 1 lakh students on citizens' rights.",   avatar: 'https://i.pravatar.cc/120?u=deepa-iyer',    badge: 'Trainer' },
-  { name: 'Vikram Singh',  role: 'Investigations Editor',       bio: 'Award-winning investigative journalist. Exposed major RTI-related corruption cases in 5 states.',         avatar: 'https://i.pravatar.cc/120?u=vikram-singh',  badge: 'Investigator' },
-  { name: 'Kavya Nair',    role: 'Digital & Social Media Head', bio: 'Makes RTI accessible through social media. Runs RTI News YouTube channel with 500K subscribers.',         avatar: 'https://i.pravatar.cc/120?u=kavya-nair',    badge: 'Digital Head' },
-];
+const team = [];
 
-const milestones = [
-  { year: '2015', title: 'RTI News Founded',         desc: 'Started as a blog by Rajesh Kumar to cover RTI case outcomes across India.',             side: 'left'  },
-  { year: '2017', title: 'Went National',            desc: 'Expanded coverage to all 28 states. Hired our first team of 10 reporters.',             side: 'right' },
-  { year: '2019', title: '1 Lakh Readers Milestone', desc: 'Crossed 1 lakh monthly readers. Launched RTI helpline for citizens.',                   side: 'left'  },
-  { year: '2021', title: 'Best RTI Media Award',     desc: 'Received National Press Foundation award for outstanding RTI journalism.',               side: 'right' },
-  { year: '2023', title: 'RTI App Launch',           desc: "Launched India's first RTI news mobile app. 5 lakh downloads in 3 months.",             side: 'left'  },
-  { year: '2026', title: '1.2M Monthly Readers',     desc: 'Reached 1.2 million monthly readers. Expanded to 8 Indian languages.',                  side: 'right' },
-];
+const milestones = [];
 
 const points = [
   '100% independent — no political or corporate funding',
@@ -94,6 +80,8 @@ export default function AboutScreen({ navigation }) {
   const { language } = useLanguage();
   const copy = getSiteCopy(language);
   const aboutCopy = copy.about;
+  const missionImageUri = '';
+  const ctaBannerImageUri = '';
 
   const getWidth = () => {
     if (Platform.OS !== 'web') return 360;
@@ -143,11 +131,13 @@ export default function AboutScreen({ navigation }) {
           <View style={[s.missionCard, isMobile && s.missionCardMobile]}>
             <View style={isMobile ? s.missionRowMobile : s.missionRow}>
               <View style={isMobile ? s.missionImgWrapMobile : s.missionImgWrap}>
-                <Image
-                  source={{ uri: 'https://picsum.photos/700/450?random=300' }}
-                  style={isMobile ? s.missionImgMobile : s.missionImg}
-                  resizeMode="cover"
-                />
+                {missionImageUri ? (
+                  <Image
+                    source={{ uri: missionImageUri }}
+                    style={isMobile ? s.missionImgMobile : s.missionImg}
+                    resizeMode="cover"
+                  />
+                ) : null}
                 <View style={[s.missionBadge, isMobile && s.missionBadgeMobile]}>
                   <Text style={[s.missionBadgeTitle, isMobile && s.missionBadgeTitleMobile]}>11+ Years</Text>
                   <Text style={[s.missionBadgeSub, isMobile && s.missionBadgeSubMobile]}>of RTI Journalism</Text>
@@ -297,7 +287,7 @@ export default function AboutScreen({ navigation }) {
 
           {/* ── CTA Banner ── */}
           <View style={[s.ctaBanner, isMobile && s.ctaBannerMobile]}>
-            <Image source={{ uri: 'https://picsum.photos/1200/200?random=301' }} style={s.ctaBannerImg} resizeMode="cover" />
+            {ctaBannerImageUri ? <Image source={{ uri: ctaBannerImageUri }} style={s.ctaBannerImg} resizeMode="cover" /> : null}
             <View style={s.ctaOverlay} />
             <View style={[s.ctaContent, isMobile && s.ctaContentMobile]}>
               <View style={s.ctaBadgeWrap}>

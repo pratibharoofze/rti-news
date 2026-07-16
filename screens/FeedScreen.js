@@ -47,11 +47,6 @@ function useKeyboardInset() {
   return inset;
 }
 
-// Real video with audio — public domain MP4
-const SAMPLE_REEL_VIDEO       = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-const SAMPLE_REEL_VIDEO_ALT   = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4';
-const SAMPLE_REEL_VIDEO_ALT2  = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
-
 function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
   if (url.startsWith('idb-media:')) return true;
@@ -467,70 +462,6 @@ function DescriptionModal({ visible, onClose, post, onShare, onAddComment, curre
     </Modal>
   );
 }
-
-// Dummy Data
-const DUMMY_POSTS = [
-  {
-    id: '1', user: 'Rahul Sharma', avatar: 'https://i.pravatar.cc/100?img=11',
-    verified: false, role: 'RTI Activist', location: 'Lucknow, Uttar Pradesh', time: '2 min ago',
-    type: 'video', media: SAMPLE_REEL_VIDEO,
-    thumbnail: 'https://picsum.photos/seed/rti1/600/900',
-    headline: 'RTI exposed missing water supply funds!',
-    caption: 'Ward 14 in Lucknow had no water for 3 months. Filed an RTI, got a response in 30 days — pipeline repair budget was finally released. 🎉 #RTI #JanAdhikar #Water',
-    fullDescription: 'Under the Right to Information Act 2005, I filed an application to the Municipal Corporation seeking records of water pipeline maintenance for Ward 14. After initial denial and first appeal, the information was finally provided revealing Rs. 14 lakh allocated for repairs had not been utilized for over 2 years. Following media coverage of the RTI response, the civic body released the funds and work commenced within 15 days. This is the power of RTI — every citizen can hold their government accountable.',
-    likes: 1240, shares: 312,
-    comments: [{ id: 'c1', user: 'Priya Verma', text: 'Great work bhai! 👏' }, { id: 'c2', user: 'Mohan Lal', text: 'RTI is a powerful tool!' }],
-    liked: false, bookmarked: false, tag: 'Success Story', tagColor: '#16a34a',
-  },
-  {
-    id: '2', user: 'Anjali Singh', avatar: 'https://i.pravatar.cc/100?img=47',
-    verified: false, role: 'Teacher', location: 'Bhopal, Madhya Pradesh', time: '15 min ago',
-    type: 'video', media: SAMPLE_REEL_VIDEO_ALT,
-    thumbnail: 'https://picsum.photos/seed/rti2/600/900',
-    headline: 'Where did the school funds go? Filed an RTI!',
-    caption: 'Government Primary School No. 7 had no account of mid-day meal funds. Filed an RTI — documents requested within 20 days. #RTI #Education',
-    fullDescription: 'As a teacher in a government primary school, I noticed discrepancies in the mid-day meal scheme records. Children were not receiving adequate meals despite full budget allocation. I filed an RTI application to the District Education Office requesting meal distribution records and fund utilization reports for the past 3 years. The response revealed significant irregularities which have now been referred to the State Vigilance Commission.',
-    likes: 890, shares: 145,
-    comments: [{ id: 'c3', user: 'Admin RTI', text: 'Best of luck!' }],
-    liked: false, bookmarked: false, tag: 'Application Filed', tagColor: '#2563eb',
-  },
-  {
-    id: '3', user: 'Vikram Patel', avatar: 'https://i.pravatar.cc/100?img=33',
-    verified: false, role: 'Journalist', location: 'Ahmedabad, Gujarat', time: '1 hr ago',
-    type: 'video', media: SAMPLE_REEL_VIDEO_ALT2,
-    thumbnail: 'https://picsum.photos/seed/rti3/600/900',
-    headline: 'Road built after RTI — this is people power!',
-    caption: 'Narol area had no road for 2 years. Filed RTI and PWD started work within 15 days. 🛣️ #RTI #Gujarat',
-    fullDescription: 'The residents of Narol locality had been complaining about a broken road for over 2 years. Multiple petitions went unheard. Using the RTI Act, I filed an application to the Public Works Department asking for the status of funds allocated for road repair under PMGSY. The RTI response revealed the funds had been sitting idle. Within 2 weeks of the RTI response being made public, the PWD commenced road construction. This story proves that transparency is the best weapon against government inaction.',
-    likes: 3120, shares: 890,
-    comments: [{ id: 'c5', user: 'Neha Shah', text: 'Inspiring!' }, { id: 'c6', user: 'Suresh Bhai', text: 'How did you file it?' }],
-    liked: true, bookmarked: false, tag: 'Victory', tagColor: '#d97706',
-  },
-  {
-    id: '4', user: 'Dr. Meera Devi', avatar: 'https://i.pravatar.cc/100?img=25',
-    verified: false, role: 'Doctor & Activist', location: 'Patna, Bihar', time: '3 hrs ago',
-    type: 'video', media: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    thumbnail: 'https://picsum.photos/seed/rti4/600/900',
-    headline: 'Where is the hospital medicine stock?',
-    caption: 'Essential medicines were out of stock at Patna Civil Hospital. Filed an RTI for medicine purchase records. 💊 #RTI #Health',
-    fullDescription: 'Essential medicines including antibiotics, antihypertensives and diabetes medication were consistently out of stock at Patna Civil Hospital for months. Patients were being forced to buy expensive medicines from private pharmacies. I filed an RTI application to the Civil Surgeon office demanding medicine procurement records, stock registers and expenditure statements. The documents revealed systematic pilferage and a parallel black market operation. The matter is now under CBI investigation.',
-    likes: 2050, shares: 567,
-    comments: [{ id: 'c8', user: 'Asha Devi', text: 'Same problem here!' }],
-    liked: false, bookmarked: true, tag: 'Health RTI', tagColor: '#dc2626',
-  },
-  {
-    id: '5', user: 'RTI Portal Official', avatar: 'https://i.pravatar.cc/100?img=60',
-    verified: false, role: 'Official Account', location: 'New Delhi', time: '5 hrs ago',
-    type: 'video', media: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-    thumbnail: 'https://picsum.photos/seed/rti5/600/900',
-    headline: 'File RTI from home — takes just 5 minutes!',
-    caption: '📢 File RTI online at rtionline.gov.in. No fee, no agents! #RTIOnline #DigitalIndia',
-    fullDescription: 'The RTI Online Portal (rtionline.gov.in) allows any Indian citizen to file an RTI application from their home in under 5 minutes. No fee is required for BPL cardholders. The application fee is just Rs. 10 for others (payable online). You can track your application status, receive responses digitally, and file first appeals — all without visiting any government office. Over 2 crore RTI applications have been filed online since 2013. Know your rights, exercise your rights.',
-    likes: 8910, shares: 4200,
-    comments: [{ id: 'c10', user: 'Raj Mishra', text: 'Very useful!' }],
-    liked: false, bookmarked: false, tag: 'Official Update', tagColor: '#7c3aed',
-  },
-];
 
 function feedPostFromNewsItem(item = {}, currentEmail = '') {
   const videoUri = String(
@@ -2175,3 +2106,4 @@ image: item.image || null,
 
   return isWebPlatform && !isMobileLayout ? <WebLayout>{page}</WebLayout> : page;
 }
+

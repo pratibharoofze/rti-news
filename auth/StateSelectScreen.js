@@ -28,6 +28,8 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
       visible={visible}
       transparent
       animationType="slide"
+        statusBarTranslucent={true}
+  presentationStyle="overFullScreen"
       onRequestClose={onClose}
     >
       <TouchableOpacity
@@ -206,11 +208,19 @@ export default function StateSelectScreen({ navigation, route }) {
     setState(String(preselectedState));
   }, [preselectedState]);
 
+
   useEffect(() => {
-    if (!autoOpen) return;
-    setTimeout(() => setStateModal(true), 80);
-    navigation.setParams({ autoOpen: undefined });
-  }, [autoOpen, navigation]);
+  if (autoOpen) {
+    setStateModal(true);
+  }
+}, [autoOpen]);
+
+
+  // useEffect(() => {
+  //   if (!autoOpen) return;
+  //   setTimeout(() => setStateModal(true), 80);
+  //   navigation.setParams({ autoOpen: undefined });
+  // }, [autoOpen, navigation]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -291,11 +301,19 @@ export default function StateSelectScreen({ navigation, route }) {
                 State <Text style={styles.required}>*</Text>
               </Text>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.inputWrap}
                 onPress={() => setStateModal(true)}
                 activeOpacity={0.8}
-              >
+              > */}
+              <TouchableOpacity
+  style={styles.inputWrap}
+  onPress={() => {
+    console.log("Pressed");
+    setStateModal(true);
+  }}
+  activeOpacity={0.8}
+>
                 <Ionicons name="location-outline" size={16} color="#a09890" />
 
                 <Text

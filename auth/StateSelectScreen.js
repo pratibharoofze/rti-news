@@ -10,6 +10,7 @@ import {
   Modal,
   FlatList,
   StyleSheet,
+  
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../components/ui/ToastProvider';
@@ -35,7 +36,7 @@ function DropdownModal({ visible, title, items, selected, onSelect, onClose }) {
         activeOpacity={1}
         onPress={onClose}
       >
-        <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center' }} onPress={() => {}}>
+        <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center', flex:1}} onPress={() => {}}>
       <View style={dropStyles.sheet}>
         <View style={dropStyles.handle} />
 
